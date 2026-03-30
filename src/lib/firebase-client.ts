@@ -10,24 +10,18 @@ import {
   signOut,
 } from "firebase/auth";
 
-const firebaseWebConfig = {
-  apiKey:
-    process.env.NEXT_PUBLIC_FIREBASE_API_KEY ??
-    "AIzaSyDVIBj0IL04by7bWQkTWHbqS_-3Oam2_D0",
-  authDomain:
-    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ??
-    "gen-lang-client-0586185740.firebaseapp.com",
-  projectId:
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "gen-lang-client-0586185740",
-  storageBucket:
-    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ??
-    "gen-lang-client-0586185740.firebasestorage.app",
-  messagingSenderId:
-    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "551520576044",
-  appId:
-    process.env.NEXT_PUBLIC_FIREBASE_APP_ID ??
-    "1:551520576044:web:083f09f90728215ed1a789",
-};
+import { getFirebaseWebConfig } from "./firebase-web-config";
+
+const firebaseWebConfig = getFirebaseWebConfig({
+  NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:
+    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+});
 
 let authInitialization: Promise<ReturnType<typeof getAuth>> | null = null;
 

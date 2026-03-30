@@ -36,11 +36,34 @@ And Firebase Authentication must allow:
 - `localhost`
 - `dailysparks.geledtech.com`
 
+The active Google Web OAuth client must allow this redirect URI:
+
+- `https://dailysparks.geledtech.com/__/auth/handler`
+
 The app uses the existing Growth Education Firebase project by default:
 
 - `gen-lang-client-0586185740`
 
 Google sign-in happens in the browser, and the backend exchanges the Firebase ID token for a secure server session cookie.
+
+The Firebase Web SDK defaults to this browser-facing auth domain:
+
+- `dailysparks.geledtech.com`
+
+Because the app runs on Cloud Run instead of Firebase Hosting, Next.js proxies these helper endpoints through the Daily Sparks domain:
+
+- `/__/auth/*`
+- `/__/firebase/*`
+
+Those helper requests are forwarded to:
+
+- `https://gen-lang-client-0586185740.firebaseapp.com`
+
+If you need to temporarily debug against the project default helper domain, add this local override:
+
+```env
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=gen-lang-client-0586185740.firebaseapp.com
+```
 
 ## Storage Backends
 
@@ -87,6 +110,7 @@ Once those values are present, the server-side store switches from local JSON to
 - For local ADC development, `FIREBASE_PROJECT_ID` should be set even after `gcloud auth application-default login`.
 - Firebase Authentication Google provider must be enabled for the project.
 - The Firebase Auth authorized domains list must include both `localhost` and `dailysparks.geledtech.com`.
+- The Google Web OAuth client must allow `https://dailysparks.geledtech.com/__/auth/handler`.
 
 ## Production Deployment
 
@@ -102,6 +126,7 @@ The production target for this repo is Google Cloud Run.
 - public traffic should enter through the external load balancer and custom domain
 - Firebase Authentication must have Google provider enabled
 - Firebase Authentication must authorize `dailysparks.geledtech.com`
+- Google Web OAuth must allow `https://dailysparks.geledtech.com/__/auth/handler`
 
 ### Build artifact
 
