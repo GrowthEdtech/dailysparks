@@ -1,4 +1,5 @@
 import { applicationDefault, getApps, initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
 import { getFirebaseProjectId } from "./profile-store-config";
@@ -12,18 +13,16 @@ function getFirebaseAdminApp() {
 
   const projectId = getFirebaseProjectId();
 
-  if (!projectId) {
-    throw new Error(
-      "FIREBASE_PROJECT_ID is required when DAILY_SPARKS_STORE_BACKEND=firestore.",
-    );
-  }
-
   return initializeApp({
     credential: applicationDefault(),
-    projectId,
+    projectId: projectId || "gen-lang-client-0586185740",
   });
 }
 
 export function getFirebaseAdminDb() {
   return getFirestore(getFirebaseAdminApp());
+}
+
+export function getFirebaseAdminAuth() {
+  return getAuth(getFirebaseAdminApp());
 }

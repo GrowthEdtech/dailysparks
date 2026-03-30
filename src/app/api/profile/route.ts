@@ -11,6 +11,7 @@ import {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type UpdateProfileBody = {
+  studentName?: unknown;
   goodnotesEmail?: unknown;
   programme?: unknown;
   programmeYear?: unknown;
@@ -40,6 +41,10 @@ function normalizeProgramme(value: unknown) {
   return typeof value === "string" ? value.trim().toUpperCase() : "";
 }
 
+function normalizeString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
 function normalizeProgrammeYear(value: unknown) {
   if (typeof value === "number") {
     return value;
@@ -57,7 +62,7 @@ function isValidEmail(value: string) {
 }
 
 export async function GET(request: Request) {
-  const sessionEmail = getSessionEmailFromRequest(request);
+  const sessionEmail = await getSessionEmailFromRequest(request);
 
   if (!sessionEmail) {
     return unauthorized("Please log in to continue.");
@@ -73,7 +78,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const sessionEmail = getSessionEmailFromRequest(request);
+  const sessionEmail = await getSessionEmailFromRequest(request);
 
   if (!sessionEmail) {
     return unauthorized("Please log in to continue.");
@@ -85,6 +90,7 @@ export async function PUT(request: Request) {
     return badRequest("Please submit a valid request body.");
   }
 
+  const studentName = normalizeString(body.studentName);
   const goodnotesEmail = normalizeEmail(body.goodnotesEmail);
   const programme = normalizeProgramme(body.programme);
   const programmeYear = normalizeProgrammeYear(body.programmeYear);
@@ -102,6 +108,7 @@ export async function PUT(request: Request) {
   }
 
   const profile = await updateStudentPreferences(sessionEmail, {
+    studentName,
     goodnotesEmail,
     programme,
     programmeYear,

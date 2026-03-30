@@ -63,17 +63,20 @@ describe("mvp store", () => {
     });
 
     const updated = await updateStudentPreferences("parent@example.com", {
+      studentName: "Katherine Sparks",
       goodnotesEmail: "katherine@goodnotes.email",
       programme: "MYP",
       programmeYear: 3,
     });
 
+    expect(updated?.student.studentName).toBe("Katherine Sparks");
     expect(updated?.student.goodnotesEmail).toBe("katherine@goodnotes.email");
     expect(updated?.student.programme).toBe("MYP");
     expect(updated?.student.programmeYear).toBe(3);
 
     const reloaded = await getProfileByEmail("parent@example.com");
 
+    expect(reloaded?.student.studentName).toBe("Katherine Sparks");
     expect(reloaded?.student.goodnotesEmail).toBe("katherine@goodnotes.email");
     expect(reloaded?.student.programme).toBe("MYP");
     expect(reloaded?.student.programmeYear).toBe(3);

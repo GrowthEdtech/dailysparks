@@ -1,17 +1,9 @@
 import { getOrCreateParentProfile, getProfileByEmail } from "../../../lib/mvp-store";
-import { createSessionCookieHeader } from "../../../lib/session";
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { createSessionFromIdToken } from "../../../lib/session";
 
 type LoginRequestBody = {
-  email?: unknown;
-  fullName?: unknown;
-  studentName?: unknown;
+  idToken?: unknown;
 };
-
-function isValidEmail(value: string) {
-  return EMAIL_REGEX.test(value);
-}
 
 function badRequest(message: string) {
   return Response.json({ message }, { status: 400 });
@@ -28,30 +20,31 @@ export async function POST(request: Request) {
     return badRequest("Please submit a valid request body.");
   }
 
-  const email = normalizeString(body.email).toLowerCase();
-  const fullName = normalizeString(body.fullName);
-  const studentName = normalizeString(body.studentName);
+  const idToken = normalizeString(body.idToken);
 
-  if (!email || !isValidEmail(email)) {
-    return badRequest("Please enter a valid email address.");
+  if (!idToken) {
+    return badRequest("Please continue with Google to sign in.");
   }
 
-  const existingProfile = await getProfileByEmail(email);
+  try {
+    const session = await createSessionFromIdToken(idToken);
+    const existingProfile = await getProfileByEmail(session.identity.email);
+    const profile = await getOrCreateParentProfile({
+      email: session.identity.email,
+      fullName: session.identity.name,
+      studentName: existingProfile?.student.studentName,
+    });
 
-  if (!existingProfile && !studentName) {
-    return badRequest("Please add your child's name to start the profile.");
+    return Response.json(profile, {
+      status: 200,
+      headers: {
+        "Set-Cookie": session.cookieHeader,
+      },
+    });
+  } catch {
+    return Response.json(
+      { message: "Google sign-in failed. Please try again." },
+      { status: 401 },
+    );
   }
-
-  const profile = await getOrCreateParentProfile({
-    email,
-    fullName,
-    studentName,
-  });
-
-  return Response.json(profile, {
-    status: 200,
-    headers: {
-      "Set-Cookie": createSessionCookieHeader(profile.parent.email),
-    },
-  });
 }

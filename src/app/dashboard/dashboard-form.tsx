@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { BookOpen, LogOut, Save, Send } from "lucide-react";
 
+import { signOutFirebaseClientSession } from "../../lib/firebase-client";
 import {
   getDefaultProgrammeYear,
   getProgrammeYearOptions,
@@ -37,8 +38,18 @@ function getInitials(fullName: string) {
   return pieces.map((piece) => piece[0]?.toUpperCase() ?? "").join("");
 }
 
+function hasMeaningfulStudentName(studentName: string) {
+  const normalizedStudentName = studentName.trim();
+
+  return (
+    normalizedStudentName.length > 0 &&
+    normalizedStudentName.toLowerCase() !== "student"
+  );
+}
+
 export default function DashboardForm({ initialProfile }: DashboardFormProps) {
   const router = useRouter();
+  const [studentName, setStudentName] = useState(initialProfile.student.studentName);
   const [programme, setProgramme] = useState(initialProfile.student.programme);
   const [programmeYear, setProgrammeYear] = useState(
     initialProfile.student.programmeYear,
@@ -61,6 +72,8 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
   const weeklyPlan = getWeeklyPlan(programme, programmeYear);
   const stageLabel = `${programme} Year ${programmeYear}`;
   const hasGoodnotesEmail = goodnotesEmail.trim().length > 0;
+  const hasStudentName = hasMeaningfulStudentName(studentName);
+  const displayStudentName = hasStudentName ? studentName.trim() : "Your child";
 
   function handleProgrammeChange(nextProgramme: Programme) {
     setSuccessMessage("");
@@ -90,6 +103,7 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
           "content-type": "application/json",
         },
         body: JSON.stringify({
+          studentName,
           goodnotesEmail,
           programme,
           programmeYear,
@@ -105,6 +119,7 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
       }
 
       if (body?.student) {
+        setStudentName(body.student.studentName);
         setGoodnotesEmail(body.student.goodnotesEmail);
         setProgramme(body.student.programme);
         setProgrammeYear(body.student.programmeYear);
@@ -138,6 +153,8 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
         return;
       }
 
+      await signOutFirebaseClientSession().catch(() => undefined);
+
       startTransition(() => {
         router.push("/login");
         router.refresh();
@@ -157,7 +174,7 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
               Parent dashboard
             </p>
             <h1 className="mt-2 text-2xl font-bold">
-              {initialProfile.student.studentName}&apos;s reading profile
+              {displayStudentName}&apos;s reading profile
             </h1>
             <p className="mt-1 text-sm text-slate-300">
               Logged in as {initialProfile.parent.email}
@@ -188,6 +205,48 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
             {isLoggingOut || isPending ? "Logging out..." : "Log out"}
           </button>
         </section>
+
+        {!hasStudentName ? (
+          <section className="rounded-3xl border border-[#fbbf24]/30 bg-[#fff7dd] p-6 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b45309]">
+              One last setup detail
+            </p>
+            <h2 className="mt-2 text-xl font-bold text-[#0f172a]">
+              Add your child&apos;s first name
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              We use it across reading briefs, weekly plans, and delivery notes.
+            </p>
+
+            <label className="mt-4 flex flex-col gap-2">
+              <span className="text-sm font-semibold text-slate-700">
+                Child name
+              </span>
+              <input
+                className="rounded-2xl border border-[#fbbf24]/30 bg-white px-4 py-3 text-base outline-none transition focus:border-[#f59e0b]"
+                type="text"
+                value={studentName === "Student" ? "" : studentName}
+                onChange={(event) => setStudentName(event.target.value)}
+                placeholder="Katherine"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={
+                isSaving ||
+                isLoggingOut ||
+                isPending ||
+                !hasMeaningfulStudentName(studentName)
+              }
+              className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Save className="h-4 w-4" />
+              {isSaving || isPending ? "Saving..." : "Save child name"}
+            </button>
+          </section>
+        ) : null}
 
         <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">

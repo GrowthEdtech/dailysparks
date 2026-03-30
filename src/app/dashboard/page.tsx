@@ -3,13 +3,11 @@ import { redirect } from "next/navigation";
 
 import DashboardForm from "./dashboard-form";
 import { getProfileByEmail } from "../../lib/mvp-store";
-import { SESSION_COOKIE_NAME } from "../../lib/session";
+import { getSessionFromCookieStore } from "../../lib/session";
 
 export default async function DashboardPage() {
-  const sessionCookie = (await cookies()).get(SESSION_COOKIE_NAME);
-  const sessionEmail = sessionCookie?.value
-    ? decodeURIComponent(sessionCookie.value)
-    : null;
+  const session = await getSessionFromCookieStore(await cookies());
+  const sessionEmail = session?.email ?? null;
 
   if (!sessionEmail) {
     redirect("/login");

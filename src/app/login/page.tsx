@@ -2,12 +2,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import LoginForm from "./login-form";
-import { SESSION_COOKIE_NAME } from "../../lib/session";
+import { getSessionFromCookieStore } from "../../lib/session";
 
 export default async function LoginPage() {
-  const sessionCookie = (await cookies()).get(SESSION_COOKIE_NAME);
+  const session = await getSessionFromCookieStore(await cookies());
 
-  if (sessionCookie?.value) {
+  if (session) {
     redirect("/dashboard");
   }
 

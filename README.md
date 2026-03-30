@@ -2,10 +2,11 @@
 
 Daily Sparks is a Next.js MVP for IB families. The current app supports:
 
-- a lightweight email-based parent login
+- Google-only parent login with secure server sessions
 - a dashboard for programme and year selection
 - a generated weekly reading plan
 - delivery channel preferences for Goodnotes and Notion
+- a first-login child-name onboarding step inside the dashboard
 
 ## Getting Started
 
@@ -18,19 +19,42 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Authentication
+
+Daily Sparks now uses Firebase Authentication for parent sign-in.
+
+### Local requirements
+
+For local Google login to work, you need:
+
+```bash
+gcloud auth application-default login
+```
+
+And Firebase Authentication must allow:
+
+- `localhost`
+- `dailysparks.geledtech.com`
+
+The app uses the existing Growth Education Firebase project by default:
+
+- `gen-lang-client-0586185740`
+
+Google sign-in happens in the browser, and the backend exchanges the Firebase ID token for a secure server session cookie.
+
 ## Storage Backends
 
 The app supports two persistence modes.
 
 ### Default: local JSON store
 
-If you do nothing, the app stores data in:
+If you do nothing, the app still stores profile data in:
 
 ```bash
 data/mvp-store.json
 ```
 
-This is the safest mode for local MVP work and tests.
+This is the safest mode for local MVP work and tests. Authentication still goes through Firebase Google sign-in.
 
 ### Optional: Firestore with Application Default Credentials
 
@@ -61,6 +85,8 @@ Once those values are present, the server-side store switches from local JSON to
 - If `DAILY_SPARKS_STORE_BACKEND` is not set to `firestore`, the app falls back to the local JSON store.
 - `.env.local` is ignored by git and should stay local.
 - For local ADC development, `FIREBASE_PROJECT_ID` should be set even after `gcloud auth application-default login`.
+- Firebase Authentication Google provider must be enabled for the project.
+- The Firebase Auth authorized domains list must include both `localhost` and `dailysparks.geledtech.com`.
 
 ## Production Deployment
 
@@ -74,6 +100,8 @@ The production target for this repo is Google Cloud Run.
 - the app expects `FIREBASE_PROJECT_ID`
 - Cloud Run ingress should stay `internal-and-cloud-load-balancing`
 - public traffic should enter through the external load balancer and custom domain
+- Firebase Authentication must have Google provider enabled
+- Firebase Authentication must authorize `dailysparks.geledtech.com`
 
 ### Build artifact
 

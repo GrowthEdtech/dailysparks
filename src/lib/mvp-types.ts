@@ -74,6 +74,7 @@ export type CreateParentProfileInput = {
 };
 
 export type UpdateStudentPreferencesInput = {
+  studentName: string;
   programme: Programme;
   programmeYear: number;
   goodnotesEmail: string;

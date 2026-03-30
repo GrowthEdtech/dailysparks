@@ -208,6 +208,7 @@ export const firestoreProfileStore: ProfileStore = {
       return null;
     }
 
+    student.studentName = input.studentName.trim() || student.studentName;
     student.programme = input.programme;
     student.programmeYear = input.programmeYear;
     student.goodnotesEmail = input.goodnotesEmail.trim();

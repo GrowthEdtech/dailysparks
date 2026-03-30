@@ -1,54 +1,82 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { ArrowRight } from "lucide-react";
+
+import { signInWithGooglePopup, signOutFirebaseClientSession } from "../../lib/firebase-client";
 
 type LoginResponse = {
   message?: string;
 };
 
+function getGoogleLoginErrorMessage(error: unknown) {
+  const code =
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+      ? error.code
+      : "";
+
+  if (code === "auth/popup-blocked") {
+    return "Your browser blocked the Google sign-in popup. Please allow popups and try again.";
+  }
+
+  if (
+    code === "auth/popup-closed-by-user" ||
+    code === "auth/cancelled-popup-request"
+  ) {
+    return "Google sign-in was cancelled before completion.";
+  }
+
+  if (code === "auth/unauthorized-domain") {
+    return "This domain is not yet authorized for Firebase Authentication.";
+  }
+
+  return "We could not complete Google sign-in. Please try again.";
+}
+
 export default function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [studentName, setStudentName] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleGoogleLogin() {
     setErrorMessage("");
     setIsSubmitting(true);
 
     try {
+      const credential = await signInWithGooglePopup();
+      const idToken = await credential.user.getIdToken();
       const response = await fetch("/api/login", {
         method: "POST",
         headers: {
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          email,
-          fullName,
-          studentName,
+          idToken,
         }),
       });
 
       const body = (await response.json().catch(() => null)) as LoginResponse | null;
 
       if (!response.ok) {
+        await signOutFirebaseClientSession().catch(() => undefined);
         setErrorMessage(body?.message ?? "We could not start your profile.");
         setIsSubmitting(false);
         return;
       }
 
+      await signOutFirebaseClientSession().catch(() => undefined);
+
       startTransition(() => {
         router.push("/dashboard");
         router.refresh();
       });
-    } catch {
-      setErrorMessage("We could not reach the local API. Please try again.");
+    } catch (error) {
+      setErrorMessage(getGoogleLoginErrorMessage(error));
       setIsSubmitting(false);
     }
   }
@@ -67,53 +95,17 @@ export default function LoginForm() {
 
         <div className="rounded-[32px] border border-white/10 bg-white/95 p-8 text-[#0f172a] shadow-2xl shadow-black/30">
           <p className="text-sm font-medium uppercase tracking-[0.24em] text-[#f59e0b]">
-            MVP login
+            Secure sign-in
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight">
-            No password. Just your setup details.
+            Continue with Google.
           </h2>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            We will create a local parent profile on this device and take you
-            straight into the dashboard.
+            Use the Google account tied to your family workflow. If this is your
+            first visit, we&apos;ll collect your child&apos;s name in the dashboard.
           </p>
 
-          <form className="mt-8 flex flex-col gap-4" onSubmit={handleSubmit}>
-            <label className="flex flex-col gap-2">
-              <span className="text-sm font-semibold text-slate-700">Parent email</span>
-              <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-[#fbbf24] focus:bg-white"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="parent@example.com"
-                autoComplete="email"
-                required
-              />
-            </label>
-
-            <label className="flex flex-col gap-2">
-              <span className="text-sm font-semibold text-slate-700">Parent name</span>
-              <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-[#fbbf24] focus:bg-white"
-                type="text"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                placeholder="Jamie Doe"
-              />
-            </label>
-
-            <label className="flex flex-col gap-2">
-              <span className="text-sm font-semibold text-slate-700">Child name</span>
-              <input
-                className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-[#fbbf24] focus:bg-white"
-                type="text"
-                value={studentName}
-                onChange={(event) => setStudentName(event.target.value)}
-                placeholder="Katherine"
-                required
-              />
-            </label>
-
+          <div className="mt-8 flex flex-col gap-4">
             {errorMessage ? (
               <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {errorMessage}
@@ -121,20 +113,21 @@ export default function LoginForm() {
             ) : null}
 
             <button
-              type="submit"
+              type="button"
+              onClick={handleGoogleLogin}
               disabled={isSubmitting || isPending}
               className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#fbbf24] px-5 py-4 text-base font-bold text-[#0f172a] shadow-lg shadow-[#fbbf24]/30 transition hover:bg-[#f59e0b] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting || isPending
                 ? "Opening dashboard..."
-                : "Continue to dashboard"}
+                : "Continue with Google"}
               <ArrowRight className="h-5 w-5" />
             </button>
-          </form>
+          </div>
 
           <p className="mt-5 text-xs leading-5 text-slate-500">
-            This local MVP stores profile data in a file on this machine. It is
-            designed for demos and product iteration, not production accounts.
+            Daily Sparks verifies your Google identity on the server and creates
+            a secure parent session before opening the dashboard.
           </p>
         </div>
       </div>
