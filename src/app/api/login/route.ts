@@ -26,8 +26,23 @@ export async function POST(request: Request) {
     return badRequest("Please continue with Google to sign in.");
   }
 
+  let session;
+
   try {
-    const session = await createSessionFromIdToken(idToken);
+    session = await createSessionFromIdToken(idToken);
+  } catch (error) {
+    console.error("login route: failed to create Firebase session", error);
+
+    return Response.json(
+      {
+        message:
+          "Google sign-in succeeded, but Daily Sparks could not create a secure session. Please try again.",
+      },
+      { status: 401 },
+    );
+  }
+
+  try {
     const existingProfile = await getProfileByEmail(session.identity.email);
     const profile = await getOrCreateParentProfile({
       email: session.identity.email,
@@ -41,10 +56,15 @@ export async function POST(request: Request) {
         "Set-Cookie": session.cookieHeader,
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("login route: failed to load or create parent profile", error);
+
     return Response.json(
-      { message: "Google sign-in failed. Please try again." },
-      { status: 401 },
+      {
+        message:
+          "Google sign-in succeeded, but Daily Sparks could not load your parent profile. Please try again.",
+      },
+      { status: 503 },
     );
   }
 }
