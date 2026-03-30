@@ -4,7 +4,8 @@ set -euo pipefail
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-gen-lang-client-0586185740}"
 SERVICE_NAME="${SERVICE_NAME:-dailysparks-web}"
 REGION="${REGION:-asia-east2}"
-IMAGE="gcr.io/${PROJECT_ID}/${SERVICE_NAME}:$(git rev-parse --short HEAD)"
+REPOSITORY="${REPOSITORY:-cloud-run-source-deploy}"
+IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${SERVICE_NAME}:$(git rev-parse --short HEAD)"
 
 echo "Building image: ${IMAGE}"
 gcloud builds submit --tag "${IMAGE}"
