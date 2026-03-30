@@ -72,6 +72,8 @@ The production target for this repo is Google Cloud Run.
 - local JSON storage is not allowed in production
 - the app expects `DAILY_SPARKS_STORE_BACKEND=firestore`
 - the app expects `FIREBASE_PROJECT_ID`
+- Cloud Run ingress should stay `internal-and-cloud-load-balancing`
+- public traffic should enter through the external load balancer and custom domain
 
 ### Build artifact
 
@@ -79,6 +81,7 @@ The app uses Next.js standalone output and ships with:
 
 - `Dockerfile`
 - `scripts/deploy-cloud-run.sh`
+- `scripts/setup-uptime-check.sh`
 
 ### One-time setup
 
@@ -101,6 +104,34 @@ Authenticate with Google Cloud, then run:
 chmod +x scripts/deploy-cloud-run.sh
 ./scripts/deploy-cloud-run.sh
 ```
+
+This deploy script keeps the service behind the load balancer by setting:
+
+- `--ingress internal-and-cloud-load-balancing`
+
+### Custom domain
+
+Production is served from:
+
+- `https://dailysparks.geledtech.com`
+
+HTTP should redirect to HTTPS through the external load balancer.
+
+### Monitoring
+
+Create the production uptime check with:
+
+```bash
+chmod +x scripts/setup-uptime-check.sh
+./scripts/setup-uptime-check.sh
+```
+
+The default uptime check targets:
+
+- `https://dailysparks.geledtech.com/`
+- 1 minute period
+- 10 second timeout
+- SSL validation enabled
 
 Optional overrides:
 

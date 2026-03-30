@@ -15,5 +15,6 @@ gcloud run deploy "${SERVICE_NAME}" \
   --image "${IMAGE}" \
   --platform managed \
   --region "${REGION}" \
+  --ingress internal-and-cloud-load-balancing \
   --allow-unauthenticated \
   --set-env-vars "NODE_ENV=production,DAILY_SPARKS_STORE_BACKEND=firestore,FIREBASE_PROJECT_ID=${PROJECT_ID}"
