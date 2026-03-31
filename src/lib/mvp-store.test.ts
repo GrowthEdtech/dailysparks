@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   getOrCreateParentProfile,
   getProfileByEmail,
+  updateParentSubscription,
   updateStudentPreferences,
 } from "./mvp-store";
 
@@ -34,6 +35,7 @@ describe("mvp store", () => {
 
     expect(profile.parent.email).toBe("parent@example.com");
     expect(profile.parent.fullName).toBe("Parent Example");
+    expect(profile.parent.subscriptionPlan).toBeNull();
     expect(profile.student.studentName).toBe("Katherine");
     expect(profile.student.programme).toBe("PYP");
     expect(profile.student.programmeYear).toBe(5);
@@ -80,6 +82,26 @@ describe("mvp store", () => {
     expect(reloaded?.student.goodnotesEmail).toBe("katherine@goodnotes.email");
     expect(reloaded?.student.programme).toBe("MYP");
     expect(reloaded?.student.programmeYear).toBe(3);
+  });
+
+  test("updates parent billing selection and persists it", async () => {
+    await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    const updated = await updateParentSubscription("parent@example.com", {
+      subscriptionPlan: "yearly",
+    });
+
+    expect(updated?.parent.subscriptionPlan).toBe("yearly");
+    expect(updated?.parent.subscriptionStatus).toBe("trial");
+
+    const reloaded = await getProfileByEmail("parent@example.com");
+
+    expect(reloaded?.parent.subscriptionPlan).toBe("yearly");
+    expect(reloaded?.parent.subscriptionStatus).toBe("trial");
   });
 
   test("normalizes legacy student records without programme fields", async () => {

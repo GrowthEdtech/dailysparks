@@ -7,11 +7,13 @@ import type {
   ParentRecord,
   Programme,
   StudentRecord,
+  SubscriptionPlan,
 } from "./mvp-types";
 import {
   DEFAULT_PROGRAMME,
   getDefaultProgrammeYear,
   isProgramme,
+  isSubscriptionPlan,
   isValidProgrammeYear,
 } from "./mvp-types";
 import type { ProfileStore } from "./profile-store";
@@ -36,6 +38,11 @@ function createEmptyStore(): MvpStoreData {
 
 function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
   const timestamp = new Date().toISOString();
+  const subscriptionPlan =
+    typeof raw.subscriptionPlan === "string" &&
+    isSubscriptionPlan(raw.subscriptionPlan)
+      ? raw.subscriptionPlan
+      : null;
 
   return {
     id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
@@ -51,6 +58,7 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
       raw.subscriptionStatus === "canceled"
         ? raw.subscriptionStatus
         : "trial",
+    subscriptionPlan,
     createdAt: typeof raw.createdAt === "string" ? raw.createdAt : timestamp,
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : timestamp,
   };
@@ -177,6 +185,7 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     email,
     fullName,
     subscriptionStatus: "trial",
+    subscriptionPlan: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -294,6 +303,29 @@ export const localProfileStore: ProfileStore = {
     student.goodnotesEmail = input.goodnotesEmail.trim();
     student.updatedAt = new Date().toISOString();
     parent.updatedAt = student.updatedAt;
+
+    await writeStore(store);
+
+    return toProfile(parent, student);
+  },
+
+  async updateParentSubscription(email, input) {
+    const normalizedEmail = normalizeEmail(email);
+    const store = await readStore();
+    const parent = store.parents.find((record) => record.email === normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = findStudentForParent(store, parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    parent.subscriptionPlan = input.subscriptionPlan as SubscriptionPlan;
+    parent.updatedAt = new Date().toISOString();
 
     await writeStore(store);
 

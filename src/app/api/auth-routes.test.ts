@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { GET as getProfile, PUT as updateProfile } from "./profile/route";
+import { PUT as updateBilling } from "./billing/route";
 import { POST as login } from "./login/route";
 import { POST as logout } from "./logout/route";
 import { SESSION_COOKIE_NAME } from "../../lib/session";
@@ -264,6 +265,78 @@ describe("auth routes", () => {
     expect(body.student.studentName).toBe("Katherine");
     expect(body.student.programme).toBe("DP");
     expect(body.student.programmeYear).toBe(2);
+  });
+
+  test("rejects invalid billing plan updates", async () => {
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+
+    const response = await updateBilling(
+      new Request("http://localhost:3000/api/billing", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+        body: JSON.stringify({
+          subscriptionPlan: "lifetime",
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.message).toMatch(/monthly|yearly|plan/i);
+  });
+
+  test("updates the parent billing selection", async () => {
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    const response = await updateBilling(
+      new Request("http://localhost:3000/api/billing", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+        body: JSON.stringify({
+          subscriptionPlan: "monthly",
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.parent.subscriptionPlan).toBe("monthly");
+    expect(body.parent.subscriptionStatus).toBe("trial");
   });
 
   test("clears the session cookie on logout", async () => {

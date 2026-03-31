@@ -2,8 +2,13 @@ import type {
   ParentProfile,
   ParentRecord,
   StudentRecord,
+  SubscriptionPlan,
 } from "./mvp-types";
-import { DEFAULT_PROGRAMME, getDefaultProgrammeYear } from "./mvp-types";
+import {
+  DEFAULT_PROGRAMME,
+  getDefaultProgrammeYear,
+  isSubscriptionPlan,
+} from "./mvp-types";
 import { getFirebaseAdminDb } from "./firebase-admin";
 import type { ProfileStore } from "./profile-store";
 
@@ -16,6 +21,10 @@ function normalizeParentRecord(
   raw: Partial<ParentRecord> | undefined,
 ): ParentRecord {
   const timestamp = new Date().toISOString();
+  const subscriptionPlan =
+    typeof raw?.subscriptionPlan === "string" && isSubscriptionPlan(raw.subscriptionPlan)
+      ? raw.subscriptionPlan
+      : null;
 
   return {
     id,
@@ -28,6 +37,7 @@ function normalizeParentRecord(
       raw?.subscriptionStatus === "canceled"
         ? raw.subscriptionStatus
         : "trial",
+    subscriptionPlan,
     createdAt: raw?.createdAt || timestamp,
     updatedAt: raw?.updatedAt || timestamp,
   };
@@ -108,6 +118,7 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     email,
     fullName,
     subscriptionStatus: "trial",
+    subscriptionPlan: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -216,6 +227,29 @@ export const firestoreProfileStore: ProfileStore = {
     parent.updatedAt = student.updatedAt;
 
     await db.collection("students").doc(student.id).set(student);
+    await db.collection("parents").doc(parent.id).set(parent);
+
+    return toProfile(parent, student);
+  },
+
+  async updateParentSubscription(email, input) {
+    const db = getFirebaseAdminDb();
+    const normalizedEmail = normalizeEmail(email);
+    const parent = await findParentByEmail(normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = await findStudentByParentId(parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    parent.subscriptionPlan = input.subscriptionPlan as SubscriptionPlan;
+    parent.updatedAt = new Date().toISOString();
+
     await db.collection("parents").doc(parent.id).set(parent);
 
     return toProfile(parent, student);

@@ -4,6 +4,7 @@ Daily Sparks is a Next.js MVP for IB families. The current app supports:
 
 - Google-only parent login with secure server sessions
 - a dashboard for programme and year selection
+- a dedicated billing page with monthly and yearly plan selection
 - a generated weekly reading plan
 - delivery channel preferences for Goodnotes and Notion
 - a first-login child-name onboarding step inside the dashboard

@@ -35,12 +35,23 @@ export function getDefaultProgrammeYear(programme: Programme) {
 }
 
 export type SubscriptionStatus = "free" | "trial" | "active" | "canceled";
+export const SUBSCRIPTION_PLANS = ["monthly", "yearly"] as const;
+export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number] | null;
+
+export function isSubscriptionPlan(
+  value: string,
+): value is (typeof SUBSCRIPTION_PLANS)[number] {
+  return SUBSCRIPTION_PLANS.includes(
+    value as (typeof SUBSCRIPTION_PLANS)[number],
+  );
+}
 
 export type ParentRecord = {
   id: string;
   email: string;
   fullName: string;
   subscriptionStatus: SubscriptionStatus;
+  subscriptionPlan: SubscriptionPlan;
   createdAt: string;
   updatedAt: string;
 };
@@ -78,4 +89,8 @@ export type UpdateStudentPreferencesInput = {
   programme: Programme;
   programmeYear: number;
   goodnotesEmail: string;
+};
+
+export type UpdateParentSubscriptionInput = {
+  subscriptionPlan: (typeof SUBSCRIPTION_PLANS)[number];
 };
