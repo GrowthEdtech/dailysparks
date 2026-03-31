@@ -110,8 +110,8 @@ describe("mvp store", () => {
       latestInvoiceStatus: "paid",
       latestInvoiceHostedUrl: "https://invoice.stripe.com/i/in_123",
       latestInvoicePdfUrl: "https://pay.stripe.com/invoice/in_123/pdf",
-      latestInvoiceAmountPaid: 1500,
-      latestInvoiceCurrency: "usd",
+      latestInvoiceAmountPaid: 29999,
+      latestInvoiceCurrency: "hkd",
       latestInvoicePaidAt: "2026-03-31T00:01:00.000Z",
       latestInvoicePeriodStart: "2026-03-31T00:00:00.000Z",
       latestInvoicePeriodEnd: "2026-04-30T00:00:00.000Z",
@@ -136,8 +136,8 @@ describe("mvp store", () => {
     expect(updated?.parent.latestInvoicePdfUrl).toBe(
       "https://pay.stripe.com/invoice/in_123/pdf",
     );
-    expect(updated?.parent.latestInvoiceAmountPaid).toBe(1500);
-    expect(updated?.parent.latestInvoiceCurrency).toBe("usd");
+    expect(updated?.parent.latestInvoiceAmountPaid).toBe(29999);
+    expect(updated?.parent.latestInvoiceCurrency).toBe("hkd");
     expect(updated?.parent.latestInvoicePaidAt).toBe(
       "2026-03-31T00:01:00.000Z",
     );
@@ -169,8 +169,8 @@ describe("mvp store", () => {
     expect(reloaded?.parent.latestInvoicePdfUrl).toBe(
       "https://pay.stripe.com/invoice/in_123/pdf",
     );
-    expect(reloaded?.parent.latestInvoiceAmountPaid).toBe(1500);
-    expect(reloaded?.parent.latestInvoiceCurrency).toBe("usd");
+    expect(reloaded?.parent.latestInvoiceAmountPaid).toBe(29999);
+    expect(reloaded?.parent.latestInvoiceCurrency).toBe("hkd");
     expect(reloaded?.parent.latestInvoicePaidAt).toBe(
       "2026-03-31T00:01:00.000Z",
     );

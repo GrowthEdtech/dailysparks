@@ -228,18 +228,18 @@ export default function Home() {
         <div className="grid md:grid-cols-2 gap-8 items-stretch pt-8">
           {/* Basic Plan */}
           <div className="bg-white/5 border border-white/10 rounded-[32px] p-10 flex flex-col hover:border-white/20 transition-all">
-            <h3 className="text-xl font-bold text-white mb-2">Basic Spark</h3>
-            <p className="text-[#94a3b8] text-sm mb-6">Perfect for focused daily reading.</p>
+            <h3 className="text-xl font-bold text-white mb-2">Monthly</h3>
+            <p className="text-[#94a3b8] text-sm mb-6">Flexible access for families who want to start right away.</p>
             <div className="text-5xl font-extrabold text-white mb-8">
-              $9 <span className="text-lg font-medium text-[#64748b]">/ mo</span>
+              HK$29.99 <span className="text-lg font-medium text-[#64748b]">/ month</span>
             </div>
             
             <ul className="space-y-4 mb-10 flex-1">
               {[
-                "Daily 1000-word PDF Analysis",
-                "Strict TED-Talk Transcript Layout",
-                "Weekly News & Science Focus",
-                "Email Delivery for Printing"
+                "Full Daily Sparks reading flow",
+                "GoodNotes delivery support",
+                "Cancel anytime from billing",
+                "7-day trial starts on first sign-in"
               ].map(item => (
                 <li key={item} className="flex items-center gap-3 text-sm text-[#cbd5e1]">
                   <CheckCircle2 className="w-4 h-4 text-[#fbbf24]" /> {item}
@@ -248,28 +248,27 @@ export default function Home() {
             </ul>
 
             <button className="w-full py-4 rounded-xl border border-white/10 hover:bg-white/5 text-white font-bold transition-all">
-              Choose Basic
+              Choose Monthly
             </button>
           </div>
 
-          {/* Pro Plan */}
+          {/* Yearly Plan */}
           <div className="bg-gradient-to-br from-white to-slate-50 rounded-[32px] p-10 flex flex-col relative shadow-2xl shadow-[#fbbf24]/10 transform scale-105 border-4 border-[#fbbf24]">
             <div className="absolute -top-4 right-8 bg-[#fbbf24] text-[#0f172a] px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest">
               Most Popular
             </div>
-            <h3 className="text-xl font-bold text-[#0f172a] mb-2">Pro Mastery</h3>
-            <p className="text-gray-500 text-sm mb-6">The full IB preparation engine.</p>
+            <h3 className="text-xl font-bold text-[#0f172a] mb-2">Yearly</h3>
+            <p className="text-gray-500 text-sm mb-6">Best value for families building a full-year reading habit.</p>
             <div className="text-5xl font-extrabold text-[#0f172a] mb-8">
-              $15 <span className="text-lg font-medium text-gray-400">/ mo</span>
+              HK$299.99 <span className="text-lg font-medium text-gray-400">/ year</span>
             </div>
             
             <ul className="space-y-4 mb-10 flex-1">
               {[
-                "All Basic features",
-                "Direct GoodNotes Automated Delivery",
-                "Notion Database Real-time Sync",
-                "Custom IB Subject Selections",
-                "Writing Challenge Archive (Dashboard)"
+                "Everything in Monthly",
+                "12 months of IB reading support",
+                "Save HK$59.89 vs monthly billing",
+                "Effective ~HK$25 / month pricing"
               ].map(item => (
                 <li key={item} className="flex items-center gap-3 text-sm text-gray-700">
                   <CheckCircle2 className="w-4 h-4 text-[#fbbf24]" /> <span className="font-medium">{item}</span>
@@ -278,7 +277,7 @@ export default function Home() {
             </ul>
 
             <button className="w-full py-4 rounded-xl bg-[#0f172a] text-white font-bold hover:bg-slate-800 transition-all shadow-xl shadow-black/20">
-              Start Pro Free Trial
+              Choose Yearly
             </button>
           </div>
         </div>

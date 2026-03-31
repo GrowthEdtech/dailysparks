@@ -23,7 +23,7 @@ export const BILLING_PLAN_DEFINITIONS = [
   {
     id: "monthly",
     name: "Monthly",
-    price: "$15",
+    price: "HK$29.99",
     cadence: "/ month",
     eyebrow: "Flexible access",
     description: "Keep Daily Sparks on a month-to-month rhythm with full dashboard access.",
@@ -37,14 +37,14 @@ export const BILLING_PLAN_DEFINITIONS = [
   {
     id: "yearly",
     name: "Yearly",
-    price: "$144",
+    price: "HK$299.99",
     cadence: "/ year",
     eyebrow: "Best value",
-    description: "Commit to a full year and save 20% versus paying monthly.",
+    description: "Commit to a full year and save HK$59.89 versus paying monthly.",
     bullets: [
       "Everything in Monthly",
       "12 months of IB reading support",
-      "Effective $12 / month pricing",
+      "Effective ~HK$25 / month pricing",
     ],
     cta: "Select yearly",
   },

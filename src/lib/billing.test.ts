@@ -1,7 +1,11 @@
 import { describe, expect, test } from "vitest";
 
 import type { ParentRecord } from "./mvp-types";
-import { getLatestInvoiceSummary, getSubscriptionPlanBadgeLabel } from "./billing";
+import {
+  BILLING_PLAN_DEFINITIONS,
+  getLatestInvoiceSummary,
+  getSubscriptionPlanBadgeLabel,
+} from "./billing";
 
 function createParentRecord(overrides: Partial<ParentRecord> = {}): ParentRecord {
   return {
@@ -33,6 +37,23 @@ function createParentRecord(overrides: Partial<ParentRecord> = {}): ParentRecord
 }
 
 describe("billing plan badge label", () => {
+  test("exposes the current HKD subscription pricing", () => {
+    expect(BILLING_PLAN_DEFINITIONS).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "monthly",
+          price: "HK$29.99",
+          cadence: "/ month",
+        }),
+        expect.objectContaining({
+          id: "yearly",
+          price: "HK$299.99",
+          cadence: "/ year",
+        }),
+      ]),
+    );
+  });
+
   test("hides the chosen-plan badge once subscription is active", () => {
     const parent = createParentRecord({
       subscriptionStatus: "active",
@@ -74,8 +95,8 @@ describe("latest invoice summary", () => {
       latestInvoiceStatus: "paid",
       latestInvoiceHostedUrl: "https://invoice.stripe.com/i/in_123",
       latestInvoicePdfUrl: "https://pay.stripe.com/invoice/in_123/pdf",
-      latestInvoiceAmountPaid: 14400,
-      latestInvoiceCurrency: "usd",
+      latestInvoiceAmountPaid: 29999,
+      latestInvoiceCurrency: "hkd",
       latestInvoicePaidAt: "2026-03-31T00:10:00.000Z",
       latestInvoicePeriodStart: "2026-03-31T00:00:00.000Z",
       latestInvoicePeriodEnd: "2027-03-31T00:00:00.000Z",
@@ -97,7 +118,7 @@ describe("latest invoice summary", () => {
         }),
         expect.objectContaining({
           label: "Amount paid",
-          value: "$144.00",
+          value: "HK$299.99",
         }),
         expect.objectContaining({
           label: "Sent to",

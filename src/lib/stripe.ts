@@ -11,12 +11,12 @@ import { getProfileByEmail, updateParentSubscription } from "./mvp-store";
 
 const STRIPE_PLAN_CONFIG = {
   monthly: {
-    unitAmount: 1500,
+    unitAmount: 2999,
     interval: "month",
     productName: "Daily Sparks Monthly",
   },
   yearly: {
-    unitAmount: 14400,
+    unitAmount: 29999,
     interval: "year",
     productName: "Daily Sparks Yearly",
   },
@@ -448,7 +448,7 @@ export async function createCheckoutSessionForParent(
       {
         quantity: 1,
         price_data: {
-          currency: "usd",
+          currency: "hkd",
           unit_amount: planConfig.unitAmount,
           recurring: {
             interval: planConfig.interval,
