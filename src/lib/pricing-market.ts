@@ -156,8 +156,12 @@ export function getPricingMarketLabel(pricingMarket: PricingMarket) {
   return pricingMarket === "hk" ? "Hong Kong pricing" : "International pricing";
 }
 
-export function getPricingMarketToggleLabel(pricingMarket: PricingMarket) {
-  return pricingMarket === "hk" ? "Hong Kong (HKD)" : "International (USD)";
+export function getPricingMarketToggleTitle(pricingMarket: PricingMarket) {
+  return pricingMarket === "hk" ? "Hong Kong" : "International";
+}
+
+export function getPricingMarketToggleCaption(pricingMarket: PricingMarket) {
+  return pricingMarket === "hk" ? "HKD pricing" : "USD pricing";
 }
 
 export function getPricingMarketSupportCopy(pricingMarket: PricingMarket) {

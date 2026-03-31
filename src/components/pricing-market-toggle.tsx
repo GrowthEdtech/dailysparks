@@ -3,7 +3,10 @@
 import { useState } from "react";
 
 import type { PricingMarket } from "../lib/pricing-market";
-import { getPricingMarketToggleLabel } from "../lib/pricing-market";
+import {
+  getPricingMarketToggleCaption,
+  getPricingMarketToggleTitle,
+} from "../lib/pricing-market";
 
 type PricingMarketToggleProps = {
   currentMarket: PricingMarket;
@@ -33,7 +36,7 @@ export default function PricingMarketToggle({
   }
 
   return (
-    <div className="inline-flex items-center rounded-full border border-slate-200 bg-white p-1 shadow-sm">
+    <div className="inline-flex w-full max-w-[420px] items-center gap-1 rounded-[24px] border border-slate-200 bg-slate-50/90 p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
       {PRICING_MARKET_OPTIONS.map((pricingMarket) => {
         const isSelected = pricingMarket === currentMarket;
         const isPending = pendingMarket === pricingMarket;
@@ -44,13 +47,24 @@ export default function PricingMarketToggle({
             type="button"
             onClick={() => void handleSelectMarket(pricingMarket)}
             disabled={Boolean(pendingMarket)}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+            className={`flex min-h-[68px] flex-1 flex-col items-start justify-center rounded-[20px] px-4 py-3 text-left transition ${
               isSelected
-                ? "bg-[#0f172a] text-white"
-                : "text-slate-500 hover:text-[#0f172a]"
+                ? "bg-[#0f172a] text-white shadow-[0_12px_24px_rgba(15,23,42,0.16)]"
+                : "bg-transparent text-slate-700 hover:bg-white/80 hover:text-[#0f172a]"
             } disabled:cursor-not-allowed disabled:opacity-70`}
           >
-            {isPending ? "Updating..." : getPricingMarketToggleLabel(pricingMarket)}
+            <span className="text-sm font-semibold leading-none">
+              {isPending ? "Updating..." : getPricingMarketToggleTitle(pricingMarket)}
+            </span>
+            {!isPending ? (
+              <span
+                className={`mt-1 text-xs font-medium leading-none ${
+                  isSelected ? "text-slate-300" : "text-slate-500"
+                }`}
+              >
+                {getPricingMarketToggleCaption(pricingMarket)}
+              </span>
+            ) : null}
           </button>
         );
       })}

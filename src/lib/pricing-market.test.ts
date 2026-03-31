@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 
 import {
   getPricingForPlan,
+  getPricingMarketToggleCaption,
+  getPricingMarketToggleTitle,
   resolvePricingMarket,
 } from "./pricing-market";
 
@@ -49,5 +51,17 @@ describe("plan pricing", () => {
       amount: 399,
       displayPrice: "USD 3.99",
     });
+  });
+});
+
+describe("pricing market toggle labels", () => {
+  test("uses a short title for the Hong Kong option", () => {
+    expect(getPricingMarketToggleTitle("hk")).toBe("Hong Kong");
+    expect(getPricingMarketToggleCaption("hk")).toBe("HKD pricing");
+  });
+
+  test("uses a short title for the international option", () => {
+    expect(getPricingMarketToggleTitle("intl")).toBe("International");
+    expect(getPricingMarketToggleCaption("intl")).toBe("USD pricing");
   });
 });
