@@ -6,6 +6,10 @@ import { CheckCircle2, LoaderCircle } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
 import type { ParentProfile } from "../../../lib/mvp-types";
+import {
+  PRIMARY_SUCCESS_CTA_CLASSNAME,
+  SECONDARY_SUCCESS_CTA_CLASSNAME,
+} from "./success-panel.styles";
 
 type FinalizeBillingResponse = {
   message?: string;
@@ -122,13 +126,13 @@ export default function SuccessPanel() {
           <div className="mt-6 flex flex-col gap-3">
             <Link
               href="/dashboard"
-              className="inline-flex items-center justify-center rounded-2xl bg-[#fbbf24] px-5 py-4 text-sm font-bold text-[#0f172a] shadow-lg shadow-[#fbbf24]/20 transition hover:bg-[#f59e0b]"
+              className={PRIMARY_SUCCESS_CTA_CLASSNAME}
             >
               Go to dashboard
             </Link>
             <Link
               href="/billing"
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+              className={SECONDARY_SUCCESS_CTA_CLASSNAME}
             >
               Back to billing
             </Link>
