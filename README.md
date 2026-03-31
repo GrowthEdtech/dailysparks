@@ -140,6 +140,17 @@ The billing page automatically shows sandbox state when the publishable key star
 - Keep `STRIPE_SECRET_KEY` in Secret Manager or another server-side secret store
 - Do not enable live billing with the currently exposed live key; rotate it first before production use
 
+### Cloud Run deployment
+
+The deploy script can carry Stripe billing config through to Cloud Run when these environment variables are present locally:
+
+```env
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_SECRET_KEY_SECRET=daily-sparks-stripe-test-secret-key
+```
+
+`STRIPE_SECRET_KEY_SECRET` should point to the Secret Manager secret name, not the key itself.
+
 ## Production Deployment
 
 The production target for this repo is Google Cloud Run.
