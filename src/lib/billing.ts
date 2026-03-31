@@ -9,6 +9,16 @@ type BillingSummaryRow = {
   value: string;
 };
 
+type InvoiceSummary = {
+  title: string;
+  subtitle: string;
+  statusLabel: string;
+  recipientEmail: string;
+  hostedInvoiceUrl: string | null;
+  invoicePdfUrl: string | null;
+  rows: BillingSummaryRow[];
+};
+
 export const BILLING_PLAN_DEFINITIONS = [
   {
     id: "monthly",
@@ -86,6 +96,99 @@ function formatDate(value: string | null) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function formatCurrencyAmount(amount: number | null, currency: string | null) {
+  if (amount === null || !currency) {
+    return "";
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase(),
+  }).format(amount / 100);
+}
+
+function formatInvoiceStatus(status: string | null) {
+  if (!status) {
+    return "Invoice recorded";
+  }
+
+  if (status === "paid") {
+    return "Paid";
+  }
+
+  return status
+    .split("_")
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(" ");
+}
+
+function formatBillingPeriod(start: string | null, end: string | null) {
+  if (!start || !end) {
+    return "";
+  }
+
+  return `${formatDate(start)} - ${formatDate(end)}`;
+}
+
+export function getLatestInvoiceSummary(parent: ParentRecord): InvoiceSummary | null {
+  if (!parent.latestInvoiceId) {
+    return null;
+  }
+
+  const formattedAmount = formatCurrencyAmount(
+    parent.latestInvoiceAmountPaid,
+    parent.latestInvoiceCurrency,
+  );
+  const formattedPeriod = formatBillingPeriod(
+    parent.latestInvoicePeriodStart,
+    parent.latestInvoicePeriodEnd,
+  );
+  const rows: BillingSummaryRow[] = [];
+
+  if (parent.latestInvoiceNumber) {
+    rows.push({
+      label: "Invoice number",
+      value: parent.latestInvoiceNumber,
+    });
+  }
+
+  rows.push({
+    label: "Sent to",
+    value: parent.email,
+  });
+
+  if (parent.latestInvoicePaidAt) {
+    rows.push({
+      label: "Paid on",
+      value: formatDate(parent.latestInvoicePaidAt),
+    });
+  }
+
+  if (formattedAmount) {
+    rows.push({
+      label: parent.latestInvoiceStatus === "paid" ? "Amount paid" : "Invoice amount",
+      value: formattedAmount,
+    });
+  }
+
+  if (formattedPeriod) {
+    rows.push({
+      label: "Billing period",
+      value: formattedPeriod,
+    });
+  }
+
+  return {
+    title: "Latest invoice",
+    subtitle: `Stripe emails each paid invoice to ${parent.email}.`,
+    statusLabel: formatInvoiceStatus(parent.latestInvoiceStatus),
+    recipientEmail: parent.email,
+    hostedInvoiceUrl: parent.latestInvoiceHostedUrl,
+    invoicePdfUrl: parent.latestInvoicePdfUrl,
+    rows,
+  };
 }
 
 export function getBillingSummary(parent: ParentRecord) {

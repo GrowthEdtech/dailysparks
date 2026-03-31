@@ -8,6 +8,7 @@ import { ArrowLeft, CheckCircle2, CreditCard } from "lucide-react";
 import {
   BILLING_PLAN_DEFINITIONS,
   getBillingSummary,
+  getLatestInvoiceSummary,
   getSubscriptionPlanBadgeLabel,
 } from "../../lib/billing";
 import type { ParentProfile } from "../../lib/mvp-types";
@@ -35,6 +36,7 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
   );
 
   const billingSummary = getBillingSummary(parent);
+  const latestInvoiceSummary = getLatestInvoiceSummary(parent);
   const subscriptionPlanBadgeLabel = getSubscriptionPlanBadgeLabel(parent);
   const isStripeSandbox =
     (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "").startsWith("pk_test_");
@@ -175,6 +177,72 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
             </button>
           ) : null}
         </section>
+
+        {hasActiveStripeSubscription || latestInvoiceSummary ? (
+          <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+              Invoice delivery
+            </p>
+            <h2 className="mt-2 text-xl font-bold text-[#0f172a]">
+              {latestInvoiceSummary?.title ?? "Stripe invoice email"}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              {latestInvoiceSummary?.subtitle ??
+                `Stripe will send each paid invoice to ${parent.email} after payment is confirmed.`}
+            </p>
+
+            {latestInvoiceSummary ? (
+              <>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]">
+                    {latestInvoiceSummary.statusLabel}
+                  </span>
+                </div>
+
+                <dl className="mt-4 grid gap-2 rounded-2xl bg-slate-50 px-4 py-3">
+                  {latestInvoiceSummary.rows.map((row) => (
+                    <div
+                      key={row.label}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <dt className="text-slate-500">{row.label}</dt>
+                      <dd className="text-right font-semibold text-[#0f172a]">
+                        {row.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+
+                <div className="mt-5 flex flex-col gap-3">
+                  {latestInvoiceSummary.hostedInvoiceUrl ? (
+                    <a
+                      href={latestInvoiceSummary.hostedInvoiceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex w-full items-center justify-center rounded-2xl bg-[#0f172a] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#1e293b]"
+                    >
+                      View invoice
+                    </a>
+                  ) : null}
+                  {latestInvoiceSummary.invoicePdfUrl ? (
+                    <a
+                      href={latestInvoiceSummary.invoicePdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold text-[#0f172a] transition hover:border-slate-300 hover:bg-slate-100"
+                    >
+                      Download PDF
+                    </a>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-500">
+                The first paid invoice will appear here once Stripe finishes the charge cycle.
+              </p>
+            )}
+          </section>
+        ) : null}
 
         {canceledCheckout ? (
           <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">

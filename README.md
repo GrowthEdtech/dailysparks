@@ -132,7 +132,9 @@ The billing page automatically shows sandbox state when the publishable key star
 - `/billing` creates a hosted Stripe Checkout Session
 - Stripe returns to `/billing/success`
 - Daily Sparks verifies the returned `session_id` on the server
+- Stripe webhooks keep subscription and invoice state in sync after checkout
 - the parent profile is updated to `active` once checkout is confirmed
+- `/billing` shows the latest Stripe invoice summary and invoice links when available
 
 ### Security notes
 
@@ -147,9 +149,30 @@ The deploy script can carry Stripe billing config through to Cloud Run when thes
 ```env
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_SECRET_KEY_SECRET=daily-sparks-stripe-test-secret-key
+STRIPE_WEBHOOK_SECRET_SECRET=daily-sparks-stripe-test-webhook-secret
 ```
 
-`STRIPE_SECRET_KEY_SECRET` should point to the Secret Manager secret name, not the key itself.
+`STRIPE_SECRET_KEY_SECRET` and `STRIPE_WEBHOOK_SECRET_SECRET` should point to Secret Manager secret names, not raw keys.
+
+### Stripe webhook setup
+
+Create the Stripe webhook endpoint and store its signing secret in Secret Manager with:
+
+```bash
+chmod +x scripts/configure-stripe-webhook.sh
+STRIPE_API_KEY="$(gcloud secrets versions access latest --secret=daily-sparks-stripe-test-secret-key --project=gen-lang-client-0586185740)" \
+STRIPE_WEBHOOK_SECRET_SECRET=daily-sparks-stripe-test-webhook-secret \
+./scripts/configure-stripe-webhook.sh
+```
+
+The script creates or reuses a webhook for:
+
+- `https://dailysparks.geledtech.com/api/stripe/webhook`
+- `checkout.session.completed`
+- `invoice.paid`
+- `invoice.payment_failed`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
 
 ## Production Deployment
 
@@ -187,6 +210,7 @@ Make sure the target Google Cloud project has:
 Recommended IAM for the Cloud Run runtime identity:
 
 - `Cloud Datastore User`
+- `Firebase Authentication Admin`
 
 ### Deploy
 

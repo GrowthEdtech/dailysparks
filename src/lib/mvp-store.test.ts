@@ -41,6 +41,8 @@ describe("mvp store", () => {
     expect(profile.parent.trialEndsAt).toBeTruthy();
     expect(profile.parent.subscriptionActivatedAt).toBeNull();
     expect(profile.parent.subscriptionRenewalAt).toBeNull();
+    expect(profile.parent.latestInvoiceId).toBeNull();
+    expect(profile.parent.latestInvoiceHostedUrl).toBeNull();
     expect(profile.student.studentName).toBe("Katherine");
     expect(profile.student.programme).toBe("PYP");
     expect(profile.student.programmeYear).toBe(5);
@@ -103,6 +105,16 @@ describe("mvp store", () => {
       stripeSubscriptionId: "sub_123",
       subscriptionActivatedAt: "2026-03-31T00:00:00.000Z",
       subscriptionRenewalAt: "2026-04-30T00:00:00.000Z",
+      latestInvoiceId: "in_123",
+      latestInvoiceNumber: "DS-2026-0001",
+      latestInvoiceStatus: "paid",
+      latestInvoiceHostedUrl: "https://invoice.stripe.com/i/in_123",
+      latestInvoicePdfUrl: "https://pay.stripe.com/invoice/in_123/pdf",
+      latestInvoiceAmountPaid: 1500,
+      latestInvoiceCurrency: "usd",
+      latestInvoicePaidAt: "2026-03-31T00:01:00.000Z",
+      latestInvoicePeriodStart: "2026-03-31T00:00:00.000Z",
+      latestInvoicePeriodEnd: "2026-04-30T00:00:00.000Z",
     });
 
     expect(updated?.parent.subscriptionPlan).toBe("yearly");
@@ -113,6 +125,26 @@ describe("mvp store", () => {
       "2026-03-31T00:00:00.000Z",
     );
     expect(updated?.parent.subscriptionRenewalAt).toBe(
+      "2026-04-30T00:00:00.000Z",
+    );
+    expect(updated?.parent.latestInvoiceId).toBe("in_123");
+    expect(updated?.parent.latestInvoiceNumber).toBe("DS-2026-0001");
+    expect(updated?.parent.latestInvoiceStatus).toBe("paid");
+    expect(updated?.parent.latestInvoiceHostedUrl).toBe(
+      "https://invoice.stripe.com/i/in_123",
+    );
+    expect(updated?.parent.latestInvoicePdfUrl).toBe(
+      "https://pay.stripe.com/invoice/in_123/pdf",
+    );
+    expect(updated?.parent.latestInvoiceAmountPaid).toBe(1500);
+    expect(updated?.parent.latestInvoiceCurrency).toBe("usd");
+    expect(updated?.parent.latestInvoicePaidAt).toBe(
+      "2026-03-31T00:01:00.000Z",
+    );
+    expect(updated?.parent.latestInvoicePeriodStart).toBe(
+      "2026-03-31T00:00:00.000Z",
+    );
+    expect(updated?.parent.latestInvoicePeriodEnd).toBe(
       "2026-04-30T00:00:00.000Z",
     );
 
@@ -126,6 +158,26 @@ describe("mvp store", () => {
       "2026-03-31T00:00:00.000Z",
     );
     expect(reloaded?.parent.subscriptionRenewalAt).toBe(
+      "2026-04-30T00:00:00.000Z",
+    );
+    expect(reloaded?.parent.latestInvoiceId).toBe("in_123");
+    expect(reloaded?.parent.latestInvoiceNumber).toBe("DS-2026-0001");
+    expect(reloaded?.parent.latestInvoiceStatus).toBe("paid");
+    expect(reloaded?.parent.latestInvoiceHostedUrl).toBe(
+      "https://invoice.stripe.com/i/in_123",
+    );
+    expect(reloaded?.parent.latestInvoicePdfUrl).toBe(
+      "https://pay.stripe.com/invoice/in_123/pdf",
+    );
+    expect(reloaded?.parent.latestInvoiceAmountPaid).toBe(1500);
+    expect(reloaded?.parent.latestInvoiceCurrency).toBe("usd");
+    expect(reloaded?.parent.latestInvoicePaidAt).toBe(
+      "2026-03-31T00:01:00.000Z",
+    );
+    expect(reloaded?.parent.latestInvoicePeriodStart).toBe(
+      "2026-03-31T00:00:00.000Z",
+    );
+    expect(reloaded?.parent.latestInvoicePeriodEnd).toBe(
       "2026-04-30T00:00:00.000Z",
     );
   });

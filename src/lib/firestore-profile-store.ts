@@ -16,6 +16,14 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function normalizeNullableString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeNullableNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 function addDays(timestamp: string, days: number) {
   const date = new Date(timestamp);
   date.setUTCDate(date.getUTCDate() + days);
@@ -56,6 +64,16 @@ function normalizeParentRecord(
     typeof raw?.subscriptionRenewalAt === "string" && raw.subscriptionRenewalAt
       ? raw.subscriptionRenewalAt
       : null;
+  const latestInvoiceId = normalizeNullableString(raw?.latestInvoiceId);
+  const latestInvoiceNumber = normalizeNullableString(raw?.latestInvoiceNumber);
+  const latestInvoiceStatus = normalizeNullableString(raw?.latestInvoiceStatus);
+  const latestInvoiceHostedUrl = normalizeNullableString(raw?.latestInvoiceHostedUrl);
+  const latestInvoicePdfUrl = normalizeNullableString(raw?.latestInvoicePdfUrl);
+  const latestInvoiceAmountPaid = normalizeNullableNumber(raw?.latestInvoiceAmountPaid);
+  const latestInvoiceCurrency = normalizeNullableString(raw?.latestInvoiceCurrency);
+  const latestInvoicePaidAt = normalizeNullableString(raw?.latestInvoicePaidAt);
+  const latestInvoicePeriodStart = normalizeNullableString(raw?.latestInvoicePeriodStart);
+  const latestInvoicePeriodEnd = normalizeNullableString(raw?.latestInvoicePeriodEnd);
 
   return {
     id,
@@ -75,6 +93,16 @@ function normalizeParentRecord(
     trialEndsAt,
     subscriptionActivatedAt,
     subscriptionRenewalAt,
+    latestInvoiceId,
+    latestInvoiceNumber,
+    latestInvoiceStatus,
+    latestInvoiceHostedUrl,
+    latestInvoicePdfUrl,
+    latestInvoiceAmountPaid,
+    latestInvoiceCurrency,
+    latestInvoicePaidAt,
+    latestInvoicePeriodStart,
+    latestInvoicePeriodEnd,
     createdAt,
     updatedAt: raw?.updatedAt || timestamp,
   };
@@ -162,6 +190,16 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     trialEndsAt: addDays(timestamp, 7),
     subscriptionActivatedAt: null,
     subscriptionRenewalAt: null,
+    latestInvoiceId: null,
+    latestInvoiceNumber: null,
+    latestInvoiceStatus: null,
+    latestInvoiceHostedUrl: null,
+    latestInvoicePdfUrl: null,
+    latestInvoiceAmountPaid: null,
+    latestInvoiceCurrency: null,
+    latestInvoicePaidAt: null,
+    latestInvoicePeriodStart: null,
+    latestInvoicePeriodEnd: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -334,6 +372,85 @@ export const firestoreProfileStore: ProfileStore = {
         typeof input.subscriptionRenewalAt === "string" &&
         input.subscriptionRenewalAt.trim()
           ? input.subscriptionRenewalAt
+          : null;
+    }
+
+    if (input.latestInvoiceId !== undefined) {
+      parent.latestInvoiceId =
+        typeof input.latestInvoiceId === "string" && input.latestInvoiceId.trim()
+          ? input.latestInvoiceId.trim()
+          : null;
+    }
+
+    if (input.latestInvoiceNumber !== undefined) {
+      parent.latestInvoiceNumber =
+        typeof input.latestInvoiceNumber === "string" &&
+        input.latestInvoiceNumber.trim()
+          ? input.latestInvoiceNumber.trim()
+          : null;
+    }
+
+    if (input.latestInvoiceStatus !== undefined) {
+      parent.latestInvoiceStatus =
+        typeof input.latestInvoiceStatus === "string" &&
+        input.latestInvoiceStatus.trim()
+          ? input.latestInvoiceStatus.trim()
+          : null;
+    }
+
+    if (input.latestInvoiceHostedUrl !== undefined) {
+      parent.latestInvoiceHostedUrl =
+        typeof input.latestInvoiceHostedUrl === "string" &&
+        input.latestInvoiceHostedUrl.trim()
+          ? input.latestInvoiceHostedUrl.trim()
+          : null;
+    }
+
+    if (input.latestInvoicePdfUrl !== undefined) {
+      parent.latestInvoicePdfUrl =
+        typeof input.latestInvoicePdfUrl === "string" &&
+        input.latestInvoicePdfUrl.trim()
+          ? input.latestInvoicePdfUrl.trim()
+          : null;
+    }
+
+    if (input.latestInvoiceAmountPaid !== undefined) {
+      parent.latestInvoiceAmountPaid =
+        typeof input.latestInvoiceAmountPaid === "number" &&
+        Number.isFinite(input.latestInvoiceAmountPaid)
+          ? input.latestInvoiceAmountPaid
+          : null;
+    }
+
+    if (input.latestInvoiceCurrency !== undefined) {
+      parent.latestInvoiceCurrency =
+        typeof input.latestInvoiceCurrency === "string" &&
+        input.latestInvoiceCurrency.trim()
+          ? input.latestInvoiceCurrency.trim().toLowerCase()
+          : null;
+    }
+
+    if (input.latestInvoicePaidAt !== undefined) {
+      parent.latestInvoicePaidAt =
+        typeof input.latestInvoicePaidAt === "string" &&
+        input.latestInvoicePaidAt.trim()
+          ? input.latestInvoicePaidAt
+          : null;
+    }
+
+    if (input.latestInvoicePeriodStart !== undefined) {
+      parent.latestInvoicePeriodStart =
+        typeof input.latestInvoicePeriodStart === "string" &&
+        input.latestInvoicePeriodStart.trim()
+          ? input.latestInvoicePeriodStart
+          : null;
+    }
+
+    if (input.latestInvoicePeriodEnd !== undefined) {
+      parent.latestInvoicePeriodEnd =
+        typeof input.latestInvoicePeriodEnd === "string" &&
+        input.latestInvoicePeriodEnd.trim()
+          ? input.latestInvoicePeriodEnd
           : null;
     }
 

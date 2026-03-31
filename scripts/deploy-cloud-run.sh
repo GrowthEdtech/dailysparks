@@ -29,5 +29,9 @@ if [[ -n "${STRIPE_SECRET_KEY_SECRET:-}" ]]; then
   DEPLOY_ARGS+=(--update-secrets "STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY_SECRET}:latest")
 fi
 
+if [[ -n "${STRIPE_WEBHOOK_SECRET_SECRET:-}" ]]; then
+  DEPLOY_ARGS+=(--update-secrets "STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET_SECRET}:latest")
+fi
+
 gcloud run deploy "${SERVICE_NAME}" \
   "${DEPLOY_ARGS[@]}"
