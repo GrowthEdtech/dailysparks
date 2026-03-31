@@ -15,6 +15,8 @@ import type { ParentProfile } from "../../lib/mvp-types";
 import {
   BACK_TO_DASHBOARD_CTA_CLASSNAME,
   BACK_TO_DASHBOARD_CTA_STYLE,
+  DOWNLOAD_PDF_CTA_CLASSNAME,
+  DOWNLOAD_PDF_CTA_STYLE,
 } from "./billing-form.styles";
 
 type BillingFormProps = {
@@ -229,7 +231,8 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
                       href={latestInvoiceSummary.invoicePdfUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold text-[#0f172a] transition hover:border-slate-300 hover:bg-slate-100"
+                      className={DOWNLOAD_PDF_CTA_CLASSNAME}
+                      style={DOWNLOAD_PDF_CTA_STYLE}
                     >
                       Download PDF
                     </a>
