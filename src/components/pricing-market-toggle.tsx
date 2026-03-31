@@ -36,7 +36,7 @@ export default function PricingMarketToggle({
   }
 
   return (
-    <div className="inline-flex w-full max-w-[420px] items-center gap-1 rounded-[24px] border border-slate-200 bg-slate-50/90 p-1.5 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+    <div className="inline-flex w-full max-w-[360px] items-center gap-0.5 rounded-[22px] border border-slate-200 bg-slate-50/90 p-1 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
       {PRICING_MARKET_OPTIONS.map((pricingMarket) => {
         const isSelected = pricingMarket === currentMarket;
         const isPending = pendingMarket === pricingMarket;
@@ -47,18 +47,18 @@ export default function PricingMarketToggle({
             type="button"
             onClick={() => void handleSelectMarket(pricingMarket)}
             disabled={Boolean(pendingMarket)}
-            className={`flex min-h-[68px] flex-1 flex-col items-start justify-center rounded-[20px] px-4 py-3 text-left transition ${
+            className={`flex min-h-[54px] flex-1 flex-col items-center justify-center rounded-[18px] px-3 py-2 text-center transition ${
               isSelected
-                ? "bg-[#0f172a] text-white shadow-[0_12px_24px_rgba(15,23,42,0.16)]"
+                ? "bg-[#0f172a] text-white shadow-[0_10px_20px_rgba(15,23,42,0.12)]"
                 : "bg-transparent text-slate-700 hover:bg-white/80 hover:text-[#0f172a]"
             } disabled:cursor-not-allowed disabled:opacity-70`}
           >
-            <span className="text-sm font-semibold leading-none">
+            <span className="text-[13px] font-semibold leading-none">
               {isPending ? "Updating..." : getPricingMarketToggleTitle(pricingMarket)}
             </span>
             {!isPending ? (
               <span
-                className={`mt-1 text-xs font-medium leading-none ${
+                className={`mt-1 text-[10px] font-medium uppercase tracking-[0.14em] leading-none ${
                   isSelected ? "text-slate-300" : "text-slate-500"
                 }`}
               >
