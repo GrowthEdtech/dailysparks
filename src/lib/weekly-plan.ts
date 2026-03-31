@@ -1,5 +1,11 @@
 import type { Programme } from "./mvp-types";
 
+export type ProgrammeStageSummary = {
+  title: string;
+  description: string;
+  badgeLabel: string;
+};
+
 export type WeeklyPlanEntry = {
   day: string;
   label: string;
@@ -14,11 +20,40 @@ export type WeeklyPlan = {
   sunday: Omit<WeeklyPlanEntry, "day">;
 };
 
-function getPypPlan(programmeYear: number): WeeklyPlan {
+export function getProgrammeStageSummary(
+  programme: Programme,
+): ProgrammeStageSummary {
+  if (programme === "MYP") {
+    return {
+      title: "Analysis-led secondary reading",
+      description:
+        "MYP mode leans into analysis, interdisciplinary thinking, and clearer written response without overwhelming the learner with full academic intensity.",
+      badgeLabel: "MYP mode",
+    };
+  }
+
+  if (programme === "DP") {
+    return {
+      title: "Argument-led pre-university reading",
+      description:
+        "DP mode is built around evidence, argument, and reflective synthesis, so each reading feels closer to academic discussion and independent thinking.",
+      badgeLabel: "DP mode",
+    };
+  }
+
   return {
-    title: `PYP Year ${programmeYear} weekly rhythm`,
+    title: "Curiosity-led foundation reading",
     description:
-      "Daily Sparks rotates through the six PYP transdisciplinary themes so the reading habit feels broad, connected, and age-appropriate.",
+      "PYP mode keeps the rhythm curiosity-led, broad, theme-based, and discussion-friendly so the reading habit feels inviting, connected, and easy to share at home.",
+    badgeLabel: "PYP mode",
+  };
+}
+
+function getPypPlan(): WeeklyPlan {
+  return {
+    title: "PYP weekly rhythm",
+    description:
+      "Daily Sparks rotates through the six PYP transdisciplinary themes in a curiosity-led rhythm that feels broad, connected, and easy to discuss as a family.",
     weekdays: [
       {
         day: "Monday",
@@ -65,11 +100,11 @@ function getPypPlan(programmeYear: number): WeeklyPlan {
   };
 }
 
-function getMypPlan(programmeYear: number): WeeklyPlan {
+function getMypPlan(): WeeklyPlan {
   return {
-    title: `MYP Year ${programmeYear} weekly rhythm`,
+    title: "MYP weekly rhythm",
     description:
-      "Daily Sparks builds a structured secondary-school reading habit with alternating analytical, creative, and interdisciplinary days.",
+      "Daily Sparks builds an analysis-led secondary-school rhythm with structured reading across subjects, perspectives, and transferable thinking habits.",
     weekdays: [
       {
         day: "Monday",
@@ -116,11 +151,11 @@ function getMypPlan(programmeYear: number): WeeklyPlan {
   };
 }
 
-function getDpPlan(programmeYear: number): WeeklyPlan {
+function getDpPlan(): WeeklyPlan {
   return {
-    title: `DP Year ${programmeYear} weekly rhythm`,
+    title: "DP weekly rhythm",
     description:
-      "Daily Sparks shifts into a pre-university pattern with more argument, evidence, and discipline-specific reading depth.",
+      "Daily Sparks shifts into an argument-led pre-university pattern with more evidence, reflection, and discipline-specific reading depth.",
     weekdays: [
       {
         day: "Monday",
@@ -168,13 +203,15 @@ function getDpPlan(programmeYear: number): WeeklyPlan {
 }
 
 export function getWeeklyPlan(programme: Programme, programmeYear: number) {
+  void programmeYear;
+
   if (programme === "MYP") {
-    return getMypPlan(programmeYear);
+    return getMypPlan();
   }
 
   if (programme === "DP") {
-    return getDpPlan(programmeYear);
+    return getDpPlan();
   }
 
-  return getPypPlan(programmeYear);
+  return getPypPlan();
 }

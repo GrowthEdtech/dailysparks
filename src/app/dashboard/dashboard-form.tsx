@@ -10,12 +10,10 @@ import AccountMenu from "../../components/account-menu";
 import { getBillingSummary } from "../../lib/billing";
 import {
   getDefaultProgrammeYear,
-  getProgrammeYearOptions,
-  isValidProgrammeYear,
   type ParentProfile,
   type Programme,
 } from "../../lib/mvp-types";
-import { getWeeklyPlan } from "../../lib/weekly-plan";
+import { getProgrammeStageSummary, getWeeklyPlan } from "../../lib/weekly-plan";
 
 type DashboardFormProps = {
   initialProfile: ParentProfile;
@@ -51,9 +49,9 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
   const [isPending, startTransition] = useTransition();
 
   const billingSummary = getBillingSummary(initialProfile.parent);
-  const yearOptions = getProgrammeYearOptions(programme);
   const weeklyPlan = getWeeklyPlan(programme, programmeYear);
-  const stageLabel = `${programme} Year ${programmeYear}`;
+  const programmeStageSummary = getProgrammeStageSummary(programme);
+  const stageLabel = programme;
   const hasStudentName = hasMeaningfulStudentName(studentName);
   const displayStudentName = hasStudentName ? studentName.trim() : "Your child";
 
@@ -61,16 +59,7 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
     setSuccessMessage("");
     setErrorMessage("");
     setProgramme(nextProgramme);
-
-    if (!isValidProgrammeYear(nextProgramme, programmeYear)) {
-      setProgrammeYear(getDefaultProgrammeYear(nextProgramme));
-    }
-  }
-
-  function handleProgrammeYearChange(nextYear: number) {
-    setSuccessMessage("");
-    setErrorMessage("");
-    setProgrammeYear(nextYear);
+    setProgrammeYear(getDefaultProgrammeYear(nextProgramme));
   }
 
   async function handleSave() {
@@ -309,8 +298,8 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
         <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-bold text-[#0f172a]">Learning stage</h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Choose your child&apos;s current IB programme and year. Daily Sparks
-            will generate the weekly reading rhythm automatically.
+            Choose your child&apos;s current IB programme. Daily Sparks will adapt
+            the weekly reading mode automatically.
           </p>
 
           <div className="mt-5">
@@ -339,30 +328,16 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
             </div>
           </div>
 
-          <div className="mt-5">
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-              Year
+              {programmeStageSummary.badgeLabel}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {yearOptions.map((option) => {
-                const active = programmeYear === option;
-
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => handleProgrammeYearChange(option)}
-                    className={`rounded-xl border px-4 py-2 text-sm transition ${
-                      active
-                        ? "border-[#fbbf24] bg-[#fbbf24] font-bold text-[#0f172a] shadow-md shadow-[#fbbf24]/25"
-                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                    }`}
-                  >
-                    {programme} {option}
-                  </button>
-                );
-              })}
-            </div>
+            <p className="mt-2 text-sm font-bold text-[#0f172a]">
+              {programmeStageSummary.title}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              {programmeStageSummary.description}
+            </p>
           </div>
         </section>
 
