@@ -11,7 +11,10 @@ import {
   getSubscriptionPlanBadgeLabel,
 } from "../../lib/billing";
 import type { ParentProfile } from "../../lib/mvp-types";
-import { BACK_TO_DASHBOARD_CTA_CLASSNAME } from "./billing-form.styles";
+import {
+  BACK_TO_DASHBOARD_CTA_CLASSNAME,
+  BACK_TO_DASHBOARD_CTA_STYLE,
+} from "./billing-form.styles";
 
 type BillingFormProps = {
   initialProfile: ParentProfile;
@@ -270,6 +273,7 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
         <Link
           href="/dashboard"
           className={BACK_TO_DASHBOARD_CTA_CLASSNAME}
+          style={BACK_TO_DASHBOARD_CTA_STYLE}
         >
           <ArrowLeft className="h-4 w-4" />
           Back to dashboard
