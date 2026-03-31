@@ -156,6 +156,62 @@ describe("billing checkout route", () => {
     );
   });
 
+  test("uses forwarded production headers when building the Stripe return origin", async () => {
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+    createCheckoutSessionForParentMock.mockResolvedValue({
+      url: "https://checkout.stripe.com/c/pay/cs_test_456",
+    });
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    const response = await createCheckout(
+      new Request("http://0.0.0.0:8080/api/billing/checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+          "x-forwarded-host": "dailysparks.geledtech.com",
+          "x-forwarded-proto": "https",
+        },
+        body: JSON.stringify({
+          subscriptionPlan: "yearly",
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.url).toBe("https://checkout.stripe.com/c/pay/cs_test_456");
+    expect(createCheckoutSessionForParentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        origin: "https://dailysparks.geledtech.com",
+        subscriptionPlan: "yearly",
+      }),
+    );
+  });
+
   test("finalizes a completed Stripe checkout session for the logged-in parent", async () => {
     verifySessionCookieMock.mockResolvedValue({
       uid: "firebase-parent-1",

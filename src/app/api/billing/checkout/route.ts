@@ -4,6 +4,7 @@ import {
   getSessionEmailFromRequest,
 } from "../../../../lib/session";
 import { isSubscriptionPlan } from "../../../../lib/mvp-types";
+import { getRequestOrigin } from "../../../../lib/request-origin";
 import { createCheckoutSessionForParent, isStripeConfigured } from "../../../../lib/stripe";
 
 type CheckoutRequestBody = {
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
 
   try {
     const checkoutSession = await createCheckoutSessionForParent({
-      origin: new URL(request.url).origin,
+      origin: getRequestOrigin(request),
       profile,
       subscriptionPlan,
     });

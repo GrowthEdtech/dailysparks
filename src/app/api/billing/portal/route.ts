@@ -3,6 +3,7 @@ import {
   clearSessionCookieHeader,
   getSessionEmailFromRequest,
 } from "../../../../lib/session";
+import { getRequestOrigin } from "../../../../lib/request-origin";
 import { createBillingPortalSessionForParent } from "../../../../lib/stripe";
 
 function unauthorized(message: string) {
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
 
   try {
     const session = await createBillingPortalSessionForParent(
-      new URL(request.url).origin,
+      getRequestOrigin(request),
       profile,
     );
 
