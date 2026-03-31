@@ -71,7 +71,6 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
   const yearOptions = getProgrammeYearOptions(programme);
   const weeklyPlan = getWeeklyPlan(programme, programmeYear);
   const stageLabel = `${programme} Year ${programmeYear}`;
-  const hasGoodnotesEmail = goodnotesEmail.trim().length > 0;
   const hasStudentName = hasMeaningfulStudentName(studentName);
   const displayStudentName = hasStudentName ? studentName.trim() : "Your child";
 
@@ -260,31 +259,20 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
 
           <div className="mt-5 space-y-4">
             <div className="rounded-3xl border border-[#00b5d6]/20 bg-gradient-to-br from-[#f0fbff] to-white p-5 shadow-sm">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <Image
-                    src="/integrations/goodnotes.jpeg"
-                    alt="Goodnotes"
-                    width={28}
-                    height={28}
-                    className="mt-1.5 h-7 w-7 shrink-0 rounded-md object-cover"
-                  />
-                  <div>
-                    <h3 className="text-base font-bold text-[#0f172a]">Goodnotes delivery</h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Send each reading brief into the student&apos;s note-taking flow.
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3">
+                <Image
+                  src="/integrations/goodnotes.jpeg"
+                  alt="Goodnotes"
+                  width={28}
+                  height={28}
+                  className="mt-1.5 h-7 w-7 shrink-0 rounded-md object-cover"
+                />
+                <div>
+                  <h3 className="text-base font-bold text-[#0f172a]">Goodnotes delivery</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Send each reading brief into the student&apos;s note-taking flow.
+                  </p>
                 </div>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold shadow-sm ${
-                    hasGoodnotesEmail
-                      ? "bg-[#00b5d6] text-white"
-                      : "bg-white text-slate-500"
-                  }`}
-                >
-                  {hasGoodnotesEmail ? "Configured" : "Setup needed"}
-                </span>
               </div>
 
               <label className="mt-4 flex flex-col gap-2">
@@ -305,25 +293,20 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <Image
-                    src="/integrations/notion-symbol.svg"
-                    alt="Notion"
-                    width={22}
-                    height={22}
-                    className="mt-2 h-[22px] w-[22px] shrink-0 object-contain"
-                  />
-                  <div>
-                    <h3 className="text-base font-bold text-[#0f172a]">Notion sync</h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Keep an archive of reading briefs, prompts, and reflections.
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3">
+                <Image
+                  src="/integrations/notion-symbol.svg"
+                  alt="Notion"
+                  width={22}
+                  height={22}
+                  className="mt-2 h-[22px] w-[22px] shrink-0 object-contain"
+                />
+                <div>
+                  <h3 className="text-base font-bold text-[#0f172a]">Notion sync</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Keep an archive of reading briefs, prompts, and reflections.
+                  </p>
                 </div>
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-500 shadow-sm">
-                  Coming soon
-                </span>
               </div>
 
               <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4">
