@@ -80,18 +80,6 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function formatSelectedPlan(plan: SubscriptionPlan) {
-  if (plan === "monthly") {
-    return "Monthly";
-  }
-
-  if (plan === "yearly") {
-    return "Yearly";
-  }
-
-  return "";
-}
-
 export function getBillingSummary(parent: ParentRecord) {
   const statusLabel = formatStatus(parent.subscriptionStatus);
   const planName = formatPlanName(parent.subscriptionPlan);
@@ -116,7 +104,7 @@ export function getBillingSummary(parent: ParentRecord) {
   if (parent.subscriptionStatus === "active" && parent.subscriptionPlan) {
     return {
       title: `${planName} plan active`,
-      subtitle: "Billing is active and connected to your parent workspace.",
+      subtitle: "Your subscription is active and connected to your parent workspace.",
       detail: parent.stripeCustomerId
         ? "Use the Stripe billing portal to switch cadence or cancel your subscription."
         : "Your Stripe subscription is active and ready for reading delivery.",
@@ -145,9 +133,9 @@ export function getBillingSummary(parent: ParentRecord) {
   if (parent.subscriptionPlan) {
     return {
       title: "Trial access",
-      subtitle: `${planName} billing is selected for your account.`,
+      subtitle: `${planName} plan chosen for your account.`,
       detail:
-        "Your 7-day trial began on first sign-in. Complete Stripe checkout before trial ends to activate this subscription.",
+        "Complete Stripe checkout before trial ends to activate this subscription.",
       statusLabel,
       summaryRows: [
         {
@@ -157,10 +145,6 @@ export function getBillingSummary(parent: ParentRecord) {
         {
           label: "Trial ends on",
           value: formatDate(parent.trialEndsAt),
-        },
-        {
-          label: "Selected next plan",
-          value: formatSelectedPlan(parent.subscriptionPlan),
         },
       ],
     };

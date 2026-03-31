@@ -90,7 +90,7 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
         <div className="mx-auto flex w-full max-w-md items-start justify-between gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#fbbf24]">
-              Billing
+              Subscription
             </p>
             <h1 className="mt-2 text-2xl font-bold">Choose your payment rhythm</h1>
             <p className="mt-1 text-sm text-slate-300">
@@ -106,7 +106,7 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
       <main className="mx-auto mt-6 flex w-full max-w-md flex-col gap-6 px-4">
         <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-            Current billing
+            Current subscription
           </p>
           <h2 className="mt-2 text-xl font-bold text-[#0f172a]">
             {billingSummary.title}
@@ -120,7 +120,7 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
             </span>
             {parent.subscriptionPlan ? (
               <span className="rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]">
-                {parent.subscriptionPlan === "yearly" ? "Yearly selected" : "Monthly selected"}
+                {parent.subscriptionPlan === "yearly" ? "Yearly chosen" : "Monthly chosen"}
               </span>
             ) : null}
             {isStripeSandbox ? (

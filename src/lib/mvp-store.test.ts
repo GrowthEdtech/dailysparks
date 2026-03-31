@@ -154,6 +154,25 @@ describe("mvp store", () => {
 
     await updateParentSubscription("parent@example.com", {
       subscriptionPlan: "monthly",
+      subscriptionStatus: "trial",
+    });
+
+    const pendingProfile = await getProfileByEmail("parent@example.com");
+    const pendingSummary = getBillingSummary(pendingProfile!.parent);
+
+    expect(pendingSummary.title).toBe("Trial access");
+    expect(pendingSummary.subtitle).toBe(
+      "Monthly plan chosen for your account.",
+    );
+    expect(pendingSummary.detail).toBe(
+      "Complete Stripe checkout before trial ends to activate this subscription.",
+    );
+    expect(
+      pendingSummary.summaryRows.some((row) => row.label === "Selected next plan"),
+    ).toBe(false);
+
+    await updateParentSubscription("parent@example.com", {
+      subscriptionPlan: "monthly",
       subscriptionStatus: "active",
       stripeCustomerId: "cus_123",
       stripeSubscriptionId: "sub_123",

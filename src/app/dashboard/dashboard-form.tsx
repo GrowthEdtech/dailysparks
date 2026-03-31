@@ -235,7 +235,7 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
               className="inline-flex items-center gap-2 rounded-full bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1e293b]"
             >
               <CreditCard className="h-4 w-4" />
-              Manage billing
+              Manage subscription
             </Link>
             <button
               type="button"
