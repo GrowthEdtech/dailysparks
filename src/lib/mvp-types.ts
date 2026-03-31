@@ -54,6 +54,10 @@ export type ParentRecord = {
   subscriptionPlan: SubscriptionPlan;
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
+  trialStartedAt: string;
+  trialEndsAt: string;
+  subscriptionActivatedAt: string | null;
+  subscriptionRenewalAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -98,4 +102,8 @@ export type UpdateParentSubscriptionInput = {
   subscriptionStatus?: SubscriptionStatus;
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
+  trialStartedAt?: string;
+  trialEndsAt?: string;
+  subscriptionActivatedAt?: string | null;
+  subscriptionRenewalAt?: string | null;
 };

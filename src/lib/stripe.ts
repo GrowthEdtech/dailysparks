@@ -190,6 +190,15 @@ export async function finalizeCheckoutSessionForParent(
     typeof checkoutSession.subscription === "string"
       ? checkoutSession.subscription
       : checkoutSession.subscription?.id ?? null;
+  const subscriptionActivatedAt = new Date(checkoutSession.created * 1000).toISOString();
+  const renewalTimestamp =
+    typeof checkoutSession.subscription !== "string"
+      ? checkoutSession.subscription?.items.data[0]?.current_period_end ?? null
+      : null;
+  const subscriptionRenewalAt =
+    typeof renewalTimestamp === "number"
+      ? new Date(renewalTimestamp * 1000).toISOString()
+      : null;
 
   if (!sessionEmail || sessionEmail !== expectedEmail) {
     throw new Error("The Stripe checkout session does not match the logged-in parent.");
@@ -204,6 +213,8 @@ export async function finalizeCheckoutSessionForParent(
     subscriptionStatus: "active",
     stripeCustomerId,
     stripeSubscriptionId,
+    subscriptionActivatedAt,
+    subscriptionRenewalAt,
   });
 
   if (!profile) {

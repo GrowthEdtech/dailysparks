@@ -9,6 +9,7 @@ import {
   updateParentSubscription,
   updateStudentPreferences,
 } from "./mvp-store";
+import { getBillingSummary } from "./billing";
 
 let tempDirectory = "";
 
@@ -36,6 +37,10 @@ describe("mvp store", () => {
     expect(profile.parent.email).toBe("parent@example.com");
     expect(profile.parent.fullName).toBe("Parent Example");
     expect(profile.parent.subscriptionPlan).toBeNull();
+    expect(profile.parent.trialStartedAt).toBeTruthy();
+    expect(profile.parent.trialEndsAt).toBeTruthy();
+    expect(profile.parent.subscriptionActivatedAt).toBeNull();
+    expect(profile.parent.subscriptionRenewalAt).toBeNull();
     expect(profile.student.studentName).toBe("Katherine");
     expect(profile.student.programme).toBe("PYP");
     expect(profile.student.programmeYear).toBe(5);
@@ -96,12 +101,20 @@ describe("mvp store", () => {
       subscriptionStatus: "active",
       stripeCustomerId: "cus_123",
       stripeSubscriptionId: "sub_123",
+      subscriptionActivatedAt: "2026-03-31T00:00:00.000Z",
+      subscriptionRenewalAt: "2026-04-30T00:00:00.000Z",
     });
 
     expect(updated?.parent.subscriptionPlan).toBe("yearly");
     expect(updated?.parent.subscriptionStatus).toBe("active");
     expect(updated?.parent.stripeCustomerId).toBe("cus_123");
     expect(updated?.parent.stripeSubscriptionId).toBe("sub_123");
+    expect(updated?.parent.subscriptionActivatedAt).toBe(
+      "2026-03-31T00:00:00.000Z",
+    );
+    expect(updated?.parent.subscriptionRenewalAt).toBe(
+      "2026-04-30T00:00:00.000Z",
+    );
 
     const reloaded = await getProfileByEmail("parent@example.com");
 
@@ -109,6 +122,56 @@ describe("mvp store", () => {
     expect(reloaded?.parent.subscriptionStatus).toBe("active");
     expect(reloaded?.parent.stripeCustomerId).toBe("cus_123");
     expect(reloaded?.parent.stripeSubscriptionId).toBe("sub_123");
+    expect(reloaded?.parent.subscriptionActivatedAt).toBe(
+      "2026-03-31T00:00:00.000Z",
+    );
+    expect(reloaded?.parent.subscriptionRenewalAt).toBe(
+      "2026-04-30T00:00:00.000Z",
+    );
+  });
+
+  test("formats trial and renewal timing in the billing summary", async () => {
+    await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    const trialProfile = await getProfileByEmail("parent@example.com");
+    const trialSummary = getBillingSummary(trialProfile!.parent);
+
+    expect(trialSummary.summaryRows.some((row) => row.label === "Trial started on")).toBe(
+      true,
+    );
+    expect(trialSummary.summaryRows.some((row) => row.label === "Trial ends on")).toBe(
+      true,
+    );
+    expect(
+      trialSummary.summaryRows.find((row) => row.label === "Trial ends on")?.value,
+    ).toMatch(
+      /2026|March|April|May|June|July|August|September|October|November|December|January|February/i,
+    );
+
+    await updateParentSubscription("parent@example.com", {
+      subscriptionPlan: "monthly",
+      subscriptionStatus: "active",
+      stripeCustomerId: "cus_123",
+      stripeSubscriptionId: "sub_123",
+      subscriptionActivatedAt: "2026-03-31T00:00:00.000Z",
+      subscriptionRenewalAt: "2026-04-30T00:00:00.000Z",
+    });
+
+    const activeProfile = await getProfileByEmail("parent@example.com");
+    const activeSummary = getBillingSummary(activeProfile!.parent);
+
+    expect(activeSummary.summaryRows.some((row) => row.label === "Renews on")).toBe(
+      true,
+    );
+    expect(
+      activeSummary.summaryRows.find((row) => row.label === "Renews on")?.value,
+    ).toMatch(
+      /2026|March|April|May|June|July|August|September|October|November|December|January|February/i,
+    );
   });
 
   test("normalizes legacy student records without programme fields", async () => {

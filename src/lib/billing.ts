@@ -4,6 +4,11 @@ import type {
   SubscriptionStatus,
 } from "./mvp-types";
 
+type BillingSummaryRow = {
+  label: string;
+  value: string;
+};
+
 export const BILLING_PLAN_DEFINITIONS = [
   {
     id: "monthly",
@@ -63,9 +68,50 @@ function formatStatus(status: SubscriptionStatus) {
   return "Trial";
 }
 
+function formatDate(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function formatSelectedPlan(plan: SubscriptionPlan) {
+  if (plan === "monthly") {
+    return "Monthly";
+  }
+
+  if (plan === "yearly") {
+    return "Yearly";
+  }
+
+  return "";
+}
+
 export function getBillingSummary(parent: ParentRecord) {
   const statusLabel = formatStatus(parent.subscriptionStatus);
   const planName = formatPlanName(parent.subscriptionPlan);
+  const summary = {
+    title: `${statusLabel} access`,
+    subtitle: "Your 7-day trial starts the first time you sign in to Daily Sparks.",
+    detail:
+      "Choose monthly or yearly billing before trial ends. Linking Goodnotes or Notion does not change your billing dates.",
+    statusLabel,
+    summaryRows: [
+      {
+        label: "Trial started on",
+        value: formatDate(parent.trialStartedAt),
+      },
+      {
+        label: "Trial ends on",
+        value: formatDate(parent.trialEndsAt),
+      },
+    ] as BillingSummaryRow[],
+  };
 
   if (parent.subscriptionStatus === "active" && parent.subscriptionPlan) {
     return {
@@ -75,22 +121,50 @@ export function getBillingSummary(parent: ParentRecord) {
         ? "Use the Stripe billing portal to switch cadence or cancel your subscription."
         : "Your Stripe subscription is active and ready for reading delivery.",
       statusLabel,
+      summaryRows: [
+        ...(parent.subscriptionActivatedAt
+          ? [
+              {
+                label: "Active since",
+                value: formatDate(parent.subscriptionActivatedAt),
+              },
+            ]
+          : []),
+        ...(parent.subscriptionRenewalAt
+          ? [
+              {
+                label: "Renews on",
+                value: formatDate(parent.subscriptionRenewalAt),
+              },
+            ]
+          : []),
+      ],
     };
   }
 
   if (parent.subscriptionPlan) {
     return {
-      title: `${statusLabel} access`,
+      title: "Trial access",
       subtitle: `${planName} billing is selected for your account.`,
-      detail: "Continue into Stripe checkout to activate this subscription.",
+      detail:
+        "Your 7-day trial began on first sign-in. Complete Stripe checkout before trial ends to activate this subscription.",
       statusLabel,
+      summaryRows: [
+        {
+          label: "Trial started on",
+          value: formatDate(parent.trialStartedAt),
+        },
+        {
+          label: "Trial ends on",
+          value: formatDate(parent.trialEndsAt),
+        },
+        {
+          label: "Selected next plan",
+          value: formatSelectedPlan(parent.subscriptionPlan),
+        },
+      ],
     };
   }
 
-  return {
-    title: `${statusLabel} access`,
-    subtitle: "Choose monthly or yearly billing to complete your setup.",
-    detail: "Stripe sandbox checkout will activate your Daily Sparks subscription.",
-    statusLabel,
-  };
+  return summary;
 }

@@ -134,6 +134,27 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
               ? "Your Stripe subscription is active. Use the portal below to change or cancel it."
               : "Stripe handles the hosted checkout and card collection. Daily Sparks only stores the resulting subscription state."}
           </p>
+          {!hasActiveStripeSubscription ? (
+            <p className="mt-3 text-xs leading-5 text-slate-500">
+              Trial timing starts on first sign-in, not when you connect Goodnotes or
+              Notion.
+            </p>
+          ) : null}
+          {billingSummary.summaryRows.length > 0 ? (
+            <dl className="mt-4 grid gap-2 rounded-2xl bg-slate-50 px-4 py-3">
+              {billingSummary.summaryRows.map((row) => (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <dt className="text-slate-500">{row.label}</dt>
+                  <dd className="text-right font-semibold text-[#0f172a]">
+                    {row.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          ) : null}
 
           {hasActiveStripeSubscription ? (
             <button

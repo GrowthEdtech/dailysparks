@@ -16,6 +16,12 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function addDays(timestamp: string, days: number) {
+  const date = new Date(timestamp);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
 function normalizeParentRecord(
   id: string,
   raw: Partial<ParentRecord> | undefined,
@@ -33,6 +39,23 @@ function normalizeParentRecord(
     typeof raw?.stripeSubscriptionId === "string" && raw.stripeSubscriptionId.trim()
       ? raw.stripeSubscriptionId.trim()
       : null;
+  const createdAt = raw?.createdAt || timestamp;
+  const trialStartedAt =
+    typeof raw?.trialStartedAt === "string" && raw.trialStartedAt
+      ? raw.trialStartedAt
+      : createdAt;
+  const trialEndsAt =
+    typeof raw?.trialEndsAt === "string" && raw.trialEndsAt
+      ? raw.trialEndsAt
+      : addDays(trialStartedAt, 7);
+  const subscriptionActivatedAt =
+    typeof raw?.subscriptionActivatedAt === "string" && raw.subscriptionActivatedAt
+      ? raw.subscriptionActivatedAt
+      : null;
+  const subscriptionRenewalAt =
+    typeof raw?.subscriptionRenewalAt === "string" && raw.subscriptionRenewalAt
+      ? raw.subscriptionRenewalAt
+      : null;
 
   return {
     id,
@@ -48,7 +71,11 @@ function normalizeParentRecord(
     subscriptionPlan,
     stripeCustomerId,
     stripeSubscriptionId,
-    createdAt: raw?.createdAt || timestamp,
+    trialStartedAt,
+    trialEndsAt,
+    subscriptionActivatedAt,
+    subscriptionRenewalAt,
+    createdAt,
     updatedAt: raw?.updatedAt || timestamp,
   };
 }
@@ -131,6 +158,10 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     subscriptionPlan: null,
     stripeCustomerId: null,
     stripeSubscriptionId: null,
+    trialStartedAt: timestamp,
+    trialEndsAt: addDays(timestamp, 7),
+    subscriptionActivatedAt: null,
+    subscriptionRenewalAt: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -279,6 +310,30 @@ export const firestoreProfileStore: ProfileStore = {
         typeof input.stripeSubscriptionId === "string" &&
         input.stripeSubscriptionId.trim()
           ? input.stripeSubscriptionId.trim()
+          : null;
+    }
+
+    if (input.trialStartedAt !== undefined) {
+      parent.trialStartedAt = input.trialStartedAt;
+    }
+
+    if (input.trialEndsAt !== undefined) {
+      parent.trialEndsAt = input.trialEndsAt;
+    }
+
+    if (input.subscriptionActivatedAt !== undefined) {
+      parent.subscriptionActivatedAt =
+        typeof input.subscriptionActivatedAt === "string" &&
+        input.subscriptionActivatedAt.trim()
+          ? input.subscriptionActivatedAt
+          : null;
+    }
+
+    if (input.subscriptionRenewalAt !== undefined) {
+      parent.subscriptionRenewalAt =
+        typeof input.subscriptionRenewalAt === "string" &&
+        input.subscriptionRenewalAt.trim()
+          ? input.subscriptionRenewalAt
           : null;
     }
 
