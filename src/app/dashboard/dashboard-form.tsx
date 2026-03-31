@@ -306,7 +306,7 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
               Programme
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 grid grid-cols-3 gap-2">
               {(["PYP", "MYP", "DP"] as const).map((option) => {
                 const active = programme === option;
                 const optionSummary = getProgrammeStageSummary(option);
@@ -316,7 +316,7 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
                     key={option}
                     type="button"
                     onClick={() => handleProgrammeChange(option)}
-                    className={`flex min-w-[112px] flex-col items-center rounded-2xl border px-4 py-3 text-sm transition ${
+                    className={`flex w-full flex-col items-center rounded-2xl border px-3 py-3 text-sm transition ${
                       active
                         ? "border-[#0f172a] bg-[#0f172a] text-white shadow-md shadow-[#0f172a]/20"
                         : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
