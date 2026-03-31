@@ -93,15 +93,22 @@ describe("mvp store", () => {
 
     const updated = await updateParentSubscription("parent@example.com", {
       subscriptionPlan: "yearly",
+      subscriptionStatus: "active",
+      stripeCustomerId: "cus_123",
+      stripeSubscriptionId: "sub_123",
     });
 
     expect(updated?.parent.subscriptionPlan).toBe("yearly");
-    expect(updated?.parent.subscriptionStatus).toBe("trial");
+    expect(updated?.parent.subscriptionStatus).toBe("active");
+    expect(updated?.parent.stripeCustomerId).toBe("cus_123");
+    expect(updated?.parent.stripeSubscriptionId).toBe("sub_123");
 
     const reloaded = await getProfileByEmail("parent@example.com");
 
     expect(reloaded?.parent.subscriptionPlan).toBe("yearly");
-    expect(reloaded?.parent.subscriptionStatus).toBe("trial");
+    expect(reloaded?.parent.subscriptionStatus).toBe("active");
+    expect(reloaded?.parent.stripeCustomerId).toBe("cus_123");
+    expect(reloaded?.parent.stripeSubscriptionId).toBe("sub_123");
   });
 
   test("normalizes legacy student records without programme fields", async () => {

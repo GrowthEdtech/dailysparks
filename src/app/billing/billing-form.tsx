@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { ArrowLeft, CheckCircle2, CreditCard } from "lucide-react";
 
 import { BILLING_PLAN_DEFINITIONS, getBillingSummary } from "../../lib/billing";
@@ -14,29 +14,32 @@ type BillingFormProps = {
 
 type BillingRouteMessage = {
   message?: string;
+  url?: string;
   parent?: ParentProfile["parent"];
 };
 
 export default function BillingForm({ initialProfile }: BillingFormProps) {
-  const router = useRouter();
-  const [parent, setParent] = useState(initialProfile.parent);
+  const searchParams = useSearchParams();
+  const [parent] = useState(initialProfile.parent);
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [pendingPlan, setPendingPlan] = useState<"monthly" | "yearly" | null>(
     null,
   );
-  const [isPending, startTransition] = useTransition();
 
   const billingSummary = getBillingSummary(parent);
+  const isStripeSandbox =
+    (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "").startsWith("pk_test_");
+  const hasActiveStripeSubscription =
+    parent.subscriptionStatus === "active" && Boolean(parent.stripeCustomerId);
+  const canceledCheckout = searchParams.get("canceled") === "1";
 
   async function handleSelectPlan(subscriptionPlan: "monthly" | "yearly") {
     setErrorMessage("");
-    setSuccessMessage("");
     setPendingPlan(subscriptionPlan);
 
     try {
-      const response = await fetch("/api/billing", {
-        method: "PUT",
+      const response = await fetch("/api/billing/checkout", {
+        method: "POST",
         headers: {
           "content-type": "application/json",
         },
@@ -47,24 +50,37 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
 
       const body = (await response.json().catch(() => null)) as BillingRouteMessage | null;
 
-      if (!response.ok || !body?.parent) {
-        setErrorMessage(body?.message ?? "We could not save your billing choice.");
+      if (!response.ok || !body?.url) {
+        setErrorMessage(body?.message ?? "We could not open Stripe checkout.");
         setPendingPlan(null);
         return;
       }
 
-      setParent(body.parent);
-      setSuccessMessage(
-        `${subscriptionPlan === "yearly" ? "Yearly" : "Monthly"} billing has been selected.`,
-      );
-      setPendingPlan(null);
-
-      startTransition(() => {
-        router.refresh();
-      });
+      window.location.assign(body.url);
     } catch {
-      setErrorMessage("We could not reach billing right now. Please try again.");
+      setErrorMessage("We could not reach Stripe checkout right now. Please try again.");
       setPendingPlan(null);
+    }
+  }
+
+  async function handleOpenPortal() {
+    setErrorMessage("");
+
+    try {
+      const response = await fetch("/api/billing/portal", {
+        method: "POST",
+      });
+
+      const body = (await response.json().catch(() => null)) as BillingRouteMessage | null;
+
+      if (!response.ok || !body?.url) {
+        setErrorMessage(body?.message ?? "We could not open the Stripe billing portal.");
+        return;
+      }
+
+      window.location.assign(body.url);
+    } catch {
+      setErrorMessage("We could not reach the Stripe billing portal right now.");
     }
   }
 
@@ -78,7 +94,7 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
             </p>
             <h1 className="mt-2 text-2xl font-bold">Choose your payment rhythm</h1>
             <p className="mt-1 text-sm text-slate-300">
-              Save the monthly or yearly cadence you want Daily Sparks to use at checkout.
+              Choose the Daily Sparks subscription you want Stripe to activate for your family.
             </p>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fbbf24] text-[#0f172a]">
@@ -107,11 +123,34 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
                 {parent.subscriptionPlan === "yearly" ? "Yearly selected" : "Monthly selected"}
               </span>
             ) : null}
+            {isStripeSandbox ? (
+              <span className="rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]">
+                Stripe sandbox
+              </span>
+            ) : null}
           </div>
           <p className="mt-4 text-xs leading-5 text-slate-500">
-            We are saving your billing choice now. Live card checkout will connect next.
+            {hasActiveStripeSubscription
+              ? "Your Stripe subscription is active. Use the portal below to change or cancel it."
+              : "Stripe handles the hosted checkout and card collection. Daily Sparks only stores the resulting subscription state."}
           </p>
+
+          {hasActiveStripeSubscription ? (
+            <button
+              type="button"
+              onClick={handleOpenPortal}
+              className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-[#0f172a] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#1e293b]"
+            >
+              Open Stripe billing portal
+            </button>
+          ) : null}
         </section>
+
+        {canceledCheckout ? (
+          <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Stripe checkout was canceled. Your Daily Sparks subscription was not changed.
+          </p>
+        ) : null}
 
         <div className="space-y-4">
           {BILLING_PLAN_DEFINITIONS.map((plan) => {
@@ -165,15 +204,30 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
 
                 <button
                   type="button"
-                  onClick={() => handleSelectPlan(plan.id)}
-                  disabled={Boolean(pendingPlan) || isPending}
+                  onClick={() => {
+                    if (hasActiveStripeSubscription) {
+                      void handleOpenPortal();
+                      return;
+                    }
+
+                    void handleSelectPlan(plan.id);
+                  }}
+                  disabled={Boolean(pendingPlan)}
                   className={`mt-6 inline-flex w-full items-center justify-center rounded-2xl px-5 py-4 text-sm font-bold transition ${
-                    isSelected
+                    hasActiveStripeSubscription
+                      ? "bg-slate-100 text-slate-500 hover:bg-slate-100"
+                      : isSelected
                       ? "bg-[#0f172a] text-white"
                       : "bg-[#fbbf24] text-[#0f172a] shadow-lg shadow-[#fbbf24]/20 hover:bg-[#f59e0b]"
                   } disabled:cursor-not-allowed disabled:opacity-60`}
                 >
-                  {isSaving ? "Saving..." : isSelected ? "Keep this plan" : plan.cta}
+                  {isSaving
+                    ? "Opening Stripe..."
+                    : hasActiveStripeSubscription
+                      ? "Manage in Stripe portal"
+                      : isSelected
+                        ? "Continue with selected plan"
+                        : "Continue to Stripe"}
                 </button>
               </section>
             );
@@ -183,12 +237,6 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
         {errorMessage ? (
           <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMessage}
-          </p>
-        ) : null}
-
-        {successMessage ? (
-          <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            {successMessage}
           </p>
         ) : null}
 

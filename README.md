@@ -5,6 +5,7 @@ Daily Sparks is a Next.js MVP for IB families. The current app supports:
 - Google-only parent login with secure server sessions
 - a dashboard for programme and year selection
 - a dedicated billing page with monthly and yearly plan selection
+- Stripe sandbox checkout for monthly and yearly subscriptions
 - a generated weekly reading plan
 - delivery channel preferences for Goodnotes and Notion
 - a first-login child-name onboarding step inside the dashboard
@@ -112,6 +113,32 @@ Once those values are present, the server-side store switches from local JSON to
 - Firebase Authentication Google provider must be enabled for the project.
 - The Firebase Auth authorized domains list must include both `localhost` and `dailysparks.geledtech.com`.
 - The Google Web OAuth client must allow `https://dailysparks.geledtech.com/__/auth/handler`.
+
+## Stripe Billing
+
+Daily Sparks now supports hosted Stripe Checkout in sandbox mode.
+
+### Required environment variables
+
+```env
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_SECRET_KEY=sk_test_...
+```
+
+The billing page automatically shows sandbox state when the publishable key starts with `pk_test_`.
+
+### Billing flow
+
+- `/billing` creates a hosted Stripe Checkout Session
+- Stripe returns to `/billing/success`
+- Daily Sparks verifies the returned `session_id` on the server
+- the parent profile is updated to `active` once checkout is confirmed
+
+### Security notes
+
+- Never commit Stripe keys into the repository
+- Keep `STRIPE_SECRET_KEY` in Secret Manager or another server-side secret store
+- Do not enable live billing with the currently exposed live key; rotate it first before production use
 
 ## Production Deployment
 

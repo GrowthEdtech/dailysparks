@@ -52,6 +52,8 @@ export type ParentRecord = {
   fullName: string;
   subscriptionStatus: SubscriptionStatus;
   subscriptionPlan: SubscriptionPlan;
+  stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -92,5 +94,8 @@ export type UpdateStudentPreferencesInput = {
 };
 
 export type UpdateParentSubscriptionInput = {
-  subscriptionPlan: (typeof SUBSCRIPTION_PLANS)[number];
+  subscriptionPlan?: (typeof SUBSCRIPTION_PLANS)[number];
+  subscriptionStatus?: SubscriptionStatus;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
 };

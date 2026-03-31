@@ -71,7 +71,9 @@ export function getBillingSummary(parent: ParentRecord) {
     return {
       title: `${planName} plan active`,
       subtitle: "Billing is active and connected to your parent workspace.",
-      detail: "You can review or switch your billing cadence at any time.",
+      detail: parent.stripeCustomerId
+        ? "Use the Stripe billing portal to switch cadence or cancel your subscription."
+        : "Your Stripe subscription is active and ready for reading delivery.",
       statusLabel,
     };
   }
@@ -80,7 +82,7 @@ export function getBillingSummary(parent: ParentRecord) {
     return {
       title: `${statusLabel} access`,
       subtitle: `${planName} billing is selected for your account.`,
-      detail: "This MVP saves your billing choice now and checkout will connect next.",
+      detail: "Continue into Stripe checkout to activate this subscription.",
       statusLabel,
     };
   }
@@ -88,7 +90,7 @@ export function getBillingSummary(parent: ParentRecord) {
   return {
     title: `${statusLabel} access`,
     subtitle: "Choose monthly or yearly billing to complete your setup.",
-    detail: "Your selection will appear here once billing is configured.",
+    detail: "Stripe sandbox checkout will activate your Daily Sparks subscription.",
     statusLabel,
   };
 }

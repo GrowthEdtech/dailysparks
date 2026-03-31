@@ -43,6 +43,14 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
     isSubscriptionPlan(raw.subscriptionPlan)
       ? raw.subscriptionPlan
       : null;
+  const stripeCustomerId =
+    typeof raw.stripeCustomerId === "string" && raw.stripeCustomerId.trim()
+      ? raw.stripeCustomerId.trim()
+      : null;
+  const stripeSubscriptionId =
+    typeof raw.stripeSubscriptionId === "string" && raw.stripeSubscriptionId.trim()
+      ? raw.stripeSubscriptionId.trim()
+      : null;
 
   return {
     id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
@@ -59,6 +67,8 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
         ? raw.subscriptionStatus
         : "trial",
     subscriptionPlan,
+    stripeCustomerId,
+    stripeSubscriptionId,
     createdAt: typeof raw.createdAt === "string" ? raw.createdAt : timestamp,
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : timestamp,
   };
@@ -186,6 +196,8 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     fullName,
     subscriptionStatus: "trial",
     subscriptionPlan: null,
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -324,7 +336,29 @@ export const localProfileStore: ProfileStore = {
       return null;
     }
 
-    parent.subscriptionPlan = input.subscriptionPlan as SubscriptionPlan;
+    if (input.subscriptionPlan !== undefined) {
+      parent.subscriptionPlan = input.subscriptionPlan as SubscriptionPlan;
+    }
+
+    if (input.subscriptionStatus !== undefined) {
+      parent.subscriptionStatus = input.subscriptionStatus;
+    }
+
+    if (input.stripeCustomerId !== undefined) {
+      parent.stripeCustomerId =
+        typeof input.stripeCustomerId === "string" && input.stripeCustomerId.trim()
+          ? input.stripeCustomerId.trim()
+          : null;
+    }
+
+    if (input.stripeSubscriptionId !== undefined) {
+      parent.stripeSubscriptionId =
+        typeof input.stripeSubscriptionId === "string" &&
+        input.stripeSubscriptionId.trim()
+          ? input.stripeSubscriptionId.trim()
+          : null;
+    }
+
     parent.updatedAt = new Date().toISOString();
 
     await writeStore(store);
