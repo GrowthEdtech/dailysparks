@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, LoaderCircle } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 
+import LogoutButton from "../../../components/logout-button";
 import type { ParentProfile } from "../../../lib/mvp-types";
 import {
   PRIMARY_SUCCESS_CTA_CLASSNAME,
@@ -99,12 +100,15 @@ export default function SuccessPanel() {
               We are confirming your Daily Sparks subscription on the server.
             </p>
           </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fbbf24] text-[#0f172a]">
-            {status === "pending" ? (
-              <LoaderCircle className="h-5 w-5 animate-spin" />
-            ) : (
-              <CheckCircle2 className="h-5 w-5" />
-            )}
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fbbf24] text-[#0f172a]">
+              {status === "pending" ? (
+                <LoaderCircle className="h-5 w-5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5" />
+              )}
+            </div>
+            <LogoutButton />
           </div>
         </div>
       </header>

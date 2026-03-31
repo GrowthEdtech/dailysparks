@@ -4,10 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { BookOpen, CreditCard, LogOut, Save, Send } from "lucide-react";
+import { BookOpen, CreditCard, Save, Send } from "lucide-react";
 
+import LogoutButton from "../../components/logout-button";
 import { getBillingSummary } from "../../lib/billing";
-import { signOutFirebaseClientSession } from "../../lib/firebase-client";
 import {
   getDefaultProgrammeYear,
   getProgrammeYearOptions,
@@ -62,7 +62,6 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const avatarInitials = useMemo(
@@ -139,34 +138,6 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
     }
   }
 
-  async function handleLogout() {
-    setErrorMessage("");
-    setSuccessMessage("");
-    setIsLoggingOut(true);
-
-    try {
-      const response = await fetch("/api/logout", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        setErrorMessage("We could not log you out right now.");
-        setIsLoggingOut(false);
-        return;
-      }
-
-      await signOutFirebaseClientSession().catch(() => undefined);
-
-      startTransition(() => {
-        router.push("/login");
-        router.refresh();
-      });
-    } catch {
-      setErrorMessage("We could not reach the local API. Please try again.");
-      setIsLoggingOut(false);
-    }
-  }
-
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <header className="w-full rounded-b-[32px] bg-[#0f172a] px-6 py-6 text-white shadow-md">
@@ -182,8 +153,11 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
               Logged in as {initialProfile.parent.email}
             </p>
           </div>
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fbbf24] font-bold text-[#0f172a]">
-            {avatarInitials}
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fbbf24] font-bold text-[#0f172a]">
+              {avatarInitials}
+            </div>
+            <LogoutButton />
           </div>
         </div>
       </header>
@@ -234,15 +208,6 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
               <CreditCard className="h-4 w-4" />
               Manage subscription
             </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              disabled={isSaving || isLoggingOut || isPending}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <LogOut className="h-4 w-4" />
-              {isLoggingOut || isPending ? "Logging out..." : "Log out"}
-            </button>
           </div>
         </section>
 
@@ -276,7 +241,6 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
               onClick={handleSave}
               disabled={
                 isSaving ||
-                isLoggingOut ||
                 isPending ||
                 !hasMeaningfulStudentName(studentName)
               }
@@ -488,7 +452,7 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
         <button
           type="button"
           onClick={handleSave}
-          disabled={isSaving || isLoggingOut || isPending}
+          disabled={isSaving || isPending}
           className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#fbbf24] px-5 py-4 text-lg font-bold text-[#0f172a] shadow-lg shadow-[#fbbf24]/30 transition hover:bg-[#f59e0b] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Save className="h-5 w-5" />
