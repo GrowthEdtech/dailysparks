@@ -4,6 +4,7 @@ export type ProgrammeStageSummary = {
   title: string;
   description: string;
   badgeLabel: string;
+  selectorLabel: string;
 };
 
 export type WeeklyPlanEntry = {
@@ -29,6 +30,7 @@ export function getProgrammeStageSummary(
       description:
         "MYP mode leans into analysis, interdisciplinary thinking, and clearer written response without overwhelming the learner with full academic intensity.",
       badgeLabel: "MYP mode",
+      selectorLabel: "Analytical",
     };
   }
 
@@ -38,6 +40,7 @@ export function getProgrammeStageSummary(
       description:
         "DP mode is built around evidence, argument, and reflective synthesis, so each reading feels closer to academic discussion and independent thinking.",
       badgeLabel: "DP mode",
+      selectorLabel: "Argument-based",
     };
   }
 
@@ -46,6 +49,7 @@ export function getProgrammeStageSummary(
     description:
       "PYP mode keeps the rhythm curiosity-led, broad, theme-based, and discussion-friendly so the reading habit feels inviting, connected, and easy to share at home.",
     badgeLabel: "PYP mode",
+    selectorLabel: "Theme-based",
   };
 }
 

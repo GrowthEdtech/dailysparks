@@ -309,19 +309,27 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
             <div className="mt-3 flex flex-wrap gap-2">
               {(["PYP", "MYP", "DP"] as const).map((option) => {
                 const active = programme === option;
+                const optionSummary = getProgrammeStageSummary(option);
 
                 return (
                   <button
                     key={option}
                     type="button"
                     onClick={() => handleProgrammeChange(option)}
-                    className={`rounded-xl border px-4 py-2 text-sm transition ${
+                    className={`flex min-w-[112px] flex-col items-center rounded-2xl border px-4 py-3 text-sm transition ${
                       active
-                        ? "border-[#0f172a] bg-[#0f172a] font-medium text-white shadow-md shadow-[#0f172a]/20"
+                        ? "border-[#0f172a] bg-[#0f172a] text-white shadow-md shadow-[#0f172a]/20"
                         : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                     }`}
                   >
-                    {option}
+                    <span className="text-base font-bold">{option}</span>
+                    <span
+                      className={`mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${
+                        active ? "text-slate-200" : "text-slate-400"
+                      }`}
+                    >
+                      {optionSummary.selectorLabel}
+                    </span>
                   </button>
                 );
               })}

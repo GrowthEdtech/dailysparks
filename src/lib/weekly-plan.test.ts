@@ -17,4 +17,10 @@ describe("weekly plan programme differentiation", () => {
     expect(getProgrammeStageSummary("MYP").description).toContain("analysis");
     expect(getProgrammeStageSummary("DP").description).toContain("argument");
   });
+
+  test("provides concise selector labels for each programme", () => {
+    expect(getProgrammeStageSummary("PYP").selectorLabel).toBe("Theme-based");
+    expect(getProgrammeStageSummary("MYP").selectorLabel).toBe("Analytical");
+    expect(getProgrammeStageSummary("DP").selectorLabel).toBe("Argument-based");
+  });
 });
