@@ -12,12 +12,7 @@ import {
   getSubscriptionPlanBadgeLabel,
 } from "../../lib/billing";
 import type { ParentProfile } from "../../lib/mvp-types";
-import PricingMarketToggle from "../../components/pricing-market-toggle";
 import type { PricingMarket } from "../../lib/pricing-market";
-import {
-  getPricingMarketLabel,
-  getPricingMarketSupportCopy,
-} from "../../lib/pricing-market";
 import {
   BACK_TO_DASHBOARD_CTA_CLASSNAME,
   BACK_TO_DASHBOARD_CTA_STYLE,
@@ -36,33 +31,18 @@ type BillingRouteMessage = {
   parent?: ParentProfile["parent"];
 };
 
-async function savePricingMarket(pricingMarket: PricingMarket) {
-  const response = await fetch("/api/pricing-market", {
-    method: "PUT",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ pricingMarket }),
-  });
-
-  if (!response.ok) {
-    throw new Error("We could not update your pricing market right now.");
-  }
-}
-
 export default function BillingForm({
   initialProfile,
   initialPricingMarket,
 }: BillingFormProps) {
   const searchParams = useSearchParams();
   const [parent] = useState(initialProfile.parent);
-  const [pricingMarket, setPricingMarket] = useState(initialPricingMarket);
   const [errorMessage, setErrorMessage] = useState("");
   const [pendingPlan, setPendingPlan] = useState<"monthly" | "yearly" | null>(
     null,
   );
 
-  const billingPlans = getBillingPlanDefinitions(pricingMarket);
+  const billingPlans = getBillingPlanDefinitions(initialPricingMarket);
   const billingSummary = getBillingSummary(parent);
   const latestInvoiceSummary = getLatestInvoiceSummary(parent);
   const subscriptionPlanBadgeLabel = getSubscriptionPlanBadgeLabel(parent);
@@ -71,15 +51,6 @@ export default function BillingForm({
   const hasActiveStripeSubscription =
     parent.subscriptionStatus === "active" && Boolean(parent.stripeCustomerId);
   const canceledCheckout = searchParams.get("canceled") === "1";
-
-  async function handleSelectPricingMarket(nextPricingMarket: PricingMarket) {
-    try {
-      await savePricingMarket(nextPricingMarket);
-      setPricingMarket(nextPricingMarket);
-    } catch {
-      setErrorMessage("We could not switch pricing right now. Please try again.");
-    }
-  }
 
   async function handleSelectPlan(subscriptionPlan: "monthly" | "yearly") {
     setErrorMessage("");
@@ -287,26 +258,6 @@ export default function BillingForm({
             Stripe checkout was canceled. Your Daily Sparks subscription was not changed.
           </p>
         ) : null}
-
-        <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                Pricing market
-              </p>
-              <h2 className="mt-2 text-xl font-bold text-[#0f172a]">
-                {getPricingMarketLabel(pricingMarket)}
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                {getPricingMarketSupportCopy(pricingMarket)}
-              </p>
-            </div>
-            <PricingMarketToggle
-              currentMarket={pricingMarket}
-              onSelectMarket={handleSelectPricingMarket}
-            />
-          </div>
-        </section>
 
         <div className="space-y-4">
           {billingPlans.map((plan) => {

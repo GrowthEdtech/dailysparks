@@ -1,18 +1,13 @@
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import BillingForm from "./billing-form";
 import { getProfileByEmail } from "../../lib/mvp-store";
-import {
-  getPricingMarketFromCookieStore,
-  PRICING_COUNTRY_HEADER_NAME,
-  resolvePricingMarket,
-} from "../../lib/pricing-market";
+import { DEFAULT_PRICING_MARKET } from "../../lib/pricing-market";
 import { getSessionFromCookieStore } from "../../lib/session";
 
 export default async function BillingPage() {
   const cookieStore = await cookies();
-  const headerStore = await headers();
   const session = await getSessionFromCookieStore(cookieStore);
   const sessionEmail = session?.email ?? null;
 
@@ -26,15 +21,10 @@ export default async function BillingPage() {
     redirect("/login");
   }
 
-  const initialPricingMarket = resolvePricingMarket({
-    marketOverride: getPricingMarketFromCookieStore(cookieStore),
-    countryCode: headerStore.get(PRICING_COUNTRY_HEADER_NAME),
-  });
-
   return (
     <BillingForm
       initialProfile={profile}
-      initialPricingMarket={initialPricingMarket}
+      initialPricingMarket={DEFAULT_PRICING_MARKET}
     />
   );
 }

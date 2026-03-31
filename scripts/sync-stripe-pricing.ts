@@ -73,13 +73,10 @@ function hasExpectedPriceShape(
   productId: string,
 ) {
   const intlPricing = getPricingForPlan(subscriptionPlan, "intl");
-  const hkPricing = getPricingForPlan(subscriptionPlan, "hk");
 
   if (!price.recurring) {
     return false;
   }
-
-  const hkCurrencyOptions = price.currency_options?.hkd;
 
   return (
     typeof price.product === "string" &&
@@ -87,8 +84,7 @@ function hasExpectedPriceShape(
     price.lookup_key === getPricingLookupKeyForPlan(subscriptionPlan) &&
     price.currency === intlPricing.currency &&
     price.unit_amount === intlPricing.amount &&
-    price.recurring.interval === getPricingIntervalForPlan(subscriptionPlan) &&
-    hkCurrencyOptions?.unit_amount === hkPricing.amount
+    price.recurring.interval === getPricingIntervalForPlan(subscriptionPlan)
   );
 }
 
@@ -96,7 +92,6 @@ async function ensurePrice(subscriptionPlan: Exclude<SubscriptionPlan, null>) {
   const product = await ensureProduct(subscriptionPlan);
   const lookupKey = getPricingLookupKeyForPlan(subscriptionPlan);
   const intlPricing = getPricingForPlan(subscriptionPlan, "intl");
-  const hkPricing = getPricingForPlan(subscriptionPlan, "hk");
   const existingPrice = await getActivePriceByLookupKey(lookupKey);
 
   if (existingPrice && hasExpectedPriceShape(existingPrice, subscriptionPlan, product.id)) {
@@ -105,11 +100,6 @@ async function ensurePrice(subscriptionPlan: Exclude<SubscriptionPlan, null>) {
 
   const createdPrice = await stripe.prices.create({
     currency: intlPricing.currency,
-    currency_options: {
-      hkd: {
-        unit_amount: hkPricing.amount,
-      },
-    },
     lookup_key: lookupKey,
     metadata: {
       dailySparksPlan: subscriptionPlan,

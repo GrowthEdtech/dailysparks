@@ -1,52 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 
-import PricingMarketToggle from "../components/pricing-market-toggle";
 import { getBillingPlanDefinitions } from "../lib/billing";
 import type { PricingMarket } from "../lib/pricing-market";
-import {
-  getPricingMarketLabel,
-  getPricingMarketSupportCopy,
-} from "../lib/pricing-market";
 
 type HomePricingSectionProps = {
   initialPricingMarket: PricingMarket;
 };
 
-async function savePricingMarket(pricingMarket: PricingMarket) {
-  const response = await fetch("/api/pricing-market", {
-    method: "PUT",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ pricingMarket }),
-  });
-
-  if (!response.ok) {
-    throw new Error("We could not update your pricing market right now.");
-  }
-}
-
 export default function HomePricingSection({
   initialPricingMarket,
 }: HomePricingSectionProps) {
-  const [pricingMarket, setPricingMarket] = useState(initialPricingMarket);
-  const [pricingMessage, setPricingMessage] = useState("");
-  const billingPlans = getBillingPlanDefinitions(pricingMarket);
-
-  async function handleSelectMarket(nextPricingMarket: PricingMarket) {
-    setPricingMessage("");
-
-    try {
-      await savePricingMarket(nextPricingMarket);
-      setPricingMarket(nextPricingMarket);
-    } catch {
-      setPricingMessage("We could not switch pricing right now. Please try again.");
-    }
-  }
+  const billingPlans = getBillingPlanDefinitions(initialPricingMarket);
 
   return (
     <section className="bg-white text-[#0f172a] py-24 px-6 border-t border-slate-100">
@@ -59,17 +26,8 @@ export default function HomePricingSection({
             Choose the Daily Sparks rhythm that fits your family.
           </h2>
           <p className="text-slate-500 text-lg">
-            {getPricingMarketLabel(pricingMarket)} is shown below. You can switch currencies at
-            any time before checkout.
+            All subscriptions, checkout, and invoices are billed in USD.
           </p>
-          <div className="flex justify-center pt-2">
-            <PricingMarketToggle
-              currentMarket={pricingMarket}
-              onSelectMarket={handleSelectMarket}
-            />
-          </div>
-          <p className="text-sm text-slate-500">{getPricingMarketSupportCopy(pricingMarket)}</p>
-          {pricingMessage ? <p className="text-sm text-red-600">{pricingMessage}</p> : null}
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 items-stretch pt-10">

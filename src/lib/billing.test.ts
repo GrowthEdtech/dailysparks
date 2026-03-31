@@ -37,24 +37,7 @@ function createParentRecord(overrides: Partial<ParentRecord> = {}): ParentRecord
 }
 
 describe("billing plan badge label", () => {
-  test("exposes the current HKD subscription pricing", () => {
-    expect(getBillingPlanDefinitions("hk")).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "monthly",
-          price: "HK$29.99",
-          cadence: "/ month",
-        }),
-        expect.objectContaining({
-          id: "yearly",
-          price: "HK$299.99",
-          cadence: "/ year",
-        }),
-      ]),
-    );
-  });
-
-  test("exposes the current international USD subscription pricing", () => {
+  test("exposes the current USD subscription pricing", () => {
     expect(getBillingPlanDefinitions("intl")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -112,8 +95,8 @@ describe("latest invoice summary", () => {
       latestInvoiceStatus: "paid",
       latestInvoiceHostedUrl: "https://invoice.stripe.com/i/in_123",
       latestInvoicePdfUrl: "https://pay.stripe.com/invoice/in_123/pdf",
-      latestInvoiceAmountPaid: 29999,
-      latestInvoiceCurrency: "hkd",
+      latestInvoiceAmountPaid: 3999,
+      latestInvoiceCurrency: "usd",
       latestInvoicePaidAt: "2026-03-31T00:10:00.000Z",
       latestInvoicePeriodStart: "2026-03-31T00:00:00.000Z",
       latestInvoicePeriodEnd: "2027-03-31T00:00:00.000Z",
@@ -135,7 +118,7 @@ describe("latest invoice summary", () => {
         }),
         expect.objectContaining({
           label: "Amount paid",
-          value: "HK$299.99",
+          value: "$39.99",
         }),
         expect.objectContaining({
           label: "Sent to",

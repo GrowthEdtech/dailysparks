@@ -1,4 +1,3 @@
-import { cookies, headers } from "next/headers";
 import {
   ArrowRight,
   Zap,
@@ -11,20 +10,9 @@ import {
 } from "lucide-react";
 
 import HomePricingSection from "./home-pricing-section";
-import {
-  getPricingMarketFromCookieStore,
-  PRICING_COUNTRY_HEADER_NAME,
-  resolvePricingMarket,
-} from "../lib/pricing-market";
+import { DEFAULT_PRICING_MARKET } from "../lib/pricing-market";
 
 export default async function Home() {
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  const initialPricingMarket = resolvePricingMarket({
-    marketOverride: getPricingMarketFromCookieStore(cookieStore),
-    countryCode: headerStore.get(PRICING_COUNTRY_HEADER_NAME),
-  });
-
   return (
     <div className="min-h-screen bg-[#0f172a] text-[#f8fafc] selection:bg-[#fbbf24] selection:text-[#0f172a]">
       {/* 導航欄 Navbar */}
@@ -232,7 +220,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <HomePricingSection initialPricingMarket={initialPricingMarket} />
+      <HomePricingSection initialPricingMarket={DEFAULT_PRICING_MARKET} />
 
       {/* --- Section 6: FAQ --- */}
       <section className="bg-white text-[#0f172a] py-24 px-6 border-t border-slate-100">
