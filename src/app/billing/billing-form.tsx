@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, CheckCircle2, CreditCard } from "lucide-react";
+import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
-import LogoutButton from "../../components/logout-button";
+import AccountMenu from "../../components/account-menu";
 import {
   getBillingPlanDefinitions,
   getBillingSummary,
@@ -117,12 +117,7 @@ export default function BillingForm({
               Choose the Daily Sparks subscription you want Stripe to activate for your family.
             </p>
           </div>
-          <div className="flex flex-col items-end gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fbbf24] text-[#0f172a]">
-              <CreditCard className="h-5 w-5" />
-            </div>
-            <LogoutButton />
-          </div>
+          <AccountMenu fullName={parent.fullName} email={parent.email} />
         </div>
       </header>
 

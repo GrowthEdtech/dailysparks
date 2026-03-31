@@ -3,10 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { BookOpen, CreditCard, Save, Send } from "lucide-react";
 
-import LogoutButton from "../../components/logout-button";
+import AccountMenu from "../../components/account-menu";
 import { getBillingSummary } from "../../lib/billing";
 import {
   getDefaultProgrammeYear,
@@ -25,20 +25,6 @@ type RouteMessage = {
   message?: string;
   student?: ParentProfile["student"];
 };
-
-function getInitials(fullName: string) {
-  const pieces = fullName
-    .split(" ")
-    .map((piece) => piece.trim())
-    .filter(Boolean)
-    .slice(0, 2);
-
-  if (pieces.length === 0) {
-    return "DS";
-  }
-
-  return pieces.map((piece) => piece[0]?.toUpperCase() ?? "").join("");
-}
 
 function hasMeaningfulStudentName(studentName: string) {
   const normalizedStudentName = studentName.trim();
@@ -63,11 +49,6 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
   const [successMessage, setSuccessMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const avatarInitials = useMemo(
-    () => getInitials(initialProfile.parent.fullName),
-    [initialProfile.parent.fullName],
-  );
 
   const billingSummary = getBillingSummary(initialProfile.parent);
   const yearOptions = getProgrammeYearOptions(programme);
@@ -153,12 +134,10 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
               Logged in as {initialProfile.parent.email}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fbbf24] font-bold text-[#0f172a]">
-              {avatarInitials}
-            </div>
-            <LogoutButton />
-          </div>
+          <AccountMenu
+            fullName={initialProfile.parent.fullName}
+            email={initialProfile.parent.email}
+          />
         </div>
       </header>
 
