@@ -7,6 +7,7 @@ import { POST as login } from "./login/route";
 import { POST as createCheckout } from "./billing/checkout/route";
 import { POST as finalizeCheckout } from "./billing/finalize/route";
 import { SESSION_COOKIE_NAME } from "../../lib/session";
+import { PRICING_MARKET_COOKIE_NAME } from "../../lib/pricing-market";
 
 const {
   verifyIdTokenMock,
@@ -151,6 +152,7 @@ describe("billing checkout route", () => {
     expect(createCheckoutSessionForParentMock).toHaveBeenCalledWith(
       expect.objectContaining({
         origin: "https://dailysparks.geledtech.com",
+        pricingMarket: "intl",
         subscriptionPlan: "monthly",
       }),
     );
@@ -191,6 +193,7 @@ describe("billing checkout route", () => {
         headers: {
           "content-type": "application/json",
           cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+          "x-client-country": "HK",
           "x-forwarded-host": "dailysparks.geledtech.com",
           "x-forwarded-proto": "https",
         },
@@ -207,7 +210,66 @@ describe("billing checkout route", () => {
     expect(createCheckoutSessionForParentMock).toHaveBeenCalledWith(
       expect.objectContaining({
         origin: "https://dailysparks.geledtech.com",
+        pricingMarket: "hk",
         subscriptionPlan: "yearly",
+      }),
+    );
+  });
+
+  test("uses the market override cookie before the geolocation header", async () => {
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+    createCheckoutSessionForParentMock.mockResolvedValue({
+      url: "https://checkout.stripe.com/c/pay/cs_test_789",
+    });
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    const response = await createCheckout(
+      new Request("http://0.0.0.0:8080/api/billing/checkout", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie; ${PRICING_MARKET_COOKIE_NAME}=intl`,
+          "x-forwarded-host": "dailysparks.geledtech.com",
+          "x-forwarded-proto": "https",
+          "x-client-country": "HK",
+        },
+        body: JSON.stringify({
+          subscriptionPlan: "monthly",
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.url).toBe("https://checkout.stripe.com/c/pay/cs_test_789");
+    expect(createCheckoutSessionForParentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        origin: "https://dailysparks.geledtech.com",
+        pricingMarket: "intl",
+        subscriptionPlan: "monthly",
       }),
     );
   });

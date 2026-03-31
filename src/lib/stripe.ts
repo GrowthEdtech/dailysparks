@@ -8,24 +8,18 @@ import type {
 } from "./mvp-types";
 import { isSubscriptionPlan } from "./mvp-types";
 import { getProfileByEmail, updateParentSubscription } from "./mvp-store";
-
-const STRIPE_PLAN_CONFIG = {
-  monthly: {
-    unitAmount: 2999,
-    interval: "month",
-    productName: "Daily Sparks Monthly",
-  },
-  yearly: {
-    unitAmount: 29999,
-    interval: "year",
-    productName: "Daily Sparks Yearly",
-  },
-} as const;
+import type { PricingMarket } from "./pricing-market";
+import {
+  getPricingForPlan,
+  getPricingIntervalForPlan,
+  getPricingLookupKeyForPlan,
+} from "./pricing-market";
 
 type CheckoutPlan = Exclude<SubscriptionPlan, null>;
 
 type CheckoutSessionInput = {
   origin: string;
+  pricingMarket: PricingMarket;
   profile: ParentProfile;
   subscriptionPlan: CheckoutPlan;
 };
@@ -99,8 +93,35 @@ export function constructStripeWebhookEvent(payload: string, signature: string) 
   return getStripeServerClient().webhooks.constructEvent(payload, signature, webhookSecret);
 }
 
-function getCheckoutPlanConfig(subscriptionPlan: CheckoutPlan) {
-  return STRIPE_PLAN_CONFIG[subscriptionPlan];
+async function getCheckoutPriceForPlan(subscriptionPlan: CheckoutPlan) {
+  const stripe = getStripeServerClient();
+  const lookupKey = getPricingLookupKeyForPlan(subscriptionPlan);
+  const priceList = await stripe.prices.list({
+    active: true,
+    limit: 10,
+    lookup_keys: [lookupKey],
+  });
+  const recurringInterval = getPricingIntervalForPlan(subscriptionPlan);
+  const matchingPrice = priceList.data.find((price) => {
+    if (!price.recurring) {
+      return false;
+    }
+
+    return (
+      price.lookup_key === lookupKey &&
+      price.recurring.interval === recurringInterval &&
+      price.product &&
+      typeof price.product === "string"
+    );
+  });
+
+  if (!matchingPrice) {
+    throw new Error(
+      `Stripe price lookup key ${lookupKey} is not configured for ${subscriptionPlan}.`,
+    );
+  }
+
+  return matchingPrice;
 }
 
 function toIsoTimestamp(value: number | null | undefined) {
@@ -425,10 +446,12 @@ export async function createCheckoutSessionForParent(
 ) {
   const stripe = getStripeServerClient();
   const customerId = await ensureStripeCustomer(input.profile);
-  const planConfig = getCheckoutPlanConfig(input.subscriptionPlan);
+  const checkoutPrice = await getCheckoutPriceForPlan(input.subscriptionPlan);
+  const planPrice = getPricingForPlan(input.subscriptionPlan, input.pricingMarket);
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
+    currency: planPrice.currency,
     customer: customerId,
     client_reference_id: input.profile.parent.id,
     success_url: `${input.origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -436,28 +459,20 @@ export async function createCheckoutSessionForParent(
     allow_promotion_codes: true,
     metadata: {
       parentEmail: input.profile.parent.email,
+      pricingMarket: input.pricingMarket,
       subscriptionPlan: input.subscriptionPlan,
     },
     subscription_data: {
       metadata: {
         parentEmail: input.profile.parent.email,
+        pricingMarket: input.pricingMarket,
         subscriptionPlan: input.subscriptionPlan,
       },
     },
     line_items: [
       {
         quantity: 1,
-        price_data: {
-          currency: "hkd",
-          unit_amount: planConfig.unitAmount,
-          recurring: {
-            interval: planConfig.interval,
-          },
-          product_data: {
-            name: planConfig.productName,
-            description: "Daily Sparks parent subscription",
-          },
-        },
+        price: checkoutPrice.id,
       },
     ],
   });

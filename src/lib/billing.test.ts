@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import type { ParentRecord } from "./mvp-types";
 import {
-  BILLING_PLAN_DEFINITIONS,
+  getBillingPlanDefinitions,
   getLatestInvoiceSummary,
   getSubscriptionPlanBadgeLabel,
 } from "./billing";
@@ -38,7 +38,7 @@ function createParentRecord(overrides: Partial<ParentRecord> = {}): ParentRecord
 
 describe("billing plan badge label", () => {
   test("exposes the current HKD subscription pricing", () => {
-    expect(BILLING_PLAN_DEFINITIONS).toEqual(
+    expect(getBillingPlanDefinitions("hk")).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           id: "monthly",
@@ -48,6 +48,23 @@ describe("billing plan badge label", () => {
         expect.objectContaining({
           id: "yearly",
           price: "HK$299.99",
+          cadence: "/ year",
+        }),
+      ]),
+    );
+  });
+
+  test("exposes the current international USD subscription pricing", () => {
+    expect(getBillingPlanDefinitions("intl")).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "monthly",
+          price: "USD 3.99",
+          cadence: "/ month",
+        }),
+        expect.objectContaining({
+          id: "yearly",
+          price: "USD 39.99",
           cadence: "/ year",
         }),
       ]),

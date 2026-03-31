@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "sync:stripe-pricing": "node --import tsx ./scripts/sync-stripe-pricing.ts",
     "test": "vitest"
   },
   "dependencies": {

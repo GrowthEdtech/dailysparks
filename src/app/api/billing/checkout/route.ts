@@ -4,6 +4,7 @@ import {
   getSessionEmailFromRequest,
 } from "../../../../lib/session";
 import { isSubscriptionPlan } from "../../../../lib/mvp-types";
+import { getPricingMarketFromRequest } from "../../../../lib/pricing-market";
 import { getRequestOrigin } from "../../../../lib/request-origin";
 import { createCheckoutSessionForParent, isStripeConfigured } from "../../../../lib/stripe";
 
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
     const checkoutSession = await createCheckoutSessionForParent({
       origin: getRequestOrigin(request),
       profile,
+      pricingMarket: getPricingMarketFromRequest(request),
       subscriptionPlan,
     });
 

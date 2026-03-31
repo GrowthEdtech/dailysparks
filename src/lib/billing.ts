@@ -3,6 +3,8 @@ import type {
   SubscriptionPlan,
   SubscriptionStatus,
 } from "./mvp-types";
+import type { PricingMarket } from "./pricing-market";
+import { getPricingForPlan, getYearlySavingsCopy } from "./pricing-market";
 
 type BillingSummaryRow = {
   label: string;
@@ -19,36 +21,43 @@ type InvoiceSummary = {
   rows: BillingSummaryRow[];
 };
 
-export const BILLING_PLAN_DEFINITIONS = [
-  {
-    id: "monthly",
-    name: "Monthly",
-    price: "HK$29.99",
-    cadence: "/ month",
-    eyebrow: "Flexible access",
-    description: "Keep Daily Sparks on a month-to-month rhythm with full dashboard access.",
-    bullets: [
-      "Full Daily Sparks reading flow",
-      "GoodNotes delivery support",
-      "Cancel anytime from billing",
-    ],
-    cta: "Select monthly",
-  },
-  {
-    id: "yearly",
-    name: "Yearly",
-    price: "HK$299.99",
-    cadence: "/ year",
-    eyebrow: "Best value",
-    description: "Commit to a full year and save HK$59.89 versus paying monthly.",
-    bullets: [
-      "Everything in Monthly",
-      "12 months of IB reading support",
-      "Effective ~HK$25 / month pricing",
-    ],
-    cta: "Select yearly",
-  },
-] as const;
+export function getBillingPlanDefinitions(pricingMarket: PricingMarket) {
+  const monthlyPrice = getPricingForPlan("monthly", pricingMarket);
+  const yearlyPrice = getPricingForPlan("yearly", pricingMarket);
+  const yearlySavings = getYearlySavingsCopy(pricingMarket);
+
+  return [
+    {
+      id: "monthly",
+      name: "Monthly",
+      price: monthlyPrice.displayPrice,
+      cadence: monthlyPrice.cadence,
+      eyebrow: "Flexible access",
+      description:
+        "Keep Daily Sparks on a month-to-month rhythm with full dashboard access.",
+      bullets: [
+        "Full Daily Sparks reading flow",
+        "GoodNotes delivery support",
+        "Cancel anytime from billing",
+      ],
+      cta: "Select monthly",
+    },
+    {
+      id: "yearly",
+      name: "Yearly",
+      price: yearlyPrice.displayPrice,
+      cadence: yearlyPrice.cadence,
+      eyebrow: "Best value",
+      description: `Commit to a full year and save ${yearlySavings.savingsDisplay} versus paying monthly.`,
+      bullets: [
+        "Everything in Monthly",
+        "12 months of IB reading support",
+        `Effective ${yearlySavings.effectiveMonthlyDisplay} pricing`,
+      ],
+      cta: "Select yearly",
+    },
+  ] as const;
+}
 
 function formatPlanName(plan: SubscriptionPlan) {
   if (plan === "monthly") {

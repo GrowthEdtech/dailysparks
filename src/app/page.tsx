@@ -1,16 +1,30 @@
-import { 
-  ArrowRight, 
-  CheckCircle2, 
-  Zap, 
-  BookOpen, 
-  Brain, 
-  PenTool, 
+import { cookies, headers } from "next/headers";
+import {
+  ArrowRight,
+  Zap,
+  BookOpen,
+  Brain,
+  PenTool,
   ShieldCheck,
   ChevronDown,
-  Smartphone
-} from 'lucide-react';
+  Smartphone,
+} from "lucide-react";
 
-export default function Home() {
+import HomePricingSection from "./home-pricing-section";
+import {
+  getPricingMarketFromCookieStore,
+  PRICING_COUNTRY_HEADER_NAME,
+  resolvePricingMarket,
+} from "../lib/pricing-market";
+
+export default async function Home() {
+  const cookieStore = await cookies();
+  const headerStore = await headers();
+  const initialPricingMarket = resolvePricingMarket({
+    marketOverride: getPricingMarketFromCookieStore(cookieStore),
+    countryCode: headerStore.get(PRICING_COUNTRY_HEADER_NAME),
+  });
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-[#f8fafc] selection:bg-[#fbbf24] selection:text-[#0f172a]">
       {/* 導航欄 Navbar */}
@@ -218,70 +232,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- Section 5: Pricing --- */}
-      <section className="py-24 px-6 max-w-6xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-6xl font-extrabold text-white mb-6">Simple, Fair Pricing.</h2>
-          <p className="text-[#94a3b8] text-lg">Compare to a private IB tutor charging $50 per session.</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8 items-stretch pt-8">
-          {/* Basic Plan */}
-          <div className="bg-white/5 border border-white/10 rounded-[32px] p-10 flex flex-col hover:border-white/20 transition-all">
-            <h3 className="text-xl font-bold text-white mb-2">Monthly</h3>
-            <p className="text-[#94a3b8] text-sm mb-6">Flexible access for families who want to start right away.</p>
-            <div className="text-5xl font-extrabold text-white mb-8">
-              HK$29.99 <span className="text-lg font-medium text-[#64748b]">/ month</span>
-            </div>
-            
-            <ul className="space-y-4 mb-10 flex-1">
-              {[
-                "Full Daily Sparks reading flow",
-                "GoodNotes delivery support",
-                "Cancel anytime from billing",
-                "7-day trial starts on first sign-in"
-              ].map(item => (
-                <li key={item} className="flex items-center gap-3 text-sm text-[#cbd5e1]">
-                  <CheckCircle2 className="w-4 h-4 text-[#fbbf24]" /> {item}
-                </li>
-              ))}
-            </ul>
-
-            <button className="w-full py-4 rounded-xl border border-white/10 hover:bg-white/5 text-white font-bold transition-all">
-              Choose Monthly
-            </button>
-          </div>
-
-          {/* Yearly Plan */}
-          <div className="bg-gradient-to-br from-white to-slate-50 rounded-[32px] p-10 flex flex-col relative shadow-2xl shadow-[#fbbf24]/10 transform scale-105 border-4 border-[#fbbf24]">
-            <div className="absolute -top-4 right-8 bg-[#fbbf24] text-[#0f172a] px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest">
-              Most Popular
-            </div>
-            <h3 className="text-xl font-bold text-[#0f172a] mb-2">Yearly</h3>
-            <p className="text-gray-500 text-sm mb-6">Best value for families building a full-year reading habit.</p>
-            <div className="text-5xl font-extrabold text-[#0f172a] mb-8">
-              HK$299.99 <span className="text-lg font-medium text-gray-400">/ year</span>
-            </div>
-            
-            <ul className="space-y-4 mb-10 flex-1">
-              {[
-                "Everything in Monthly",
-                "12 months of IB reading support",
-                "Save HK$59.89 vs monthly billing",
-                "Effective ~HK$25 / month pricing"
-              ].map(item => (
-                <li key={item} className="flex items-center gap-3 text-sm text-gray-700">
-                  <CheckCircle2 className="w-4 h-4 text-[#fbbf24]" /> <span className="font-medium">{item}</span>
-                </li>
-              ))}
-            </ul>
-
-            <button className="w-full py-4 rounded-xl bg-[#0f172a] text-white font-bold hover:bg-slate-800 transition-all shadow-xl shadow-black/20">
-              Choose Yearly
-            </button>
-          </div>
-        </div>
-      </section>
+      <HomePricingSection initialPricingMarket={initialPricingMarket} />
 
       {/* --- Section 6: FAQ --- */}
       <section className="bg-white text-[#0f172a] py-24 px-6 border-t border-slate-100">
@@ -292,7 +243,7 @@ export default function Home() {
               {[
                 { q: "What age is Daily Sparks for?", a: "We primarily target students aged 9 to 14 (P5 to MYP). The reading level is adjusted to provide 'Desirable Difficulty'—challenging but accessible." },
                 { q: "How does the GoodNotes delivery work?", a: "Every iPad user with GoodNotes has a unique email. We use our server to automatically send the PDF to that address at 09:00 UTC daily." },
-                { q: "Can I cancel anytime?", a: "Yes. Our subscriptions are month-to-month. You can cancel with one click in your Dashboard settings." }
+                { q: "Can I cancel anytime?", a: "Yes. You can manage or cancel renewal at any time from your Dashboard subscription settings." }
               ].map((item, i) => (
                 <div key={i} className="group border-b border-slate-100 pb-6 cursor-pointer">
                   <div className="flex justify-between items-center mb-3">
