@@ -174,6 +174,22 @@ The script creates or reuses a webhook for:
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
 
+### Stripe invoice backfill
+
+If older subscriptions were created before webhook invoice sync was enabled, run this one-time backfill to pull the latest Stripe invoice into each parent profile:
+
+```bash
+STRIPE_API_KEY="$(gcloud secrets versions access latest --secret=daily-sparks-stripe-test-secret-key --project=gen-lang-client-0586185740)" \
+GOOGLE_CLOUD_PROJECT=gen-lang-client-0586185740 \
+npm run backfill:stripe-invoices
+```
+
+Useful flags:
+
+- `--dry-run` prints what would be updated without writing to Firestore
+- `--email admin@geledtech.com` backfills a single parent profile
+- `--limit 5` caps how many parents are processed in one run
+
 ## Production Deployment
 
 The production target for this repo is Google Cloud Run.

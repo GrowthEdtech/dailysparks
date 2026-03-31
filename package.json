@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "backfill:stripe-invoices": "node --import tsx ./scripts/backfill-stripe-invoices.ts",
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
@@ -27,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.1.2"
   }
