@@ -190,7 +190,7 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
 
       <main className="mx-auto mt-6 flex w-full max-w-md flex-col gap-6 px-4">
         <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
+          <div>
             <div>
               <h2 className="text-sm font-semibold text-slate-500">Current plan</h2>
               <p className="mt-1 text-lg font-bold text-[#0f172a]">
@@ -223,9 +223,6 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
                   ))}
                 </dl>
               ) : null}
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fbbf24] font-bold text-[#0f172a]">
-              {avatarInitials}
             </div>
           </div>
 
