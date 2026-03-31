@@ -68,6 +68,14 @@ function formatStatus(status: SubscriptionStatus) {
   return "Trial";
 }
 
+export function getSubscriptionPlanBadgeLabel(parent: ParentRecord) {
+  if (!parent.subscriptionPlan || parent.subscriptionStatus === "active") {
+    return null;
+  }
+
+  return parent.subscriptionPlan === "yearly" ? "Yearly chosen" : "Monthly chosen";
+}
+
 function formatDate(value: string | null) {
   if (!value) {
     return "";

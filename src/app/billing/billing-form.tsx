@@ -5,7 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft, CheckCircle2, CreditCard } from "lucide-react";
 
-import { BILLING_PLAN_DEFINITIONS, getBillingSummary } from "../../lib/billing";
+import {
+  BILLING_PLAN_DEFINITIONS,
+  getBillingSummary,
+  getSubscriptionPlanBadgeLabel,
+} from "../../lib/billing";
 import type { ParentProfile } from "../../lib/mvp-types";
 
 type BillingFormProps = {
@@ -27,6 +31,7 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
   );
 
   const billingSummary = getBillingSummary(parent);
+  const subscriptionPlanBadgeLabel = getSubscriptionPlanBadgeLabel(parent);
   const isStripeSandbox =
     (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "").startsWith("pk_test_");
   const hasActiveStripeSubscription =
@@ -118,9 +123,9 @@ export default function BillingForm({ initialProfile }: BillingFormProps) {
             <span className="rounded-full bg-[#f8fafc] px-3 py-1 text-xs font-semibold text-slate-600">
               {billingSummary.statusLabel}
             </span>
-            {parent.subscriptionPlan ? (
+            {subscriptionPlanBadgeLabel ? (
               <span className="rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]">
-                {parent.subscriptionPlan === "yearly" ? "Yearly chosen" : "Monthly chosen"}
+                {subscriptionPlanBadgeLabel}
               </span>
             ) : null}
             {isStripeSandbox ? (
