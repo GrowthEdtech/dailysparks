@@ -119,8 +119,8 @@ export default function NotionSyncCard({
       );
       setSuccessMessage(
         nextPages.length > 0
-          ? "Choose a parent page for the Daily Sparks archive."
-          : "No writable Notion pages were found yet.",
+          ? "Choose the Notion page where Daily Sparks should create your archive."
+          : "Notion is connected, but Daily Sparks cannot see a shared page yet. Create a page in Notion, add the DailySparks connection, then refresh here.",
       );
       setIsLoadingPages(false);
     } catch {
@@ -324,7 +324,7 @@ export default function NotionSyncCard({
                 <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-sm font-semibold text-slate-700">
-                      Choose a parent page
+                      Choose where to create the archive
                     </p>
                     <button
                       type="button"
@@ -347,7 +347,7 @@ export default function NotionSyncCard({
                     disabled={isLoadingPages || isWorking || pages.length === 0}
                   >
                     {pages.length === 0 ? (
-                      <option value="">No Notion pages available yet</option>
+                      <option value="">No shared Notion pages found yet</option>
                     ) : null}
                     {pages.map((page) => (
                       <option key={page.id} value={page.id}>
@@ -357,19 +357,25 @@ export default function NotionSyncCard({
                   </select>
 
                   {pages.length === 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => void loadPages()}
-                      disabled={isLoadingPages || isWorking || isPending}
-                      className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isLoadingPages ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <RefreshCcw className="h-4 w-4" />
-                      )}
-                      Load available pages
-                    </button>
+                    <>
+                      <p className="mt-3 text-xs leading-5 text-slate-500">
+                        Open Notion, create or choose a page in this workspace, then add the
+                        DailySparks connection to that page before refreshing here.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => void loadPages()}
+                        disabled={isLoadingPages || isWorking || isPending}
+                        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {isLoadingPages ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCcw className="h-4 w-4" />
+                        )}
+                        Refresh available pages
+                      </button>
+                    </>
                   ) : null}
 
                   <button
