@@ -47,6 +47,7 @@ export default function GoodnotesDeliveryCard({
 
   const hasEmail = Boolean(student.goodnotesEmail);
   const isConnected = student.goodnotesConnected;
+  const showCancelAction = hasEmail;
   const verifiedAt = formatTimestamp(student.goodnotesVerifiedAt);
   const lastTestAt = formatTimestamp(student.goodnotesLastTestSentAt);
   const statusLabel = isConnected ? "Connected" : hasEmail ? "Saved" : "Not set";
@@ -272,12 +273,16 @@ export default function GoodnotesDeliveryCard({
             <p className="mt-3 text-xs leading-5 text-slate-500">
               Use the Goodnotes email your child wants Daily Sparks briefs delivered to.
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div
+              className={`mt-4 flex flex-wrap gap-2 ${
+                showCancelAction ? "justify-start" : "justify-center"
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => void saveDestination()}
                 disabled={isWorking || isPending}
-                className="inline-flex items-center gap-2 rounded-full bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-w-[17rem] items-center justify-center gap-2 rounded-full bg-[#0f172a] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isWorking ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -286,7 +291,7 @@ export default function GoodnotesDeliveryCard({
                 )}
                 Save Goodnotes email
               </button>
-              {hasEmail ? (
+              {showCancelAction ? (
                 <button
                   type="button"
                   onClick={cancelEditing}
