@@ -68,6 +68,18 @@ export type ParentRecord = {
   latestInvoicePaidAt: string | null;
   latestInvoicePeriodStart: string | null;
   latestInvoicePeriodEnd: string | null;
+  notionWorkspaceId: string | null;
+  notionWorkspaceName: string | null;
+  notionBotId: string | null;
+  notionDatabaseId: string | null;
+  notionDatabaseName: string | null;
+  notionDataSourceId: string | null;
+  notionAuthorizedAt: string | null;
+  notionLastSyncedAt: string | null;
+  notionLastSyncStatus: "idle" | "success" | "failed" | null;
+  notionLastSyncMessage: string | null;
+  notionLastSyncPageId: string | null;
+  notionLastSyncPageUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -92,6 +104,7 @@ export type ParentProfile = {
 export type MvpStoreData = {
   parents: ParentRecord[];
   students: StudentRecord[];
+  notionConnections: NotionConnectionSecretRecord[];
 };
 
 export type CreateParentProfileInput = {
@@ -126,4 +139,31 @@ export type UpdateParentSubscriptionInput = {
   latestInvoicePaidAt?: string | null;
   latestInvoicePeriodStart?: string | null;
   latestInvoicePeriodEnd?: string | null;
+};
+
+export type UpdateParentNotionInput = {
+  notionWorkspaceId?: string | null;
+  notionWorkspaceName?: string | null;
+  notionBotId?: string | null;
+  notionDatabaseId?: string | null;
+  notionDatabaseName?: string | null;
+  notionDataSourceId?: string | null;
+  notionAuthorizedAt?: string | null;
+  notionLastSyncedAt?: string | null;
+  notionLastSyncStatus?: "idle" | "success" | "failed" | null;
+  notionLastSyncMessage?: string | null;
+  notionLastSyncPageId?: string | null;
+  notionLastSyncPageUrl?: string | null;
+  notionConnected?: boolean;
+};
+
+export type NotionConnectionSecretRecord = {
+  parentId: string;
+  accessTokenCiphertext: string;
+  refreshTokenCiphertext: string | null;
+  workspaceId: string;
+  botId: string;
+  expiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };

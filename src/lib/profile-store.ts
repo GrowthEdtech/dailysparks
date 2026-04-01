@@ -1,6 +1,7 @@
 import type {
   CreateParentProfileInput,
   ParentProfile,
+  UpdateParentNotionInput,
   UpdateParentSubscriptionInput,
   UpdateStudentPreferencesInput,
 } from "./mvp-types";
@@ -17,5 +18,9 @@ export type ProfileStore = {
   updateParentSubscription(
     email: string,
     input: UpdateParentSubscriptionInput,
+  ): Promise<ParentProfile | null>;
+  updateParentNotionConnection(
+    email: string,
+    input: UpdateParentNotionInput,
   ): Promise<ParentProfile | null>;
 };

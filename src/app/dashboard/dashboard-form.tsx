@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { BookOpen, CreditCard, Save, Send } from "lucide-react";
 
 import AccountMenu from "../../components/account-menu";
+import NotionSyncCard from "../../components/notion-sync-card";
 import { getBillingSummary } from "../../lib/billing";
 import {
   getDefaultProgrammeYear,
@@ -17,6 +18,7 @@ import { getProgrammeStageSummary, getWeeklyPlan } from "../../lib/weekly-plan";
 
 type DashboardFormProps = {
   initialProfile: ParentProfile;
+  notionConfigured: boolean;
 };
 
 type RouteMessage = {
@@ -33,7 +35,10 @@ function hasMeaningfulStudentName(studentName: string) {
   );
 }
 
-export default function DashboardForm({ initialProfile }: DashboardFormProps) {
+export default function DashboardForm({
+  initialProfile,
+  notionConfigured,
+}: DashboardFormProps) {
   const router = useRouter();
   const [studentName, setStudentName] = useState(initialProfile.student.studentName);
   const [programme, setProgramme] = useState(initialProfile.student.programme);
@@ -265,33 +270,10 @@ export default function DashboardForm({ initialProfile }: DashboardFormProps) {
               </label>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-              <div className="flex items-start gap-3">
-                <Image
-                  src="/integrations/notion-symbol.svg"
-                  alt="Notion"
-                  width={22}
-                  height={22}
-                  className="mt-2 h-[22px] w-[22px] shrink-0 object-contain"
-                />
-                <div>
-                  <h3 className="text-base font-bold text-[#0f172a]">Notion sync</h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Keep an archive of reading briefs, prompts, and reflections.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4">
-                <p className="text-sm font-semibold text-slate-700">
-                  Planned next step
-                </p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">
-                  We&apos;ll connect saved briefs into a Notion database once the
-                  parent workflow is fully validated.
-                </p>
-              </div>
-            </div>
+            <NotionSyncCard
+              initialProfile={initialProfile}
+              notionConfigured={notionConfigured}
+            />
           </div>
         </section>
 

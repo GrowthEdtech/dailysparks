@@ -3,11 +3,13 @@ import path from "node:path";
 
 import type {
   MvpStoreData,
+  NotionConnectionSecretRecord,
   ParentProfile,
   ParentRecord,
   Programme,
   StudentRecord,
   SubscriptionPlan,
+  UpdateParentNotionInput,
 } from "./mvp-types";
 import {
   DEFAULT_PROGRAMME,
@@ -47,6 +49,7 @@ function createEmptyStore(): MvpStoreData {
   return {
     parents: [],
     students: [],
+    notionConnections: [],
   };
 }
 
@@ -95,6 +98,23 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
   const latestInvoicePaidAt = normalizeNullableString(raw.latestInvoicePaidAt);
   const latestInvoicePeriodStart = normalizeNullableString(raw.latestInvoicePeriodStart);
   const latestInvoicePeriodEnd = normalizeNullableString(raw.latestInvoicePeriodEnd);
+  const notionWorkspaceId = normalizeNullableString(raw.notionWorkspaceId);
+  const notionWorkspaceName = normalizeNullableString(raw.notionWorkspaceName);
+  const notionBotId = normalizeNullableString(raw.notionBotId);
+  const notionDatabaseId = normalizeNullableString(raw.notionDatabaseId);
+  const notionDatabaseName = normalizeNullableString(raw.notionDatabaseName);
+  const notionDataSourceId = normalizeNullableString(raw.notionDataSourceId);
+  const notionAuthorizedAt = normalizeNullableString(raw.notionAuthorizedAt);
+  const notionLastSyncedAt = normalizeNullableString(raw.notionLastSyncedAt);
+  const notionLastSyncStatus =
+    raw.notionLastSyncStatus === "idle" ||
+    raw.notionLastSyncStatus === "success" ||
+    raw.notionLastSyncStatus === "failed"
+      ? raw.notionLastSyncStatus
+      : null;
+  const notionLastSyncMessage = normalizeNullableString(raw.notionLastSyncMessage);
+  const notionLastSyncPageId = normalizeNullableString(raw.notionLastSyncPageId);
+  const notionLastSyncPageUrl = normalizeNullableString(raw.notionLastSyncPageUrl);
 
   return {
     id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
@@ -127,8 +147,59 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
     latestInvoicePaidAt,
     latestInvoicePeriodStart,
     latestInvoicePeriodEnd,
+    notionWorkspaceId,
+    notionWorkspaceName,
+    notionBotId,
+    notionDatabaseId,
+    notionDatabaseName,
+    notionDataSourceId,
+    notionAuthorizedAt,
+    notionLastSyncedAt,
+    notionLastSyncStatus,
+    notionLastSyncMessage,
+    notionLastSyncPageId,
+    notionLastSyncPageUrl,
     createdAt,
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : timestamp,
+  };
+}
+
+function normalizeNotionConnectionRecord(
+  raw: Record<string, unknown>,
+): NotionConnectionSecretRecord | null {
+  const timestamp = new Date().toISOString();
+  const parentId =
+    typeof raw.parentId === "string" && raw.parentId.trim() ? raw.parentId.trim() : "";
+  const accessTokenCiphertext =
+    typeof raw.accessTokenCiphertext === "string" && raw.accessTokenCiphertext.trim()
+      ? raw.accessTokenCiphertext.trim()
+      : "";
+  const workspaceId =
+    typeof raw.workspaceId === "string" && raw.workspaceId.trim()
+      ? raw.workspaceId.trim()
+      : "";
+  const botId =
+    typeof raw.botId === "string" && raw.botId.trim() ? raw.botId.trim() : "";
+
+  if (!parentId || !accessTokenCiphertext || !workspaceId || !botId) {
+    return null;
+  }
+
+  return {
+    parentId,
+    accessTokenCiphertext,
+    refreshTokenCiphertext: normalizeNullableString(raw.refreshTokenCiphertext),
+    workspaceId,
+    botId,
+    expiresAt: normalizeNullableString(raw.expiresAt),
+    createdAt:
+      typeof raw.createdAt === "string" && raw.createdAt.trim()
+        ? raw.createdAt
+        : timestamp,
+    updatedAt:
+      typeof raw.updatedAt === "string" && raw.updatedAt.trim()
+        ? raw.updatedAt
+        : timestamp,
   };
 }
 
@@ -204,8 +275,15 @@ function normalizeStore(store: unknown) {
         normalizeStudentRecord((student ?? {}) as Record<string, unknown>),
       )
     : [];
+  const notionConnections = Array.isArray(rawStore.notionConnections)
+    ? rawStore.notionConnections
+        .map((record) =>
+          normalizeNotionConnectionRecord((record ?? {}) as Record<string, unknown>),
+        )
+        .filter((record): record is NotionConnectionSecretRecord => record !== null)
+    : [];
 
-  const normalizedStore: MvpStoreData = { parents, students };
+  const normalizedStore: MvpStoreData = { parents, students, notionConnections };
 
   return {
     store: normalizedStore,
@@ -270,6 +348,18 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     latestInvoicePaidAt: null,
     latestInvoicePeriodStart: null,
     latestInvoicePeriodEnd: null,
+    notionWorkspaceId: null,
+    notionWorkspaceName: null,
+    notionBotId: null,
+    notionDatabaseId: null,
+    notionDatabaseName: null,
+    notionDataSourceId: null,
+    notionAuthorizedAt: null,
+    notionLastSyncedAt: null,
+    notionLastSyncStatus: null,
+    notionLastSyncMessage: null,
+    notionLastSyncPageId: null,
+    notionLastSyncPageUrl: null,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -535,6 +625,87 @@ export const localProfileStore: ProfileStore = {
     }
 
     parent.updatedAt = new Date().toISOString();
+
+    await writeStore(store);
+
+    return toProfile(parent, student);
+  },
+
+  async updateParentNotionConnection(email, input: UpdateParentNotionInput) {
+    const normalizedEmail = normalizeEmail(email);
+    const store = await readStore();
+    const parent = store.parents.find((record) => record.email === normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = findStudentForParent(store, parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    if (input.notionWorkspaceId !== undefined) {
+      parent.notionWorkspaceId = normalizeNullableString(input.notionWorkspaceId);
+    }
+
+    if (input.notionWorkspaceName !== undefined) {
+      parent.notionWorkspaceName = normalizeNullableString(input.notionWorkspaceName);
+    }
+
+    if (input.notionBotId !== undefined) {
+      parent.notionBotId = normalizeNullableString(input.notionBotId);
+    }
+
+    if (input.notionDatabaseId !== undefined) {
+      parent.notionDatabaseId = normalizeNullableString(input.notionDatabaseId);
+    }
+
+    if (input.notionDatabaseName !== undefined) {
+      parent.notionDatabaseName = normalizeNullableString(input.notionDatabaseName);
+    }
+
+    if (input.notionDataSourceId !== undefined) {
+      parent.notionDataSourceId = normalizeNullableString(input.notionDataSourceId);
+    }
+
+    if (input.notionAuthorizedAt !== undefined) {
+      parent.notionAuthorizedAt = normalizeNullableString(input.notionAuthorizedAt);
+    }
+
+    if (input.notionLastSyncedAt !== undefined) {
+      parent.notionLastSyncedAt = normalizeNullableString(input.notionLastSyncedAt);
+    }
+
+    if (input.notionLastSyncStatus !== undefined) {
+      parent.notionLastSyncStatus =
+        input.notionLastSyncStatus === "idle" ||
+        input.notionLastSyncStatus === "success" ||
+        input.notionLastSyncStatus === "failed"
+          ? input.notionLastSyncStatus
+          : null;
+    }
+
+    if (input.notionLastSyncMessage !== undefined) {
+      parent.notionLastSyncMessage = normalizeNullableString(input.notionLastSyncMessage);
+    }
+
+    if (input.notionLastSyncPageId !== undefined) {
+      parent.notionLastSyncPageId = normalizeNullableString(input.notionLastSyncPageId);
+    }
+
+    if (input.notionLastSyncPageUrl !== undefined) {
+      parent.notionLastSyncPageUrl = normalizeNullableString(input.notionLastSyncPageUrl);
+    }
+
+    if (input.notionConnected !== undefined) {
+      student.notionConnected = input.notionConnected === true;
+    }
+
+    const now = new Date().toISOString();
+    parent.updatedAt = now;
+    student.updatedAt = now;
 
     await writeStore(store);
 

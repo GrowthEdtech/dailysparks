@@ -1,5 +1,6 @@
 import type {
   CreateParentProfileInput,
+  UpdateParentNotionInput,
   UpdateParentSubscriptionInput,
   UpdateStudentPreferencesInput,
 } from "./mvp-types";
@@ -40,4 +41,11 @@ export async function updateParentSubscription(
   input: UpdateParentSubscriptionInput,
 ) {
   return getProfileStore().updateParentSubscription(email, input);
+}
+
+export async function updateParentNotionConnection(
+  email: string,
+  input: UpdateParentNotionInput,
+) {
+  return getProfileStore().updateParentNotionConnection(email, input);
 }

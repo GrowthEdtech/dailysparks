@@ -8,6 +8,7 @@ Daily Sparks is a Next.js MVP for IB families. The current app supports:
 - Stripe sandbox checkout for monthly and yearly subscriptions
 - a generated weekly reading plan
 - delivery channel preferences for Goodnotes and Notion
+- Notion OAuth sync that can create a dedicated reading archive and send a test page
 - a first-login child-name onboarding step inside the dashboard
 
 ## Getting Started
@@ -117,6 +118,41 @@ Once those values are present, the server-side store switches from local JSON to
 ## Stripe Billing
 
 Daily Sparks now supports hosted Stripe Checkout in sandbox mode.
+
+## Notion Sync
+
+Daily Sparks can connect a parent workspace through a public Notion OAuth integration.
+
+The current flow is:
+
+- connect Notion from the dashboard
+- choose a parent Notion page
+- create a dedicated `Daily Sparks Reading Archive`
+- send a test page to confirm sync
+
+### Required environment variables
+
+```env
+NOTION_OAUTH_CLIENT_ID=...
+NOTION_OAUTH_CLIENT_SECRET=...
+NOTION_OAUTH_REDIRECT_URI=https://dailysparks.geledtech.com/api/notion/callback
+NOTION_TOKEN_ENCRYPTION_SECRET=...
+```
+
+### Production deployment wiring
+
+The Cloud Run deploy script supports:
+
+- env vars:
+  - `NOTION_OAUTH_CLIENT_ID`
+  - `NOTION_OAUTH_REDIRECT_URI`
+  - `NOTION_API_BASE_URL` (optional)
+  - `NOTION_API_VERSION` (optional)
+- secrets:
+  - `NOTION_OAUTH_CLIENT_SECRET_SECRET`
+  - `NOTION_TOKEN_ENCRYPTION_SECRET_SECRET`
+
+If these values are not configured, the dashboard shows Notion as unavailable instead of exposing a broken flow.
 
 ### Required environment variables
 

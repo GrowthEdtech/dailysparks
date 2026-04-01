@@ -244,6 +244,67 @@ function toParentRecord(fields: Record<string, Record<string, unknown>>, documen
       String(decodeFirestoreValue(fields.latestInvoicePeriodEnd)).trim()
         ? String(decodeFirestoreValue(fields.latestInvoicePeriodEnd)).trim()
         : null,
+    notionWorkspaceId:
+      typeof decodeFirestoreValue(fields.notionWorkspaceId) === "string" &&
+      String(decodeFirestoreValue(fields.notionWorkspaceId)).trim()
+        ? String(decodeFirestoreValue(fields.notionWorkspaceId)).trim()
+        : null,
+    notionWorkspaceName:
+      typeof decodeFirestoreValue(fields.notionWorkspaceName) === "string" &&
+      String(decodeFirestoreValue(fields.notionWorkspaceName)).trim()
+        ? String(decodeFirestoreValue(fields.notionWorkspaceName)).trim()
+        : null,
+    notionBotId:
+      typeof decodeFirestoreValue(fields.notionBotId) === "string" &&
+      String(decodeFirestoreValue(fields.notionBotId)).trim()
+        ? String(decodeFirestoreValue(fields.notionBotId)).trim()
+        : null,
+    notionDatabaseId:
+      typeof decodeFirestoreValue(fields.notionDatabaseId) === "string" &&
+      String(decodeFirestoreValue(fields.notionDatabaseId)).trim()
+        ? String(decodeFirestoreValue(fields.notionDatabaseId)).trim()
+        : null,
+    notionDatabaseName:
+      typeof decodeFirestoreValue(fields.notionDatabaseName) === "string" &&
+      String(decodeFirestoreValue(fields.notionDatabaseName)).trim()
+        ? String(decodeFirestoreValue(fields.notionDatabaseName)).trim()
+        : null,
+    notionDataSourceId:
+      typeof decodeFirestoreValue(fields.notionDataSourceId) === "string" &&
+      String(decodeFirestoreValue(fields.notionDataSourceId)).trim()
+        ? String(decodeFirestoreValue(fields.notionDataSourceId)).trim()
+        : null,
+    notionAuthorizedAt:
+      typeof decodeFirestoreValue(fields.notionAuthorizedAt) === "string" &&
+      String(decodeFirestoreValue(fields.notionAuthorizedAt)).trim()
+        ? String(decodeFirestoreValue(fields.notionAuthorizedAt)).trim()
+        : null,
+    notionLastSyncedAt:
+      typeof decodeFirestoreValue(fields.notionLastSyncedAt) === "string" &&
+      String(decodeFirestoreValue(fields.notionLastSyncedAt)).trim()
+        ? String(decodeFirestoreValue(fields.notionLastSyncedAt)).trim()
+        : null,
+    notionLastSyncStatus:
+      decodeFirestoreValue(fields.notionLastSyncStatus) === "idle" ||
+      decodeFirestoreValue(fields.notionLastSyncStatus) === "success" ||
+      decodeFirestoreValue(fields.notionLastSyncStatus) === "failed"
+        ? (decodeFirestoreValue(fields.notionLastSyncStatus) as ParentRecord["notionLastSyncStatus"])
+        : null,
+    notionLastSyncMessage:
+      typeof decodeFirestoreValue(fields.notionLastSyncMessage) === "string" &&
+      String(decodeFirestoreValue(fields.notionLastSyncMessage)).trim()
+        ? String(decodeFirestoreValue(fields.notionLastSyncMessage)).trim()
+        : null,
+    notionLastSyncPageId:
+      typeof decodeFirestoreValue(fields.notionLastSyncPageId) === "string" &&
+      String(decodeFirestoreValue(fields.notionLastSyncPageId)).trim()
+        ? String(decodeFirestoreValue(fields.notionLastSyncPageId)).trim()
+        : null,
+    notionLastSyncPageUrl:
+      typeof decodeFirestoreValue(fields.notionLastSyncPageUrl) === "string" &&
+      String(decodeFirestoreValue(fields.notionLastSyncPageUrl)).trim()
+        ? String(decodeFirestoreValue(fields.notionLastSyncPageUrl)).trim()
+        : null,
     createdAt:
       typeof decodeFirestoreValue(fields.createdAt) === "string" &&
       String(decodeFirestoreValue(fields.createdAt)).trim()

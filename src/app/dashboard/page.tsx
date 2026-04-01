@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import DashboardForm from "./dashboard-form";
 import { getProfileByEmail } from "../../lib/mvp-store";
+import { isNotionConfigured } from "../../lib/notion-config";
 import { getSessionFromCookieStore } from "../../lib/session";
 
 export default async function DashboardPage() {
@@ -19,5 +20,10 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  return <DashboardForm initialProfile={profile} />;
+  return (
+    <DashboardForm
+      initialProfile={profile}
+      notionConfigured={isNotionConfigured()}
+    />
+  );
 }
