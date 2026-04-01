@@ -28,6 +28,8 @@ describe("LandingIntegrationsSection", () => {
     expect(markup).not.toContain("xl:max-w-[25rem]");
     expect(markup).not.toContain("xl:justify-self-end");
     expect(markup).not.toContain("xl:col-start-2");
+    expect(markup).not.toContain("lg:max-w-[42rem]");
+    expect(markup).toContain("lg:max-w-none");
     expect(markup).toContain(
       'xl:whitespace-nowrap',
     );

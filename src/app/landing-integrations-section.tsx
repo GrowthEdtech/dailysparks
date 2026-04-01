@@ -18,7 +18,7 @@ export default function LandingIntegrationsSection() {
           <h2 className="text-balance text-4xl font-extrabold leading-[0.96] tracking-[-0.05em] text-[#0f172a] sm:text-[3.2rem] md:text-[3.55rem] xl:max-w-none xl:text-[3rem] xl:whitespace-nowrap">
             Daily Sparks works with the tools families already use.
           </h2>
-          <p className="max-w-3xl text-pretty text-[1.02rem] leading-[1.8] text-slate-500 md:text-[1.06rem] lg:max-w-[42rem]">
+          <p className="max-w-3xl text-pretty text-[1.02rem] leading-[1.8] text-slate-500 md:text-[1.06rem] lg:max-w-none">
             Use Goodnotes for direct student delivery, Notion for family archiving,
             or combine both when you want daily reading plus a searchable record.
           </p>
