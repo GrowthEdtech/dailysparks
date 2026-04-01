@@ -30,9 +30,23 @@ export const deliveryOptions = [
 export const supportedIntegrations = [
   {
     name: "Goodnotes",
+    logoSrc: "/integrations/goodnotes-logo.svg",
+    logoAlt: "Goodnotes logo",
+    logoWidth: 300,
+    logoHeight: 54,
+    role: "Direct student delivery",
+    detail:
+      "Handwriting-friendly reading briefs land straight in the student's Goodnotes flow.",
   },
   {
     name: "Notion",
+    logoSrc: "/integrations/notion-logo.svg",
+    logoAlt: "Notion logo",
+    logoWidth: 180,
+    logoHeight: 63,
+    role: "Family archive",
+    detail:
+      "Parents get a searchable home base for briefs, prompts, and reflections.",
   },
 ] as const;
 

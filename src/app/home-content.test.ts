@@ -51,9 +51,13 @@ describe("home content", () => {
       expect.arrayContaining([
         expect.objectContaining({
           name: "Goodnotes",
+          logoSrc: "/integrations/goodnotes-logo.svg",
+          logoAlt: "Goodnotes logo",
         }),
         expect.objectContaining({
           name: "Notion",
+          logoSrc: "/integrations/notion-logo.svg",
+          logoAlt: "Notion logo",
         }),
       ]),
     );
