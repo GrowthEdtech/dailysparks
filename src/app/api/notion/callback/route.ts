@@ -2,10 +2,11 @@ import { getProfileByEmail, updateParentNotionConnection } from "../../../../lib
 import { exchangeNotionCode } from "../../../../lib/notion";
 import { isNotionConfigured } from "../../../../lib/notion-config";
 import { clearNotionStateCookieHeader, getNotionStateCookieValue } from "../../../../lib/notion-state";
+import { getRequestOrigin } from "../../../../lib/request-origin";
 import { getSessionEmailFromRequest } from "../../../../lib/session";
 
 function redirectToDashboard(request: Request, status: string) {
-  const url = new URL("/dashboard", request.url);
+  const url = new URL("/dashboard", getRequestOrigin(request));
   url.searchParams.set("notion", status);
 
   return Response.redirect(url, 302);
@@ -16,7 +17,7 @@ function redirectToDashboardWithCookie(
   status: string,
   cookieHeader: string,
 ) {
-  const url = new URL("/dashboard", request.url);
+  const url = new URL("/dashboard", getRequestOrigin(request));
   url.searchParams.set("notion", status);
 
   return new Response(null, {

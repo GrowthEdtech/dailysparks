@@ -139,13 +139,17 @@ describe("notion routes", () => {
         {
           headers: {
             cookie: `${cookie}; ${stateCookie}`,
+            "x-forwarded-host": "dailysparks.geledtech.com",
+            "x-forwarded-proto": "https",
           },
         },
       ),
     );
 
     expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toContain("/dashboard?notion=connected");
+    expect(response.headers.get("location")).toBe(
+      "https://dailysparks.geledtech.com/dashboard?notion=connected",
+    );
 
     const rawStore = JSON.parse(
       await readFile(process.env.DAILY_SPARKS_STORE_PATH!, "utf8"),
