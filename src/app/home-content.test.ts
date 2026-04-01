@@ -1,6 +1,11 @@
 import { describe, expect, test } from "vitest";
 
-import { deliveryOptions, landingFaqItems } from "./home-content";
+import {
+  deliveryOptions,
+  landingFaqItems,
+  landingIntegrationsFootnote,
+  supportedIntegrations,
+} from "./home-content";
 
 describe("home content", () => {
   test("includes the delivery options guidance for Goodnotes and Notion", () => {
@@ -38,6 +43,22 @@ describe("home content", () => {
           q: "Do I need both GoodNotes and Notion?",
         }),
       ]),
+    );
+  });
+
+  test("exposes a conservative works-with integrations row", () => {
+    expect(supportedIntegrations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "Goodnotes",
+        }),
+        expect.objectContaining({
+          name: "Notion",
+        }),
+      ]),
+    );
+    expect(landingIntegrationsFootnote).toContain(
+      "Goodnotes and Notion are trademarks of their respective owners.",
     );
   });
 });

@@ -27,6 +27,18 @@ export const deliveryOptions = [
   },
 ] as const;
 
+export const supportedIntegrations = [
+  {
+    name: "Goodnotes",
+  },
+  {
+    name: "Notion",
+  },
+] as const;
+
+export const landingIntegrationsFootnote =
+  "Goodnotes and Notion are trademarks of their respective owners.";
+
 export const landingFaqItems = [
   {
     q: "What age is Daily Sparks for?",

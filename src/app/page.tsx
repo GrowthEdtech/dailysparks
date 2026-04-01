@@ -8,10 +8,16 @@ import {
   ChevronDown,
   Smartphone,
 } from "lucide-react";
+import Image from "next/image";
 
 import HomePricingSection from "./home-pricing-section";
 import { DEFAULT_PRICING_MARKET } from "../lib/pricing-market";
-import { deliveryOptions, landingFaqItems } from "./home-content";
+import {
+  deliveryOptions,
+  landingFaqItems,
+  landingIntegrationsFootnote,
+  supportedIntegrations,
+} from "./home-content";
 
 export default async function Home() {
   return (
@@ -233,6 +239,36 @@ export default async function Home() {
             <p className="text-slate-500 text-lg leading-8">
               Use Goodnotes for direct student delivery, Notion for family archiving,
               or combine both when you want daily reading plus a searchable record.
+            </p>
+          </div>
+
+          <div className="space-y-3 rounded-[28px] border border-slate-200 bg-white px-6 py-5 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.45)]">
+            <div className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+              Works with
+            </div>
+            <div className="flex flex-wrap items-center gap-3 md:gap-4">
+              {supportedIntegrations.map((integration) => (
+                <div
+                  key={integration.name}
+                  className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2.5 text-slate-600"
+                >
+                  {integration.name === "Notion" ? (
+                    <Image
+                      src="/integrations/notion-symbol.svg"
+                      alt="Notion"
+                      width={18}
+                      height={18}
+                      className="h-[18px] w-[18px]"
+                    />
+                  ) : null}
+                  <span className="text-sm font-semibold tracking-[0.01em]">
+                    {integration.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs leading-6 text-slate-400">
+              {landingIntegrationsFootnote}
             </p>
           </div>
 
