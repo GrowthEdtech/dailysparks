@@ -154,6 +154,36 @@ The Cloud Run deploy script supports:
 
 If these values are not configured, the dashboard shows Notion as unavailable instead of exposing a broken flow.
 
+## Goodnotes Delivery
+
+Daily Sparks can deliver a real PDF test brief to the student's Goodnotes inbox email.
+
+The current flow is:
+
+- save the student's `@goodnotes.email` destination from the dashboard
+- send a PDF test brief to confirm delivery
+- mark the destination as connected once the test send succeeds
+
+### Required environment variables
+
+```env
+GOODNOTES_SMTP_URL=smtps://username:password@smtp.example.com:465
+GOODNOTES_FROM_EMAIL=info@geledtech.com
+GOODNOTES_FROM_NAME=Growth Education Limited
+```
+
+### Production deployment wiring
+
+The Cloud Run deploy script supports:
+
+- env vars:
+  - `GOODNOTES_FROM_EMAIL`
+  - `GOODNOTES_FROM_NAME`
+- secrets:
+  - `GOODNOTES_SMTP_URL_SECRET`
+
+If `GOODNOTES_SMTP_URL` is not configured, the dashboard keeps the Goodnotes module available but `Send test brief` returns a clear setup message instead of pretending delivery succeeded.
+
 ### Required environment variables
 
 ```env

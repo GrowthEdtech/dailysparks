@@ -18,6 +18,8 @@ import * as mvpStore from "../../lib/mvp-store";
 const verifyIdTokenMock = vi.fn();
 const createSessionCookieMock = vi.fn();
 const verifySessionCookieMock = vi.fn();
+const isGoodnotesDeliveryConfiguredMock = vi.fn();
+const sendTestBriefToGoodnotesMock = vi.fn();
 
 vi.mock("../../lib/firebase-admin", () => ({
   getFirebaseAdminAuth: () => ({
@@ -25,6 +27,12 @@ vi.mock("../../lib/firebase-admin", () => ({
     createSessionCookie: createSessionCookieMock,
     verifySessionCookie: verifySessionCookieMock,
   }),
+}));
+
+vi.mock("../../lib/goodnotes-delivery", () => ({
+  isGoodnotesDeliveryConfigured: () => isGoodnotesDeliveryConfiguredMock(),
+  sendTestBriefToGoodnotes: (...args: unknown[]) =>
+    sendTestBriefToGoodnotesMock(...args),
 }));
 
 let tempDirectory = "";
@@ -35,6 +43,13 @@ beforeEach(async () => {
   verifyIdTokenMock.mockReset();
   createSessionCookieMock.mockReset();
   verifySessionCookieMock.mockReset();
+  isGoodnotesDeliveryConfiguredMock.mockReset();
+  sendTestBriefToGoodnotesMock.mockReset();
+  isGoodnotesDeliveryConfiguredMock.mockReturnValue(true);
+  sendTestBriefToGoodnotesMock.mockResolvedValue({
+    messageId: "goodnotes-message-id",
+    attachmentFileName: "daily-sparks-test-brief.pdf",
+  });
 });
 
 afterEach(async () => {
@@ -362,6 +377,61 @@ describe("auth routes", () => {
     expect(body.message).toMatch(/goodnotes email/i);
   });
 
+  test("returns a clear setup error when real Goodnotes delivery is not configured", async () => {
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+    isGoodnotesDeliveryConfiguredMock.mockReturnValue(false);
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    await updateGoodnotes(
+      new Request("http://localhost:3000/api/goodnotes", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+        body: JSON.stringify({
+          goodnotesEmail: "katherine@goodnotes.email",
+        }),
+      }),
+    );
+
+    const response = await sendGoodnotesTest(
+      new Request("http://localhost:3000/api/goodnotes/test", {
+        method: "POST",
+        headers: {
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.message).toMatch(/delivery is not configured/i);
+  });
+
   test("records a Goodnotes test brief and disconnects it cleanly", async () => {
     verifyIdTokenMock.mockResolvedValue({
       uid: "firebase-parent-1",
@@ -413,10 +483,12 @@ describe("auth routes", () => {
     const testBody = await testResponse.json();
 
     expect(testResponse.status).toBe(200);
+    expect(sendTestBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
     expect(testBody.student.goodnotesConnected).toBe(true);
     expect(testBody.student.goodnotesVerifiedAt).toMatch(/^2026-/);
     expect(testBody.student.goodnotesLastTestSentAt).toMatch(/^2026-/);
     expect(testBody.student.goodnotesLastDeliveryStatus).toBe("success");
+    expect(testBody.student.goodnotesLastDeliveryMessage).toMatch(/sent/i);
 
     const disconnectResponse = await disconnectGoodnotes(
       new Request("http://localhost:3000/api/goodnotes", {
