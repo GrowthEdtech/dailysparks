@@ -168,10 +168,10 @@ export default function DashboardForm({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex justify-center">
             <Link
               href="/billing"
-              className="inline-flex items-center gap-2 rounded-full bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1e293b]"
+              className="inline-flex w-fit items-center gap-2 rounded-full bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1e293b]"
             >
               <CreditCard className="h-4 w-4" />
               Manage subscription
