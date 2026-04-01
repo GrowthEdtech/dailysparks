@@ -11,7 +11,7 @@ export default function LandingIntegrationsSection() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_48%),radial-gradient(circle_at_top_left,rgba(14,165,233,0.08),transparent_42%)]" />
 
       <div className="relative mx-auto max-w-6xl space-y-10">
-        <div className="max-w-5xl space-y-4 md:space-y-5">
+        <div className="space-y-4 md:space-y-5">
           <p className="text-[0.72rem] font-bold uppercase tracking-[0.32em] text-[#d39b1b]">
             Delivery options
           </p>
