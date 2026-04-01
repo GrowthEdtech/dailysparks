@@ -10,33 +10,33 @@ export default function LandingIntegrationsSection() {
     <section className="relative overflow-hidden border-t border-slate-100 bg-[#f8fafc] px-6 py-24 text-[#0f172a]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_48%),radial-gradient(circle_at_top_left,rgba(14,165,233,0.08),transparent_42%)]" />
 
-      <div className="relative mx-auto max-w-6xl space-y-10">
-        <div className="space-y-4 md:space-y-5">
-          <p className="text-[0.72rem] font-bold uppercase tracking-[0.32em] text-[#d39b1b]">
+      <div className="relative mx-auto max-w-6xl space-y-10 xl:space-y-12">
+        <div className="space-y-4 md:space-y-5 xl:grid xl:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.85fr)] xl:items-end xl:gap-x-12 xl:gap-y-5">
+          <p className="text-[0.72rem] font-bold uppercase tracking-[0.32em] text-[#d39b1b] xl:col-span-2">
             Delivery options
           </p>
-          <h2 className="text-balance text-4xl font-extrabold leading-[0.96] tracking-[-0.05em] text-[#0f172a] sm:text-[3.2rem] md:text-[3.55rem] xl:max-w-none xl:text-[3rem] xl:whitespace-nowrap">
+          <h2 className="text-balance text-4xl font-extrabold leading-[0.96] tracking-[-0.05em] text-[#0f172a] sm:text-[3.2rem] md:text-[3.55rem] xl:col-start-1 xl:row-start-2 xl:max-w-none xl:text-[3rem] xl:whitespace-nowrap">
             Daily Sparks works with the tools families already use.
           </h2>
-          <p className="max-w-3xl text-[1.02rem] leading-[1.8] text-slate-500 md:text-[1.06rem]">
+          <p className="max-w-3xl text-[1.02rem] leading-[1.8] text-slate-500 md:text-[1.06rem] xl:col-start-2 xl:row-start-2 xl:max-w-[30rem] xl:justify-self-end xl:text-[1.02rem] xl:leading-[1.85]">
             Use Goodnotes for direct student delivery, Notion for family archiving,
             or combine both when you want daily reading plus a searchable record.
           </p>
         </div>
 
-        <div className="relative overflow-hidden rounded-[34px] border border-white/80 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_44%,#f8fafc_100%)] p-6 shadow-[0_30px_90px_-56px_rgba(15,23,42,0.46)]">
+        <div className="relative overflow-hidden rounded-[34px] border border-white/80 bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_44%,#f8fafc_100%)] p-6 shadow-[0_30px_90px_-56px_rgba(15,23,42,0.46)] xl:p-8">
           <div className="pointer-events-none absolute -right-12 top-0 h-36 w-36 rounded-full bg-[#fff1c4] blur-3xl opacity-80" />
           <div className="pointer-events-none absolute -left-12 bottom-10 h-32 w-32 rounded-full bg-[#d8f2f8] blur-3xl opacity-80" />
 
           <div className="relative">
-            <div className="max-w-2xl space-y-3">
-              <p className="text-[0.7rem] font-bold uppercase tracking-[0.28em] text-slate-400">
+            <div className="space-y-3 xl:grid xl:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)] xl:items-end xl:gap-x-10 xl:gap-y-3">
+              <p className="text-[0.7rem] font-bold uppercase tracking-[0.28em] text-slate-400 xl:col-span-2">
                 Works with
               </p>
-              <h3 className="text-[1.9rem] font-bold leading-[1.04] tracking-[-0.04em] text-[#0f172a]">
+              <h3 className="text-[1.9rem] font-bold leading-[1.04] tracking-[-0.04em] text-[#0f172a] xl:max-w-[16ch] xl:text-[2.2rem]">
                 Choose the setup that fits how your family reads and keeps records.
               </h3>
-              <p className="max-w-xl text-sm leading-6 text-slate-500">
+              <p className="max-w-xl text-sm leading-6 text-slate-500 xl:col-start-2 xl:max-w-[25rem] xl:justify-self-end xl:text-[0.98rem] xl:leading-7">
                 Goodnotes is the student-facing delivery path. Notion is the
                 parent-facing archive. Pick one or combine both.
               </p>
