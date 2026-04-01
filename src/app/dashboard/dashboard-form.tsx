@@ -212,7 +212,7 @@ export default function DashboardForm({
                 isPending ||
                 !hasMeaningfulStudentName(studentName)
               }
-              className="mt-4 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+              className="mt-4 flex w-fit items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60 mx-auto"
             >
               <Save className="h-4 w-4" />
               {isSaving || isPending ? "Saving..." : "Save child name"}
