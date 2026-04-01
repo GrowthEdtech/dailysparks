@@ -3,7 +3,16 @@
 import Image from "next/image";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Database, ExternalLink, Link2, Loader2, RefreshCcw, Send, Unplug } from "lucide-react";
+import {
+  ChevronDown,
+  Database,
+  ExternalLink,
+  Link2,
+  Loader2,
+  RefreshCcw,
+  Send,
+  Unplug,
+} from "lucide-react";
 
 import type { ParentProfile } from "../lib/mvp-types";
 
@@ -342,21 +351,24 @@ export default function NotionSyncCard({
                     ) : null}
                   </div>
 
-                  <select
-                    value={selectedPageId}
-                    onChange={(event) => setSelectedPageId(event.target.value)}
-                    className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
-                    disabled={isLoadingPages || isWorking || pages.length === 0}
-                  >
-                    {pages.length === 0 ? (
-                      <option value="">No shared pages yet</option>
-                    ) : null}
-                    {pages.map((page) => (
-                      <option key={page.id} value={page.id}>
-                        {page.title}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative mt-3">
+                    <select
+                      value={selectedPageId}
+                      onChange={(event) => setSelectedPageId(event.target.value)}
+                      className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                      disabled={isLoadingPages || isWorking || pages.length === 0}
+                    >
+                      {pages.length === 0 ? (
+                        <option value="">No shared pages yet</option>
+                      ) : null}
+                      {pages.map((page) => (
+                        <option key={page.id} value={page.id}>
+                          {page.title}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
+                  </div>
 
                   {pages.length === 0 ? (
                     <>
