@@ -30,7 +30,7 @@ export default function HomePricingSection({
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 items-stretch pt-10">
+        <div className="grid md:grid-cols-2 gap-8 xl:gap-10 items-stretch pt-12">
           {billingPlans.map((plan) => {
             const isYearly = plan.id === "yearly";
 
@@ -39,8 +39,8 @@ export default function HomePricingSection({
                 key={plan.id}
                 className={
                   isYearly
-                    ? "bg-gradient-to-br from-white to-slate-50 rounded-[32px] p-10 flex flex-col relative shadow-2xl shadow-[#fbbf24]/10 transform scale-105 border-4 border-[#fbbf24]"
-                    : "bg-white/5 border border-white/10 rounded-[32px] p-10 flex flex-col hover:border-white/20 transition-all"
+                    ? "relative flex flex-col rounded-[32px] border-[3px] border-[#fbbf24] bg-gradient-to-br from-[#fffdf7] via-white to-[#fff7df] p-8 md:p-10 shadow-[0_30px_90px_-45px_rgba(251,191,36,0.55)] md:-translate-y-2"
+                    : "flex flex-col rounded-[32px] border border-slate-200 bg-white p-8 md:p-10 shadow-[0_28px_80px_-45px_rgba(15,23,42,0.4)] transition-all hover:-translate-y-1 hover:shadow-[0_32px_90px_-50px_rgba(15,23,42,0.45)]"
                 }
               >
                 {isYearly ? (
@@ -49,27 +49,36 @@ export default function HomePricingSection({
                   </div>
                 ) : null}
 
-                <h3 className={`text-xl font-bold mb-2 ${isYearly ? "text-[#0f172a]" : "text-white"}`}>
+                <p className="mb-5 text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
+                  {plan.eyebrow}
+                </p>
+
+                <h3 className="text-[2rem] font-extrabold leading-tight text-[#0f172a]">
                   {plan.name}
                 </h3>
-                <p className={`text-sm mb-6 ${isYearly ? "text-gray-500" : "text-[#94a3b8]"}`}>
+                <p className="mt-3 text-base leading-7 text-slate-500">
                   {plan.description}
                 </p>
-                <div className={`text-5xl font-extrabold mb-8 ${isYearly ? "text-[#0f172a]" : "text-white"}`}>
-                  {plan.price}
-                  <span className={`text-lg font-medium ml-2 ${isYearly ? "text-gray-400" : "text-[#64748b]"}`}>
+
+                <div className="mt-8 mb-8 flex items-end gap-3 text-[#0f172a]">
+                  <div className="text-5xl font-extrabold tracking-tight">
+                    {plan.price}
+                  </div>
+                  <span className="pb-1 text-lg font-semibold text-slate-400">
                     {plan.cadence}
                   </span>
                 </div>
 
-                <ul className="space-y-4 mb-10 flex-1">
+                <ul className="mb-10 flex-1 space-y-4">
                   {plan.bullets.map((item) => (
                     <li
                       key={item}
-                      className={`flex items-center gap-3 text-sm ${isYearly ? "text-gray-700" : "text-[#cbd5e1]"}`}
+                      className="flex items-start gap-3 text-base leading-7 text-slate-600"
                     >
-                      <CheckCircle2 className="w-4 h-4 text-[#fbbf24]" />
-                      {isYearly ? <span className="font-medium">{item}</span> : item}
+                      <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-[#fbbf24]" />
+                      <span className={isYearly ? "font-medium text-slate-700" : ""}>
+                        {item}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -78,11 +87,11 @@ export default function HomePricingSection({
                   href="/login"
                   className={
                     isYearly
-                      ? "w-full py-4 rounded-xl bg-[#0f172a] text-white font-bold hover:bg-slate-800 transition-all shadow-xl shadow-black/20 text-center"
-                      : "w-full py-4 rounded-xl border border-white/10 hover:bg-white/5 text-white font-bold transition-all text-center"
+                      ? "w-full rounded-2xl bg-[#0f172a] px-6 py-4 text-center text-base font-bold text-white shadow-[0_20px_40px_-24px_rgba(15,23,42,0.55)] transition-all hover:bg-slate-800"
+                      : "w-full rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-center text-base font-bold text-[#0f172a] shadow-sm transition-all hover:bg-slate-100"
                   }
                 >
-                  {isYearly ? "Choose Yearly" : "Choose Monthly"}
+                  {plan.cta}
                 </Link>
               </div>
             );
