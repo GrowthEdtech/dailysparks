@@ -6,8 +6,10 @@ import {
   clearSessionCookieHeader,
   getSessionEmailFromRequest,
 } from "../../../lib/session";
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import {
+  isValidGoodnotesAddress,
+  normalizeGoodnotesAddress,
+} from "../../../lib/goodnotes-address";
 
 type GoodnotesBody = {
   goodnotesEmail?: unknown;
@@ -29,14 +31,6 @@ function badRequest(message: string) {
   return Response.json({ message }, { status: 400 });
 }
 
-function normalizeEmail(value: unknown) {
-  return typeof value === "string" ? value.trim().toLowerCase() : "";
-}
-
-function isValidEmail(value: string) {
-  return EMAIL_REGEX.test(value);
-}
-
 export async function PUT(request: Request) {
   const sessionEmail = await getSessionEmailFromRequest(request);
 
@@ -50,14 +44,14 @@ export async function PUT(request: Request) {
     return badRequest("Please submit a valid request body.");
   }
 
-  const goodnotesEmail = normalizeEmail(body.goodnotesEmail);
+  const goodnotesEmail = normalizeGoodnotesAddress(body.goodnotesEmail);
 
   if (!goodnotesEmail) {
-    return badRequest("Please enter a Goodnotes email address.");
+    return badRequest("Please enter the name before @goodnotes.email.");
   }
 
-  if (!isValidEmail(goodnotesEmail)) {
-    return badRequest("Please enter a valid Goodnotes email address.");
+  if (!isValidGoodnotesAddress(goodnotesEmail)) {
+    return badRequest("Please enter a valid name before @goodnotes.email.");
   }
 
   const existingProfile = await getProfileByEmail(sessionEmail);
@@ -71,7 +65,7 @@ export async function PUT(request: Request) {
       ...existingProfile,
       message: existingProfile.student.goodnotesConnected
         ? "This Goodnotes destination is already connected."
-        : "This Goodnotes email is already saved.",
+        : "This Goodnotes destination is already saved.",
     });
   }
 
@@ -82,7 +76,7 @@ export async function PUT(request: Request) {
     goodnotesLastTestSentAt: null,
     goodnotesLastDeliveryStatus: "idle",
     goodnotesLastDeliveryMessage:
-      "Goodnotes email saved. Send a test brief to confirm this destination.",
+      "Goodnotes destination saved. Send a test brief to confirm this destination.",
   });
 
   if (!profile) {
@@ -91,7 +85,7 @@ export async function PUT(request: Request) {
 
   return Response.json({
     ...profile,
-    message: "Goodnotes email saved.",
+    message: "Goodnotes destination saved.",
   });
 }
 

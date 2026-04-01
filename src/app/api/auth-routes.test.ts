@@ -321,7 +321,7 @@ describe("auth routes", () => {
           cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
         },
         body: JSON.stringify({
-          goodnotesEmail: "katherine@goodnotes.email",
+          goodnotesEmail: "katherine",
         }),
       }),
     );
@@ -329,6 +329,7 @@ describe("auth routes", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
+    expect(body.message).toMatch(/destination saved/i);
     expect(body.student.goodnotesEmail).toBe("katherine@goodnotes.email");
     expect(body.student.goodnotesConnected).toBe(false);
     expect(body.student.goodnotesVerifiedAt).toBeNull();
@@ -374,7 +375,7 @@ describe("auth routes", () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.message).toMatch(/goodnotes email/i);
+    expect(body.message).toMatch(/goodnotes destination/i);
   });
 
   test("returns a clear setup error when real Goodnotes delivery is not configured", async () => {
@@ -412,7 +413,7 @@ describe("auth routes", () => {
           cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
         },
         body: JSON.stringify({
-          goodnotesEmail: "katherine@goodnotes.email",
+          goodnotesEmail: "katherine",
         }),
       }),
     );
@@ -466,7 +467,7 @@ describe("auth routes", () => {
           cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
         },
         body: JSON.stringify({
-          goodnotesEmail: "katherine@goodnotes.email",
+          goodnotesEmail: "katherine",
         }),
       }),
     );

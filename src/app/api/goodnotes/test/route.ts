@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   }
 
   if (!existingProfile.student.goodnotesEmail) {
-    return badRequest("Save a Goodnotes email before sending a test brief.");
+    return badRequest("Save a Goodnotes destination before sending a test brief.");
   }
 
   if (!isGoodnotesDeliveryConfigured()) {

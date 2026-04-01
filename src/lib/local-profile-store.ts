@@ -506,7 +506,7 @@ export const localProfileStore: ProfileStore = {
       student.goodnotesLastTestSentAt = null;
       student.goodnotesLastDeliveryStatus = nextGoodnotesEmail ? "idle" : null;
       student.goodnotesLastDeliveryMessage = nextGoodnotesEmail
-        ? "Goodnotes email saved. Send a test brief to confirm this destination."
+        ? "Goodnotes destination saved. Send a test brief to confirm this destination."
         : null;
     }
 

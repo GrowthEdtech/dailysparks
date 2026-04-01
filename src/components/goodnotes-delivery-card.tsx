@@ -6,6 +6,10 @@ import { useMemo, useState, useTransition } from "react";
 import { Loader2, PencilLine, Send, Unplug } from "lucide-react";
 
 import type { ParentProfile } from "../lib/mvp-types";
+import {
+  GOODNOTES_EMAIL_SUFFIX,
+  getGoodnotesLocalPart,
+} from "../lib/goodnotes-address";
 
 type GoodnotesDeliveryCardProps = {
   initialProfile: ParentProfile;
@@ -33,26 +37,14 @@ function formatTimestamp(value: string | null) {
   }).format(parsed);
 }
 
-function getTruncatedEmail(value: string) {
-  if (value.length <= 32) {
-    return value;
-  }
-
-  const [localPart, domain = ""] = value.split("@");
-
-  if (!domain || localPart.length <= 10) {
-    return `${value.slice(0, 29)}...`;
-  }
-
-  return `${localPart.slice(0, 8)}...@${domain}`;
-}
-
 export default function GoodnotesDeliveryCard({
   initialProfile,
 }: GoodnotesDeliveryCardProps) {
   const router = useRouter();
   const [student, setStudent] = useState(initialProfile.student);
-  const [draftEmail, setDraftEmail] = useState(initialProfile.student.goodnotesEmail);
+  const [draftLocalPart, setDraftLocalPart] = useState(
+    getGoodnotesLocalPart(initialProfile.student.goodnotesEmail),
+  );
   const [isEditing, setIsEditing] = useState(!initialProfile.student.goodnotesEmail);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -86,7 +78,7 @@ export default function GoodnotesDeliveryCard({
       return "Your Goodnotes destination is saved and waiting for a live test brief before regular delivery starts.";
     }
 
-    return "Add the Goodnotes email your child uses for note delivery. You can test, update, or remove this destination anytime.";
+    return "Add the name your child uses before @goodnotes.email. You can test, update, or remove this destination anytime.";
   }, [
     errorMessage,
     hasEmail,
@@ -97,18 +89,18 @@ export default function GoodnotesDeliveryCard({
 
   function applyStudent(studentRecord: ParentProfile["student"]) {
     setStudent(studentRecord);
-    setDraftEmail(studentRecord.goodnotesEmail);
+    setDraftLocalPart(getGoodnotesLocalPart(studentRecord.goodnotesEmail));
     setIsEditing(!studentRecord.goodnotesEmail);
   }
 
   async function saveDestination() {
-    const nextEmail = draftEmail.trim().toLowerCase();
+    const nextLocalPart = draftLocalPart.trim().toLowerCase();
 
     setErrorMessage("");
     setSuccessMessage("");
 
-    if (!nextEmail) {
-      setErrorMessage("Please enter a Goodnotes email address.");
+    if (!nextLocalPart) {
+      setErrorMessage("Please enter the name before @goodnotes.email.");
       return;
     }
 
@@ -121,7 +113,7 @@ export default function GoodnotesDeliveryCard({
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          goodnotesEmail: nextEmail,
+          goodnotesEmail: nextLocalPart,
         }),
       });
       const body = (await response.json().catch(() => null)) as
@@ -129,20 +121,22 @@ export default function GoodnotesDeliveryCard({
         | null;
 
       if (!response.ok || !body?.student) {
-        setErrorMessage(body?.message ?? "We could not save your Goodnotes email.");
+        setErrorMessage(
+          body?.message ?? "We could not save your Goodnotes destination.",
+        );
         setIsWorking(false);
         return;
       }
 
       applyStudent(body.student);
-      setSuccessMessage(body.message ?? "Goodnotes email saved.");
+      setSuccessMessage(body.message ?? "Goodnotes destination saved.");
       setIsWorking(false);
 
       startTransition(() => {
         router.refresh();
       });
     } catch {
-      setErrorMessage("We could not save your Goodnotes email right now.");
+      setErrorMessage("We could not save your Goodnotes destination right now.");
       setIsWorking(false);
     }
   }
@@ -218,7 +212,7 @@ export default function GoodnotesDeliveryCard({
   }
 
   function cancelEditing() {
-    setDraftEmail(student.goodnotesEmail);
+    setDraftLocalPart(getGoodnotesLocalPart(student.goodnotesEmail));
     setErrorMessage("");
     setSuccessMessage("");
     setIsEditing(!student.goodnotesEmail);
@@ -269,18 +263,23 @@ export default function GoodnotesDeliveryCard({
           <div className="mt-4 rounded-2xl border border-[#00b5d6]/15 bg-slate-50 px-4 py-4">
             <label className="flex flex-col gap-2">
               <span className="text-sm font-semibold text-slate-700">
-                Goodnotes email address
+                Goodnotes destination
               </span>
-              <input
-                type="email"
-                placeholder="katherine@goodnotes.email"
-                className="w-full rounded-xl border border-[#00b5d6]/20 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#00b5d6]"
-                value={draftEmail}
-                onChange={(event) => setDraftEmail(event.target.value)}
-              />
+              <div className="flex overflow-hidden rounded-xl border border-[#00b5d6]/20 bg-white focus-within:border-[#00b5d6]">
+                <input
+                  type="text"
+                  placeholder="katherine"
+                  className="min-w-0 flex-1 bg-white px-4 py-3 text-sm text-slate-700 outline-none"
+                  value={draftLocalPart}
+                  onChange={(event) => setDraftLocalPart(event.target.value)}
+                />
+                <span className="flex shrink-0 items-center border-l border-[#00b5d6]/15 bg-slate-50 px-4 text-sm font-medium text-slate-500">
+                  {GOODNOTES_EMAIL_SUFFIX}
+                </span>
+              </div>
             </label>
             <p className="mt-3 text-xs leading-5 text-slate-500">
-              Use the Goodnotes email your child wants Daily Sparks briefs delivered to.
+              Daily Sparks will always deliver to this fixed Goodnotes suffix.
             </p>
             <div
               className={`mt-4 flex flex-wrap gap-2 ${
@@ -298,7 +297,7 @@ export default function GoodnotesDeliveryCard({
                 ) : (
                   <Send className="h-4 w-4" />
                 )}
-                Save Goodnotes email
+                Save destination
               </button>
               {showCancelAction ? (
                 <button
@@ -316,15 +315,12 @@ export default function GoodnotesDeliveryCard({
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
             <div className="rounded-2xl border border-white bg-white/80 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
               <p className="text-xs font-semibold tracking-[0.24em] text-slate-400 uppercase">
-                Destination
+                Destination name
               </p>
               <div className="mt-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-[#0f172a]">
-                    {getTruncatedEmail(student.goodnotesEmail)}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    {student.goodnotesEmail}
+                    {getGoodnotesLocalPart(student.goodnotesEmail)}
                   </p>
                 </div>
                 <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
