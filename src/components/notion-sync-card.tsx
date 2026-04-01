@@ -326,18 +326,20 @@ export default function NotionSyncCard({
                     <p className="text-sm font-semibold text-slate-700">
                       Choose where to create the archive
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => void loadPages()}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 transition hover:text-slate-700"
-                    >
-                      {isLoadingPages ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <RefreshCcw className="h-3.5 w-3.5" />
-                      )}
-                      Refresh
-                    </button>
+                    {pages.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => void loadPages()}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 transition hover:text-slate-700"
+                      >
+                        {isLoadingPages ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCcw className="h-3.5 w-3.5" />
+                        )}
+                        Refresh
+                      </button>
+                    ) : null}
                   </div>
 
                   <select
