@@ -16,6 +16,12 @@ describe("LandingIntegrationsSection", () => {
     const markup = renderToStaticMarkup(<LandingIntegrationsSection />);
 
     expect(markup).toContain(
+      'xl:whitespace-nowrap',
+    );
+    expect(markup).toContain(
+      'xl:max-w-none',
+    );
+    expect(markup).toContain(
       "Choose the setup that fits how your family reads and keeps records.",
     );
     expect(markup).toContain(

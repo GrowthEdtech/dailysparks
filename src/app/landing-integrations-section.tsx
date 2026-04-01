@@ -10,12 +10,12 @@ export default function LandingIntegrationsSection() {
     <section className="relative overflow-hidden border-t border-slate-100 bg-[#f8fafc] px-6 py-24 text-[#0f172a]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_48%),radial-gradient(circle_at_top_left,rgba(14,165,233,0.08),transparent_42%)]" />
 
-      <div className="relative mx-auto max-w-5xl space-y-9">
-        <div className="max-w-3xl space-y-4">
+      <div className="relative mx-auto max-w-6xl space-y-9">
+        <div className="max-w-4xl space-y-4 xl:max-w-none">
           <p className="text-[0.72rem] font-bold uppercase tracking-[0.32em] text-[#d39b1b]">
             Delivery options
           </p>
-          <h2 className="max-w-[13ch] text-4xl font-extrabold leading-[0.98] tracking-[-0.05em] text-[#0f172a] md:text-[3.5rem]">
+          <h2 className="max-w-[13ch] text-4xl font-extrabold leading-[0.98] tracking-[-0.05em] text-[#0f172a] md:max-w-[15ch] md:text-[3.5rem] xl:max-w-none xl:text-[3rem] xl:whitespace-nowrap">
             Daily Sparks works with the tools families already use.
           </h2>
           <p className="max-w-2xl text-[1.02rem] leading-[1.8] text-slate-500">
