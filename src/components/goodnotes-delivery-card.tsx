@@ -33,6 +33,20 @@ function formatTimestamp(value: string | null) {
   }).format(parsed);
 }
 
+function getTruncatedEmail(value: string) {
+  if (value.length <= 32) {
+    return value;
+  }
+
+  const [localPart, domain = ""] = value.split("@");
+
+  if (!domain || localPart.length <= 10) {
+    return `${value.slice(0, 29)}...`;
+  }
+
+  return `${localPart.slice(0, 8)}...@${domain}`;
+}
+
 export default function GoodnotesDeliveryCard({
   initialProfile,
 }: GoodnotesDeliveryCardProps) {
@@ -69,7 +83,7 @@ export default function GoodnotesDeliveryCard({
     }
 
     if (hasEmail) {
-      return "Your Goodnotes destination is saved. Send a test brief before regular delivery starts.";
+      return "Your Goodnotes destination is saved and waiting for a live test brief before regular delivery starts.";
     }
 
     return "Add the Goodnotes email your child uses for note delivery. You can test, update, or remove this destination anytime.";
@@ -241,11 +255,6 @@ export default function GoodnotesDeliveryCard({
           >
             {statusLabel}
           </span>
-          {hasEmail ? (
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              {student.goodnotesEmail}
-            </span>
-          ) : null}
         </div>
 
         <p
@@ -305,42 +314,70 @@ export default function GoodnotesDeliveryCard({
           </div>
         ) : (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-            <dl className="grid gap-2">
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <dt className="text-slate-500">Goodnotes email</dt>
-                <dd className="text-right font-semibold text-[#0f172a]">
-                  {student.goodnotesEmail}
-                </dd>
+            <div className="rounded-2xl border border-white bg-white/80 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+              <p className="text-xs font-semibold tracking-[0.24em] text-slate-400 uppercase">
+                Destination
+              </p>
+              <div className="mt-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[#0f172a]">
+                    {getTruncatedEmail(student.goodnotesEmail)}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {student.goodnotesEmail}
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                  {isConnected ? "Ready" : "Pending"}
+                </span>
               </div>
-              <div className="flex items-center justify-between gap-3 text-sm">
-                <dt className="text-slate-500">Destination status</dt>
-                <dd className="text-right font-semibold text-[#0f172a]">
+            </div>
+
+            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl bg-white px-4 py-3">
+                <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
+                  Status
+                </dt>
+                <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
                   {isConnected ? "Ready for delivery" : "Awaiting test brief"}
                 </dd>
               </div>
+              <div className="rounded-xl bg-white px-4 py-3">
+                <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
+                  Next step
+                </dt>
+                <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
+                  {isConnected ? "Send or update anytime" : "Send one live test"}
+                </dd>
+              </div>
               {verifiedAt ? (
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <dt className="text-slate-500">Verified on</dt>
-                  <dd className="text-right font-semibold text-[#0f172a]">
+                <div className="rounded-xl bg-white px-4 py-3">
+                  <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
+                    Verified on
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
                     {verifiedAt}
                   </dd>
                 </div>
               ) : null}
               {lastTestAt ? (
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <dt className="text-slate-500">Last test brief</dt>
-                  <dd className="text-right font-semibold text-[#0f172a]">
+                <div className="rounded-xl bg-white px-4 py-3">
+                  <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
+                    Last test brief
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
                     {lastTestAt}
                   </dd>
                 </div>
               ) : null}
             </dl>
-            <div className="mt-4 flex flex-wrap gap-2">
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => void sendTestBrief()}
                 disabled={isWorking || isPending}
-                className="inline-flex items-center gap-2 rounded-full bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
               >
                 {isWorking ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -353,7 +390,7 @@ export default function GoodnotesDeliveryCard({
                 type="button"
                 onClick={() => setIsEditing(true)}
                 disabled={isWorking || isPending}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <PencilLine className="h-4 w-4" />
                 Update email
@@ -362,7 +399,7 @@ export default function GoodnotesDeliveryCard({
                 type="button"
                 onClick={() => void disconnect()}
                 disabled={isWorking || isPending}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Unplug className="h-4 w-4" />
                 Disconnect
