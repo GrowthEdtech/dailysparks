@@ -35,6 +35,7 @@ export const supportedIntegrations = [
     logoWidth: 300,
     logoHeight: 54,
     role: "Direct student delivery",
+    bestWhen: "Best when the student reads in Goodnotes each day.",
     detail:
       "Handwriting-friendly reading briefs land straight in the student's Goodnotes flow.",
   },
@@ -45,6 +46,7 @@ export const supportedIntegrations = [
     logoWidth: 180,
     logoHeight: 63,
     role: "Family archive",
+    bestWhen: "Best when parents want a searchable archive at home.",
     detail:
       "Parents get a searchable home base for briefs, prompts, and reflections.",
   },
