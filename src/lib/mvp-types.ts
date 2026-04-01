@@ -37,6 +37,7 @@ export function getDefaultProgrammeYear(programme: Programme) {
 export type SubscriptionStatus = "free" | "trial" | "active" | "canceled";
 export const SUBSCRIPTION_PLANS = ["monthly", "yearly"] as const;
 export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number] | null;
+export type GoodnotesDeliveryStatus = "idle" | "success" | "failed";
 
 export function isSubscriptionPlan(
   value: string,
@@ -91,6 +92,11 @@ export type StudentRecord = {
   programme: Programme;
   programmeYear: number;
   goodnotesEmail: string;
+  goodnotesConnected: boolean;
+  goodnotesVerifiedAt: string | null;
+  goodnotesLastTestSentAt: string | null;
+  goodnotesLastDeliveryStatus: GoodnotesDeliveryStatus | null;
+  goodnotesLastDeliveryMessage: string | null;
   notionConnected: boolean;
   createdAt: string;
   updatedAt: string;
@@ -118,6 +124,15 @@ export type UpdateStudentPreferencesInput = {
   programme: Programme;
   programmeYear: number;
   goodnotesEmail: string;
+};
+
+export type UpdateStudentGoodnotesInput = {
+  goodnotesEmail?: string;
+  goodnotesConnected?: boolean;
+  goodnotesVerifiedAt?: string | null;
+  goodnotesLastTestSentAt?: string | null;
+  goodnotesLastDeliveryStatus?: GoodnotesDeliveryStatus | null;
+  goodnotesLastDeliveryMessage?: string | null;
 };
 
 export type UpdateParentSubscriptionInput = {

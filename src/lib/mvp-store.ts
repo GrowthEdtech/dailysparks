@@ -2,6 +2,7 @@ import type {
   CreateParentProfileInput,
   UpdateParentNotionInput,
   UpdateParentSubscriptionInput,
+  UpdateStudentGoodnotesInput,
   UpdateStudentPreferencesInput,
 } from "./mvp-types";
 import { firestoreProfileStore } from "./firestore-profile-store";
@@ -34,6 +35,13 @@ export async function updateStudentPreferences(
   input: UpdateStudentPreferencesInput,
 ) {
   return getProfileStore().updateStudentPreferences(email, input);
+}
+
+export async function updateStudentGoodnotesDelivery(
+  email: string,
+  input: UpdateStudentGoodnotesInput,
+) {
+  return getProfileStore().updateStudentGoodnotesDelivery(email, input);
 }
 
 export async function updateParentSubscription(

@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type {
+  GoodnotesDeliveryStatus,
   MvpStoreData,
   NotionConnectionSecretRecord,
   ParentProfile,
@@ -10,6 +11,7 @@ import type {
   StudentRecord,
   SubscriptionPlan,
   UpdateParentNotionInput,
+  UpdateStudentGoodnotesInput,
 } from "./mvp-types";
 import {
   DEFAULT_PROGRAMME,
@@ -37,6 +39,12 @@ function normalizeNullableString(value: unknown) {
 
 function normalizeNullableNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function normalizeGoodnotesStatus(value: unknown): GoodnotesDeliveryStatus | null {
+  return value === "idle" || value === "success" || value === "failed"
+    ? value
+    : null;
 }
 
 function addDays(timestamp: string, days: number) {
@@ -254,6 +262,15 @@ function normalizeStudentRecord(raw: Record<string, unknown>): StudentRecord {
     programmeYear: inferProgrammeYear(programme, raw.programmeYear),
     goodnotesEmail:
       typeof raw.goodnotesEmail === "string" ? raw.goodnotesEmail.trim() : "",
+    goodnotesConnected: raw.goodnotesConnected === true,
+    goodnotesVerifiedAt: normalizeNullableString(raw.goodnotesVerifiedAt),
+    goodnotesLastTestSentAt: normalizeNullableString(raw.goodnotesLastTestSentAt),
+    goodnotesLastDeliveryStatus: normalizeGoodnotesStatus(
+      raw.goodnotesLastDeliveryStatus,
+    ),
+    goodnotesLastDeliveryMessage: normalizeNullableString(
+      raw.goodnotesLastDeliveryMessage,
+    ),
     notionConnected: raw.notionConnected === true,
     createdAt: typeof raw.createdAt === "string" ? raw.createdAt : timestamp,
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : timestamp,
@@ -375,6 +392,11 @@ function createStudentRecord(parentId: string, studentName: string): StudentReco
     programme: DEFAULT_PROGRAMME,
     programmeYear: getDefaultProgrammeYear(DEFAULT_PROGRAMME),
     goodnotesEmail: "",
+    goodnotesConnected: false,
+    goodnotesVerifiedAt: null,
+    goodnotesLastTestSentAt: null,
+    goodnotesLastDeliveryStatus: null,
+    goodnotesLastDeliveryMessage: null,
     notionConnected: false,
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -471,10 +493,82 @@ export const localProfileStore: ProfileStore = {
       return null;
     }
 
+    const nextGoodnotesEmail = input.goodnotesEmail.trim().toLowerCase();
+
     student.studentName = input.studentName.trim() || student.studentName;
     student.programme = input.programme;
     student.programmeYear = input.programmeYear;
-    student.goodnotesEmail = input.goodnotesEmail.trim();
+
+    if (student.goodnotesEmail !== nextGoodnotesEmail) {
+      student.goodnotesEmail = nextGoodnotesEmail;
+      student.goodnotesConnected = false;
+      student.goodnotesVerifiedAt = null;
+      student.goodnotesLastTestSentAt = null;
+      student.goodnotesLastDeliveryStatus = nextGoodnotesEmail ? "idle" : null;
+      student.goodnotesLastDeliveryMessage = nextGoodnotesEmail
+        ? "Goodnotes email saved. Send a test brief to confirm this destination."
+        : null;
+    }
+
+    student.updatedAt = new Date().toISOString();
+    parent.updatedAt = student.updatedAt;
+
+    await writeStore(store);
+
+    return toProfile(parent, student);
+  },
+
+  async updateStudentGoodnotesDelivery(email, input: UpdateStudentGoodnotesInput) {
+    const normalizedEmail = normalizeEmail(email);
+    const store = await readStore();
+    const parent = store.parents.find((record) => record.email === normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = findStudentForParent(store, parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    if (input.goodnotesEmail !== undefined) {
+      student.goodnotesEmail = input.goodnotesEmail.trim().toLowerCase();
+    }
+
+    if (input.goodnotesConnected !== undefined) {
+      student.goodnotesConnected = input.goodnotesConnected;
+    }
+
+    if (input.goodnotesVerifiedAt !== undefined) {
+      student.goodnotesVerifiedAt =
+        typeof input.goodnotesVerifiedAt === "string" &&
+        input.goodnotesVerifiedAt.trim()
+          ? input.goodnotesVerifiedAt
+          : null;
+    }
+
+    if (input.goodnotesLastTestSentAt !== undefined) {
+      student.goodnotesLastTestSentAt =
+        typeof input.goodnotesLastTestSentAt === "string" &&
+        input.goodnotesLastTestSentAt.trim()
+          ? input.goodnotesLastTestSentAt
+          : null;
+    }
+
+    if (input.goodnotesLastDeliveryStatus !== undefined) {
+      student.goodnotesLastDeliveryStatus = input.goodnotesLastDeliveryStatus;
+    }
+
+    if (input.goodnotesLastDeliveryMessage !== undefined) {
+      student.goodnotesLastDeliveryMessage =
+        typeof input.goodnotesLastDeliveryMessage === "string" &&
+        input.goodnotesLastDeliveryMessage.trim()
+          ? input.goodnotesLastDeliveryMessage.trim()
+          : null;
+    }
+
     student.updatedAt = new Date().toISOString();
     parent.updatedAt = student.updatedAt;
 

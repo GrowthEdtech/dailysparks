@@ -5,6 +5,11 @@ import path from "node:path";
 
 import { GET as getProfile, PUT as updateProfile } from "./profile/route";
 import { PUT as updateBilling } from "./billing/route";
+import {
+  DELETE as disconnectGoodnotes,
+  PUT as updateGoodnotes,
+} from "./goodnotes/route";
+import { POST as sendGoodnotesTest } from "./goodnotes/test/route";
 import { POST as login } from "./login/route";
 import { POST as logout } from "./logout/route";
 import { SESSION_COOKIE_NAME } from "../../lib/session";
@@ -265,6 +270,172 @@ describe("auth routes", () => {
     expect(body.student.studentName).toBe("Katherine");
     expect(body.student.programme).toBe("DP");
     expect(body.student.programmeYear).toBe(2);
+  });
+
+  test("saves a Goodnotes destination and marks it as waiting for a test brief", async () => {
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    const response = await updateGoodnotes(
+      new Request("http://localhost:3000/api/goodnotes", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+        body: JSON.stringify({
+          goodnotesEmail: "katherine@goodnotes.email",
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.student.goodnotesEmail).toBe("katherine@goodnotes.email");
+    expect(body.student.goodnotesConnected).toBe(false);
+    expect(body.student.goodnotesVerifiedAt).toBeNull();
+    expect(body.student.goodnotesLastTestSentAt).toBeNull();
+    expect(body.student.goodnotesLastDeliveryStatus).toBe("idle");
+  });
+
+  test("rejects a Goodnotes delivery test when no destination is saved", async () => {
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    const response = await sendGoodnotesTest(
+      new Request("http://localhost:3000/api/goodnotes/test", {
+        method: "POST",
+        headers: {
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.message).toMatch(/goodnotes email/i);
+  });
+
+  test("records a Goodnotes test brief and disconnects it cleanly", async () => {
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    await updateGoodnotes(
+      new Request("http://localhost:3000/api/goodnotes", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+        body: JSON.stringify({
+          goodnotesEmail: "katherine@goodnotes.email",
+        }),
+      }),
+    );
+
+    const testResponse = await sendGoodnotesTest(
+      new Request("http://localhost:3000/api/goodnotes/test", {
+        method: "POST",
+        headers: {
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+      }),
+    );
+
+    const testBody = await testResponse.json();
+
+    expect(testResponse.status).toBe(200);
+    expect(testBody.student.goodnotesConnected).toBe(true);
+    expect(testBody.student.goodnotesVerifiedAt).toMatch(/^2026-/);
+    expect(testBody.student.goodnotesLastTestSentAt).toMatch(/^2026-/);
+    expect(testBody.student.goodnotesLastDeliveryStatus).toBe("success");
+
+    const disconnectResponse = await disconnectGoodnotes(
+      new Request("http://localhost:3000/api/goodnotes", {
+        method: "DELETE",
+        headers: {
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+      }),
+    );
+
+    const disconnectBody = await disconnectResponse.json();
+
+    expect(disconnectResponse.status).toBe(200);
+    expect(disconnectBody.student.goodnotesEmail).toBe("");
+    expect(disconnectBody.student.goodnotesConnected).toBe(false);
+    expect(disconnectBody.student.goodnotesVerifiedAt).toBeNull();
+    expect(disconnectBody.student.goodnotesLastTestSentAt).toBeNull();
+    expect(disconnectBody.student.goodnotesLastDeliveryStatus).toBeNull();
+    expect(disconnectBody.student.goodnotesLastDeliveryMessage).toBeNull();
   });
 
   test("rejects invalid billing plan updates", async () => {

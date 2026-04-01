@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { BookOpen, CreditCard, Save, Send } from "lucide-react";
 
 import AccountMenu from "../../components/account-menu";
+import GoodnotesDeliveryCard from "../../components/goodnotes-delivery-card";
 import NotionSyncCard from "../../components/notion-sync-card";
 import { getBillingSummary } from "../../lib/billing";
 import {
@@ -45,9 +45,6 @@ export default function DashboardForm({
   const [programmeYear, setProgrammeYear] = useState(
     initialProfile.student.programmeYear,
   );
-  const [goodnotesEmail, setGoodnotesEmail] = useState(
-    initialProfile.student.goodnotesEmail,
-  );
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -80,7 +77,6 @@ export default function DashboardForm({
         },
         body: JSON.stringify({
           studentName,
-          goodnotesEmail,
           programme,
           programmeYear,
         }),
@@ -96,7 +92,6 @@ export default function DashboardForm({
 
       if (body?.student) {
         setStudentName(body.student.studentName);
-        setGoodnotesEmail(body.student.goodnotesEmail);
         setProgramme(body.student.programme);
         setProgrammeYear(body.student.programmeYear);
       }
@@ -236,39 +231,7 @@ export default function DashboardForm({
           </p>
 
           <div className="mt-5 space-y-4">
-            <div className="rounded-3xl border border-[#00b5d6]/20 bg-gradient-to-br from-[#f0fbff] to-white p-5 shadow-sm">
-              <div className="flex items-start gap-3">
-                <Image
-                  src="/integrations/goodnotes.jpeg"
-                  alt="Goodnotes"
-                  width={28}
-                  height={28}
-                  className="mt-1.5 h-7 w-7 shrink-0 rounded-md object-cover"
-                />
-                <div>
-                  <h3 className="text-base font-bold text-[#0f172a]">Goodnotes delivery</h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Send each reading brief into the student&apos;s note-taking flow.
-                  </p>
-                </div>
-              </div>
-
-              <label className="mt-4 flex flex-col gap-2">
-                <span className="text-sm font-semibold text-slate-700">
-                  GoodNotes email address
-                </span>
-                <input
-                  type="email"
-                  placeholder="katherine@goodnotes.email"
-                  className="w-full rounded-xl border border-[#00b5d6]/15 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#00b5d6] focus:bg-white"
-                  value={goodnotesEmail}
-                  onChange={(event) => setGoodnotesEmail(event.target.value)}
-                />
-                <span className="text-xs leading-5 text-slate-500">
-                  Optional for this MVP. If present, we validate and save it.
-                </span>
-              </label>
-            </div>
+            <GoodnotesDeliveryCard initialProfile={initialProfile} />
 
             <NotionSyncCard
               initialProfile={initialProfile}

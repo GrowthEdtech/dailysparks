@@ -7,6 +7,7 @@ import {
   getOrCreateParentProfile,
   getProfileByEmail,
   updateParentSubscription,
+  updateStudentGoodnotesDelivery,
   updateStudentPreferences,
 } from "./mvp-store";
 import { getBillingSummary } from "./billing";
@@ -47,6 +48,11 @@ describe("mvp store", () => {
     expect(profile.student.programme).toBe("PYP");
     expect(profile.student.programmeYear).toBe(5);
     expect(profile.student.parentId).toBe(profile.parent.id);
+    expect(profile.student.goodnotesConnected).toBe(false);
+    expect(profile.student.goodnotesVerifiedAt).toBeNull();
+    expect(profile.student.goodnotesLastTestSentAt).toBeNull();
+    expect(profile.student.goodnotesLastDeliveryStatus).toBeNull();
+    expect(profile.student.goodnotesLastDeliveryMessage).toBeNull();
   });
 
   test("returns the saved profile by email", async () => {
@@ -80,6 +86,11 @@ describe("mvp store", () => {
 
     expect(updated?.student.studentName).toBe("Katherine Sparks");
     expect(updated?.student.goodnotesEmail).toBe("katherine@goodnotes.email");
+    expect(updated?.student.goodnotesConnected).toBe(false);
+    expect(updated?.student.goodnotesVerifiedAt).toBeNull();
+    expect(updated?.student.goodnotesLastTestSentAt).toBeNull();
+    expect(updated?.student.goodnotesLastDeliveryStatus).toBe("idle");
+    expect(updated?.student.goodnotesLastDeliveryMessage).toMatch(/saved/i);
     expect(updated?.student.programme).toBe("MYP");
     expect(updated?.student.programmeYear).toBe(3);
 
@@ -87,8 +98,60 @@ describe("mvp store", () => {
 
     expect(reloaded?.student.studentName).toBe("Katherine Sparks");
     expect(reloaded?.student.goodnotesEmail).toBe("katherine@goodnotes.email");
+    expect(reloaded?.student.goodnotesConnected).toBe(false);
+    expect(reloaded?.student.goodnotesVerifiedAt).toBeNull();
+    expect(reloaded?.student.goodnotesLastTestSentAt).toBeNull();
+    expect(reloaded?.student.goodnotesLastDeliveryStatus).toBe("idle");
+    expect(reloaded?.student.goodnotesLastDeliveryMessage).toMatch(/saved/i);
     expect(reloaded?.student.programme).toBe("MYP");
     expect(reloaded?.student.programmeYear).toBe(3);
+  });
+
+  test("updates Goodnotes delivery status and resets it when the destination changes", async () => {
+    await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    await updateStudentPreferences("parent@example.com", {
+      studentName: "Katherine",
+      goodnotesEmail: "katherine@goodnotes.email",
+      programme: "PYP",
+      programmeYear: 5,
+    });
+
+    const connected = await updateStudentGoodnotesDelivery("parent@example.com", {
+      goodnotesConnected: true,
+      goodnotesVerifiedAt: "2026-04-01T00:00:00.000Z",
+      goodnotesLastTestSentAt: "2026-04-01T00:05:00.000Z",
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Goodnotes delivery is ready.",
+    });
+
+    expect(connected?.student.goodnotesConnected).toBe(true);
+    expect(connected?.student.goodnotesVerifiedAt).toBe("2026-04-01T00:00:00.000Z");
+    expect(connected?.student.goodnotesLastTestSentAt).toBe(
+      "2026-04-01T00:05:00.000Z",
+    );
+    expect(connected?.student.goodnotesLastDeliveryStatus).toBe("success");
+    expect(connected?.student.goodnotesLastDeliveryMessage).toBe(
+      "Goodnotes delivery is ready.",
+    );
+
+    const reset = await updateStudentPreferences("parent@example.com", {
+      studentName: "Katherine",
+      goodnotesEmail: "katherine-updated@goodnotes.email",
+      programme: "PYP",
+      programmeYear: 5,
+    });
+
+    expect(reset?.student.goodnotesEmail).toBe("katherine-updated@goodnotes.email");
+    expect(reset?.student.goodnotesConnected).toBe(false);
+    expect(reset?.student.goodnotesVerifiedAt).toBeNull();
+    expect(reset?.student.goodnotesLastTestSentAt).toBeNull();
+    expect(reset?.student.goodnotesLastDeliveryStatus).toBe("idle");
+    expect(reset?.student.goodnotesLastDeliveryMessage).toMatch(/saved/i);
   });
 
   test("updates parent billing selection and persists it", async () => {
