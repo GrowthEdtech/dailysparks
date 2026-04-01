@@ -18,14 +18,16 @@ describe("LandingIntegrationsSection", () => {
     expect(markup).toContain("text-balance");
     expect(markup).not.toContain("max-w-[13ch]");
     expect(markup).not.toContain("md:max-w-[15ch]");
-    expect(markup).toContain(
+    expect(markup).not.toContain(
       "xl:grid-cols-[minmax(0,1.45fr)_minmax(20rem,0.85fr)]",
     );
-    expect(markup).toContain("xl:max-w-[30rem]");
-    expect(markup).toContain(
+    expect(markup).not.toContain("xl:max-w-[30rem]");
+    expect(markup).not.toContain(
       "xl:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.82fr)]",
     );
-    expect(markup).toContain("xl:max-w-[25rem]");
+    expect(markup).not.toContain("xl:max-w-[25rem]");
+    expect(markup).not.toContain("xl:justify-self-end");
+    expect(markup).not.toContain("xl:col-start-2");
     expect(markup).toContain(
       'xl:whitespace-nowrap',
     );
