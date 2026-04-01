@@ -55,7 +55,7 @@ export default function GoodnotesDeliveryCard({
   const isConnected = student.goodnotesConnected;
   const showCancelAction = hasEmail;
   const verifiedAt = formatTimestamp(student.goodnotesVerifiedAt);
-  const lastTestAt = formatTimestamp(student.goodnotesLastTestSentAt);
+  const readySince = verifiedAt ?? formatTimestamp(student.goodnotesLastTestSentAt);
   const statusLabel = isConnected ? "Connected" : hasEmail ? "Saved" : "Not set";
   const helperMessage = useMemo(() => {
     if (successMessage) {
@@ -329,28 +329,16 @@ export default function GoodnotesDeliveryCard({
               </div>
             </div>
 
-            {verifiedAt || lastTestAt ? (
-              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-                {verifiedAt ? (
-                  <div className="rounded-xl bg-white px-4 py-3">
-                    <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
-                      Verified on
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
-                      {verifiedAt}
-                    </dd>
-                  </div>
-                ) : null}
-                {lastTestAt ? (
-                  <div className="rounded-xl bg-white px-4 py-3">
-                    <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
-                      Last test brief
-                    </dt>
-                    <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
-                      {lastTestAt}
-                    </dd>
-                  </div>
-                ) : null}
+            {readySince ? (
+              <dl className="mt-4">
+                <div className="rounded-xl bg-white px-4 py-3">
+                  <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
+                    Ready since
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
+                    {readySince}
+                  </dd>
+                </div>
               </dl>
             ) : null}
 
