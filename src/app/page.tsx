@@ -11,6 +11,7 @@ import {
 
 import HomePricingSection from "./home-pricing-section";
 import { DEFAULT_PRICING_MARKET } from "../lib/pricing-market";
+import { deliveryOptions, landingFaqItems } from "./home-content";
 
 export default async function Home() {
   return (
@@ -220,6 +221,47 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="bg-[#f8fafc] text-[#0f172a] py-24 px-6 border-t border-slate-100">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="max-w-3xl space-y-4">
+            <p className="text-sm font-bold uppercase tracking-[0.24em] text-[#fbbf24]">
+              Delivery options
+            </p>
+            <h2 className="text-3xl md:text-4xl font-extrabold">
+              Daily Sparks works with the tools families already use.
+            </h2>
+            <p className="text-slate-500 text-lg leading-8">
+              Use Goodnotes for direct student delivery, Notion for family archiving,
+              or combine both when you want daily reading plus a searchable record.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {deliveryOptions.map((option) => {
+              const Icon = option.icon;
+
+              return (
+                <div
+                  key={option.title}
+                  className="rounded-[28px] border border-slate-200 bg-white p-8 shadow-[0_22px_60px_-45px_rgba(15,23,42,0.4)]"
+                >
+                  <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff7df] text-[#0f172a] shadow-sm">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-xl font-bold text-[#0f172a]">{option.title}</h3>
+                  <p className="mt-3 text-base leading-7 text-slate-600">
+                    {option.description}
+                  </p>
+                  <p className="mt-4 text-sm leading-6 text-slate-500">
+                    {option.detail}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
       <HomePricingSection initialPricingMarket={DEFAULT_PRICING_MARKET} />
 
       {/* --- Section 6: FAQ --- */}
@@ -228,11 +270,7 @@ export default async function Home() {
            <h2 className="text-4xl font-extrabold text-center">Frequently Asked.</h2>
            
            <div className="space-y-8">
-              {[
-                { q: "What age is Daily Sparks for?", a: "We primarily target students aged 9 to 14 (P5 to MYP). The reading level is adjusted to provide 'Desirable Difficulty'—challenging but accessible." },
-                { q: "How does the GoodNotes delivery work?", a: "Every iPad user with GoodNotes has a unique email. We use our server to automatically send the PDF to that address at 09:00 UTC daily." },
-                { q: "Can I cancel anytime?", a: "Yes. You can manage or cancel renewal at any time from your Dashboard subscription settings." }
-              ].map((item, i) => (
+              {landingFaqItems.map((item, i) => (
                 <div key={i} className="group border-b border-slate-100 pb-6 cursor-pointer">
                   <div className="flex justify-between items-center mb-3">
                     <h4 className="font-bold text-lg group-hover:text-[#fbbf24] transition-colors">{item.q}</h4>

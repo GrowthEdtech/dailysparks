@@ -1,0 +1,43 @@
+import { describe, expect, test } from "vitest";
+
+import { deliveryOptions, landingFaqItems } from "./home-content";
+
+describe("home content", () => {
+  test("includes the delivery options guidance for Goodnotes and Notion", () => {
+    expect(deliveryOptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Works with Goodnotes",
+          description:
+            "Send each reading brief to your child's Goodnotes destination email.",
+        }),
+        expect.objectContaining({
+          title: "Archive in Notion",
+          description:
+            "Connect your workspace and save reading briefs, prompts, and reflections in one place.",
+        }),
+        expect.objectContaining({
+          title: "Use one or both",
+          description:
+            "Goodnotes supports daily reading delivery. Notion keeps a searchable family archive.",
+        }),
+      ]),
+    );
+  });
+
+  test("expands the landing FAQ with integration setup questions", () => {
+    expect(landingFaqItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          q: "How does the GoodNotes delivery work?",
+        }),
+        expect.objectContaining({
+          q: "How does Notion sync work?",
+        }),
+        expect.objectContaining({
+          q: "Do I need both GoodNotes and Notion?",
+        }),
+      ]),
+    );
+  });
+});
