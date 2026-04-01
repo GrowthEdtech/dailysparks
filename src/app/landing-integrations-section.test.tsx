@@ -15,6 +15,9 @@ describe("LandingIntegrationsSection", () => {
   test("renders a clear Goodnotes-versus-Notion comparison board", () => {
     const markup = renderToStaticMarkup(<LandingIntegrationsSection />);
 
+    expect(markup).toContain("text-balance");
+    expect(markup).not.toContain("max-w-[13ch]");
+    expect(markup).not.toContain("md:max-w-[15ch]");
     expect(markup).toContain(
       'xl:whitespace-nowrap',
     );
