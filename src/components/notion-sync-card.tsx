@@ -347,7 +347,7 @@ export default function NotionSyncCard({
                     disabled={isLoadingPages || isWorking || pages.length === 0}
                   >
                     {pages.length === 0 ? (
-                      <option value="">No shared Notion pages found yet</option>
+                      <option value="">No shared pages yet</option>
                     ) : null}
                     {pages.map((page) => (
                       <option key={page.id} value={page.id}>
