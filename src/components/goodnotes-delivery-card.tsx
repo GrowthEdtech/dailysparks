@@ -372,16 +372,16 @@ export default function GoodnotesDeliveryCard({
                 type="button"
                 onClick={() => setIsEditing(true)}
                 disabled={isWorking || isPending}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap"
               >
                 <PencilLine className="h-4 w-4" />
-                Update email
+                Edit
               </button>
               <button
                 type="button"
                 onClick={() => void disconnect()}
                 disabled={isWorking || isPending}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap"
               >
                 <Unplug className="h-4 w-4" />
                 Disconnect
