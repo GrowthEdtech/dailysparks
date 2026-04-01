@@ -329,44 +329,30 @@ export default function GoodnotesDeliveryCard({
               </div>
             </div>
 
-            <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-white px-4 py-3">
-                <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
-                  Status
-                </dt>
-                <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
-                  {isConnected ? "Ready for delivery" : "Awaiting test brief"}
-                </dd>
-              </div>
-              <div className="rounded-xl bg-white px-4 py-3">
-                <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
-                  Next step
-                </dt>
-                <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
-                  {isConnected ? "Send or update anytime" : "Send one live test"}
-                </dd>
-              </div>
-              {verifiedAt ? (
-                <div className="rounded-xl bg-white px-4 py-3">
-                  <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
-                    Verified on
-                  </dt>
-                  <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
-                    {verifiedAt}
-                  </dd>
-                </div>
-              ) : null}
-              {lastTestAt ? (
-                <div className="rounded-xl bg-white px-4 py-3">
-                  <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
-                    Last test brief
-                  </dt>
-                  <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
-                    {lastTestAt}
-                  </dd>
-                </div>
-              ) : null}
-            </dl>
+            {verifiedAt || lastTestAt ? (
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                {verifiedAt ? (
+                  <div className="rounded-xl bg-white px-4 py-3">
+                    <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
+                      Verified on
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
+                      {verifiedAt}
+                    </dd>
+                  </div>
+                ) : null}
+                {lastTestAt ? (
+                  <div className="rounded-xl bg-white px-4 py-3">
+                    <dt className="text-xs font-semibold tracking-[0.2em] text-slate-400 uppercase">
+                      Last test brief
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold text-[#0f172a]">
+                      {lastTestAt}
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+            ) : null}
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <button
