@@ -1,5 +1,6 @@
 import {
   buildAiConnectionApiKeyPreview,
+  decryptAiConnectionApiKey,
   encryptAiConnectionApiKey,
   getAiConnectionEncryptionSecret,
 } from "./ai-connection-crypto";
@@ -44,6 +45,10 @@ function sanitizeAiConnectionRecord(
   };
 }
 
+export type RuntimeAiConnection = AiConnectionRecord & {
+  apiKey: string;
+};
+
 function buildStoredAiConnection(
   input: CreateAiConnectionInput,
 ): StoredAiConnectionRecord {
@@ -77,6 +82,42 @@ export async function listAiConnections() {
   const connections = await store.listConnections();
 
   return connections.map((connection) => sanitizeAiConnectionRecord(connection));
+}
+
+export async function getDefaultAiConnection() {
+  const store = getAiConnectionStore();
+  const connections = await store.listConnections();
+  const defaultConnection = connections.find(
+    (connection) => connection.isDefault && connection.active,
+  );
+
+  return defaultConnection ? sanitizeAiConnectionRecord(defaultConnection) : null;
+}
+
+export async function getDefaultAiConnectionWithSecret(): Promise<RuntimeAiConnection | null> {
+  const encryptionSecret = getAiConnectionEncryptionSecret();
+
+  if (!encryptionSecret) {
+    return null;
+  }
+
+  const store = getAiConnectionStore();
+  const connections = await store.listConnections();
+  const defaultConnection = connections.find(
+    (connection) => connection.isDefault && connection.active,
+  );
+
+  if (!defaultConnection) {
+    return null;
+  }
+
+  return {
+    ...sanitizeAiConnectionRecord(defaultConnection),
+    apiKey: decryptAiConnectionApiKey(
+      encryptionSecret,
+      defaultConnection.apiKeyCiphertext,
+    ),
+  };
 }
 
 export async function createAiConnection(input: CreateAiConnectionInput) {

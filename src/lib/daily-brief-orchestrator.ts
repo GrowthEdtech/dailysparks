@@ -1,0 +1,309 @@
+import {
+  DAILY_SPARKS_REPETITION_POLICY,
+  getEditorialProgrammeProfile,
+} from "./editorial-policy";
+import { getDefaultAiConnectionWithSecret } from "./ai-connection-store";
+import { generateOpenAiCompatibleText } from "./ai-runtime";
+import { listDailyBriefHistory } from "./daily-brief-history-store";
+import type {
+  DailyBriefHistoryRecord,
+  DailyBriefRepetitionRisk,
+} from "./daily-brief-history-schema";
+import { listEligibleDeliveryProfiles } from "./mvp-store";
+import type { Programme } from "./mvp-types";
+import {
+  buildResolvedPromptPreview,
+  getActivePromptPolicy,
+} from "./prompt-policy-store";
+import type { PromptPolicyRecord } from "./prompt-policy-schema";
+import { selectDailyTopicCluster, type SelectedDailyTopic } from "./brief-selector";
+import {
+  ingestEditorialSourceCandidates,
+  type EditorialSourceCandidate,
+} from "./source-ingestion";
+
+const PROGRAMME_ORDER: Programme[] = ["PYP", "MYP", "DP"];
+
+export type GeneratedDailyBriefDraft = Omit<
+  DailyBriefHistoryRecord,
+  "id" | "createdAt" | "updatedAt"
+> & {
+  resolvedPrompt: string;
+  sourceClusterKey: string;
+  candidateCount: number;
+};
+
+export type DailyBriefGenerationResult = {
+  selectedTopic: SelectedDailyTopic | null;
+  generatedBriefs: GeneratedDailyBriefDraft[];
+  skippedProgrammes: Programme[];
+};
+
+export type GenerateDailyBriefDraftsOptions = {
+  scheduledFor: string;
+  candidates?: EditorialSourceCandidate[];
+  historyEntries?: DailyBriefHistoryRecord[];
+  promptPolicy?: PromptPolicyRecord;
+  fetchImpl?: typeof fetch;
+  now?: Date;
+};
+
+type GeneratedBriefPayload = {
+  headline: string;
+  summary: string;
+  briefMarkdown: string;
+  topicTags: string[];
+};
+
+function extractEligibleProgrammes(profiles: Awaited<ReturnType<typeof listEligibleDeliveryProfiles>>) {
+  return PROGRAMME_ORDER.filter((programme, index, array) =>
+    profiles.some((profile) => profile.student.programme === programme) &&
+    array.indexOf(programme) === index,
+  );
+}
+
+function normalizeTag(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function getDaysBetween(left: string, right: string) {
+  const leftDate = Date.parse(`${left}T00:00:00.000Z`);
+  const rightDate = Date.parse(`${right}T00:00:00.000Z`);
+
+  if (Number.isNaN(leftDate) || Number.isNaN(rightDate)) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.abs(leftDate - rightDate) / (1000 * 60 * 60 * 24);
+}
+
+function getPublishedProgrammeSet(
+  historyEntries: DailyBriefHistoryRecord[],
+  scheduledFor: string,
+) {
+  return new Set(
+    historyEntries
+      .filter(
+        (entry) =>
+          entry.scheduledFor === scheduledFor && entry.status === "published",
+      )
+      .map((entry) => entry.programme),
+  );
+}
+
+function buildGenerationUserPrompt(
+  selectedTopic: SelectedDailyTopic,
+  programme: Programme,
+  scheduledFor: string,
+) {
+  return [
+    `Scheduled date: ${scheduledFor}`,
+    `Programme: ${programme}`,
+    `Topic cluster: ${selectedTopic.clusterKey}`,
+    `Primary headline: ${selectedTopic.headline}`,
+    `Cluster summary: ${selectedTopic.summary}`,
+    "",
+    "Source references:",
+    ...selectedTopic.sourceReferences.map(
+      (reference) =>
+        `- ${reference.sourceName} (${reference.sourceDomain}): ${reference.articleTitle} — ${reference.articleUrl}`,
+    ),
+    "",
+    "Return valid JSON only with the keys headline, summary, briefMarkdown, topicTags.",
+  ].join("\n");
+}
+
+function extractJsonObject(value: string) {
+  const fencedMatch = value.match(/```(?:json)?\s*([\s\S]*?)```/i);
+
+  if (fencedMatch?.[1]) {
+    return fencedMatch[1].trim();
+  }
+
+  const start = value.indexOf("{");
+  const end = value.lastIndexOf("}");
+
+  if (start >= 0 && end > start) {
+    return value.slice(start, end + 1);
+  }
+
+  return value.trim();
+}
+
+function parseGeneratedBriefPayload(text: string): GeneratedBriefPayload {
+  const payload = JSON.parse(extractJsonObject(text)) as {
+    headline?: unknown;
+    summary?: unknown;
+    briefMarkdown?: unknown;
+    topicTags?: unknown;
+  };
+  const topicTags = Array.isArray(payload.topicTags)
+    ? payload.topicTags
+        .map((tag) => String(tag).trim())
+        .filter(Boolean)
+    : String(payload.topicTags ?? "")
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+
+  return {
+    headline: String(payload.headline ?? "").trim(),
+    summary: String(payload.summary ?? "").trim(),
+    briefMarkdown: String(payload.briefMarkdown ?? "").trim(),
+    topicTags,
+  };
+}
+
+function buildRepetitionAssessment(
+  historyEntries: DailyBriefHistoryRecord[],
+  scheduledFor: string,
+  selectedTopic: SelectedDailyTopic,
+  topicTags: string[],
+): {
+  repetitionRisk: DailyBriefRepetitionRisk;
+  repetitionNotes: string;
+} {
+  const recentEntries = historyEntries.filter((entry) => {
+    if (entry.status !== "published") {
+      return false;
+    }
+
+    return (
+      getDaysBetween(entry.scheduledFor, scheduledFor) <=
+      DAILY_SPARKS_REPETITION_POLICY.topicReuse.windowDays
+    );
+  });
+
+  const selectedSourceIds = new Set(
+    selectedTopic.sourceReferences.map((reference) => reference.sourceId),
+  );
+  const normalizedTags = new Set(topicTags.map(normalizeTag));
+
+  const overlappingEntries = recentEntries.filter((entry) => {
+    const sourceOverlap = entry.sourceReferences.some((reference) =>
+      selectedSourceIds.has(reference.sourceId),
+    );
+    const tagOverlap = entry.topicTags.some((tag) =>
+      normalizedTags.has(normalizeTag(tag)),
+    );
+
+    return sourceOverlap || tagOverlap;
+  });
+
+  if (overlappingEntries.length === 0) {
+    return {
+      repetitionRisk: "low",
+      repetitionNotes:
+        "No overlapping published topic or source footprint found in the recent editorial memory window.",
+    };
+  }
+
+  return {
+    repetitionRisk: overlappingEntries.length > 1 ? "high" : "medium",
+    repetitionNotes: `Recent published overlap detected with ${overlappingEntries.length} brief(s) inside the repetition window.`,
+  };
+}
+
+export async function generateDailyBriefDrafts(
+  options: GenerateDailyBriefDraftsOptions,
+): Promise<DailyBriefGenerationResult> {
+  const profiles = await listEligibleDeliveryProfiles();
+  const eligibleProgrammes = extractEligibleProgrammes(profiles);
+
+  if (eligibleProgrammes.length === 0) {
+    return {
+      selectedTopic: null,
+      generatedBriefs: [],
+      skippedProgrammes: [],
+    };
+  }
+
+  const promptPolicy = options.promptPolicy ?? (await getActivePromptPolicy());
+
+  if (!promptPolicy) {
+    throw new Error("No active prompt policy is configured.");
+  }
+
+  const aiConnection = await getDefaultAiConnectionWithSecret();
+
+  if (!aiConnection) {
+    throw new Error("No default AI connection is configured.");
+  }
+
+  const candidates =
+    options.candidates ?? (await ingestEditorialSourceCandidates({ now: options.now }));
+  const selectedTopic = selectDailyTopicCluster(candidates, eligibleProgrammes);
+
+  if (!selectedTopic) {
+    return {
+      selectedTopic: null,
+      generatedBriefs: [],
+      skippedProgrammes: [],
+    };
+  }
+
+  const historyEntries = options.historyEntries ?? (await listDailyBriefHistory());
+  const publishedProgrammes = getPublishedProgrammeSet(
+    historyEntries,
+    options.scheduledFor,
+  );
+  const generatedBriefs: GeneratedDailyBriefDraft[] = [];
+  const skippedProgrammes: Programme[] = [];
+
+  for (const programme of eligibleProgrammes) {
+    if (publishedProgrammes.has(programme)) {
+      skippedProgrammes.push(programme);
+      continue;
+    }
+
+    const resolvedPrompt = buildResolvedPromptPreview(promptPolicy, programme);
+    const programmeProfile = getEditorialProgrammeProfile(programme);
+    const aiResult = await generateOpenAiCompatibleText({
+      connection: aiConnection,
+      developerPrompt: resolvedPrompt,
+      userPrompt: [
+        buildGenerationUserPrompt(selectedTopic, programme, options.scheduledFor),
+        "",
+        `Programme framing note: ${programmeProfile.contentGoal}`,
+        `Prompt focus: ${programmeProfile.promptFocus}`,
+      ].join("\n"),
+      fetchImpl: options.fetchImpl,
+    });
+    const generatedPayload = parseGeneratedBriefPayload(aiResult.text);
+    const repetitionAssessment = buildRepetitionAssessment(
+      historyEntries,
+      options.scheduledFor,
+      selectedTopic,
+      generatedPayload.topicTags,
+    );
+
+    generatedBriefs.push({
+      scheduledFor: options.scheduledFor,
+      headline: generatedPayload.headline,
+      summary: generatedPayload.summary,
+      programme,
+      status: "draft",
+      topicTags: generatedPayload.topicTags,
+      sourceReferences: selectedTopic.sourceReferences,
+      aiConnectionId: aiConnection.id,
+      aiConnectionName: aiConnection.name,
+      aiModel: aiResult.model,
+      promptPolicyId: promptPolicy.id,
+      promptVersionLabel: promptPolicy.versionLabel,
+      promptVersion: promptPolicy.versionLabel,
+      repetitionRisk: repetitionAssessment.repetitionRisk,
+      repetitionNotes: repetitionAssessment.repetitionNotes,
+      adminNotes: "",
+      briefMarkdown: generatedPayload.briefMarkdown,
+      resolvedPrompt,
+      sourceClusterKey: selectedTopic.clusterKey,
+      candidateCount: selectedTopic.topicCandidates.length,
+    });
+  }
+
+  return {
+    selectedTopic,
+    generatedBriefs,
+    skippedProgrammes,
+  };
+}

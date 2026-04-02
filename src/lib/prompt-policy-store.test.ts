@@ -8,6 +8,7 @@ import {
   archivePromptPolicy,
   createPromptPolicy,
   duplicatePromptPolicy,
+  getActivePromptPolicy,
   getPromptPolicy,
   listPromptPolicies,
   updatePromptPolicy,
@@ -107,5 +108,23 @@ describe("prompt policy store", () => {
 
     expect(archivedPolicy?.status).toBe("archived");
     expect(updatedPolicy).toBeNull();
+  });
+
+  test("returns the active prompt policy for runtime use", async () => {
+    const activePolicy = await createPromptPolicy(buildPolicyInput());
+    await createPromptPolicy(
+      buildPolicyInput({
+        versionLabel: "v1.1.0",
+      }),
+    );
+
+    const selectedPolicy = await getActivePromptPolicy();
+
+    expect(selectedPolicy?.id).toBe(activePolicy.id);
+    expect(selectedPolicy?.status).toBe("active");
+  });
+
+  test("returns null when no active prompt policy exists", async () => {
+    expect(await getActivePromptPolicy()).toBeNull();
   });
 });

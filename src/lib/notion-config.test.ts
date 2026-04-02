@@ -32,8 +32,27 @@ describe("notion config", () => {
         clientSecret: "notion-client-secret",
         redirectUri: "https://dailysparks.geledtech.com/api/notion/callback",
         encryptionSecret: "test-encryption-secret",
+        dailyBriefTypeName: "Daily Brief",
+        dailyBriefStatusName: "Generated",
       }),
     );
     expect(isNotionConfigured()).toBe(true);
+  });
+
+  test("allows overriding daily brief delivery labels", () => {
+    process.env.NOTION_OAUTH_CLIENT_ID = "notion-client-id";
+    process.env.NOTION_OAUTH_CLIENT_SECRET = "notion-client-secret";
+    process.env.NOTION_OAUTH_REDIRECT_URI =
+      "https://dailysparks.geledtech.com/api/notion/callback";
+    process.env.NOTION_TOKEN_ENCRYPTION_SECRET = "test-encryption-secret";
+    process.env.NOTION_DAILY_BRIEF_TYPE_NAME = "Reading Run";
+    process.env.NOTION_DAILY_BRIEF_STATUS_NAME = "Delivered";
+
+    expect(getNotionConfig()).toEqual(
+      expect.objectContaining({
+        dailyBriefTypeName: "Reading Run",
+        dailyBriefStatusName: "Delivered",
+      }),
+    );
   });
 });

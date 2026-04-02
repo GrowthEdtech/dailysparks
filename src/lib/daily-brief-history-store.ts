@@ -35,6 +35,10 @@ export async function listDailyBriefHistory(
   const entries = await getDailyBriefHistoryStore().listEntries();
 
   return sortEntries(entries).filter((entry) => {
+    if (filters.scheduledFor && entry.scheduledFor !== filters.scheduledFor) {
+      return false;
+    }
+
     if (filters.programme && entry.programme !== filters.programme) {
       return false;
     }

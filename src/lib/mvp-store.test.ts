@@ -6,8 +6,10 @@ import path from "node:path";
 import {
   getOrCreateParentProfile,
   getProfileByEmail,
+  listEligibleDeliveryProfiles,
   updateParentSubscription,
   updateStudentGoodnotesDelivery,
+  updateParentNotionConnection,
   updateStudentPreferences,
 } from "./mvp-store";
 import { getBillingSummary } from "./billing";
@@ -243,6 +245,85 @@ describe("mvp store", () => {
     expect(reloaded?.parent.latestInvoicePeriodEnd).toBe(
       "2026-04-30T00:00:00.000Z",
     );
+  });
+
+  test("lists only subscribed profiles with at least one ready delivery channel", async () => {
+    await getOrCreateParentProfile({
+      email: "goodnotes@example.com",
+      fullName: "Goodnotes Parent",
+      studentName: "Ava",
+    });
+    await updateStudentPreferences("goodnotes@example.com", {
+      studentName: "Ava",
+      goodnotesEmail: "ava@goodnotes.email",
+      programme: "PYP",
+      programmeYear: 5,
+    });
+    await updateStudentGoodnotesDelivery("goodnotes@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Ready.",
+    });
+
+    await getOrCreateParentProfile({
+      email: "notion@example.com",
+      fullName: "Notion Parent",
+      studentName: "Milo",
+    });
+    await updateStudentPreferences("notion@example.com", {
+      studentName: "Milo",
+      goodnotesEmail: "",
+      programme: "MYP",
+      programmeYear: 3,
+    });
+    await updateParentSubscription("notion@example.com", {
+      subscriptionStatus: "active",
+    });
+    await updateParentNotionConnection("notion@example.com", {
+      notionConnected: true,
+      notionDatabaseId: "db-123",
+      notionDatabaseName: "Daily Sparks",
+    });
+
+    await getOrCreateParentProfile({
+      email: "no-delivery@example.com",
+      fullName: "No Delivery Parent",
+      studentName: "Kai",
+    });
+    await updateParentSubscription("no-delivery@example.com", {
+      subscriptionStatus: "active",
+    });
+
+    await getOrCreateParentProfile({
+      email: "canceled@example.com",
+      fullName: "Canceled Parent",
+      studentName: "June",
+    });
+    await updateStudentPreferences("canceled@example.com", {
+      studentName: "June",
+      goodnotesEmail: "june@goodnotes.email",
+      programme: "DP",
+      programmeYear: 1,
+    });
+    await updateStudentGoodnotesDelivery("canceled@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Ready.",
+    });
+    await updateParentSubscription("canceled@example.com", {
+      subscriptionStatus: "canceled",
+    });
+
+    const eligibleProfiles = await listEligibleDeliveryProfiles();
+
+    expect(eligibleProfiles.map((profile) => profile.parent.email)).toEqual([
+      "goodnotes@example.com",
+      "notion@example.com",
+    ]);
+    expect(eligibleProfiles.map((profile) => profile.student.programme)).toEqual([
+      "PYP",
+      "MYP",
+    ]);
   });
 
   test("formats trial and renewal timing in the billing summary", async () => {

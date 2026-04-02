@@ -410,6 +410,16 @@ function toProfile(parent: ParentRecord, student: StudentRecord): ParentProfile 
   };
 }
 
+function isEligibleForAutomatedDelivery(profile: ParentProfile) {
+  const hasActiveSubscription =
+    profile.parent.subscriptionStatus === "trial" ||
+    profile.parent.subscriptionStatus === "active";
+  const hasReadyDeliveryChannel =
+    profile.student.goodnotesConnected || profile.student.notionConnected;
+
+  return hasActiveSubscription && hasReadyDeliveryChannel;
+}
+
 export const localProfileStore: ProfileStore = {
   async getProfileByEmail(email) {
     const normalizedEmail = normalizeEmail(email);
@@ -427,6 +437,26 @@ export const localProfileStore: ProfileStore = {
     }
 
     return toProfile(parent, student);
+  },
+
+  async listEligibleDeliveryProfiles() {
+    const store = await readStore();
+
+    return store.parents
+      .map((parent) => {
+        const student = findStudentForParent(store, parent.id);
+
+        if (!student) {
+          return null;
+        }
+
+        return toProfile(parent, student);
+      })
+      .filter((profile): profile is ParentProfile => Boolean(profile))
+      .filter((profile) => isEligibleForAutomatedDelivery(profile))
+      .sort((left, right) =>
+        left.parent.email.localeCompare(right.parent.email),
+      );
   },
 
   async getOrCreateParentProfile(input) {

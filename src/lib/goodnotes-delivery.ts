@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
+import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
 import { getProgrammeStageSummary, getWeeklyPlan } from "./weekly-plan";
 import type { ParentProfile } from "./mvp-types";
 
@@ -56,6 +57,23 @@ function toAttachmentFileName(studentName: string) {
   return safeName
     ? `daily-sparks-test-brief-${safeName}.pdf`
     : "daily-sparks-test-brief.pdf";
+}
+
+function toBriefAttachmentFileName(
+  studentName: string,
+  brief: Pick<GeneratedDailyBriefDraft, "programme" | "scheduledFor">,
+) {
+  const safeName = studentName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const safeDate = brief.scheduledFor.trim() || "daily";
+  const programme = brief.programme.toLowerCase();
+
+  return safeName
+    ? `daily-sparks-${programme}-${safeName}-${safeDate}.pdf`
+    : `daily-sparks-${programme}-${safeDate}.pdf`;
 }
 
 function wrapText(
@@ -258,6 +276,158 @@ export async function createGoodnotesTestBriefPdf(profile: ParentProfile) {
   return pdf.save();
 }
 
+function extractParagraphsFromMarkdown(markdown: string) {
+  return markdown
+    .split(/\n{2,}/)
+    .map((segment) => segment.replace(/^#+\s*/gm, "").trim())
+    .filter(Boolean);
+}
+
+export async function createGoodnotesBriefPdf(
+  profile: ParentProfile,
+  brief: GeneratedDailyBriefDraft,
+) {
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+  const titleFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const bodyFont = await pdf.embedFont(StandardFonts.Helvetica);
+  const generatedAt = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(new Date());
+
+  let cursorY = PAGE_HEIGHT - PAGE_MARGIN;
+
+  page.drawText("Daily Sparks", {
+    x: PAGE_MARGIN,
+    y: cursorY,
+    size: 14,
+    font: titleFont,
+    color: rgb(0.97, 0.73, 0.12),
+  });
+  cursorY -= 34;
+
+  page.drawText(brief.headline, {
+    x: PAGE_MARGIN,
+    y: cursorY,
+    size: 22,
+    font: titleFont,
+    color: rgb(0.06, 0.09, 0.16),
+    maxWidth: PAGE_WIDTH - PAGE_MARGIN * 2,
+  });
+  cursorY -= 28;
+
+  const metadataLines = [
+    `Student: ${profile.student.studentName} (${brief.programme})`,
+    `Goodnotes destination: ${profile.student.goodnotesEmail}`,
+    `Scheduled for: ${brief.scheduledFor}`,
+    `Generated: ${generatedAt} UTC`,
+  ];
+
+  for (const line of metadataLines) {
+    page.drawText(line, {
+      x: PAGE_MARGIN,
+      y: cursorY,
+      size: BODY_FONT_SIZE,
+      font: bodyFont,
+      color: rgb(0.2, 0.27, 0.38),
+    });
+    cursorY -= LINE_HEIGHT;
+  }
+
+  cursorY -= 8;
+  page.drawText("Summary", {
+    x: PAGE_MARGIN,
+    y: cursorY,
+    size: 15,
+    font: titleFont,
+    color: rgb(0.06, 0.09, 0.16),
+  });
+  cursorY -= 24;
+
+  cursorY = drawParagraph(
+    page,
+    brief.summary,
+    PAGE_MARGIN,
+    cursorY,
+    PAGE_WIDTH - PAGE_MARGIN * 2,
+    bodyFont,
+    BODY_FONT_SIZE,
+  );
+  cursorY -= 8;
+
+  if (brief.topicTags.length > 0) {
+    page.drawText("Themes", {
+      x: PAGE_MARGIN,
+      y: cursorY,
+      size: 15,
+      font: titleFont,
+      color: rgb(0.06, 0.09, 0.16),
+    });
+    cursorY -= 24;
+
+    cursorY = drawParagraph(
+      page,
+      brief.topicTags.join(", "),
+      PAGE_MARGIN,
+      cursorY,
+      PAGE_WIDTH - PAGE_MARGIN * 2,
+      bodyFont,
+      BODY_FONT_SIZE,
+    );
+    cursorY -= 8;
+  }
+
+  page.drawText("Brief", {
+    x: PAGE_MARGIN,
+    y: cursorY,
+    size: 15,
+    font: titleFont,
+    color: rgb(0.06, 0.09, 0.16),
+  });
+  cursorY -= 24;
+
+  for (const paragraph of extractParagraphsFromMarkdown(brief.briefMarkdown)) {
+    cursorY = drawParagraph(
+      page,
+      paragraph,
+      PAGE_MARGIN,
+      cursorY,
+      PAGE_WIDTH - PAGE_MARGIN * 2,
+      bodyFont,
+      BODY_FONT_SIZE,
+    );
+    cursorY -= 8;
+  }
+
+  if (brief.sourceReferences.length > 0) {
+    page.drawText("Sources", {
+      x: PAGE_MARGIN,
+      y: cursorY,
+      size: 15,
+      font: titleFont,
+      color: rgb(0.06, 0.09, 0.16),
+    });
+    cursorY -= 24;
+
+    for (const reference of brief.sourceReferences) {
+      cursorY = drawParagraph(
+        page,
+        `${reference.sourceName}: ${reference.articleTitle}`,
+        PAGE_MARGIN,
+        cursorY,
+        PAGE_WIDTH - PAGE_MARGIN * 2,
+        bodyFont,
+        BODY_FONT_SIZE,
+      );
+      cursorY -= 6;
+    }
+  }
+
+  return pdf.save();
+}
+
 export async function sendTestBriefToGoodnotes(
   profile: ParentProfile,
 ): Promise<GoodnotesDeliveryResult> {
@@ -279,6 +449,52 @@ export async function sendTestBriefToGoodnotes(
       "",
       "Attached is a Daily Sparks test brief PDF for Goodnotes delivery verification.",
       "If it appears in Goodnotes, your destination is ready for regular reading briefs.",
+      "",
+      "Daily Sparks",
+    ].join("\n"),
+    attachments: [
+      {
+        filename: attachmentFileName,
+        content: Buffer.from(pdfBytes),
+        contentType: "application/pdf",
+      },
+    ],
+  });
+
+  return {
+    messageId: result.messageId,
+    attachmentFileName,
+  };
+}
+
+export async function sendBriefToGoodnotes(
+  profile: ParentProfile,
+  brief: GeneratedDailyBriefDraft,
+): Promise<GoodnotesDeliveryResult> {
+  const config = getGoodnotesDeliveryConfig();
+
+  if (!config) {
+    throw new Error("Goodnotes delivery is not configured yet.");
+  }
+
+  const attachmentFileName = toBriefAttachmentFileName(
+    profile.student.studentName,
+    brief,
+  );
+  const pdfBytes = await createGoodnotesBriefPdf(profile, brief);
+  const transporter = nodemailer.createTransport(config.smtpUrl);
+  const result = await transporter.sendMail({
+    to: profile.student.goodnotesEmail,
+    from: `${config.fromName} <${config.fromEmail}>`,
+    subject: `Daily Sparks ${brief.programme} brief for ${profile.student.studentName}`,
+    text: [
+      `Hi ${profile.parent.fullName},`,
+      "",
+      `Today's Daily Sparks brief is ready: ${brief.headline}`,
+      "",
+      brief.summary,
+      "",
+      `Themes: ${brief.topicTags.join(", ") || "Daily reading"}`,
       "",
       "Daily Sparks",
     ].join("\n"),

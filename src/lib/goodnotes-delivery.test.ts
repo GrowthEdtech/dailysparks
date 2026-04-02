@@ -19,11 +19,14 @@ vi.mock("nodemailer", () => ({
 }));
 
 import {
+  createGoodnotesBriefPdf,
   createGoodnotesTestBriefPdf,
   isGoodnotesDeliveryConfigured,
+  sendBriefToGoodnotes,
   sendTestBriefToGoodnotes,
 } from "./goodnotes-delivery";
 import type { ParentProfile } from "./mvp-types";
+import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -85,6 +88,43 @@ function createProfile(): ParentProfile {
   };
 }
 
+function createGeneratedBrief(
+  overrides: Partial<GeneratedDailyBriefDraft> = {},
+): GeneratedDailyBriefDraft {
+  return {
+    scheduledFor: "2026-04-03",
+    headline: "PYP ocean mapping brief",
+    summary: "A generated summary about how students help scientists map sea turtles.",
+    programme: "PYP",
+    status: "draft",
+    topicTags: ["oceans", "science"],
+    sourceReferences: [
+      {
+        sourceId: "bbc",
+        sourceName: "BBC",
+        sourceDomain: "bbc.com",
+        articleTitle: "Students map sea turtles",
+        articleUrl: "https://www.bbc.com/news/world-123",
+      },
+    ],
+    aiConnectionId: "nf-relay",
+    aiConnectionName: "NF Relay",
+    aiModel: "gpt-5.4",
+    promptPolicyId: "policy-1",
+    promptVersionLabel: "v1.0.0",
+    promptVersion: "v1.0.0",
+    repetitionRisk: "low",
+    repetitionNotes: "No overlapping briefs in the recent memory window.",
+    adminNotes: "",
+    briefMarkdown:
+      "## Today\nStudents are helping scientists understand turtle migration routes.",
+    resolvedPrompt: "Resolved prompt text",
+    sourceClusterKey: "students map sea turtles",
+    candidateCount: 2,
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   process.env = {
     ...ORIGINAL_ENV,
@@ -136,5 +176,39 @@ describe("goodnotes delivery", () => {
       filename: expect.stringMatching(/daily-sparks/i),
     });
     expect(result.messageId).toBe("smtp-message-id");
+  });
+
+  test("creates a PDF attachment for a generated daily brief", async () => {
+    const pdf = await createGoodnotesBriefPdf(
+      createProfile(),
+      createGeneratedBrief(),
+    );
+
+    expect(pdf).toBeInstanceOf(Uint8Array);
+    expect(Buffer.from(pdf).subarray(0, 4).toString()).toBe("%PDF");
+  });
+
+  test("sends a generated daily brief to Goodnotes with brief-based metadata", async () => {
+    const profile = createProfile();
+    const brief = createGeneratedBrief();
+
+    const result = await sendBriefToGoodnotes(profile, brief);
+
+    expect(createTransportMock).toHaveBeenCalledTimes(1);
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    expect(sendMailMock.mock.calls[0]?.[0]).toMatchObject({
+      to: "katherine@goodnotes.email",
+      from: "Growth Education Limited <info@geledtech.com>",
+      subject: "Daily Sparks PYP brief for Katherine",
+      text: expect.stringContaining("PYP ocean mapping brief"),
+    });
+    expect(sendMailMock.mock.calls[0]?.[0].attachments?.[0]).toMatchObject({
+      contentType: "application/pdf",
+      filename: "daily-sparks-pyp-katherine-2026-04-03.pdf",
+    });
+    expect(result).toMatchObject({
+      messageId: "smtp-message-id",
+      attachmentFileName: "daily-sparks-pyp-katherine-2026-04-03.pdf",
+    });
   });
 });

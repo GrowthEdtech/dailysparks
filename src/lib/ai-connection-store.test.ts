@@ -6,6 +6,8 @@ import path from "node:path";
 import {
   createAiConnection,
   deleteAiConnection,
+  getDefaultAiConnection,
+  getDefaultAiConnectionWithSecret,
   listAiConnections,
   updateAiConnection,
 } from "./ai-connection-store";
@@ -118,5 +120,40 @@ describe("ai connection store", () => {
     await deleteAiConnection(createdConnection.id);
 
     expect(await listAiConnections()).toHaveLength(0);
+  });
+
+  test("returns the default AI connection for runtime use", async () => {
+    await createAiConnection({
+      name: "Backup",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.example.com/v1",
+      defaultModel: "gpt-4.1",
+      apiKey: SECONDARY_TEST_API_KEY,
+      active: true,
+      isDefault: false,
+      notes: "",
+    });
+    await createAiConnection({
+      name: "Primary",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: FIRST_DEFAULT_TEST_API_KEY,
+      active: true,
+      isDefault: true,
+      notes: "",
+    });
+
+    const defaultConnection = await getDefaultAiConnection();
+    const defaultConnectionWithSecret = await getDefaultAiConnectionWithSecret();
+
+    expect(defaultConnection?.name).toBe("Primary");
+    expect(defaultConnectionWithSecret?.apiKey).toBe(FIRST_DEFAULT_TEST_API_KEY);
+    expect(defaultConnectionWithSecret?.defaultModel).toBe("gpt-5.4");
+  });
+
+  test("returns null when no default AI connection exists", async () => {
+    expect(await getDefaultAiConnection()).toBeNull();
+    expect(await getDefaultAiConnectionWithSecret()).toBeNull();
   });
 });

@@ -24,6 +24,10 @@ export async function getProfileByEmail(email: string) {
   return getProfileStore().getProfileByEmail(email);
 }
 
+export async function listEligibleDeliveryProfiles() {
+  return getProfileStore().listEligibleDeliveryProfiles();
+}
+
 export async function getOrCreateParentProfile(
   input: CreateParentProfileInput,
 ) {

@@ -1,0 +1,382 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+const { sendBriefToGoodnotesMock, createNotionBriefPageMock } = vi.hoisted(() => ({
+  sendBriefToGoodnotesMock: vi.fn(),
+  createNotionBriefPageMock: vi.fn(),
+}));
+
+vi.mock("../../../../../lib/goodnotes-delivery", () => ({
+  sendBriefToGoodnotes: (...args: unknown[]) => sendBriefToGoodnotesMock(...args),
+}));
+
+vi.mock("../../../../../lib/notion", () => ({
+  createNotionBriefPage: (...args: unknown[]) => createNotionBriefPageMock(...args),
+}));
+
+import { POST as runDailyBriefRoute } from "./route";
+import { createAiConnection } from "../../../../../lib/ai-connection-store";
+import { listDailyBriefHistory } from "../../../../../lib/daily-brief-history-store";
+import { createPromptPolicy } from "../../../../../lib/prompt-policy-store";
+import {
+  getOrCreateParentProfile,
+  updateParentNotionConnection,
+  updateParentSubscription,
+  updateStudentGoodnotesDelivery,
+  updateStudentPreferences,
+} from "../../../../../lib/mvp-store";
+
+const ORIGINAL_ENV = { ...process.env };
+const fetchMock = vi.fn<typeof fetch>();
+let tempDirectory = "";
+const TEST_AI_CONNECTION_TOKEN = ["fixture", "relay", "credential"].join("-");
+const SCHEDULER_HEADER_FIXTURE = ["scheduler", "header", "fixture"].join("-");
+
+function buildRequest(
+  schedulerHeaderValue = SCHEDULER_HEADER_FIXTURE,
+  body?: Record<string, unknown>,
+) {
+  return new Request("http://localhost:3000/api/internal/daily-brief/run", {
+    method: "POST",
+    headers: {
+      "x-daily-sparks-scheduler-secret": schedulerHeaderValue,
+      ...(body ? { "content-type": "application/json" } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+}
+
+function createFeedResponse(url: string) {
+  const slug = new URL(url).hostname.replace(/^feeds?\./, "").replace(/\./g, "-");
+
+  return new Response(
+    `<?xml version="1.0"?>
+      <rss version="2.0">
+        <channel>
+          <item>
+            <title>Students map sea turtles</title>
+            <link>https://${slug}/story-123?utm_source=rss</link>
+            <pubDate>Thu, 03 Apr 2026 06:00:00 GMT</pubDate>
+            <description>Students help scientists track turtle migration.</description>
+          </item>
+        </channel>
+      </rss>`,
+    { status: 200 },
+  );
+}
+
+function createAiResponse(programme: string) {
+  return new Response(
+    JSON.stringify({
+      id: "chatcmpl-test",
+      object: "chat.completion",
+      created: 1,
+      model: "gpt-5.4",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: JSON.stringify({
+              headline: `${programme} ocean mapping brief`,
+              summary: `${programme} learners explore how scientists map turtle migration.`,
+              briefMarkdown: `## ${programme}\nStudents discuss why ocean mapping matters.`,
+              topicTags: ["oceans", "science"],
+            }),
+          },
+          finish_reason: "stop",
+        },
+      ],
+    }),
+    { status: 200 },
+  );
+}
+
+async function createEligibleProgrammeProfile(
+  email: string,
+  programme: "PYP" | "MYP" | "DP",
+  channel: "goodnotes" | "notion",
+) {
+  await getOrCreateParentProfile({
+    email,
+    fullName: `${programme} Family`,
+    studentName: `${programme} Learner`,
+  });
+  await updateParentSubscription(email, {
+    subscriptionStatus: "active",
+  });
+  await updateStudentPreferences(email, {
+    studentName: `${programme} Learner`,
+    goodnotesEmail: `${programme.toLowerCase()}@goodnotes.email`,
+    programme,
+    programmeYear: programme === "DP" ? 1 : programme === "MYP" ? 3 : 5,
+  });
+
+  if (channel === "goodnotes") {
+    await updateStudentGoodnotesDelivery(email, {
+      goodnotesConnected: true,
+      goodnotesVerifiedAt: "2026-04-02T00:00:00.000Z",
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Ready.",
+    });
+  } else {
+    await updateParentNotionConnection(email, {
+      notionConnected: true,
+      notionWorkspaceId: `${programme.toLowerCase()}-workspace`,
+      notionWorkspaceName: `${programme} Workspace`,
+      notionDatabaseId: `${programme.toLowerCase()}-database`,
+      notionDataSourceId: `${programme.toLowerCase()}-data-source`,
+    });
+  }
+}
+
+async function configureRuntime() {
+  await createAiConnection({
+    name: "NF Relay",
+    providerType: "openai-compatible",
+    baseUrl: "https://relay.nf.video/v1",
+    defaultModel: "gpt-5.4",
+    apiKey: TEST_AI_CONNECTION_TOKEN,
+    active: true,
+    isDefault: true,
+    notes: "Primary relay connection.",
+  });
+  await createPromptPolicy({
+    name: "Family Daily Sparks Core",
+    versionLabel: "v1.0.0",
+    sharedInstructions:
+      "Use clear, family-facing language, keep the facts grounded in cited sources.",
+    antiRepetitionInstructions:
+      "Avoid repeating the same angle used in the recent memory window.",
+    outputContractInstructions:
+      "Return headline, summary, source references, and discussion prompts.",
+    pypInstructions: "Use simple, concrete examples.",
+    mypInstructions: "Use mid-depth comparison and context.",
+    dpInstructions: "Use analysis, nuance, and evidence limits.",
+    notes: "Initial prompt policy.",
+  });
+}
+
+beforeEach(async () => {
+  tempDirectory = await mkdtemp(
+    path.join(tmpdir(), "daily-sparks-daily-run-route-"),
+  );
+  process.env = {
+    ...ORIGINAL_ENV,
+    NODE_ENV: "test",
+    DAILY_SPARKS_STORE_BACKEND: "local",
+    DAILY_SPARKS_STORE_PATH: path.join(tempDirectory, "mvp-store.json"),
+    DAILY_SPARKS_EDITORIAL_STORE_PATH: path.join(
+      tempDirectory,
+      "editorial-sources.json",
+    ),
+    DAILY_SPARKS_AI_CONNECTION_STORE_PATH: path.join(
+      tempDirectory,
+      "ai-connections.json",
+    ),
+    DAILY_SPARKS_PROMPT_POLICY_STORE_PATH: path.join(
+      tempDirectory,
+      "prompt-policies.json",
+    ),
+    DAILY_SPARKS_DAILY_BRIEF_STORE_PATH: path.join(
+      tempDirectory,
+      "daily-brief-history.json",
+    ),
+    DAILY_SPARKS_AI_CONFIG_ENCRYPTION_SECRET:
+      "test-ai-connection-encryption-secret",
+    DAILY_SPARKS_SCHEDULER_SECRET: SCHEDULER_HEADER_FIXTURE,
+  };
+  sendBriefToGoodnotesMock.mockReset();
+  createNotionBriefPageMock.mockReset();
+  sendBriefToGoodnotesMock.mockResolvedValue({
+    messageId: "smtp-message-id",
+    attachmentFileName: "daily-sparks-pyp.pdf",
+  });
+  createNotionBriefPageMock.mockResolvedValue({
+    pageId: "page-123",
+    pageUrl: "https://www.notion.so/page-123",
+  });
+  fetchMock.mockImplementation(async (input, init) => {
+    const url = String(input);
+
+    if (url.includes("/chat/completions")) {
+      const payload = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const programmeLine =
+        payload.messages
+          .find((message) => message.role === "user")
+          ?.content.split("\n")
+          .find((line) => line.startsWith("Programme: ")) ?? "Programme: PYP";
+      const programme = programmeLine.replace("Programme: ", "").trim();
+
+      return createAiResponse(programme);
+    }
+
+    return createFeedResponse(url);
+  });
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(async () => {
+  vi.unstubAllGlobals();
+  process.env = { ...ORIGINAL_ENV };
+
+  if (tempDirectory) {
+    await rm(tempDirectory, { recursive: true, force: true });
+  }
+});
+
+describe("daily brief orchestration route", () => {
+  test("returns 503 when scheduler auth is not configured", async () => {
+    delete process.env.DAILY_SPARKS_SCHEDULER_SECRET;
+
+    const response = await runDailyBriefRoute(buildRequest());
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.message).toMatch(/scheduler/i);
+  });
+
+  test("rejects requests without the scheduler secret", async () => {
+    const response = await runDailyBriefRoute(buildRequest("wrong-secret"));
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body.message).toMatch(/scheduler/i);
+  });
+
+  test("returns a preflight summary with blockers when runtime dependencies are missing", async () => {
+    await createEligibleProgrammeProfile(
+      "parent@example.com",
+      "PYP",
+      "goodnotes",
+    );
+
+    const response = await runDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        dryRun: true,
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.mode).toBe("preflight");
+    expect(body.ready).toBe(false);
+    expect(body.blockers).toContain("No active default AI connection is configured.");
+    expect(body.blockers).toContain("No active prompt policy is configured.");
+  });
+
+  test("writes history entries on a successful run and returns summary counts", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+    await createEligibleProgrammeProfile(
+      "myp-family@example.com",
+      "MYP",
+      "notion",
+    );
+    await configureRuntime();
+
+    const response = await runDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.mode).toBe("run");
+    expect(body.ready).toBe(true);
+    expect(body.summary.generatedCount).toBe(2);
+    expect(body.summary.historyCreatedCount).toBe(2);
+    expect(body.summary.publishedCount).toBe(2);
+    expect(body.summary.deliveryAttemptCount).toBe(2);
+    expect(body.summary.deliverySuccessCount).toBe(2);
+    expect(body.summary.deliveryFailureCount).toBe(0);
+    expect(history).toHaveLength(2);
+    expect(history.every((entry) => entry.status === "published")).toBe(true);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(createNotionBriefPageMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("skips duplicate published date/programme runs on rerun", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+    await configureRuntime();
+
+    const firstResponse = await runDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    expect(firstResponse.status).toBe(200);
+
+    sendBriefToGoodnotesMock.mockClear();
+
+    const secondResponse = await runDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await secondResponse.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(secondResponse.status).toBe(200);
+    expect(body.summary.generatedCount).toBe(0);
+    expect(body.summary.historyCreatedCount).toBe(0);
+    expect(body.summary.skippedProgrammes).toEqual(["PYP"]);
+    expect(history).toHaveLength(1);
+    expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
+  });
+
+  test("records partial delivery failures without aborting the run", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+    await createEligibleProgrammeProfile(
+      "myp-family@example.com",
+      "MYP",
+      "notion",
+    );
+    await configureRuntime();
+    createNotionBriefPageMock.mockRejectedValueOnce(new Error("Notion delivery failed."));
+
+    const response = await runDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+    const publishedEntry = history.find((entry) => entry.programme === "PYP");
+    const failedEntry = history.find((entry) => entry.programme === "MYP");
+
+    expect(response.status).toBe(200);
+    expect(body.summary.generatedCount).toBe(2);
+    expect(body.summary.publishedCount).toBe(1);
+    expect(body.summary.failedCount).toBe(1);
+    expect(body.summary.deliverySuccessCount).toBe(1);
+    expect(body.summary.deliveryFailureCount).toBe(1);
+    expect(publishedEntry?.status).toBe("published");
+    expect(failedEntry?.status).toBe("failed");
+    expect(failedEntry?.adminNotes).toMatch(/delivery failed/i);
+  });
+});

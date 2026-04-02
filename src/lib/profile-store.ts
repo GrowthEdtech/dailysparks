@@ -9,6 +9,7 @@ import type {
 
 export type ProfileStore = {
   getProfileByEmail(email: string): Promise<ParentProfile | null>;
+  listEligibleDeliveryProfiles(): Promise<ParentProfile[]>;
   getOrCreateParentProfile(
     input: CreateParentProfileInput,
   ): Promise<ParentProfile>;

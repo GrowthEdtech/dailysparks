@@ -8,6 +8,7 @@ export type CreateDailyBriefHistoryEntryInput = Omit<
 export type DailyBriefHistoryFilters = {
   programme?: DailyBriefHistoryRecord["programme"];
   status?: DailyBriefHistoryRecord["status"];
+  scheduledFor?: DailyBriefHistoryRecord["scheduledFor"];
 };
 
 export type DailyBriefHistoryStore = {

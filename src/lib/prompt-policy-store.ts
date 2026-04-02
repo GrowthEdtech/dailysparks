@@ -161,6 +161,12 @@ export async function listPromptPolicies() {
   return sortPolicies(await getPromptPolicyStore().listPolicies());
 }
 
+export async function getActivePromptPolicy() {
+  const policies = await listPromptPolicies();
+
+  return policies.find((policy) => policy.status === "active") ?? null;
+}
+
 export async function getPromptPolicy(id: string) {
   return getPromptPolicyStore().getPolicy(id);
 }

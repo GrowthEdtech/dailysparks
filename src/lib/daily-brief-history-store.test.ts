@@ -100,4 +100,49 @@ describe("daily brief history store", () => {
     expect(fetchedEntry?.promptPolicyId).toBe("policy-1");
     expect(fetchedEntry?.promptVersionLabel).toBe("v1.0.0");
   });
+
+  test("filters history by scheduled date, programme, and status", async () => {
+    await createDailyBriefHistoryEntry(
+      buildBriefInput({
+        scheduledFor: "2026-04-01",
+        programme: "PYP",
+        status: "published",
+      }),
+    );
+    await createDailyBriefHistoryEntry(
+      buildBriefInput({
+        scheduledFor: "2026-04-02",
+        programme: "MYP",
+        status: "draft",
+      }),
+    );
+    await createDailyBriefHistoryEntry(
+      buildBriefInput({
+        scheduledFor: "2026-04-02",
+        programme: "DP",
+        status: "failed",
+      }),
+    );
+
+    const byDate = await listDailyBriefHistory({
+      scheduledFor: "2026-04-02",
+    });
+    const byDateAndProgramme = await listDailyBriefHistory({
+      scheduledFor: "2026-04-02",
+      programme: "MYP",
+    });
+    const byStatus = await listDailyBriefHistory({
+      scheduledFor: "2026-04-02",
+      status: "failed",
+    });
+
+    expect(byDate).toHaveLength(2);
+    expect(byDate.every((entry) => entry.scheduledFor === "2026-04-02")).toBe(
+      true,
+    );
+    expect(byDateAndProgramme).toHaveLength(1);
+    expect(byDateAndProgramme[0]?.programme).toBe("MYP");
+    expect(byStatus).toHaveLength(1);
+    expect(byStatus[0]?.programme).toBe("DP");
+  });
 });

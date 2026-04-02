@@ -135,6 +135,122 @@ The editorial admin now also includes a dedicated `Prompt Policy` workspace for:
 - programme-specific prompt rules for `PYP`, `MYP`, and `DP`
 - versioned `draft`, `active`, and `archived` prompt policies
 
+## Daily Brief Automation
+
+The first production automation path now runs through the existing Cloud Run
+service. The scheduled route is:
+
+```bash
+/api/internal/daily-brief/run
+```
+
+This route is intended for Cloud Scheduler or operator-triggered runs only. It
+expects the scheduler secret header:
+
+```bash
+x-daily-sparks-scheduler-secret
+```
+
+### Required service configuration
+
+The Cloud Run service must receive a scheduler secret:
+
+```env
+DAILY_SPARKS_SCHEDULER_SECRET=replace-with-a-long-random-secret
+```
+
+For production, prefer Secret Manager and pass the secret name to the deploy
+script instead of using a raw value:
+
+```env
+DAILY_SPARKS_SCHEDULER_SECRET_SECRET=daily-sparks-scheduler-secret
+```
+
+`scripts/deploy-cloud-run.sh` now supports both options:
+
+- `DAILY_SPARKS_SCHEDULER_SECRET`
+- `DAILY_SPARKS_SCHEDULER_SECRET_SECRET`
+
+If both are present, the Secret Manager reference is preferred.
+
+### Configure the Cloud Scheduler job
+
+After deploying Cloud Run, create or update the scheduler job with:
+
+```bash
+chmod +x scripts/configure-daily-brief-scheduler.sh
+DAILY_SPARKS_SCHEDULER_SECRET_SECRET=daily-sparks-scheduler-secret \
+./scripts/configure-daily-brief-scheduler.sh
+```
+
+The scheduler helper defaults to:
+
+- job name: `dailysparks-daily-brief`
+- location: `asia-east2`
+- schedule: `0 6 * * *`
+- time zone: `Asia/Hong_Kong`
+- target URL: `https://dailysparks.geledtech.com/api/internal/daily-brief/run`
+- retry attempts: `0`
+
+Optional overrides:
+
+```env
+GOOGLE_CLOUD_PROJECT=gen-lang-client-0586185740
+DAILY_BRIEF_SCHEDULER_JOB_NAME=dailysparks-daily-brief
+DAILY_BRIEF_SCHEDULER_LOCATION=asia-east2
+DAILY_BRIEF_SCHEDULER_SCHEDULE="0 6 * * *"
+DAILY_BRIEF_SCHEDULER_TIME_ZONE=Asia/Hong_Kong
+DAILY_BRIEF_SCHEDULER_TARGET_URL=https://dailysparks.geledtech.com/api/internal/daily-brief/run
+DAILY_BRIEF_SCHEDULER_ATTEMPT_DEADLINE=1200s
+DAILY_BRIEF_SCHEDULER_MAX_RETRY_ATTEMPTS=0
+DAILY_BRIEF_SCHEDULER_MESSAGE_BODY={}
+```
+
+The helper is idempotent:
+
+- it creates the job if it does not exist
+- it updates the job in place if it already exists
+- it always keeps the route on header-secret auth and clears any stale OAuth or OIDC token config
+
+### Operator dry run
+
+Before enabling or after updating the schedule, it is safer to dry-run the
+route once:
+
+```bash
+curl -sS -X POST \
+  https://dailysparks.geledtech.com/api/internal/daily-brief/run \
+  -H "content-type: application/json" \
+  -H "x-daily-sparks-scheduler-secret: ${DAILY_SPARKS_SCHEDULER_SECRET}" \
+  -d '{"dryRun":true}'
+```
+
+You can also inspect a specific date:
+
+```bash
+curl -sS -X POST \
+  https://dailysparks.geledtech.com/api/internal/daily-brief/run \
+  -H "content-type: application/json" \
+  -H "x-daily-sparks-scheduler-secret: ${DAILY_SPARKS_SCHEDULER_SECRET}" \
+  -d '{"dryRun":true,"runDate":"2026-04-03"}'
+```
+
+When the system is ready, a real scheduled run will:
+
+- ingest active feed-backed editorial sources
+- generate only the programmes that have eligible recipients
+- write `Daily Briefs` history entries
+- deliver through configured Goodnotes and Notion channels
+
+### Security notes
+
+- Treat `DAILY_SPARKS_SCHEDULER_SECRET` like a production credential.
+- Prefer `DAILY_SPARKS_SCHEDULER_SECRET_SECRET` so operators do not need to
+  paste raw secrets into their shell history.
+- Use a URL-safe random value without commas for the header secret. The
+  scheduler helper sends it as an HTTP header value.
+- Rotate the scheduler secret if it is ever exposed.
+
 ## Authentication
 
 Daily Sparks now uses Firebase Authentication for parent sign-in.

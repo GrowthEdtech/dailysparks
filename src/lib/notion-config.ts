@@ -8,6 +8,8 @@ export type NotionConfig = {
   encryptionSecret: string;
   apiBaseUrl: string;
   notionVersion: string;
+  dailyBriefTypeName: string;
+  dailyBriefStatusName: string;
 };
 
 function normalizeEnvValue(value: string | undefined) {
@@ -33,6 +35,10 @@ export function getNotionConfig(): NotionConfig | null {
       normalizeEnvValue(process.env.NOTION_API_BASE_URL) || DEFAULT_NOTION_API_BASE_URL,
     notionVersion:
       normalizeEnvValue(process.env.NOTION_API_VERSION) || DEFAULT_NOTION_VERSION,
+    dailyBriefTypeName:
+      normalizeEnvValue(process.env.NOTION_DAILY_BRIEF_TYPE_NAME) || "Daily Brief",
+    dailyBriefStatusName:
+      normalizeEnvValue(process.env.NOTION_DAILY_BRIEF_STATUS_NAME) || "Generated",
   };
 }
 
