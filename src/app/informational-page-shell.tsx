@@ -76,7 +76,8 @@ export function InformationalPageShell({
       <footer className="border-t border-white/6 px-6 py-10">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <p className="text-sm text-slate-400">
-            Daily Sparks is a parent-facing reading workflow by geledtech.com.
+            Daily Sparks is a parent-facing reading workflow by Growth Education
+            Limited.
           </p>
           <div className="flex flex-wrap gap-6 text-xs font-medium uppercase tracking-[0.22em] text-slate-500">
             {siteFooterLinks.map((link) => (

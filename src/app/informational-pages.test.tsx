@@ -77,6 +77,9 @@ describe("informational pages", () => {
       expect(markup).toContain(expectedTitle);
       expect(markup).toContain(expectedDetail);
       expect(markup).toContain("Daily Sparks");
+      expect(markup).toContain(
+        "Daily Sparks is a parent-facing reading workflow by Growth Education Limited.",
+      );
     },
   );
 });
