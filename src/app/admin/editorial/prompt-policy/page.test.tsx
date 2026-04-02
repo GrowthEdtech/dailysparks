@@ -51,5 +51,8 @@ describe("PromptPolicyAdminPage", () => {
     expect(markup).toContain("Family Daily Sparks Core");
     expect(markup).toContain("v1.0.0");
     expect(markup).toContain("/admin/editorial/prompt-policy/policy-1");
+    expect(markup).toContain("Open active policy");
+    expect(markup).toContain("text-slate-700");
+    expect(markup).toContain("border-slate-300");
   });
 });

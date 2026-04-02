@@ -77,7 +77,7 @@ export default async function PromptPolicyAdminPage() {
                 </div>
                 <Link
                   href={`/admin/editorial/prompt-policy/${activePolicy.id}`}
-                  className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-[#0f172a]"
+                  className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_10px_24px_-24px_rgba(15,23,42,0.5)] transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900"
                 >
                   Open active policy
                 </Link>
