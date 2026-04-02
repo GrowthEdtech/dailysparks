@@ -37,6 +37,8 @@ export type DailyBriefHistoryRecord = {
   aiConnectionId: string;
   aiConnectionName: string;
   aiModel: string;
+  promptPolicyId: string;
+  promptVersionLabel: string;
   promptVersion: string;
   repetitionRisk: DailyBriefRepetitionRisk;
   repetitionNotes: string;

@@ -32,6 +32,8 @@ function buildBriefInput(overrides: Partial<Parameters<typeof createDailyBriefHi
     aiConnectionId: "nf-relay",
     aiConnectionName: "NF Relay",
     aiModel: "gpt-5.4",
+    promptPolicyId: "policy-1",
+    promptVersionLabel: "v1.0.0",
     promptVersion: "v1.0.0",
     repetitionRisk: "low" as const,
     repetitionNotes: "No similar climate-city brief in the past 14 days.",
@@ -95,5 +97,7 @@ describe("daily brief history store", () => {
     expect(history[1]?.id).toBe(olderEntry.id);
     expect(fetchedEntry?.headline).toBe("A later brief");
     expect(fetchedEntry?.sourceReferences[0]?.sourceName).toBe("Reuters");
+    expect(fetchedEntry?.promptPolicyId).toBe("policy-1");
+    expect(fetchedEntry?.promptVersionLabel).toBe("v1.0.0");
   });
 });

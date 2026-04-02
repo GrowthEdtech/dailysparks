@@ -61,6 +61,7 @@ Daily Sparks now includes an internal editorial admin flow with a dedicated pass
 /admin/editorial
 /admin/editorial/sources
 /admin/editorial/ai-connections
+/admin/editorial/prompt-policy
 /admin/editorial/daily-briefs
 ```
 
@@ -104,6 +105,13 @@ testing, you can override that path with:
 DAILY_SPARKS_DAILY_BRIEF_STORE_PATH=/absolute/path/to/daily-brief-history.json
 ```
 
+Prompt policy storage follows the same backend split. For local-only testing,
+you can override that path with:
+
+```env
+DAILY_SPARKS_PROMPT_POLICY_STORE_PATH=/absolute/path/to/prompt-policies.json
+```
+
 The same admin area now also includes an `AI connections` registry for future generation infrastructure. This module supports:
 
 - multiple OpenAI-compatible connection profiles
@@ -118,6 +126,14 @@ DAILY_SPARKS_AI_CONNECTION_STORE_PATH=/absolute/path/to/ai-connections.json
 ```
 
 API keys are encrypted on the server before they are persisted. The admin UI never re-displays the full stored key after save.
+
+The editorial admin now also includes a dedicated `Prompt Policy` workspace for:
+
+- shared editorial instructions
+- anti-repetition instructions
+- output contract instructions
+- programme-specific prompt rules for `PYP`, `MYP`, and `DP`
+- versioned `draft`, `active`, and `archived` prompt policies
 
 ## Authentication
 

@@ -204,6 +204,7 @@ export default async function DailyBriefsAdminPage({
                   </p>
                   <p className="mt-1">{entry.aiConnectionName}</p>
                   <p>{entry.aiModel}</p>
+                  <p>{entry.promptVersionLabel}</p>
                 </div>
               </div>
 

@@ -1,4 +1,3 @@
-import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -46,6 +45,8 @@ describe("DailyBriefDetailPage", () => {
       aiConnectionId: "nf-relay",
       aiConnectionName: "NF Relay",
       aiModel: "gpt-5.4",
+      promptPolicyId: "policy-1",
+      promptVersionLabel: "v1.0.0",
       promptVersion: "v1.0.0",
       repetitionRisk: "low",
       repetitionNotes: "No similar brief.",
@@ -66,6 +67,7 @@ describe("DailyBriefDetailPage", () => {
     );
     expect(markup).toContain("Shareable with families.");
     expect(markup).toContain("Cities test new heat protections");
+    expect(markup).toContain("v1.0.0");
     expect(markup).toContain("## Today");
   });
 

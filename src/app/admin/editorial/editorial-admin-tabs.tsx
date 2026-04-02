@@ -15,6 +15,11 @@ const ADMIN_TABS = [
     description: "Models, endpoints, encrypted keys",
   },
   {
+    href: "/admin/editorial/prompt-policy",
+    label: "Prompt Policy",
+    description: "Versioned PYP, MYP, and DP prompt rules",
+  },
+  {
     href: "/admin/editorial/daily-briefs",
     label: "Daily Briefs",
     description: "Generation history, sources, model trace",

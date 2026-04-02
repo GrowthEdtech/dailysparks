@@ -73,6 +73,8 @@ export async function createDailyBriefHistoryEntry(
     aiConnectionId: input.aiConnectionId.trim(),
     aiConnectionName: input.aiConnectionName.trim(),
     aiModel: input.aiModel.trim(),
+    promptPolicyId: input.promptPolicyId.trim(),
+    promptVersionLabel: input.promptVersionLabel.trim(),
     promptVersion: input.promptVersion.trim(),
     repetitionRisk: input.repetitionRisk,
     repetitionNotes: input.repetitionNotes.trim(),

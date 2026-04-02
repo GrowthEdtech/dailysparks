@@ -95,6 +95,8 @@ function normalizeEntry(
     aiConnectionId: normalizeString(raw?.aiConnectionId),
     aiConnectionName: normalizeString(raw?.aiConnectionName),
     aiModel: normalizeString(raw?.aiModel),
+    promptPolicyId: normalizeString(raw?.promptPolicyId),
+    promptVersionLabel: normalizeString(raw?.promptVersionLabel),
     promptVersion: normalizeString(raw?.promptVersion),
     repetitionRisk: normalizeRepetitionRisk(raw?.repetitionRisk),
     repetitionNotes: normalizeString(raw?.repetitionNotes),

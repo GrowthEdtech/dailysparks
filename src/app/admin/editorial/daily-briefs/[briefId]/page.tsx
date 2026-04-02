@@ -60,6 +60,7 @@ export default async function DailyBriefDetailPage({
             </p>
             <p className="mt-2">Programme: {entry.programme}</p>
             <p>Status: {entry.status}</p>
+            <p>Prompt policy: {entry.promptVersionLabel}</p>
             <p>Prompt: {entry.promptVersion}</p>
             <p>
               Model: {entry.aiConnectionName} / {entry.aiModel}

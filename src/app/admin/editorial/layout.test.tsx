@@ -32,7 +32,7 @@ vi.mock("./admin-logout-button", () => ({
 }));
 
 vi.mock("./editorial-admin-tabs", () => ({
-  default: () => <div>Sources AI Connections</div>,
+  default: () => <div>Sources AI Connections Prompt Policy Daily Briefs</div>,
 }));
 
 import EditorialAdminLayout from "./layout";
@@ -69,6 +69,7 @@ describe("EditorialAdminLayout", () => {
     expect(markup).toContain("Admin logout");
     expect(markup).toContain("Sources");
     expect(markup).toContain("AI Connections");
+    expect(markup).toContain("Prompt Policy");
     expect(markup).toContain("Visible child");
   });
 });
