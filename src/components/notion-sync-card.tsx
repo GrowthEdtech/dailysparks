@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import type { ParentProfile } from "../lib/mvp-types";
+import { deliveryPrimaryButtonClassName } from "./delivery-channel-button-styles";
 
 type NotionSyncCardProps = {
   initialProfile: ParentProfile;
@@ -450,15 +451,17 @@ export default function NotionSyncCard({
                   {helperMessage}
                 </p>
               ) : null}
-              <button
-                type="button"
-                onClick={() => void startConnect()}
-                disabled={isWorking || isPending}
-                className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#0f172a] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
-                Connect Notion
-              </button>
+              <div className="mt-4 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => void startConnect()}
+                  disabled={isWorking || isPending}
+                  className={deliveryPrimaryButtonClassName}
+                >
+                  {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+                  Connect Notion
+                </button>
+              </div>
             </div>
           )}
         </div>

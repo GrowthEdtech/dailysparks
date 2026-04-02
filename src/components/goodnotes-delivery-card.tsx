@@ -10,6 +10,7 @@ import {
   GOODNOTES_EMAIL_SUFFIX,
   getGoodnotesLocalPart,
 } from "../lib/goodnotes-address";
+import { deliveryPrimaryButtonClassName } from "./delivery-channel-button-styles";
 
 type GoodnotesDeliveryCardProps = {
   initialProfile: ParentProfile;
@@ -290,7 +291,7 @@ export default function GoodnotesDeliveryCard({
                 type="button"
                 onClick={() => void saveDestination()}
                 disabled={isWorking || isPending}
-                className="inline-flex min-w-[17rem] items-center justify-center gap-2 rounded-full bg-[#0f172a] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+                className={deliveryPrimaryButtonClassName}
               >
                 {isWorking ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
