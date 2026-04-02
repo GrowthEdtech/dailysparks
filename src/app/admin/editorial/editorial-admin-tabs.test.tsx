@@ -40,4 +40,14 @@ describe("EditorialAdminTabs", () => {
     expect(markup).toContain("Daily Briefs");
     expect(markup).toContain('aria-current="page"');
   });
+
+  test("uses higher-contrast typography for inactive tabs", () => {
+    usePathnameMock.mockReturnValue("/admin/editorial/sources");
+
+    const markup = renderToStaticMarkup(<EditorialAdminTabs />);
+
+    expect(markup).toContain("text-slate-800");
+    expect(markup).toContain("text-slate-600");
+    expect(markup).not.toContain("text-slate-500");
+  });
 });

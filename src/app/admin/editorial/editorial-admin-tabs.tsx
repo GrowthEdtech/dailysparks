@@ -45,15 +45,19 @@ export default function EditorialAdminTabs() {
             className={`flex-1 rounded-[24px] border px-4 py-4 text-left transition ${
               isActive
                 ? "border-[#0f172a] bg-[#0f172a] text-white shadow-lg shadow-[#0f172a]/10"
-                : "border-slate-200 bg-slate-50 text-[#0f172a] hover:border-slate-300 hover:bg-white"
+                : "border-slate-200 bg-white text-slate-800 shadow-[0_12px_28px_-28px_rgba(15,23,42,0.28)] hover:border-slate-300 hover:bg-slate-50"
             }`}
           >
-            <span className="block text-base font-bold tracking-tight">
+            <span
+              className={`block text-base font-bold tracking-tight ${
+                isActive ? "text-white" : "text-slate-800"
+              }`}
+            >
               {tab.label}
             </span>
             <span
               className={`mt-1 block text-sm leading-6 ${
-                isActive ? "text-slate-200" : "text-slate-500"
+                isActive ? "text-slate-200" : "text-slate-600"
               }`}
             >
               {tab.description}
