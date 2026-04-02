@@ -29,12 +29,12 @@ export default async function EditorialAdminLayout({
                 Editorial admin
               </p>
               <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0f172a]">
-                Manage sources and AI infrastructure in one workspace.
+                Manage sources, AI infrastructure, and brief history in one workspace.
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-500">
-                Keep the editorial source registry and the AI connection stack in
+                Keep source policy, model connections, and daily brief records in
                 separate tabs so each workflow stays focused without changing how
-                either tool works.
+                the underlying tools work.
               </p>
             </div>
 

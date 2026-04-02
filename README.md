@@ -61,6 +61,7 @@ Daily Sparks now includes an internal editorial admin flow with a dedicated pass
 /admin/editorial
 /admin/editorial/sources
 /admin/editorial/ai-connections
+/admin/editorial/daily-briefs
 ```
 
 `/admin/editorial` now acts as the shared admin shell and redirects to the
@@ -94,6 +95,13 @@ For local-only testing, you can override the editorial registry path with:
 
 ```env
 DAILY_SPARKS_EDITORIAL_STORE_PATH=/absolute/path/to/editorial-sources.json
+```
+
+The same backend choice also applies to daily brief history. For local-only
+testing, you can override that path with:
+
+```env
+DAILY_SPARKS_DAILY_BRIEF_STORE_PATH=/absolute/path/to/daily-brief-history.json
 ```
 
 The same admin area now also includes an `AI connections` registry for future generation infrastructure. This module supports:

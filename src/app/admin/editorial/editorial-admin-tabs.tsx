@@ -14,6 +14,11 @@ const ADMIN_TABS = [
     label: "AI Connections",
     description: "Models, endpoints, encrypted keys",
   },
+  {
+    href: "/admin/editorial/daily-briefs",
+    label: "Daily Briefs",
+    description: "Generation history, sources, model trace",
+  },
 ] as const;
 
 export default function EditorialAdminTabs() {
