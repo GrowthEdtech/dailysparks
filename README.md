@@ -7,6 +7,7 @@ Daily Sparks is a Next.js MVP for IB families. The current app supports:
 - a dedicated billing page with monthly and yearly plan selection
 - Stripe sandbox checkout for monthly and yearly subscriptions
 - a generated weekly reading plan
+- an editorial policy foundation for programme-aware daily reading content
 - delivery channel preferences for Goodnotes and Notion
 - Notion OAuth sync that can create a dedicated reading archive and send a test page
 - a first-login child-name onboarding step inside the dashboard
@@ -21,6 +22,35 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+## Editorial Foundation
+
+Daily Sparks now includes a first-pass editorial foundation for future daily reading generation in:
+
+```bash
+src/lib/editorial-policy.ts
+```
+
+This policy layer defines:
+
+- a curated source whitelist v1 rather than unrestricted web search
+- programme-aware recommended sources for `PYP`, `MYP`, and `DP`
+- repetition-control windows to protect the "daily paper" feel from topic, angle, and question fatigue
+
+The current whitelist v1 centers on:
+
+- Reuters
+- Associated Press
+- BBC
+- NPR
+- Science News
+- Science News Explores
+- UNICEF
+- WHO
+- National Geographic
+- Smithsonian Magazine
+
+This is intentionally a policy and configuration layer, not a live scraping pipeline. Future ingest, prompt, or admin flows should import this module instead of re-encoding source rules ad hoc.
 
 ## Authentication
 
