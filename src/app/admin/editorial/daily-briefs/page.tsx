@@ -72,7 +72,7 @@ export default async function DailyBriefsAdminPage({
 
   return (
     <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b45309]">
             Daily briefs
@@ -88,7 +88,7 @@ export default async function DailyBriefsAdminPage({
           </p>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="flex flex-col gap-4 md:w-full md:max-w-[19rem]">
           <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
               Programme

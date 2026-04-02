@@ -78,7 +78,7 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("/admin/editorial/daily-briefs/brief-1");
   });
 
-  test("stacks programme and status filters vertically before desktop widths", async () => {
+  test("stacks programme and status filters vertically at every width", async () => {
     listDailyBriefHistoryMock.mockResolvedValue([]);
 
     const markup = renderToStaticMarkup(
@@ -87,7 +87,7 @@ describe("DailyBriefsAdminPage", () => {
       }),
     );
 
-    expect(markup).toContain("grid gap-5 md:grid-cols-2");
-    expect(markup).not.toContain("sm:grid-cols-2");
+    expect(markup).toContain("flex flex-col gap-4");
+    expect(markup).not.toContain("md:grid-cols-2");
   });
 });
