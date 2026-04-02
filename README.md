@@ -75,6 +75,11 @@ DAILY_SPARKS_EDITORIAL_ADMIN_SESSION_SECRET=replace-with-a-long-random-secret
 DAILY_SPARKS_AI_CONFIG_ENCRYPTION_SECRET=replace-with-a-long-random-secret
 ```
 
+Keep `DAILY_SPARKS_EDITORIAL_ADMIN_SESSION_SECRET` and
+`DAILY_SPARKS_AI_CONFIG_ENCRYPTION_SECRET` stable across deployments. Rotating
+them without a migration will invalidate existing admin sessions and stored AI
+connection secrets.
+
 The editorial registry follows the same storage backend choice as the rest of the MVP:
 
 - local JSON in local mode
