@@ -278,7 +278,7 @@ export default async function Home() {
                  </Link>
                ))}
              </div>
-             <p className="text-xs text-[#64748b]">© 2026 Daily Sparks. Powered by geledtech.com</p>
+             <p className="text-xs text-[#64748b]">© 2026 Daily Sparks. Powered by Growth Education Limited</p>
           </div>
         </div>
       </footer>

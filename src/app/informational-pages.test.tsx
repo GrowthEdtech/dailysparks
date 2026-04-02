@@ -65,6 +65,7 @@ describe("informational pages", () => {
     }
 
     expect(markup).not.toContain('href="#"');
+    expect(markup).toContain("Powered by Growth Education Limited");
   });
 
   test.each(informationalPages)(
