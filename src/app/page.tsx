@@ -8,9 +8,11 @@ import {
   ChevronDown,
   Smartphone,
 } from "lucide-react";
+import Link from "next/link";
 
 import HomePricingSection from "./home-pricing-section";
 import LandingIntegrationsSection from "./landing-integrations-section";
+import { siteFooterLinks } from "./site-footer-links";
 import { DEFAULT_PRICING_MARKET } from "../lib/pricing-market";
 import {
   landingFaqItems,
@@ -265,11 +267,16 @@ export default async function Home() {
              <div className="flex items-center opacity-50">
                <span className="font-bold text-sm tracking-widest uppercase">Daily Sparks</span>
              </div>
-             <div className="flex gap-8 text-xs text-[#64748b] font-medium uppercase tracking-widest">
-               <a href="#" className="hover:text-white transition-colors">Privacy</a>
-               <a href="#" className="hover:text-white transition-colors">Terms</a>
-               <a href="#" className="hover:text-white transition-colors">About</a>
-               <a href="#" className="hover:text-white transition-colors">Contact</a>
+             <div className="flex flex-wrap justify-center gap-8 text-xs text-[#64748b] font-medium uppercase tracking-widest">
+               {siteFooterLinks.map((link) => (
+                 <Link
+                   key={link.href}
+                   href={link.href}
+                   className="hover:text-white transition-colors"
+                 >
+                   {link.label}
+                 </Link>
+               ))}
              </div>
              <p className="text-xs text-[#64748b]">© 2026 Daily Sparks. Powered by geledtech.com</p>
           </div>
