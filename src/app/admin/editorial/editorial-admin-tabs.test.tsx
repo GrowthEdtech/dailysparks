@@ -29,7 +29,7 @@ describe("EditorialAdminTabs", () => {
     usePathnameMock.mockReset();
   });
 
-  test("renders Sources, AI Connections, and Daily Briefs tabs", () => {
+  test("renders Sources, AI Connections, Prompt Policy, Daily Briefs, and Users tabs", () => {
     usePathnameMock.mockReturnValue("/admin/editorial/prompt-policy");
 
     const markup = renderToStaticMarkup(<EditorialAdminTabs />);
@@ -38,6 +38,7 @@ describe("EditorialAdminTabs", () => {
     expect(markup).toContain("AI Connections");
     expect(markup).toContain("Prompt Policy");
     expect(markup).toContain("Daily Briefs");
+    expect(markup).toContain("Users");
     expect(markup).toContain('aria-current="page"');
   });
 

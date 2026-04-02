@@ -24,6 +24,11 @@ const ADMIN_TABS = [
     label: "Daily Briefs",
     description: "Generation history, sources, model trace",
   },
+  {
+    href: "/admin/editorial/users",
+    label: "Users",
+    description: "Registration, billing, programme, delivery status",
+  },
 ] as const;
 
 export default function EditorialAdminTabs() {

@@ -410,6 +410,35 @@ function toProfile(parent: ParentRecord, student: StudentRecord): ParentProfile 
   };
 }
 
+function compareProfilesByCreatedAtDesc(
+  left: ParentProfile,
+  right: ParentProfile,
+) {
+  const leftTimestamp = Date.parse(left.parent.createdAt);
+  const rightTimestamp = Date.parse(right.parent.createdAt);
+
+  if (!Number.isNaN(leftTimestamp) && !Number.isNaN(rightTimestamp)) {
+    return rightTimestamp - leftTimestamp;
+  }
+
+  return right.parent.createdAt.localeCompare(left.parent.createdAt);
+}
+
+function listProfilesFromStore(store: MvpStoreData) {
+  return store.parents
+    .map((parent) => {
+      const student = findStudentForParent(store, parent.id);
+
+      if (!student) {
+        return null;
+      }
+
+      return toProfile(parent, student);
+    })
+    .filter((profile): profile is ParentProfile => Boolean(profile))
+    .sort(compareProfilesByCreatedAtDesc);
+}
+
 function isEligibleForAutomatedDelivery(profile: ParentProfile) {
   const hasActiveSubscription =
     profile.parent.subscriptionStatus === "trial" ||
@@ -439,20 +468,33 @@ export const localProfileStore: ProfileStore = {
     return toProfile(parent, student);
   },
 
+  async getProfileByParentId(parentId) {
+    const store = await readStore();
+    const parent = store.parents.find((record) => record.id === parentId);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = findStudentForParent(store, parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    return toProfile(parent, student);
+  },
+
+  async listParentProfiles() {
+    const store = await readStore();
+
+    return listProfilesFromStore(store);
+  },
+
   async listEligibleDeliveryProfiles() {
     const store = await readStore();
 
-    return store.parents
-      .map((parent) => {
-        const student = findStudentForParent(store, parent.id);
-
-        if (!student) {
-          return null;
-        }
-
-        return toProfile(parent, student);
-      })
-      .filter((profile): profile is ParentProfile => Boolean(profile))
+    return listProfilesFromStore(store)
       .filter((profile) => isEligibleForAutomatedDelivery(profile))
       .sort((left, right) =>
         left.parent.email.localeCompare(right.parent.email),

@@ -181,6 +181,20 @@ function toProfile(parent: ParentRecord, student: StudentRecord): ParentProfile 
   };
 }
 
+function compareProfilesByCreatedAtDesc(
+  left: ParentProfile,
+  right: ParentProfile,
+) {
+  const leftTimestamp = Date.parse(left.parent.createdAt);
+  const rightTimestamp = Date.parse(right.parent.createdAt);
+
+  if (!Number.isNaN(leftTimestamp) && !Number.isNaN(rightTimestamp)) {
+    return rightTimestamp - leftTimestamp;
+  }
+
+  return right.parent.createdAt.localeCompare(left.parent.createdAt);
+}
+
 function isEligibleForAutomatedDelivery(profile: ParentProfile) {
   const hasActiveSubscription =
     profile.parent.subscriptionStatus === "trial" ||
@@ -229,6 +243,57 @@ async function findStudentByParentId(parentId: string) {
     document.id,
     document.data() as Partial<StudentRecord> | undefined,
   );
+}
+
+async function findParentById(parentId: string) {
+  const db = getFirebaseAdminDb();
+  const document = await db.collection("parents").doc(parentId).get();
+
+  if (!document.exists) {
+    return null;
+  }
+
+  return normalizeParentRecord(
+    document.id,
+    document.data() as Partial<ParentRecord> | undefined,
+  );
+}
+
+async function listAllProfiles() {
+  const db = getFirebaseAdminDb();
+  const [parentSnapshot, studentSnapshot] = await Promise.all([
+    db.collection("parents").get(),
+    db.collection("students").get(),
+  ]);
+  const studentsByParentId = new Map<string, StudentRecord>();
+
+  for (const document of studentSnapshot.docs) {
+    const student = normalizeStudentRecord(
+      document.id,
+      document.data() as Partial<StudentRecord> | undefined,
+    );
+
+    if (student.parentId) {
+      studentsByParentId.set(student.parentId, student);
+    }
+  }
+
+  return parentSnapshot.docs
+    .map((document) => {
+      const parent = normalizeParentRecord(
+        document.id,
+        document.data() as Partial<ParentRecord> | undefined,
+      );
+      const student = studentsByParentId.get(parent.id);
+
+      if (!student) {
+        return null;
+      }
+
+      return toProfile(parent, student);
+    })
+    .filter((profile): profile is ParentProfile => Boolean(profile))
+    .sort(compareProfilesByCreatedAtDesc);
 }
 
 function createParentRecord(email: string, fullName: string): ParentRecord {
@@ -314,40 +379,30 @@ export const firestoreProfileStore: ProfileStore = {
     return toProfile(parent, student);
   },
 
-  async listEligibleDeliveryProfiles() {
-    const db = getFirebaseAdminDb();
-    const [parentSnapshot, studentSnapshot] = await Promise.all([
-      db.collection("parents").get(),
-      db.collection("students").get(),
-    ]);
-    const studentsByParentId = new Map<string, StudentRecord>();
+  async getProfileByParentId(parentId) {
+    const parent = await findParentById(parentId);
 
-    for (const document of studentSnapshot.docs) {
-      const student = normalizeStudentRecord(
-        document.id,
-        document.data() as Partial<StudentRecord> | undefined,
-      );
-
-      if (student.parentId) {
-        studentsByParentId.set(student.parentId, student);
-      }
+    if (!parent) {
+      return null;
     }
 
-    return parentSnapshot.docs
-      .map((document) => {
-        const parent = normalizeParentRecord(
-          document.id,
-          document.data() as Partial<ParentRecord> | undefined,
-        );
-        const student = studentsByParentId.get(parent.id);
+    const student = await findStudentByParentId(parent.id);
 
-        if (!student) {
-          return null;
-        }
+    if (!student) {
+      return null;
+    }
 
-        return toProfile(parent, student);
-      })
-      .filter((profile): profile is ParentProfile => Boolean(profile))
+    return toProfile(parent, student);
+  },
+
+  async listParentProfiles() {
+    return listAllProfiles();
+  },
+
+  async listEligibleDeliveryProfiles() {
+    const profiles = await listAllProfiles();
+
+    return profiles
       .filter((profile) => isEligibleForAutomatedDelivery(profile))
       .sort((left, right) =>
         left.parent.email.localeCompare(right.parent.email),

@@ -29,12 +29,13 @@ export default async function EditorialAdminLayout({
                 Editorial admin
               </p>
               <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0f172a]">
-                Manage sources, prompt rules, AI infrastructure, and brief history in one workspace.
+                Manage users, sources, prompt rules, AI infrastructure, and brief history in one workspace.
               </h1>
               <p className="mt-3 text-sm leading-6 text-slate-500">
-                Keep source policy, prompt strategy, model connections, and
-                daily brief records in separate tabs so each workflow stays
-                focused without changing how the underlying tools work.
+                Keep family accounts, source policy, prompt strategy, model
+                connections, and daily brief records in separate tabs so each
+                workflow stays focused without changing how the underlying tools
+                work.
               </p>
             </div>
 

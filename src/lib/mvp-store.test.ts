@@ -5,7 +5,9 @@ import path from "node:path";
 
 import {
   getOrCreateParentProfile,
+  getProfileByParentId,
   getProfileByEmail,
+  listParentProfiles,
   listEligibleDeliveryProfiles,
   updateParentSubscription,
   updateStudentGoodnotesDelivery,
@@ -324,6 +326,94 @@ describe("mvp store", () => {
       "PYP",
       "MYP",
     ]);
+  });
+
+  test("lists all parent profiles sorted by newest registration first", async () => {
+    const storePath = process.env.DAILY_SPARKS_STORE_PATH as string;
+
+    await writeFile(
+      storePath,
+      JSON.stringify({
+        parents: [
+          {
+            id: "parent-older",
+            email: "older@example.com",
+            fullName: "Older Parent",
+            subscriptionStatus: "trial",
+            subscriptionPlan: null,
+            createdAt: "2026-03-30T00:00:00.000Z",
+            updatedAt: "2026-03-30T00:00:00.000Z",
+          },
+          {
+            id: "parent-newer",
+            email: "newer@example.com",
+            fullName: "Newer Parent",
+            subscriptionStatus: "active",
+            subscriptionPlan: "yearly",
+            createdAt: "2026-04-02T00:00:00.000Z",
+            updatedAt: "2026-04-02T00:00:00.000Z",
+          },
+        ],
+        students: [
+          {
+            id: "student-older",
+            parentId: "parent-older",
+            studentName: "Ava",
+            programme: "PYP",
+            programmeYear: 5,
+            goodnotesEmail: "",
+            notionConnected: false,
+            goodnotesConnected: false,
+            createdAt: "2026-03-30T00:00:00.000Z",
+            updatedAt: "2026-03-30T00:00:00.000Z",
+          },
+          {
+            id: "student-newer",
+            parentId: "parent-newer",
+            studentName: "Milo",
+            programme: "MYP",
+            programmeYear: 3,
+            goodnotesEmail: "",
+            notionConnected: true,
+            goodnotesConnected: false,
+            createdAt: "2026-04-02T00:00:00.000Z",
+            updatedAt: "2026-04-02T00:00:00.000Z",
+          },
+        ],
+        notionConnections: [],
+      }),
+      "utf8",
+    );
+
+    const profiles = await listParentProfiles();
+
+    expect(profiles.map((profile) => profile.parent.id)).toEqual([
+      "parent-newer",
+      "parent-older",
+    ]);
+    expect(profiles.map((profile) => profile.student.studentName)).toEqual([
+      "Milo",
+      "Ava",
+    ]);
+  });
+
+  test("returns a profile by parent id when it exists", async () => {
+    const profile = await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    const loaded = await getProfileByParentId(profile.parent.id);
+
+    expect(loaded?.parent.email).toBe("parent@example.com");
+    expect(loaded?.student.studentName).toBe("Katherine");
+  });
+
+  test("returns null when loading an unknown parent id", async () => {
+    const loaded = await getProfileByParentId("missing-parent-id");
+
+    expect(loaded).toBeNull();
   });
 
   test("formats trial and renewal timing in the billing summary", async () => {
