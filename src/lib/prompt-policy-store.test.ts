@@ -62,17 +62,22 @@ afterEach(async () => {
 });
 
 describe("prompt policy store", () => {
-  test("builds the richer v1.1.0 default prompt policy template", () => {
+  test("builds the stricter v1.1.1 default prompt policy template", () => {
     const defaultPolicy = buildDefaultPromptPolicyInput();
 
-    expect(defaultPolicy.versionLabel).toBe("v1.1.0");
+    expect(defaultPolicy.versionLabel).toBe("v1.1.1");
     expect(defaultPolicy.sharedInstructions).toMatch(/family-facing/i);
     expect(defaultPolicy.sharedInstructions).toMatch(/do not invent/i);
     expect(defaultPolicy.outputContractInstructions).toMatch(/valid JSON only/i);
     expect(defaultPolicy.outputContractInstructions).toMatch(/briefMarkdown/i);
+    expect(defaultPolicy.outputContractInstructions).toMatch(/silently validate/i);
+    expect(defaultPolicy.outputContractInstructions).toMatch(/non-empty/i);
     expect(defaultPolicy.pypInstructions).toMatch(/short sentences/i);
+    expect(defaultPolicy.pypInstructions).toMatch(/reassuring/i);
+    expect(defaultPolicy.pypInstructions).toMatch(/trusted adults|helpers/i);
     expect(defaultPolicy.mypInstructions).toMatch(/cause/i);
     expect(defaultPolicy.dpInstructions).toMatch(/evidence/i);
+    expect(defaultPolicy.dpInstructions).toMatch(/known, unknown, and disputed/i);
   });
 
   test("returns an empty list before any prompt policies are recorded", async () => {

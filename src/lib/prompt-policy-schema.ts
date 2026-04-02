@@ -33,7 +33,7 @@ function joinInstructionLines(lines: string[]) {
 
 export const DEFAULT_PROMPT_POLICY_TEMPLATE = {
   name: "Family Daily Sparks Core",
-  versionLabel: "v1.1.0",
+  versionLabel: "v1.1.1",
   sharedInstructions: joinInstructionLines([
     "You are the Daily Sparks editorial engine for a calm, parent-facing reading workflow.",
     "",
@@ -54,11 +54,14 @@ export const DEFAULT_PROMPT_POLICY_TEMPLATE = {
   outputContractInstructions: joinInstructionLines([
     "Return valid JSON only. Do not wrap the answer in markdown fences.",
     "Use exactly these keys: headline, summary, briefMarkdown, topicTags.",
+    "Before finalizing, silently validate that the response is parseable JSON and that every required key is present exactly once.",
+    "If any field would be malformed, incomplete, duplicated, empty, or unsupported by the supplied sources, regenerate internally and return only the corrected JSON object.",
     "headline: one sentence, 8 to 14 words, specific and neutral, with no clickbait.",
     "summary: exactly 2 sentences and roughly 45 to 70 words total. Sentence one explains what happened. Sentence two explains why it matters for a family reader.",
     "briefMarkdown: markdown with exactly four sections in this order: ## What happened, ## Why it matters, ## Talk together, ## Sources.",
     "Under ## Talk together, include exactly 2 bullet questions.",
     "Under ## Sources, include 2 to 4 bullet references using the format Source Name — Article Title.",
+    "All string fields must be non-empty, and every source bullet must be grounded in the supplied references rather than inferred from memory.",
     "topicTags: an array of 3 to 5 short lowercase tags with no duplicates.",
   ]),
   pypInstructions: joinInstructionLines([
@@ -68,6 +71,8 @@ export const DEFAULT_PROMPT_POLICY_TEMPLATE = {
     "Keep background information to only the essentials a younger learner needs to make sense of the story.",
     "Questions should invite noticing, explaining, or relating the story to daily life rather than debating it.",
     "If the topic is sensitive, focus on safety, care, help, or recovery instead of threat.",
+    "When the source involves violence, disaster, illness, displacement, or death, reduce upsetting detail, use reassuring wording, and anchor the explanation around what trusted adults, helpers, or communities are doing next.",
+    "Do not ask younger readers to judge blame, debate moral controversy, or imagine themselves inside a frightening scene.",
   ]),
   mypInstructions: joinInstructionLines([
     "Audience: learners who can handle medium-depth context, comparison, and cause-and-effect thinking.",
@@ -84,7 +89,9 @@ export const DEFAULT_PROMPT_POLICY_TEMPLATE = {
     "Allow denser context than PYP or MYP, but keep the writing concise and readable.",
     "Questions should invite evaluation, justification, and consideration of evidence quality rather than simple recall.",
     "Avoid false certainty, moral grandstanding, and one-sided resolution when the source material is genuinely complex.",
+    "Whenever the evidence is mixed, explicitly signal what is known, unknown, and disputed, and indicate which claims are stronger or weaker based on the supplied sources.",
+    "When presenting multiple viewpoints, frame them as evidence-based positions or interpretations rather than as equally valid by default.",
   ]),
   notes:
-    "Mature operating draft for Daily Sparks family-facing generation. Tightens structure, safety handling, source discipline, repetition control, and differentiated expectations for PYP, MYP, and DP.",
+    "Stricter operating draft for Daily Sparks family-facing generation. Adds stronger JSON/output self-checks, clearer PYP sensitive-topic downshifting, and more explicit DP evidence and multi-viewpoint rules.",
 } as const;

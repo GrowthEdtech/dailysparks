@@ -5,14 +5,14 @@ const { buildDefaultPromptPolicyInputMock, getPromptPolicyMock, notFoundMock } =
   vi.hoisted(() => ({
     buildDefaultPromptPolicyInputMock: vi.fn(() => ({
       name: "Family Daily Sparks Core",
-      versionLabel: "v1.1.0",
-      sharedInstructions: "Shared v1.1.0",
-      antiRepetitionInstructions: "Anti repetition v1.1.0",
-      outputContractInstructions: "Output contract v1.1.0",
-      pypInstructions: "PYP v1.1.0",
-      mypInstructions: "MYP v1.1.0",
-      dpInstructions: "DP v1.1.0",
-      notes: "Richer operating draft.",
+      versionLabel: "v1.1.1",
+      sharedInstructions: "Shared v1.1.1",
+      antiRepetitionInstructions: "Anti repetition v1.1.1",
+      outputContractInstructions: "Output contract v1.1.1",
+      pypInstructions: "PYP v1.1.1",
+      mypInstructions: "MYP v1.1.1",
+      dpInstructions: "DP v1.1.1",
+      notes: "Stricter operating draft.",
     })),
   getPromptPolicyMock: vi.fn(),
   notFoundMock: vi.fn(() => {
@@ -83,9 +83,9 @@ describe("PromptPolicyDetailPage", () => {
 
     expect(buildDefaultPromptPolicyInputMock).toHaveBeenCalled();
     expect(markup).toContain("Family Daily Sparks Core");
-    expect(markup).toContain("Version v1.1.0");
-    expect(markup).toContain("Richer operating draft.");
-    expect(markup).toContain("PYP:Shared v1.1.0");
+    expect(markup).toContain("Version v1.1.1");
+    expect(markup).toContain("Stricter operating draft.");
+    expect(markup).toContain("PYP:Shared v1.1.1");
   });
 
   test("triggers the not-found flow when the policy does not exist", async () => {
