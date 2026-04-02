@@ -29,11 +29,11 @@ export default function LandingIntegrationsSection() {
           <div className="pointer-events-none absolute -left-12 bottom-10 h-32 w-32 rounded-full bg-[#d8f2f8] blur-3xl opacity-80" />
 
           <div className="relative">
-            <div className="max-w-4xl space-y-3 md:space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <p className="text-[0.7rem] font-bold uppercase tracking-[0.28em] text-slate-400">
                 Works with
               </p>
-              <h3 className="max-w-3xl text-balance text-[1.9rem] font-bold leading-[1.04] tracking-[-0.04em] text-[#0f172a] md:text-[2.2rem] xl:max-w-[36rem]">
+              <h3 className="text-balance text-[1.9rem] font-bold leading-[1.04] tracking-[-0.04em] text-[#0f172a] md:max-w-none md:text-[2.05rem] xl:max-w-none xl:text-[2.15rem]">
                 Choose the setup that fits how your family reads and keeps records.
               </h3>
               <p className="max-w-2xl text-pretty text-sm leading-6 text-slate-500 md:text-[0.98rem] md:leading-7">

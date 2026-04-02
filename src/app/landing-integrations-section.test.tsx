@@ -32,6 +32,9 @@ describe("LandingIntegrationsSection", () => {
     expect(markup).toContain("md:max-w-none");
     expect(markup).toContain("lg:max-w-none");
     expect(markup).not.toContain("max-w-5xl space-y-4 md:space-y-5");
+    expect(markup).not.toContain("max-w-3xl text-balance");
+    expect(markup).not.toContain("xl:max-w-[36rem]");
+    expect(markup).toContain("md:max-w-none");
     expect(markup).toContain(
       'xl:whitespace-nowrap',
     );
