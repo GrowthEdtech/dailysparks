@@ -8,7 +8,7 @@ export default async function AdminLoginPage() {
   const session = await getEditorialAdminSessionFromCookieStore(await cookies());
 
   if (session) {
-    redirect("/admin/editorial");
+    redirect("/admin/editorial/sources");
   }
 
   return <AdminLoginForm />;

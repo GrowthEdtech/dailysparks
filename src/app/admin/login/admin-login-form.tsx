@@ -42,7 +42,7 @@ export default function AdminLoginForm() {
       }
 
       startTransition(() => {
-        router.push("/admin/editorial");
+        router.push("/admin/editorial/sources");
         router.refresh();
       });
     } catch {

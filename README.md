@@ -59,7 +59,12 @@ Daily Sparks now includes an internal editorial admin flow with a dedicated pass
 ```bash
 /admin/login
 /admin/editorial
+/admin/editorial/sources
+/admin/editorial/ai-connections
 ```
+
+`/admin/editorial` now acts as the shared admin shell and redirects to the
+default `Sources` tab.
 
 This route is independent from the parent-facing Google login. Parent accounts still use:
 
