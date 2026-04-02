@@ -36,7 +36,7 @@ export default function LandingIntegrationsSection() {
               <h3 className="text-balance text-[1.9rem] font-bold leading-[1.04] tracking-[-0.04em] text-[#0f172a] md:max-w-none md:text-[2.05rem] xl:max-w-none xl:text-[2.15rem]">
                 Choose the setup that fits how your family reads and keeps records.
               </h3>
-              <p className="max-w-2xl text-pretty text-sm leading-6 text-slate-500 md:text-[0.98rem] md:leading-7">
+              <p className="text-pretty text-sm leading-6 text-slate-500 md:max-w-none md:text-[0.98rem] md:leading-7">
                 Goodnotes is the student-facing delivery path. Notion is the
                 parent-facing archive. Pick one or combine both.
               </p>
