@@ -7,6 +7,7 @@ const {
   redirectMock,
   getEditorialAdminSessionFromCookieStoreMock,
   listEditorialSourcesMock,
+  listAiConnectionsMock,
 } = vi.hoisted(() => ({
   cookiesMock: vi.fn(),
   redirectMock: vi.fn((location: string) => {
@@ -14,6 +15,7 @@ const {
   }),
   getEditorialAdminSessionFromCookieStoreMock: vi.fn(),
   listEditorialSourcesMock: vi.fn(),
+  listAiConnectionsMock: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({
@@ -33,12 +35,24 @@ vi.mock("../../../lib/editorial-source-store", () => ({
   listEditorialSources: listEditorialSourcesMock,
 }));
 
+vi.mock("../../../lib/ai-connection-store", () => ({
+  listAiConnections: listAiConnectionsMock,
+}));
+
 vi.mock("./editorial-admin-panel", () => ({
   default: ({
     initialSources,
   }: {
     initialSources: Array<{ name: string }>;
   }) => <div>Editorial panel {initialSources.length}</div>,
+}));
+
+vi.mock("./ai-connections-panel", () => ({
+  default: ({
+    initialConnections,
+  }: {
+    initialConnections: Array<{ name: string }>;
+  }) => <div>AI panel {initialConnections.length}</div>,
 }));
 
 vi.mock("./admin-logout-button", () => ({
@@ -53,6 +67,7 @@ describe("EditorialAdminPage", () => {
     redirectMock.mockClear();
     getEditorialAdminSessionFromCookieStoreMock.mockReset();
     listEditorialSourcesMock.mockReset();
+    listAiConnectionsMock.mockReset();
     cookiesMock.mockResolvedValue({
       get: vi.fn(),
     });
@@ -71,9 +86,13 @@ describe("EditorialAdminPage", () => {
     listEditorialSourcesMock.mockResolvedValue([
       { id: "reuters", name: "Reuters" },
     ]);
+    listAiConnectionsMock.mockResolvedValue([
+      { id: "nf-relay", name: "NF Relay" },
+    ]);
 
     const markup = renderToStaticMarkup(await EditorialAdminPage());
 
     expect(markup).toContain("Editorial panel 1");
+    expect(markup).toContain("AI panel 1");
   });
 });

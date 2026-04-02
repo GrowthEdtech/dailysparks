@@ -72,6 +72,7 @@ The editorial admin password flow requires:
 ```env
 DAILY_SPARKS_EDITORIAL_ADMIN_PASSWORD=replace-with-a-strong-password
 DAILY_SPARKS_EDITORIAL_ADMIN_SESSION_SECRET=replace-with-a-long-random-secret
+DAILY_SPARKS_AI_CONFIG_ENCRYPTION_SECRET=replace-with-a-long-random-secret
 ```
 
 The editorial registry follows the same storage backend choice as the rest of the MVP:
@@ -84,6 +85,21 @@ For local-only testing, you can override the editorial registry path with:
 ```env
 DAILY_SPARKS_EDITORIAL_STORE_PATH=/absolute/path/to/editorial-sources.json
 ```
+
+The same admin area now also includes an `AI connections` registry for future generation infrastructure. This module supports:
+
+- multiple OpenAI-compatible connection profiles
+- one active default connection
+- editable base URL and default model
+- masked API key previews after save
+
+For local-only testing, you can override the AI registry path with:
+
+```env
+DAILY_SPARKS_AI_CONNECTION_STORE_PATH=/absolute/path/to/ai-connections.json
+```
+
+API keys are encrypted on the server before they are persisted. The admin UI never re-displays the full stored key after save.
 
 ## Authentication
 
