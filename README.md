@@ -52,6 +52,31 @@ The current whitelist v1 centers on:
 
 This is intentionally a policy and configuration layer, not a live scraping pipeline. Future ingest, prompt, or admin flows should import this module instead of re-encoding source rules ad hoc.
 
+## Editorial Admin
+
+Daily Sparks now includes an internal source-registry admin route:
+
+```bash
+/admin/editorial
+```
+
+This page is intended for internal editorial operations only. Access is controlled by:
+
+```env
+DAILY_SPARKS_ADMIN_EMAILS=parent@example.com,editor@example.com
+```
+
+The editorial registry follows the same storage backend choice as the rest of the MVP:
+
+- local JSON in local mode
+- Firestore in Firestore mode
+
+For local-only testing, you can override the editorial registry path with:
+
+```env
+DAILY_SPARKS_EDITORIAL_STORE_PATH=/absolute/path/to/editorial-sources.json
+```
+
 ## Authentication
 
 Daily Sparks now uses Firebase Authentication for parent sign-in.
