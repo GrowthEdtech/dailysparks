@@ -77,4 +77,17 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("v1.0.0");
     expect(markup).toContain("/admin/editorial/daily-briefs/brief-1");
   });
+
+  test("stacks programme and status filters vertically before desktop widths", async () => {
+    listDailyBriefHistoryMock.mockResolvedValue([]);
+
+    const markup = renderToStaticMarkup(
+      await DailyBriefsAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("grid gap-5 md:grid-cols-2");
+    expect(markup).not.toContain("sm:grid-cols-2");
+  });
 });

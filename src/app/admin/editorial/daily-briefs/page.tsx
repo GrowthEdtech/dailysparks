@@ -88,8 +88,8 @@ export default async function DailyBriefsAdminPage({
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
+        <div className="grid gap-5 md:grid-cols-2">
+          <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
               Programme
             </p>
@@ -123,7 +123,7 @@ export default async function DailyBriefsAdminPage({
             </div>
           </div>
 
-          <div>
+          <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
               Status
             </p>
