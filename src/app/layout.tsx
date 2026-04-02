@@ -4,6 +4,14 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Daily Sparks",
   description: "Local MVP for a parent-facing IB reading dashboard.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", type: "image/png" }],
+  },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({
