@@ -54,16 +54,24 @@ This is intentionally a policy and configuration layer, not a live scraping pipe
 
 ## Editorial Admin
 
-Daily Sparks now includes an internal source-registry admin route:
+Daily Sparks now includes an internal editorial admin flow with a dedicated password login:
 
 ```bash
+/admin/login
 /admin/editorial
 ```
 
-This page is intended for internal editorial operations only. Access is controlled by:
+This route is independent from the parent-facing Google login. Parent accounts still use:
+
+```bash
+/login
+```
+
+The editorial admin password flow requires:
 
 ```env
-DAILY_SPARKS_ADMIN_EMAILS=parent@example.com,editor@example.com
+DAILY_SPARKS_EDITORIAL_ADMIN_PASSWORD=replace-with-a-strong-password
+DAILY_SPARKS_EDITORIAL_ADMIN_SESSION_SECRET=replace-with-a-long-random-secret
 ```
 
 The editorial registry follows the same storage backend choice as the rest of the MVP:

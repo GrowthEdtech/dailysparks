@@ -1,8 +1,7 @@
 import {
-  clearSessionCookieHeader,
-  getSessionEmailFromRequest,
-} from "../../../../lib/session";
-import { isEditorialAdminEmail } from "../../../../lib/editorial-admin";
+  clearEditorialAdminSessionCookieHeader,
+  getEditorialAdminSessionFromRequest,
+} from "../../../../lib/editorial-admin-auth";
 import {
   createEditorialSource,
   EDITORIAL_INGESTION_MODES,
@@ -52,14 +51,10 @@ function unauthorized(message: string) {
     {
       status: 401,
       headers: {
-        "Set-Cookie": clearSessionCookieHeader(),
+        "Set-Cookie": clearEditorialAdminSessionCookieHeader(),
       },
     },
   );
-}
-
-function forbidden(message: string) {
-  return Response.json({ message }, { status: 403 });
 }
 
 function badRequest(message: string) {
@@ -113,28 +108,19 @@ function normalizeIngestionMode(value: unknown): EditorialIngestionMode | null {
     : null;
 }
 
-async function requireAdminEmail(request: Request) {
-  const sessionEmail = await getSessionEmailFromRequest(request);
+async function requireAdminSession(request: Request) {
+  const session = await getEditorialAdminSessionFromRequest(request);
 
-  if (!sessionEmail) {
+  if (!session) {
     return {
-      errorResponse: unauthorized("Please log in to continue."),
-      sessionEmail: null,
-    };
-  }
-
-  if (!isEditorialAdminEmail(sessionEmail)) {
-    return {
-      errorResponse: forbidden(
-        "Editorial source management is limited to approved admin accounts.",
-      ),
-      sessionEmail,
+      errorResponse: unauthorized("Please log in to the editorial admin."),
+      session: null,
     };
   }
 
   return {
     errorResponse: null,
-    sessionEmail,
+    session,
   };
 }
 
@@ -180,7 +166,7 @@ function validateCreateBody(
 }
 
 export async function GET(request: Request) {
-  const adminCheck = await requireAdminEmail(request);
+  const adminCheck = await requireAdminSession(request);
 
   if (adminCheck.errorResponse) {
     return adminCheck.errorResponse;
@@ -192,7 +178,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const adminCheck = await requireAdminEmail(request);
+  const adminCheck = await requireAdminSession(request);
 
   if (adminCheck.errorResponse) {
     return adminCheck.errorResponse;
@@ -213,7 +199,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const adminCheck = await requireAdminEmail(request);
+  const adminCheck = await requireAdminSession(request);
 
   if (adminCheck.errorResponse) {
     return adminCheck.errorResponse;

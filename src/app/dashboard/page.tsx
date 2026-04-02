@@ -2,7 +2,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import DashboardForm from "./dashboard-form";
-import { isEditorialAdminEmail } from "../../lib/editorial-admin";
 import { getProfileByEmail } from "../../lib/mvp-store";
 import { isNotionConfigured } from "../../lib/notion-config";
 import { getSessionFromCookieStore } from "../../lib/session";
@@ -25,7 +24,6 @@ export default async function DashboardPage() {
     <DashboardForm
       initialProfile={profile}
       notionConfigured={isNotionConfigured()}
-      canAccessEditorialAdmin={isEditorialAdminEmail(sessionEmail)}
     />
   );
 }

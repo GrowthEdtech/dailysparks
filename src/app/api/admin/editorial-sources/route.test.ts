@@ -3,13 +3,15 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { POST as login } from "../../login/route";
+import { POST as adminLogin } from "../login/route";
+import {
+  EDITORIAL_ADMIN_SESSION_COOKIE_NAME,
+} from "../../../../lib/editorial-admin-auth";
 import {
   GET as listEditorialSources,
   POST as createEditorialSourceRoute,
   PUT as updateEditorialSourceRoute,
 } from "./route";
-import { SESSION_COOKIE_NAME } from "../../../../lib/session";
 
 const verifyIdTokenMock = vi.fn();
 const createSessionCookieMock = vi.fn();
@@ -25,6 +27,7 @@ vi.mock("../../../../lib/firebase-admin", () => ({
 
 const ORIGINAL_ENV = { ...process.env };
 let tempDirectory = "";
+const validAdminSecret = "open-sesame";
 
 beforeEach(async () => {
   tempDirectory = await mkdtemp(
@@ -38,7 +41,9 @@ beforeEach(async () => {
       tempDirectory,
       "editorial-sources.json",
     ),
-    DAILY_SPARKS_ADMIN_EMAILS: "parent@example.com",
+    DAILY_SPARKS_EDITORIAL_ADMIN_PASSWORD: validAdminSecret,
+    DAILY_SPARKS_EDITORIAL_ADMIN_SESSION_SECRET:
+      "test-editorial-admin-session-secret",
   };
   verifyIdTokenMock.mockReset();
   createSessionCookieMock.mockReset();
@@ -53,33 +58,26 @@ afterEach(async () => {
   }
 });
 
-async function signIn(email: string) {
-  verifyIdTokenMock.mockResolvedValue({
-    uid: email,
-    email,
-    name: "Editorial Admin",
-    auth_time: Math.floor(Date.now() / 1000),
-  });
-  createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
-  verifySessionCookieMock.mockResolvedValue({
-    uid: email,
-    email,
-    name: "Editorial Admin",
-  });
-
-  await login(
-    new Request("http://localhost:3000/api/login", {
+async function signIn() {
+  const response = await adminLogin(
+    new Request("http://localhost:3000/api/admin/login", {
       method: "POST",
       headers: {
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        idToken: "firebase-id-token",
+        password: validAdminSecret,
       }),
     }),
   );
+  const setCookieHeader = response.headers.get("set-cookie") ?? "";
+  const match = setCookieHeader.match(
+    new RegExp(`${EDITORIAL_ADMIN_SESSION_COOKIE_NAME}=([^;]+)`),
+  );
 
-  return `${SESSION_COOKIE_NAME}=firebase-session-cookie`;
+  return match
+    ? `${EDITORIAL_ADMIN_SESSION_COOKIE_NAME}=${decodeURIComponent(match[1])}`
+    : "";
 }
 
 describe("editorial admin routes", () => {
@@ -93,8 +91,8 @@ describe("editorial admin routes", () => {
     expect(body.message).toMatch(/log in/i);
   });
 
-  test("rejects authenticated non-admin users", async () => {
-    const cookie = await signIn("family@example.com");
+  test("accepts requests that carry a valid editorial admin cookie", async () => {
+    const cookie = await signIn();
     const response = await listEditorialSources(
       new Request("http://localhost:3000/api/admin/editorial-sources", {
         headers: {
@@ -104,12 +102,12 @@ describe("editorial admin routes", () => {
     );
     const body = await response.json();
 
-    expect(response.status).toBe(403);
-    expect(body.message).toMatch(/admin/i);
+    expect(response.status).toBe(200);
+    expect(body.sources).toHaveLength(10);
   });
 
   test("lists, creates, and updates editorial sources for admins", async () => {
-    const cookie = await signIn("parent@example.com");
+    const cookie = await signIn();
 
     const listResponse = await listEditorialSources(
       new Request("http://localhost:3000/api/admin/editorial-sources", {

@@ -9,10 +9,13 @@ import {
   DELETE as disconnectGoodnotes,
   PUT as updateGoodnotes,
 } from "./goodnotes/route";
+import { POST as adminLogin } from "./admin/login/route";
+import { POST as adminLogout } from "./admin/logout/route";
 import { POST as sendGoodnotesTest } from "./goodnotes/test/route";
 import { POST as login } from "./login/route";
 import { POST as logout } from "./logout/route";
 import { SESSION_COOKIE_NAME } from "../../lib/session";
+import { EDITORIAL_ADMIN_SESSION_COOKIE_NAME } from "../../lib/editorial-admin-auth";
 import * as mvpStore from "../../lib/mvp-store";
 
 const verifyIdTokenMock = vi.fn();
@@ -36,10 +39,15 @@ vi.mock("../../lib/goodnotes-delivery", () => ({
 }));
 
 let tempDirectory = "";
+const validAdminSecret = "open-sesame";
+const invalidAdminSecret = "incorrect-admin-entry";
 
 beforeEach(async () => {
   tempDirectory = await mkdtemp(path.join(tmpdir(), "daily-sparks-routes-"));
   process.env.DAILY_SPARKS_STORE_PATH = path.join(tempDirectory, "mvp-store.json");
+  process.env.DAILY_SPARKS_EDITORIAL_ADMIN_PASSWORD = validAdminSecret;
+  process.env.DAILY_SPARKS_EDITORIAL_ADMIN_SESSION_SECRET =
+    "test-editorial-admin-session-secret";
   verifyIdTokenMock.mockReset();
   createSessionCookieMock.mockReset();
   verifySessionCookieMock.mockReset();
@@ -54,6 +62,8 @@ beforeEach(async () => {
 
 afterEach(async () => {
   delete process.env.DAILY_SPARKS_STORE_PATH;
+  delete process.env.DAILY_SPARKS_EDITORIAL_ADMIN_PASSWORD;
+  delete process.env.DAILY_SPARKS_EDITORIAL_ADMIN_SESSION_SECRET;
 
   if (tempDirectory) {
     await rm(tempDirectory, { recursive: true, force: true });
@@ -61,6 +71,54 @@ afterEach(async () => {
 });
 
 describe("auth routes", () => {
+  test("creates a secure session cookie on successful editorial admin login", async () => {
+    const response = await adminLogin(
+      new Request("http://localhost:3000/api/admin/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          password: validAdminSecret,
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(response.headers.get("set-cookie")).toContain(
+      `${EDITORIAL_ADMIN_SESSION_COOKIE_NAME}=`,
+    );
+  });
+
+  test("rejects invalid editorial admin passwords", async () => {
+    const response = await adminLogin(
+      new Request("http://localhost:3000/api/admin/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          password: invalidAdminSecret,
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body.message).toMatch(/invalid|password/i);
+  });
+
+  test("clears the editorial admin session cookie on admin logout", async () => {
+    const response = await adminLogout();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toContain(
+      `${EDITORIAL_ADMIN_SESSION_COOKIE_NAME}=;`,
+    );
+  });
+
   test("rejects login when the Firebase ID token is missing", async () => {
     const request = new Request("http://localhost:3000/api/login", {
       method: "POST",

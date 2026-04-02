@@ -19,7 +19,6 @@ import { getProgrammeStageSummary, getWeeklyPlan } from "../../lib/weekly-plan";
 type DashboardFormProps = {
   initialProfile: ParentProfile;
   notionConfigured: boolean;
-  canAccessEditorialAdmin: boolean;
 };
 
 type RouteMessage = {
@@ -39,7 +38,6 @@ function hasMeaningfulStudentName(studentName: string) {
 export default function DashboardForm({
   initialProfile,
   notionConfigured,
-  canAccessEditorialAdmin,
 }: DashboardFormProps) {
   const router = useRouter();
   const [studentName, setStudentName] = useState(initialProfile.student.studentName);
@@ -124,15 +122,6 @@ export default function DashboardForm({
             <p className="mt-1 text-sm text-slate-300">
               Logged in as {initialProfile.parent.email}
             </p>
-            {canAccessEditorialAdmin ? (
-              <Link
-                href="/admin/editorial"
-                className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
-              >
-                <BookOpen className="h-3.5 w-3.5" />
-                Editorial admin
-              </Link>
-            ) : null}
           </div>
           <AccountMenu
             fullName={initialProfile.parent.fullName}
