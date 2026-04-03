@@ -10,6 +10,12 @@ import {
   isProgramme,
   type Programme,
 } from "../../../../lib/mvp-types";
+import {
+  formatPipelineStageLabel,
+  getDeliverySummaryLabel,
+  getPipelineStageBadgeClasses,
+  getRetryWindowLabel,
+} from "./daily-brief-admin-helpers";
 
 type DailyBriefsAdminPageProps = {
   searchParams: Promise<{
@@ -186,6 +192,11 @@ export default async function DailyBriefsAdminPage({
                     <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       {entry.status}
                     </span>
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getPipelineStageBadgeClasses(entry.pipelineStage)}`}
+                    >
+                      {formatPipelineStageLabel(entry.pipelineStage)}
+                    </span>
                     <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       {entry.repetitionRisk} repetition risk
                     </span>
@@ -202,6 +213,12 @@ export default async function DailyBriefsAdminPage({
                   <p className="font-semibold text-[#0f172a]">
                     {formatDate(entry.scheduledFor)}
                   </p>
+                  <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Pipeline
+                  </p>
+                  <p className="mt-1 font-semibold text-[#0f172a]">
+                    {formatPipelineStageLabel(entry.pipelineStage)}
+                  </p>
                   <p className="mt-1">{entry.aiConnectionName}</p>
                   <p>{entry.aiModel}</p>
                   <p>{entry.promptVersionLabel}</p>
@@ -209,15 +226,39 @@ export default async function DailyBriefsAdminPage({
               </div>
 
               <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div className="text-sm text-slate-500">
-                  <span className="font-semibold text-[#0f172a]">
-                    Primary sources:
-                  </span>{" "}
-                  {entry.sourceReferences.length > 0
-                    ? entry.sourceReferences
-                        .map((reference) => reference.sourceName)
-                        .join(", ")
-                    : "No sources recorded"}
+                <div className="space-y-2 text-sm text-slate-500">
+                  <p>
+                    <span className="font-semibold text-[#0f172a]">
+                      Primary sources:
+                    </span>{" "}
+                    {entry.sourceReferences.length > 0
+                      ? entry.sourceReferences
+                          .map((reference) => reference.sourceName)
+                          .join(", ")
+                      : "No sources recorded"}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-[#0f172a]">
+                      Delivery:
+                    </span>{" "}
+                    {getDeliverySummaryLabel(entry)}
+                  </p>
+                  {entry.retryEligibleUntil ? (
+                    <p>
+                      <span className="font-semibold text-[#0f172a]">
+                        Retry window:
+                      </span>{" "}
+                      {getRetryWindowLabel(entry)}
+                    </p>
+                  ) : null}
+                  {entry.failureReason ? (
+                    <p className="text-rose-700">
+                      <span className="font-semibold text-rose-800">
+                        Failure reason:
+                      </span>{" "}
+                      {entry.failureReason}
+                    </p>
+                  ) : null}
                 </div>
 
                 <Link

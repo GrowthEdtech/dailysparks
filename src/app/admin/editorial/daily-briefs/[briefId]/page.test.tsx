@@ -31,7 +31,7 @@ describe("DailyBriefDetailPage", () => {
       headline: "Students debate how cities should respond to rising heat.",
       summary: "A climate brief.",
       programme: "MYP",
-      status: "published",
+      status: "failed",
       topicTags: ["climate", "cities"],
       sourceReferences: [
         {
@@ -52,6 +52,25 @@ describe("DailyBriefDetailPage", () => {
       repetitionNotes: "No similar brief.",
       adminNotes: "Shareable with families.",
       briefMarkdown: "## Today\nCities are testing new heat protections.",
+      pipelineStage: "failed",
+      candidateSnapshotAt: "2026-04-02T05:00:00.000Z",
+      generationCompletedAt: "2026-04-02T06:00:00.000Z",
+      pdfBuiltAt: "2026-04-02T06:05:00.000Z",
+      deliveryWindowAt: "2026-04-02T09:00:00.000Z",
+      lastDeliveryAttemptAt: "2026-04-02T09:12:00.000Z",
+      deliveryAttemptCount: 2,
+      deliverySuccessCount: 3,
+      deliveryFailureCount: 2,
+      failedDeliveryTargets: [
+        {
+          parentId: "parent-1",
+          parentEmail: "family@example.com",
+          channel: "goodnotes",
+          errorMessage: "Relay timeout.",
+        },
+      ],
+      failureReason: "Two configured deliveries timed out during the 09:10 retry window.",
+      retryEligibleUntil: "2026-04-02T09:30:00.000Z",
       createdAt: "2026-04-02T00:00:00.000Z",
       updatedAt: "2026-04-02T00:00:00.000Z",
     });
@@ -69,6 +88,12 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("Cities test new heat protections");
     expect(markup).toContain("v1.0.0");
     expect(markup).toContain("## Today");
+    expect(markup).toContain("Pipeline timeline");
+    expect(markup).toContain("Delivery health");
+    expect(markup).toContain("Retry eligible until");
+    expect(markup).toContain(
+      "Two configured deliveries timed out during the 09:10 retry window.",
+    );
   });
 
   test("triggers the not-found flow when the brief does not exist", async () => {

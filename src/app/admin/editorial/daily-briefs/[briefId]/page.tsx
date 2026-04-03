@@ -2,6 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getDailyBriefHistoryEntry } from "../../../../../lib/daily-brief-history-store";
+import {
+  buildPipelineTimeline,
+  formatAdminDateTime,
+  formatPipelineStageLabel,
+  getDeliverySummaryLabel,
+  getPipelineStageBadgeClasses,
+  getRetryWindowLabel,
+} from "../daily-brief-admin-helpers";
 
 type DailyBriefDetailPageProps = {
   params: Promise<{
@@ -60,6 +68,14 @@ export default async function DailyBriefDetailPage({
             </p>
             <p className="mt-2">Programme: {entry.programme}</p>
             <p>Status: {entry.status}</p>
+            <p className="mt-2">
+              Pipeline:{" "}
+              <span
+                className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getPipelineStageBadgeClasses(entry.pipelineStage)}`}
+              >
+                {formatPipelineStageLabel(entry.pipelineStage)}
+              </span>
+            </p>
             <p>Prompt policy: {entry.promptVersionLabel}</p>
             <p>Prompt: {entry.promptVersion}</p>
             <p>
@@ -80,6 +96,122 @@ export default async function DailyBriefDetailPage({
         </article>
 
         <aside className="space-y-6">
+          <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+              Pipeline timeline
+            </h2>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Current stage
+                </p>
+                <div className="mt-3">
+                  <span
+                    className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getPipelineStageBadgeClasses(entry.pipelineStage)}`}
+                  >
+                    {formatPipelineStageLabel(entry.pipelineStage)}
+                  </span>
+                </div>
+              </div>
+
+              {buildPipelineTimeline(entry).map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    {item.label}
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+              Delivery health
+            </h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Attempts
+                </p>
+                <p className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
+                  {entry.deliveryAttemptCount}
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Delivered
+                </p>
+                <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-700">
+                  {entry.deliverySuccessCount}
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Failed
+                </p>
+                <p className="mt-2 text-2xl font-bold tracking-tight text-rose-700">
+                  {entry.deliveryFailureCount}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+              <p>
+                <span className="font-semibold text-[#0f172a]">
+                  Delivery summary:
+                </span>{" "}
+                {getDeliverySummaryLabel(entry)}
+              </p>
+              <p>
+                <span className="font-semibold text-[#0f172a]">
+                  Last delivery attempt:
+                </span>{" "}
+                {formatAdminDateTime(entry.lastDeliveryAttemptAt)}
+              </p>
+              <p>
+                <span className="font-semibold text-[#0f172a]">
+                  Retry eligible until:
+                </span>{" "}
+                {getRetryWindowLabel(entry)}
+              </p>
+              {entry.failureReason ? (
+                <p className="rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800">
+                  <span className="font-semibold text-rose-900">
+                    Failure reason:
+                  </span>{" "}
+                  {entry.failureReason}
+                </p>
+              ) : null}
+            </div>
+
+            {entry.failedDeliveryTargets.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {entry.failedDeliveryTargets.map((target) => (
+                  <article
+                    key={`${target.parentId}-${target.channel}`}
+                    className="rounded-[24px] border border-rose-200 bg-rose-50/70 p-4"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-500">
+                      {target.channel}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-rose-900">
+                      {target.parentEmail}
+                    </p>
+                    <p className="mt-1 text-sm text-rose-700">
+                      {target.errorMessage}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+          </section>
+
           <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
               Source references

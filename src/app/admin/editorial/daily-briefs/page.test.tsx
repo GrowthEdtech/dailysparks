@@ -58,6 +58,18 @@ describe("DailyBriefsAdminPage", () => {
         repetitionNotes: "No similar brief.",
         adminNotes: "",
         briefMarkdown: "## Today",
+        pipelineStage: "preflight_passed",
+        candidateSnapshotAt: "2026-04-02T05:00:00.000Z",
+        generationCompletedAt: "2026-04-02T06:00:00.000Z",
+        pdfBuiltAt: "2026-04-02T06:05:00.000Z",
+        deliveryWindowAt: "2026-04-02T09:00:00.000Z",
+        lastDeliveryAttemptAt: "2026-04-02T09:00:00.000Z",
+        deliveryAttemptCount: 1,
+        deliverySuccessCount: 12,
+        deliveryFailureCount: 0,
+        failedDeliveryTargets: [],
+        failureReason: "",
+        retryEligibleUntil: null,
         createdAt: "2026-04-02T00:00:00.000Z",
         updatedAt: "2026-04-02T00:00:00.000Z",
       },
@@ -75,6 +87,8 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("Reuters");
     expect(markup).toContain("gpt-5.4");
     expect(markup).toContain("v1.0.0");
+    expect(markup).toContain("Preflight passed");
+    expect(markup).toContain("12 delivered");
     expect(markup).toContain("/admin/editorial/daily-briefs/brief-1");
   });
 
