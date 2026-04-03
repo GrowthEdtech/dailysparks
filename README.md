@@ -137,15 +137,24 @@ The editorial admin now also includes a dedicated `Prompt Policy` workspace for:
 
 ## Daily Brief Automation
 
-The first production automation path now runs through the existing Cloud Run
-service. The scheduled route is:
+Daily Sparks now uses a staged scheduler model instead of a single all-in-one
+job. The production Cloud Scheduler should target these internal routes:
+
+```bash
+/api/internal/daily-brief/ingest
+/api/internal/daily-brief/generate
+/api/internal/daily-brief/preflight
+/api/internal/daily-brief/deliver
+/api/internal/daily-brief/retry-delivery
+```
+
+The existing fallback route remains available for operators:
 
 ```bash
 /api/internal/daily-brief/run
 ```
 
-This route is intended for Cloud Scheduler or operator-triggered runs only. It
-expects the scheduler secret header:
+All internal routes expect the scheduler secret header:
 
 ```bash
 x-daily-sparks-scheduler-secret
@@ -173,9 +182,9 @@ DAILY_SPARKS_SCHEDULER_SECRET_SECRET=daily-sparks-scheduler-secret
 
 If both are present, the Secret Manager reference is preferred.
 
-### Configure the Cloud Scheduler job
+### Configure the Cloud Scheduler jobs
 
-After deploying Cloud Run, create or update the scheduler job with:
+After deploying Cloud Run, create or update the staged scheduler jobs with:
 
 ```bash
 chmod +x scripts/configure-daily-brief-scheduler.sh
@@ -183,39 +192,63 @@ DAILY_SPARKS_SCHEDULER_SECRET_SECRET=daily-sparks-scheduler-secret \
 ./scripts/configure-daily-brief-scheduler.sh
 ```
 
-The scheduler helper defaults to:
+The scheduler helper now creates or updates these jobs by default:
 
-- job name: `dailysparks-daily-brief`
-- location: `asia-east2`
-- schedule: `0 6 * * *`
-- time zone: `Asia/Hong_Kong`
-- target URL: `https://dailysparks.geledtech.com/api/internal/daily-brief/run`
-- retry attempts: `0`
+- `dailysparks-brief-ingest-0100` -> `/api/internal/daily-brief/ingest` -> `0 1 * * *`
+- `dailysparks-brief-ingest-0300` -> `/api/internal/daily-brief/ingest` -> `0 3 * * *`
+- `dailysparks-brief-ingest-0500` -> `/api/internal/daily-brief/ingest` -> `0 5 * * *`
+- `dailysparks-brief-generate-0600` -> `/api/internal/daily-brief/generate` -> `0 6 * * *`
+- `dailysparks-brief-preflight-0850` -> `/api/internal/daily-brief/preflight` -> `50 8 * * *`
+- `dailysparks-brief-deliver-0900` -> `/api/internal/daily-brief/deliver` -> `0 9 * * *`
+- `dailysparks-brief-retry-0910` -> `/api/internal/daily-brief/retry-delivery` -> `10 9 * * *`
+
+All default schedules run in `Asia/Hong_Kong`, and all jobs reuse the same
+header-secret authentication. The helper also deletes the legacy single job
+`dailysparks-daily-brief` by default so the staged jobs do not double-trigger.
 
 Optional overrides:
 
 ```env
 GOOGLE_CLOUD_PROJECT=gen-lang-client-0586185740
-DAILY_BRIEF_SCHEDULER_JOB_NAME=dailysparks-daily-brief
 DAILY_BRIEF_SCHEDULER_LOCATION=asia-east2
-DAILY_BRIEF_SCHEDULER_SCHEDULE="0 6 * * *"
 DAILY_BRIEF_SCHEDULER_TIME_ZONE=Asia/Hong_Kong
-DAILY_BRIEF_SCHEDULER_TARGET_URL=https://dailysparks.geledtech.com/api/internal/daily-brief/run
+DAILY_BRIEF_SCHEDULER_BASE_URL=https://dailysparks.geledtech.com
+DAILY_BRIEF_SCHEDULER_JOB_PREFIX=dailysparks-brief
 DAILY_BRIEF_SCHEDULER_ATTEMPT_DEADLINE=1200s
 DAILY_BRIEF_SCHEDULER_MAX_RETRY_ATTEMPTS=0
 DAILY_BRIEF_SCHEDULER_MESSAGE_BODY={}
+DAILY_BRIEF_SCHEDULER_INGEST_0100_SCHEDULE="0 1 * * *"
+DAILY_BRIEF_SCHEDULER_INGEST_0300_SCHEDULE="0 3 * * *"
+DAILY_BRIEF_SCHEDULER_INGEST_0500_SCHEDULE="0 5 * * *"
+DAILY_BRIEF_SCHEDULER_GENERATE_0600_SCHEDULE="0 6 * * *"
+DAILY_BRIEF_SCHEDULER_PREFLIGHT_0850_SCHEDULE="50 8 * * *"
+DAILY_BRIEF_SCHEDULER_DELIVER_0900_SCHEDULE="0 9 * * *"
+DAILY_BRIEF_SCHEDULER_RETRY_0910_SCHEDULE="10 9 * * *"
+DAILY_BRIEF_SCHEDULER_LEGACY_JOB_NAME=dailysparks-daily-brief
+DAILY_BRIEF_SCHEDULER_CLEANUP_LEGACY_JOB=true
 ```
 
 The helper is idempotent:
 
-- it creates the job if it does not exist
-- it updates the job in place if it already exists
+- it creates each stage job if it does not exist
+- it updates each stage job in place if it already exists
+- it deletes the legacy single job when cleanup is enabled
 - it always keeps the route on header-secret auth and clears any stale OAuth or OIDC token config
+
+### Operational expectation
+
+The staged model is designed around a `09:00` delivery SLA:
+
+- `01:00`, `03:00`, `05:00`: refresh candidate sources
+- `06:00`: freeze topic selection and generate programme briefs
+- `08:50`: verify delivery readiness
+- `09:00`: dispatch approved briefs
+- `09:10`: retry only failed recipient-channel combinations
 
 ### Operator dry run
 
 Before enabling or after updating the schedule, it is safer to dry-run the
-route once:
+fallback orchestration route once:
 
 ```bash
 curl -sS -X POST \
@@ -237,10 +270,11 @@ curl -sS -X POST \
 
 When the system is ready, a real scheduled run will:
 
-- ingest active feed-backed editorial sources
+- refresh candidate snapshots overnight
 - generate only the programmes that have eligible recipients
-- write `Daily Briefs` history entries
-- deliver through configured Goodnotes and Notion channels
+- write staged `Daily Briefs` history entries
+- dispatch through configured Goodnotes and Notion channels at `09:00`
+- retry failed deliveries in a separate retry window instead of regenerating content
 
 ### Security notes
 
