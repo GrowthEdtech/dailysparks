@@ -44,7 +44,7 @@ type DailyBriefsAdminPageProps = {
 const ACTIVE_FILTER_CHIP_CLASSES =
   "border-[#0f172a] bg-[#0f172a] text-white";
 const INACTIVE_FILTER_CHIP_CLASSES =
-  "border-slate-200 bg-white text-slate-800 hover:bg-slate-100";
+  "border-slate-300 bg-white text-slate-900 shadow-sm hover:border-slate-400 hover:bg-slate-100";
 
 function parseProgramme(value: string | undefined): Programme | undefined {
   return value && isProgramme(value) ? value : undefined;
