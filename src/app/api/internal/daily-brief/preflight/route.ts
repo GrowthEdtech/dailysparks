@@ -3,6 +3,7 @@ import {
   updateDailyBriefHistoryEntry,
 } from "../../../../../lib/daily-brief-history-store";
 import type { DailyBriefHistoryRecord } from "../../../../../lib/daily-brief-history-schema";
+import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import {
   getDailyBriefSchedulerHeaderName,
   hasValidDailyBriefSchedulerSecret,
@@ -122,11 +123,26 @@ export async function POST(request: Request) {
   }
 
   if (blockers.length > 0) {
+    const opsAlert = await emitDailyBriefOpsAlert({
+      stage: "preflight",
+      severity: "critical",
+      runDate,
+      title: "Daily brief preflight blocked",
+      message: `${blockers.length} blocker(s) prevented the 08:50 preflight from approving today’s briefs.`,
+      details: {
+        blockers,
+        historyEntryCount: history.length,
+        candidateCount: preflightCandidates.length,
+        readyBriefCount: readyCandidates.length,
+      },
+    });
+
     return Response.json({
       mode: "preflight",
       ready: false,
       runDate,
       blockers,
+      opsAlert,
       summary: {
         historyEntryCount: history.length,
         candidateCount: preflightCandidates.length,

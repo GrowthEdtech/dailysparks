@@ -3,6 +3,8 @@ import {
   updateDailyBriefHistoryEntry,
 } from "../../../../../lib/daily-brief-history-store";
 import type { DailyBriefHistoryRecord } from "../../../../../lib/daily-brief-history-schema";
+import { planDailyBriefDispatch } from "../../../../../lib/daily-brief-delivery-policy";
+import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
 import {
   getDailyBriefSchedulerHeaderName,
@@ -50,6 +52,21 @@ function buildRetryEligibleUntil(runDate: string) {
 
 function isDeliverableBrief(entry: DailyBriefHistoryRecord) {
   return entry.status === "approved" && entry.pipelineStage === "preflight_passed";
+}
+
+function appendAdminNotes(existing: string, note: string) {
+  const trimmedExisting = existing.trim();
+  const trimmedNote = note.trim();
+
+  if (!trimmedExisting) {
+    return trimmedNote;
+  }
+
+  if (!trimmedNote) {
+    return trimmedExisting;
+  }
+
+  return `${trimmedExisting}\n${trimmedNote}`;
 }
 
 async function parseRequestBody(
@@ -115,21 +132,54 @@ export async function POST(request: Request) {
   let deliveryAttemptCount = 0;
   let deliverySuccessCount = 0;
   let deliveryFailureCount = 0;
+  let targetedProfileCount = 0;
+  let skippedProfileCount = 0;
+
+  const dispatchMode = planDailyBriefDispatch([]).mode;
 
   for (const brief of deliverableBriefs) {
-    const programmeProfiles = eligibleProfiles.filter(
+    const eligibleProgrammeProfiles = eligibleProfiles.filter(
       (profile) => profile.student.programme === brief.programme,
     );
+    const dispatchPlan = planDailyBriefDispatch(eligibleProgrammeProfiles);
+    const programmeProfiles = dispatchPlan.selectedProfiles;
+    const dispatchContext =
+      dispatchPlan.mode === "canary"
+        ? `Dispatch mode: canary. Targeted ${programmeProfiles.length} of ${eligibleProgrammeProfiles.length} eligible profile(s).`
+        : `Dispatch mode: all. Targeted ${programmeProfiles.length} eligible profile(s).`;
 
-    if (programmeProfiles.length === 0) {
+    targetedProfileCount += programmeProfiles.length;
+    skippedProfileCount += dispatchPlan.skippedProfiles.length;
+
+    if (eligibleProgrammeProfiles.length === 0 || programmeProfiles.length === 0) {
+      const failureReason =
+        eligibleProgrammeProfiles.length === 0
+          ? "No eligible delivery profiles were ready for this programme."
+          : "No canary delivery profiles were configured for this programme.";
+
       await updateDailyBriefHistoryEntry(brief.id, {
         status: "failed",
         pipelineStage: "failed",
         lastDeliveryAttemptAt: dispatchTimestamp,
-        failureReason: "No eligible delivery profiles were ready for this programme.",
+        failureReason,
         deliveryFailureCount: brief.deliveryFailureCount,
         failedDeliveryTargets: [],
         retryEligibleUntil: null,
+        adminNotes: appendAdminNotes(brief.adminNotes, dispatchContext),
+      });
+      await emitDailyBriefOpsAlert({
+        stage: "deliver",
+        severity: "critical",
+        runDate,
+        title: "Daily brief delivery blocked",
+        message: failureReason,
+        details: {
+          programme: brief.programme,
+          dispatchMode: dispatchPlan.mode,
+          eligibleProfileCount: eligibleProgrammeProfiles.length,
+          targetedProfileCount: programmeProfiles.length,
+          skippedProfileCount: dispatchPlan.skippedProfiles.length,
+        },
       });
       failedCount += 1;
       continue;
@@ -172,13 +222,43 @@ export async function POST(request: Request) {
           ? `${deliverySummary.failedDeliveryTargets.length} delivery target(s) need retry.`
           : "All configured delivery attempts failed."
         : "",
+      adminNotes: appendAdminNotes(
+        brief.adminNotes,
+        `${dispatchContext} Delivery attempts: ${deliverySummary.deliveryAttemptCount}. Successful deliveries: ${deliverySummary.deliverySuccessCount}. Failed deliveries: ${deliverySummary.deliveryFailureCount}.`,
+      ),
     });
+
+    if (hasFailures) {
+      await emitDailyBriefOpsAlert({
+        stage: "deliver",
+        severity: hasAnySuccess ? "warning" : "critical",
+        runDate,
+        title: hasAnySuccess
+          ? "Daily brief delivery completed with retry-needed failures"
+          : "Daily brief delivery failed",
+        message: hasAnySuccess
+          ? `${deliverySummary.failedDeliveryTargets.length} delivery target(s) need retry after the 09:00 dispatch wave.`
+          : "All configured delivery attempts failed during the 09:00 dispatch wave.",
+        details: {
+          programme: brief.programme,
+          dispatchMode: dispatchPlan.mode,
+          targetedProfileCount: programmeProfiles.length,
+          skippedProfileCount: dispatchPlan.skippedProfiles.length,
+          deliveryAttemptCount: deliverySummary.deliveryAttemptCount,
+          deliverySuccessCount: deliverySummary.deliverySuccessCount,
+          deliveryFailureCount: deliverySummary.deliveryFailureCount,
+        },
+      });
+    }
   }
 
   return Response.json({
     mode: "deliver",
     runDate,
     summary: {
+      dispatchMode,
+      targetedProfileCount,
+      skippedProfileCount,
       historyEntryCount: history.length,
       deliverableCount: deliverableBriefs.length,
       deliveredCount,

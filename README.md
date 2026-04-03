@@ -182,6 +182,42 @@ DAILY_SPARKS_SCHEDULER_SECRET_SECRET=daily-sparks-scheduler-secret
 
 If both are present, the Secret Manager reference is preferred.
 
+### Canary dispatch and ops alerts
+
+The staged pipeline also supports an operator-safe canary mode for the `09:00`
+dispatch wave:
+
+```env
+DAILY_BRIEF_DELIVERY_MODE=canary
+DAILY_BRIEF_CANARY_PARENT_EMAILS=first-family@example.com,second-family@example.com
+```
+
+- `all` is the default dispatch mode and targets every eligible family
+- `canary` limits the `deliver` and `retry-delivery` stages to the configured
+  parent email allowlist
+- briefs still generate for the day, but the `09:00` send only reaches the
+  canary set until you switch back to `all`
+
+Ops alerts always log a structured payload server-side. You can also forward
+alerts to a webhook:
+
+```env
+DAILY_BRIEF_OPS_ALERT_WEBHOOK_URL=https://ops.example.com/daily-brief
+```
+
+For production, prefer Secret Manager:
+
+```env
+DAILY_BRIEF_OPS_ALERT_WEBHOOK_URL_SECRET=daily-brief-ops-alert-webhook
+```
+
+`scripts/deploy-cloud-run.sh` preserves these settings across deploys:
+
+- `DAILY_BRIEF_DELIVERY_MODE`
+- `DAILY_BRIEF_CANARY_PARENT_EMAILS`
+- `DAILY_BRIEF_OPS_ALERT_WEBHOOK_URL`
+- `DAILY_BRIEF_OPS_ALERT_WEBHOOK_URL_SECRET`
+
 ### Configure the Cloud Scheduler jobs
 
 After deploying Cloud Run, create or update the staged scheduler jobs with:
@@ -275,6 +311,32 @@ When the system is ready, a real scheduled run will:
 - write staged `Daily Briefs` history entries
 - dispatch through configured Goodnotes and Notion channels at `09:00`
 - retry failed deliveries in a separate retry window instead of regenerating content
+
+### Operator checklist
+
+Recommended production rollout pattern:
+
+1. Start with `DAILY_BRIEF_DELIVERY_MODE=canary`
+2. Set `DAILY_BRIEF_CANARY_PARENT_EMAILS` to `1-3` real test families
+3. Confirm `generate` writes draft history entries by `06:10`
+4. Confirm `preflight` upgrades them to `approved / preflight_passed` by `08:50`
+5. Watch the `09:00` canary dispatch and the `09:10` retry wave
+6. Switch back to `DAILY_BRIEF_DELIVERY_MODE=all` only after a clean canary day
+
+The system emits critical alerts for:
+
+- `08:50` preflight blockers
+- `09:00` delivery runs with no eligible targets
+- `09:00` delivery runs where every configured channel fails
+- `09:10` retry runs that still end with unresolved failures
+
+It emits warning alerts for:
+
+- partial `09:00` delivery failures that still need retry
+- `09:10` retry waves with remaining unresolved targets
+
+See the detailed operations runbook in
+[`docs/plans/2026-04-03-daily-brief-operations-runbook.md`](docs/plans/2026-04-03-daily-brief-operations-runbook.md).
 
 ### Security notes
 

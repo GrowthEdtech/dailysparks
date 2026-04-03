@@ -3,6 +3,8 @@ import {
   updateDailyBriefHistoryEntry,
 } from "../../../../../lib/daily-brief-history-store";
 import type { DailyBriefHistoryRecord } from "../../../../../lib/daily-brief-history-schema";
+import { planDailyBriefDispatch } from "../../../../../lib/daily-brief-delivery-policy";
+import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
 import {
   getDailyBriefSchedulerHeaderName,
@@ -51,6 +53,21 @@ function isRetryCandidate(
     Boolean(entry.retryEligibleUntil) &&
     entry.retryEligibleUntil! >= retryAttemptTimestamp
   );
+}
+
+function appendAdminNotes(existing: string, note: string) {
+  const trimmedExisting = existing.trim();
+  const trimmedNote = note.trim();
+
+  if (!trimmedExisting) {
+    return trimmedNote;
+  }
+
+  if (!trimmedNote) {
+    return trimmedExisting;
+  }
+
+  return `${trimmedExisting}\n${trimmedNote}`;
 }
 
 async function parseRequestBody(
@@ -116,16 +133,50 @@ export async function POST(request: Request) {
   let deliveryAttemptCount = 0;
   let deliverySuccessCount = 0;
   let deliveryFailureCount = 0;
+  let targetedProfileCount = 0;
+  let skippedProfileCount = 0;
+  const dispatchMode = planDailyBriefDispatch([]).mode;
 
   for (const brief of retryCandidates) {
     const failedParentIds = new Set(
       brief.failedDeliveryTargets.map((target) => target.parentId),
     );
-    const programmeProfiles = eligibleProfiles.filter(
+    const eligibleProgrammeProfiles = eligibleProfiles.filter(
       (profile) =>
         profile.student.programme === brief.programme &&
         failedParentIds.has(profile.parent.id),
     );
+    const dispatchPlan = planDailyBriefDispatch(eligibleProgrammeProfiles);
+    const programmeProfiles = dispatchPlan.selectedProfiles;
+    const dispatchContext =
+      dispatchPlan.mode === "canary"
+        ? `Retry mode: canary. Targeted ${programmeProfiles.length} of ${eligibleProgrammeProfiles.length} failed profile(s).`
+        : `Retry mode: all. Targeted ${programmeProfiles.length} failed profile(s).`;
+
+    targetedProfileCount += programmeProfiles.length;
+    skippedProfileCount += dispatchPlan.skippedProfiles.length;
+
+    if (programmeProfiles.length === 0) {
+      await emitDailyBriefOpsAlert({
+        stage: "retry-delivery",
+        severity: "warning",
+        runDate,
+        title: "Daily brief retry skipped",
+        message:
+          dispatchPlan.mode === "canary"
+            ? "Retry delivery found failed targets but none matched the current canary allowlist."
+            : "Retry delivery found no eligible failed profiles to retry.",
+        details: {
+          programme: brief.programme,
+          dispatchMode: dispatchPlan.mode,
+          failedTargetCount: brief.failedDeliveryTargets.length,
+          targetedProfileCount: programmeProfiles.length,
+          skippedProfileCount: dispatchPlan.skippedProfiles.length,
+        },
+      });
+      continue;
+    }
+
     const retrySummary = await deliverHistoryBriefToProfiles(programmeProfiles, brief, {
       retryTargets: brief.failedDeliveryTargets,
     });
@@ -135,7 +186,16 @@ export async function POST(request: Request) {
       brief.deliverySuccessCount + retrySummary.deliverySuccessCount;
     const nextDeliveryFailureCount =
       brief.deliveryFailureCount + retrySummary.deliveryFailureCount;
-    const remainingFailedTargets = retrySummary.failedDeliveryTargets;
+    const retriedParentIds = new Set(
+      programmeProfiles.map((profile) => profile.parent.id),
+    );
+    const untouchedFailedTargets = brief.failedDeliveryTargets.filter(
+      (target) => !retriedParentIds.has(target.parentId),
+    );
+    const remainingFailedTargets = [
+      ...untouchedFailedTargets,
+      ...retrySummary.failedDeliveryTargets,
+    ];
     const hasRemainingFailures = remainingFailedTargets.length > 0;
     const hasAnySuccess = nextDeliverySuccessCount > 0;
 
@@ -158,13 +218,43 @@ export async function POST(request: Request) {
           ? `${remainingFailedTargets.length} delivery target(s) still need retry.`
           : "All configured delivery attempts failed."
         : "",
+      adminNotes: appendAdminNotes(
+        brief.adminNotes,
+        `${dispatchContext} Retry attempts: ${retrySummary.deliveryAttemptCount}. Successful retries: ${retrySummary.deliverySuccessCount}. Failed retries: ${retrySummary.deliveryFailureCount}.`,
+      ),
     });
+
+    if (hasRemainingFailures) {
+      await emitDailyBriefOpsAlert({
+        stage: "retry-delivery",
+        severity: hasAnySuccess ? "warning" : "critical",
+        runDate,
+        title: hasAnySuccess
+          ? "Daily brief retry completed with remaining failures"
+          : "Daily brief retry exhausted without success",
+        message: hasAnySuccess
+          ? `${remainingFailedTargets.length} delivery target(s) still need operator follow-up after retry.`
+          : "All configured retry deliveries failed.",
+        details: {
+          programme: brief.programme,
+          dispatchMode: dispatchPlan.mode,
+          targetedProfileCount: programmeProfiles.length,
+          skippedProfileCount: dispatchPlan.skippedProfiles.length,
+          deliveryAttemptCount: retrySummary.deliveryAttemptCount,
+          deliverySuccessCount: retrySummary.deliverySuccessCount,
+          deliveryFailureCount: retrySummary.deliveryFailureCount,
+        },
+      });
+    }
   }
 
   return Response.json({
     mode: "retry-delivery",
     runDate,
     summary: {
+      dispatchMode,
+      targetedProfileCount,
+      skippedProfileCount,
       historyEntryCount: history.length,
       retryCandidateCount: retryCandidates.length,
       retriedCount,

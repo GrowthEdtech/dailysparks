@@ -246,4 +246,62 @@ describe("daily brief retry-delivery route", () => {
     expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
     expect(history[0]?.failedDeliveryTargets).toHaveLength(1);
   });
+
+  test("only retries failed canary profiles when canary mode is enabled", async () => {
+    process.env.DAILY_BRIEF_DELIVERY_MODE = "canary";
+    process.env.DAILY_BRIEF_CANARY_PARENT_EMAILS = "canary-family@example.com";
+
+    const canaryProfile = await createEligibleProgrammeProfile(
+      "canary-family@example.com",
+      "PYP",
+    );
+    const generalProfile = await createEligibleProgrammeProfile(
+      "general-family@example.com",
+      "PYP",
+    );
+    await createDailyBriefHistoryEntry(
+      buildHistoryInput({
+        failedDeliveryTargets: [
+          {
+            parentId: canaryProfile.parent.id,
+            parentEmail: canaryProfile.parent.email,
+            channel: "goodnotes",
+            errorMessage: "SMTP timed out.",
+          },
+          {
+            parentId: generalProfile.parent.id,
+            parentEmail: generalProfile.parent.email,
+            channel: "goodnotes",
+            errorMessage: "SMTP timed out.",
+          },
+        ],
+      }),
+    );
+
+    const response = await retryDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.dispatchMode).toBe("canary");
+    expect(body.summary.targetedProfileCount).toBe(1);
+    expect(body.summary.skippedProfileCount).toBe(1);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[0]).toMatchObject({
+      parent: {
+        id: canaryProfile.parent.id,
+      },
+    });
+    expect(history[0]?.failedDeliveryTargets).toEqual([
+      expect.objectContaining({
+        parentId: generalProfile.parent.id,
+      }),
+    ]);
+  });
 });

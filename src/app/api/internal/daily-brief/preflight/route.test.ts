@@ -1,7 +1,16 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+
+const { emitDailyBriefOpsAlertMock } = vi.hoisted(() => ({
+  emitDailyBriefOpsAlertMock: vi.fn(),
+}));
+
+vi.mock("../../../../../lib/daily-brief-ops-alerts", () => ({
+  emitDailyBriefOpsAlert: (...args: unknown[]) =>
+    emitDailyBriefOpsAlertMock(...args),
+}));
 
 import { POST as preflightDailyBriefRoute } from "./route";
 import {
@@ -88,6 +97,12 @@ beforeEach(async () => {
     ),
     DAILY_SPARKS_SCHEDULER_SECRET: SCHEDULER_HEADER_FIXTURE,
   };
+
+  emitDailyBriefOpsAlertMock.mockReset();
+  emitDailyBriefOpsAlertMock.mockResolvedValue({
+    delivered: false,
+    usedWebhook: false,
+  });
 });
 
 afterEach(async () => {
@@ -112,6 +127,14 @@ describe("daily brief preflight route", () => {
     expect(body.ready).toBe(false);
     expect(body.blockers[0]).toMatch(/no generated briefs/i);
     expect(body.summary.historyEntryCount).toBe(0);
+    expect(emitDailyBriefOpsAlertMock).toHaveBeenCalledTimes(1);
+    expect(emitDailyBriefOpsAlertMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stage: "preflight",
+        severity: "critical",
+        runDate: "2026-04-03",
+      }),
+    );
   });
 
   test("blocks dispatch when delivery-ready artifacts are missing", async () => {
@@ -164,6 +187,7 @@ describe("daily brief preflight route", () => {
     expect(body.ready).toBe(true);
     expect(body.blockers).toEqual([]);
     expect(body.summary.approvedCount).toBe(2);
+    expect(emitDailyBriefOpsAlertMock).not.toHaveBeenCalled();
     expect(history.every((entry) => entry.status === "approved")).toBe(true);
     expect(
       history.every((entry) => entry.pipelineStage === "preflight_passed"),
