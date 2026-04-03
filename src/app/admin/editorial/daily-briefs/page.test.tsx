@@ -211,6 +211,23 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("Run staged test");
   });
 
+  test("uses higher-contrast styling for inactive filter chips", async () => {
+    listDailyBriefHistoryMock.mockResolvedValue([]);
+    listParentProfilesMock.mockResolvedValue([]);
+
+    const markup = renderToStaticMarkup(
+      await DailyBriefsAdminPage({
+        searchParams: Promise.resolve({
+          kind: "production",
+        }),
+      }),
+    );
+
+    expect(markup).toContain("bg-white text-slate-800");
+    expect(markup).toContain("hover:bg-slate-100");
+    expect(markup).not.toContain("bg-slate-50 text-slate-600");
+  });
+
   test("renders a daily reconciliation summary with skipped families and channel watchlist", async () => {
     listDailyBriefHistoryMock
       .mockResolvedValueOnce([])

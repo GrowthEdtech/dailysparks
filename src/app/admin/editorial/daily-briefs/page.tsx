@@ -41,6 +41,11 @@ type DailyBriefsAdminPageProps = {
   }>;
 };
 
+const ACTIVE_FILTER_CHIP_CLASSES =
+  "border-[#0f172a] bg-[#0f172a] text-white";
+const INACTIVE_FILTER_CHIP_CLASSES =
+  "border-slate-200 bg-white text-slate-800 hover:bg-slate-100";
+
 function parseProgramme(value: string | undefined): Programme | undefined {
   return value && isProgramme(value) ? value : undefined;
 }
@@ -171,8 +176,8 @@ export default async function DailyBriefsAdminPage({
                   })}
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                     recordKind === kindOption
-                      ? "border-[#0f172a] bg-[#0f172a] text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-600"
+                      ? ACTIVE_FILTER_CHIP_CLASSES
+                      : INACTIVE_FILTER_CHIP_CLASSES
                   }`}
                 >
                   {formatRecordKindLabel(kindOption)}
@@ -194,8 +199,8 @@ export default async function DailyBriefsAdminPage({
                 })}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                   !programme
-                    ? "border-[#0f172a] bg-[#0f172a] text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-600"
+                    ? ACTIVE_FILTER_CHIP_CLASSES
+                    : INACTIVE_FILTER_CHIP_CLASSES
                 }`}
               >
                 All
@@ -211,8 +216,8 @@ export default async function DailyBriefsAdminPage({
                   })}
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                     programme === programmeOption
-                      ? "border-[#0f172a] bg-[#0f172a] text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-600"
+                      ? ACTIVE_FILTER_CHIP_CLASSES
+                      : INACTIVE_FILTER_CHIP_CLASSES
                   }`}
                 >
                   {programmeOption}
@@ -234,8 +239,8 @@ export default async function DailyBriefsAdminPage({
                 })}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                   !status
-                    ? "border-[#0f172a] bg-[#0f172a] text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-600"
+                    ? ACTIVE_FILTER_CHIP_CLASSES
+                    : INACTIVE_FILTER_CHIP_CLASSES
                 }`}
               >
                 All
@@ -251,8 +256,8 @@ export default async function DailyBriefsAdminPage({
                   })}
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium capitalize ${
                     status === statusOption
-                      ? "border-[#0f172a] bg-[#0f172a] text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-600"
+                      ? ACTIVE_FILTER_CHIP_CLASSES
+                      : INACTIVE_FILTER_CHIP_CLASSES
                   }`}
                 >
                   {statusOption}
@@ -274,8 +279,8 @@ export default async function DailyBriefsAdminPage({
                 })}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                   !editorialCohort
-                    ? "border-[#0f172a] bg-[#0f172a] text-white"
-                    : "border-slate-200 bg-slate-50 text-slate-600"
+                    ? ACTIVE_FILTER_CHIP_CLASSES
+                    : INACTIVE_FILTER_CHIP_CLASSES
                 }`}
               >
                 All
@@ -291,8 +296,8 @@ export default async function DailyBriefsAdminPage({
                   })}
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                     editorialCohort === cohortOption
-                      ? "border-[#0f172a] bg-[#0f172a] text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-600"
+                      ? ACTIVE_FILTER_CHIP_CLASSES
+                      : INACTIVE_FILTER_CHIP_CLASSES
                   }`}
                 >
                   {formatEditorialCohortLabel(cohortOption)}
