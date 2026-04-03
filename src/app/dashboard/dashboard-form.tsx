@@ -35,22 +35,22 @@ function hasMeaningfulStudentName(studentName: string) {
   );
 }
 
-export function shouldShowStudentNameSetupCard(persistedStudentName: string) {
-  return !hasMeaningfulStudentName(persistedStudentName);
-}
-
 export default function DashboardForm({
   initialProfile,
   notionConfigured,
 }: DashboardFormProps) {
   const router = useRouter();
-  const [studentName, setStudentName] = useState(initialProfile.student.studentName);
+  const [studentName, setStudentName] = useState(
+    hasMeaningfulStudentName(initialProfile.student.studentName)
+      ? initialProfile.student.studentName
+      : "",
+  );
+  const [savedStudentName, setSavedStudentName] = useState(
+    initialProfile.student.studentName,
+  );
   const [programme, setProgramme] = useState(initialProfile.student.programme);
   const [programmeYear, setProgrammeYear] = useState(
     initialProfile.student.programmeYear,
-  );
-  const [showStudentNameSetupCard, setShowStudentNameSetupCard] = useState(
-    shouldShowStudentNameSetupCard(initialProfile.student.studentName),
   );
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -61,8 +61,10 @@ export default function DashboardForm({
   const weeklyPlan = getWeeklyPlan(programme, programmeYear);
   const programmeStageSummary = getProgrammeStageSummary(programme);
   const stageLabel = programme;
-  const hasStudentName = hasMeaningfulStudentName(studentName);
-  const displayStudentName = hasStudentName ? studentName.trim() : "Your child";
+  const hasSavedStudentName = hasMeaningfulStudentName(savedStudentName);
+  const displayStudentName = hasSavedStudentName
+    ? savedStudentName.trim()
+    : "Your child";
 
   function handleProgrammeChange(nextProgramme: Programme) {
     setSuccessMessage("");
@@ -99,11 +101,9 @@ export default function DashboardForm({
 
       if (body?.student) {
         setStudentName(body.student.studentName);
+        setSavedStudentName(body.student.studentName);
         setProgramme(body.student.programme);
         setProgrammeYear(body.student.programmeYear);
-        setShowStudentNameSetupCard(
-          shouldShowStudentNameSetupCard(body.student.studentName),
-        );
       }
 
       setSuccessMessage("Preferences saved.");
@@ -261,46 +261,71 @@ export default function DashboardForm({
               </div>
             </section>
 
-            {showStudentNameSetupCard ? (
-              <section className="rounded-3xl border border-[#fbbf24]/30 bg-[#fff7dd] p-6 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b45309]">
-                  One last setup detail
-                </p>
-                <h2 className="mt-2 text-xl font-bold text-[#0f172a]">
-                  Add your child&apos;s first name
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  We use it across reading briefs, weekly plans, and delivery notes.
-                </p>
-
-                <label className="mt-4 flex flex-col gap-2">
-                  <span className="text-sm font-semibold text-slate-700">
-                    Child name
+            <section
+              className={`rounded-3xl p-6 shadow-sm ${
+                hasSavedStudentName
+                  ? "border border-slate-100 bg-white"
+                  : "border border-[#fbbf24]/30 bg-[#fff7dd]"
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p
+                    className={`text-xs font-semibold uppercase tracking-[0.24em] ${
+                      hasSavedStudentName ? "text-slate-400" : "text-[#b45309]"
+                    }`}
+                  >
+                    {hasSavedStudentName ? "Child profile" : "One last setup detail"}
+                  </p>
+                  <h2 className="mt-2 text-xl font-bold text-[#0f172a]">
+                    {hasSavedStudentName
+                      ? "Keep your child's first name up to date"
+                      : "Add your child's first name"}
+                  </h2>
+                </div>
+                {hasSavedStudentName ? (
+                  <span className="rounded-full bg-[#eefbf3] px-3 py-1 text-xs font-semibold text-[#15803d]">
+                    Saved
                   </span>
-                  <input
-                    className="rounded-2xl border border-[#fbbf24]/30 bg-white px-4 py-3 text-base text-[#0f172a] placeholder:text-slate-300 caret-[#0f172a] outline-none transition focus:border-[#f59e0b]"
-                    type="text"
-                    value={studentName === "Student" ? "" : studentName}
-                    onChange={(event) => setStudentName(event.target.value)}
-                    placeholder="Katherine"
-                  />
-                </label>
+                ) : null}
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {hasSavedStudentName
+                  ? "Update the name used across reading briefs, weekly plans, and delivery notes."
+                  : "We use it across reading briefs, weekly plans, and delivery notes."}
+              </p>
 
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={
-                    isSaving ||
-                    isPending ||
-                    !hasMeaningfulStudentName(studentName)
-                  }
-                  className="mx-auto mt-4 flex w-fit items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60 lg:mx-0"
-                >
-                  <Save className="h-4 w-4" />
-                  {isSaving || isPending ? "Saving..." : "Save child name"}
-                </button>
-              </section>
-            ) : null}
+              <label className="mt-4 flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  {hasSavedStudentName ? "Current child name" : "Child name"}
+                </span>
+                <input
+                  className="rounded-2xl border border-[#fbbf24]/30 bg-white px-4 py-3 text-base text-[#0f172a] placeholder:text-slate-300 caret-[#0f172a] outline-none transition focus:border-[#f59e0b]"
+                  type="text"
+                  value={studentName}
+                  onChange={(event) => setStudentName(event.target.value)}
+                  placeholder="Katherine"
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={
+                  isSaving ||
+                  isPending ||
+                  !hasMeaningfulStudentName(studentName)
+                }
+                className="mx-auto mt-4 flex w-fit items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60 lg:mx-0"
+              >
+                <Save className="h-4 w-4" />
+                {isSaving || isPending
+                  ? "Saving..."
+                  : hasSavedStudentName
+                    ? "Update child name"
+                    : "Save child name"}
+              </button>
+            </section>
 
             <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-[#0f172a]">Learning stage</h2>

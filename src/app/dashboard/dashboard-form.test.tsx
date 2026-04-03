@@ -1,9 +1,8 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import type { ParentProfile } from "../../lib/mvp-types";
-import * as DashboardFormModule from "./dashboard-form";
 import DashboardForm from "./dashboard-form";
 
 vi.mock("next/navigation", () => ({
@@ -80,10 +79,6 @@ const initialProfile: ParentProfile = {
   },
 };
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
 describe("DashboardForm", () => {
   test("uses a wide desktop container and two-column layout instead of mobile-only stacking", () => {
     const markup = renderToStaticMarkup(
@@ -97,15 +92,6 @@ describe("DashboardForm", () => {
     expect(markup).toContain("order-2 space-y-6 lg:order-1");
     expect(markup).toContain("order-1 space-y-6 lg:order-2");
     expect(markup).not.toContain("max-w-md flex-col gap-6 px-4");
-  });
-
-  test("keeps the child name setup card visible while the first valid name is being typed", () => {
-    expect(
-      DashboardFormModule.shouldShowStudentNameSetupCard?.("Student"),
-    ).toBe(true);
-    expect(
-      DashboardFormModule.shouldShowStudentNameSetupCard?.("Katherine"),
-    ).toBe(false);
   });
 
   test("renders the child name setup card when the persisted name is still the placeholder", () => {
@@ -124,6 +110,18 @@ describe("DashboardForm", () => {
 
     expect(markup).toContain("Add your child&#x27;s first name");
     expect(markup).toContain("Save child name");
+  });
+
+  test("keeps the child name card visible after setup and switches it into an editable saved state", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardForm initialProfile={initialProfile} notionConfigured={true} />,
+    );
+
+    expect(markup).toContain("Child profile");
+    expect(markup).toContain("Saved");
+    expect(markup).toContain("Current child name");
+    expect(markup).toContain("Update child name");
+    expect(markup).not.toContain("Add your child&#x27;s first name");
   });
 
   test("uses a darker text color for typed child names than the placeholder", () => {
