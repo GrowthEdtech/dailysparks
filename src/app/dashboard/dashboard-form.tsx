@@ -278,7 +278,7 @@ export default function DashboardForm({
                     Child name
                   </span>
                   <input
-                    className="rounded-2xl border border-[#fbbf24]/30 bg-white px-4 py-3 text-base outline-none transition focus:border-[#f59e0b]"
+                    className="rounded-2xl border border-[#fbbf24]/30 bg-white px-4 py-3 text-base text-[#0f172a] placeholder:text-slate-300 caret-[#0f172a] outline-none transition focus:border-[#f59e0b]"
                     type="text"
                     value={studentName === "Student" ? "" : studentName}
                     onChange={(event) => setStudentName(event.target.value)}

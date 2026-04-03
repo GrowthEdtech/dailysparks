@@ -125,4 +125,23 @@ describe("DashboardForm", () => {
     expect(markup).toContain("Add your child&#x27;s first name");
     expect(markup).toContain("Save child name");
   });
+
+  test("uses a darker text color for typed child names than the placeholder", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardForm
+        initialProfile={{
+          ...initialProfile,
+          student: {
+            ...initialProfile.student,
+            studentName: "Student",
+          },
+        }}
+        notionConfigured={true}
+      />,
+    );
+
+    expect(markup).toContain("text-[#0f172a]");
+    expect(markup).toContain("placeholder:text-slate-300");
+    expect(markup).toContain("caret-[#0f172a]");
+  });
 });
