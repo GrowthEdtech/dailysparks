@@ -95,8 +95,8 @@ async function createGoodnotesProfile() {
   return updateStudentGoodnotesDelivery("goodnotes@example.com", {
     goodnotesConnected: true,
     goodnotesVerifiedAt: "2026-04-03T00:00:00.000Z",
-    goodnotesLastDeliveryStatus: "idle",
-    goodnotesLastDeliveryMessage: "Waiting for the first daily brief.",
+    goodnotesLastDeliveryStatus: "success",
+    goodnotesLastDeliveryMessage: "Welcome note sent. Goodnotes delivery is ready.",
   });
 }
 
@@ -123,8 +123,32 @@ async function createNotionProfile() {
     notionDatabaseId: "database-1",
     notionDatabaseName: "Daily Sparks",
     notionDataSourceId: "data-source-1",
-    notionLastSyncStatus: "idle",
-    notionLastSyncMessage: "Awaiting first live delivery.",
+    notionLastSyncStatus: "success",
+    notionLastSyncMessage: "Test page sent to Notion successfully.",
+  });
+}
+
+async function createPendingGoodnotesProfile() {
+  await getOrCreateParentProfile({
+    email: "pending-goodnotes@example.com",
+    fullName: "Pending Goodnotes Parent",
+    studentName: "Learner",
+  });
+  await updateParentSubscription("pending-goodnotes@example.com", {
+    subscriptionStatus: "active",
+  });
+  await updateStudentPreferences("pending-goodnotes@example.com", {
+    studentName: "Learner",
+    programme: "PYP",
+    programmeYear: 5,
+    goodnotesEmail: "learner@goodnotes.email",
+  });
+
+  return updateStudentGoodnotesDelivery("pending-goodnotes@example.com", {
+    goodnotesConnected: true,
+    goodnotesVerifiedAt: "2026-04-03T00:00:00.000Z",
+    goodnotesLastDeliveryStatus: "idle",
+    goodnotesLastDeliveryMessage: "Waiting for the first daily brief.",
   });
 }
 
@@ -182,5 +206,48 @@ describe("daily brief stage delivery", () => {
     expect(updatedProfile?.parent.notionLastSyncMessage).toMatch(
       /notion api timeout/i,
     );
+  });
+
+  test("skips normal delivery for channels that are not dispatchable yet", async () => {
+    const profile = await createPendingGoodnotesProfile();
+    sendBriefToGoodnotesMock.mockResolvedValue({
+      attachmentFileName: "welcome-note.pdf",
+      messageId: "message-1",
+    });
+
+    const summary = await deliverHistoryBriefToProfiles([profile!], buildBrief());
+
+    expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
+    expect(summary.deliveryAttemptCount).toBe(0);
+    expect(summary.deliverySuccessCount).toBe(0);
+  });
+
+  test("allows retry attempts for verified channels that currently need attention", async () => {
+    await createGoodnotesProfile();
+    await updateStudentGoodnotesDelivery("goodnotes@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "failed",
+      goodnotesLastDeliveryMessage: "SMTP relay timeout.",
+    });
+    const failedProfile = await getProfileByEmail("goodnotes@example.com");
+    sendBriefToGoodnotesMock.mockResolvedValue({
+      attachmentFileName: "retry-brief.pdf",
+      messageId: "message-2",
+    });
+
+    const summary = await deliverHistoryBriefToProfiles([failedProfile!], buildBrief(), {
+      retryTargets: [
+        {
+          parentId: failedProfile!.parent.id,
+          parentEmail: failedProfile!.parent.email,
+          channel: "goodnotes",
+          errorMessage: "SMTP relay timeout.",
+        },
+      ],
+    });
+
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(summary.deliveryAttemptCount).toBe(1);
+    expect(summary.deliverySuccessCount).toBe(1);
   });
 });

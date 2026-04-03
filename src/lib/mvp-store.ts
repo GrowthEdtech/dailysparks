@@ -37,6 +37,10 @@ export async function listEligibleDeliveryProfiles() {
   return getProfileStore().listEligibleDeliveryProfiles();
 }
 
+export async function listDispatchableDeliveryProfiles() {
+  return getProfileStore().listDispatchableDeliveryProfiles();
+}
+
 export async function getOrCreateParentProfile(
   input: CreateParentProfileInput,
 ) {

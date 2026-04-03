@@ -29,6 +29,7 @@ import {
 } from "./mvp-types";
 import type { ProfileStore } from "./profile-store";
 import { hasAutomatedDeliverySubscription } from "./delivery-eligibility";
+import { hasDispatchableDeliveryChannel } from "./delivery-readiness";
 
 function getStoreFilePath() {
   return (
@@ -475,6 +476,13 @@ function isEligibleForAutomatedDelivery(profile: ParentProfile) {
   );
 }
 
+function isDispatchableForAutomatedDelivery(profile: ParentProfile) {
+  return (
+    hasAutomatedDeliverySubscription(profile.parent) &&
+    hasDispatchableDeliveryChannel(profile)
+  );
+}
+
 export const localProfileStore: ProfileStore = {
   async getProfileByEmail(email) {
     const normalizedEmail = normalizeEmail(email);
@@ -522,6 +530,16 @@ export const localProfileStore: ProfileStore = {
 
     return listProfilesFromStore(store)
       .filter((profile) => isEligibleForAutomatedDelivery(profile))
+      .sort((left, right) =>
+        left.parent.email.localeCompare(right.parent.email),
+      );
+  },
+
+  async listDispatchableDeliveryProfiles() {
+    const store = await readStore();
+
+    return listProfilesFromStore(store)
+      .filter((profile) => isDispatchableForAutomatedDelivery(profile))
       .sort((left, right) =>
         left.parent.email.localeCompare(right.parent.email),
       );

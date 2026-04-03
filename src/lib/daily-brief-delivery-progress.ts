@@ -1,4 +1,4 @@
-import { getNotionChannelState } from "./notion-channel-state";
+import { canDispatchDeliveryChannel } from "./delivery-readiness";
 import type {
   DailyBriefDeliveryChannel,
   DailyBriefDeliveryReceipt,
@@ -23,14 +23,16 @@ export function listExpectedDeliveryTargets(
     const targets: DeliveryTargetIdentity[] = [];
 
     if (profile.student.goodnotesConnected) {
-      targets.push({
-        parentId: profile.parent.id,
-        parentEmail: profile.parent.email,
-        channel: "goodnotes",
-      });
+      if (canDispatchDeliveryChannel(profile, "goodnotes")) {
+        targets.push({
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          channel: "goodnotes",
+        });
+      }
     }
 
-    if (getNotionChannelState(profile).verified) {
+    if (canDispatchDeliveryChannel(profile, "notion")) {
       targets.push({
         parentId: profile.parent.id,
         parentEmail: profile.parent.email,

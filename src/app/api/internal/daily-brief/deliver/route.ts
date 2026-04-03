@@ -15,6 +15,7 @@ import {
 import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import { listPendingDeliveryTargets } from "../../../../../lib/daily-brief-delivery-progress";
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
+import { hasAutomatedDeliverySubscription } from "../../../../../lib/delivery-eligibility";
 import { splitProfilesByDeliveryWindow } from "../../../../../lib/delivery-window";
 import {
   getDailyBriefSchedulerHeaderName,
@@ -22,7 +23,10 @@ import {
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
 import { getDailyBriefDispatchRunDates } from "../../../../../lib/daily-brief-run-date";
-import { listEligibleDeliveryProfiles } from "../../../../../lib/mvp-store";
+import {
+  listDispatchableDeliveryProfiles,
+  listParentProfiles,
+} from "../../../../../lib/mvp-store";
 
 type DailyBriefDeliverRequestBody = {
   runDate?: string;
@@ -206,7 +210,8 @@ export async function POST(request: Request) {
     )
   ).flat();
   const deliverableBriefs = history.filter(isDeliverableBrief);
-  const eligibleProfiles = await listEligibleDeliveryProfiles();
+  const dispatchableProfiles = await listDispatchableDeliveryProfiles();
+  const allProfiles = await listParentProfiles();
   const retryEligibleUntil = buildRetryEligibleUntil(dispatchTimestamp);
   let deliveredCount = 0;
   let failedCount = 0;
@@ -220,7 +225,12 @@ export async function POST(request: Request) {
   const dispatchMode = planDailyBriefDispatch([], dispatchOverrides).mode;
 
   for (const brief of deliverableBriefs) {
-    const eligibleProgrammeProfiles = eligibleProfiles.filter(
+    const activeProgrammeProfiles = allProfiles.filter(
+      (profile) =>
+        profile.student.programme === brief.programme &&
+        hasAutomatedDeliverySubscription(profile.parent),
+    );
+    const eligibleProgrammeProfiles = dispatchableProfiles.filter(
       (profile) => profile.student.programme === brief.programme,
     );
     const deliveryWindowSplit = forceDispatch
@@ -247,9 +257,9 @@ export async function POST(request: Request) {
     skippedProfileCount += dispatchPlan.skippedProfiles.length;
     pendingFutureProfileCount += deliveryWindowSplit.pendingProfiles.length;
 
-    if (eligibleProgrammeProfiles.length === 0) {
+    if (activeProgrammeProfiles.length === 0) {
       const failureReason =
-        "No eligible delivery profiles were ready for this programme.";
+        "No active delivery profiles remained for this programme.";
 
       await updateDailyBriefHistoryEntry(brief.id, {
         status: "failed",
@@ -276,6 +286,29 @@ export async function POST(request: Request) {
         },
       });
       failedCount += 1;
+      continue;
+    }
+
+    if (eligibleProgrammeProfiles.length === 0) {
+      await updateDailyBriefHistoryEntry(brief.id, {
+        adminNotes: appendAdminNotes(
+          brief.adminNotes,
+          "No dispatchable delivery channels were healthy for this programme in the current wave. The brief stayed ready for a later recovery dispatch.",
+        ),
+      });
+      await emitDailyBriefOpsAlert({
+        stage: "deliver",
+        severity: "warning",
+        runDate: brief.scheduledFor,
+        title: "Daily brief held for channel recovery",
+        message:
+          "Active families still exist in this programme, but none currently have a healthy dispatchable delivery channel.",
+        details: {
+          programme: brief.programme,
+          activeProfileCount: activeProgrammeProfiles.length,
+          dispatchableProfileCount: eligibleProgrammeProfiles.length,
+        },
+      });
       continue;
     }
 

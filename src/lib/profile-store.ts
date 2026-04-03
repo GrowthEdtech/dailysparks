@@ -13,6 +13,7 @@ export type ProfileStore = {
   getProfileByParentId(parentId: string): Promise<ParentProfile | null>;
   listParentProfiles(): Promise<ParentProfile[]>;
   listEligibleDeliveryProfiles(): Promise<ParentProfile[]>;
+  listDispatchableDeliveryProfiles(): Promise<ParentProfile[]>;
   getOrCreateParentProfile(
     input: CreateParentProfileInput,
   ): Promise<ParentProfile>;

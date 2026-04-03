@@ -1,4 +1,7 @@
-import { getNotionChannelState } from "./notion-channel-state";
+import {
+  getGoodnotesChannelReadiness,
+  getNotionChannelReadiness,
+} from "./delivery-readiness";
 import type { ParentProfile } from "./mvp-types";
 
 export type DeliveryHealthLevel =
@@ -26,16 +29,12 @@ export type FamilyDeliveryHealthRollup = {
 export function getGoodnotesChannelRollup(
   profile: ParentProfile,
 ): DeliveryChannelRollup {
-  const configured = Boolean(profile.student.goodnotesEmail);
-  const verified = profile.student.goodnotesConnected;
-  const lastStatus = profile.student.goodnotesLastDeliveryStatus;
-  const healthy = verified && lastStatus === "success";
-  const needsAttention = verified && lastStatus === "failed";
+  const readiness = getGoodnotesChannelReadiness(profile);
 
-  if (healthy) {
+  if (readiness.healthy) {
     return {
-      configured,
-      verified,
+      configured: readiness.configured,
+      verified: readiness.verified,
       healthy: true,
       needsAttention: false,
       level: "healthy",
@@ -43,10 +42,10 @@ export function getGoodnotesChannelRollup(
     };
   }
 
-  if (needsAttention) {
+  if (readiness.needsAttention) {
     return {
-      configured,
-      verified,
+      configured: readiness.configured,
+      verified: readiness.verified,
       healthy: false,
       needsAttention: true,
       level: "attention",
@@ -54,21 +53,21 @@ export function getGoodnotesChannelRollup(
     };
   }
 
-  if (verified) {
+  if (readiness.verified) {
     return {
-      configured,
-      verified,
+      configured: readiness.configured,
+      verified: readiness.verified,
       healthy: false,
       needsAttention: false,
       level: "pending",
-      label: "Goodnotes ready",
+      label: "Goodnotes delivery check needed",
     };
   }
 
-  if (configured) {
+  if (readiness.configured) {
     return {
-      configured,
-      verified,
+      configured: readiness.configured,
+      verified: readiness.verified,
       healthy: false,
       needsAttention: false,
       level: "pending",
@@ -77,8 +76,8 @@ export function getGoodnotesChannelRollup(
   }
 
   return {
-    configured,
-    verified,
+    configured: readiness.configured,
+    verified: readiness.verified,
     healthy: false,
     needsAttention: false,
     level: "not_ready",
@@ -89,7 +88,7 @@ export function getGoodnotesChannelRollup(
 export function getNotionChannelRollup(
   profile: ParentProfile,
 ): DeliveryChannelRollup {
-  const notionChannelState = getNotionChannelState(profile);
+  const notionChannelState = getNotionChannelReadiness(profile);
 
   if (notionChannelState.healthy) {
     return {
@@ -107,9 +106,11 @@ export function getNotionChannelRollup(
       configured: true,
       verified: true,
       healthy: false,
-      needsAttention: true,
-      level: "attention",
-      label: "Notion needs attention",
+      needsAttention: notionChannelState.needsAttention,
+      level: notionChannelState.needsAttention ? "attention" : "pending",
+      label: notionChannelState.needsAttention
+        ? "Notion needs attention"
+        : "Notion delivery check needed",
     };
   }
 

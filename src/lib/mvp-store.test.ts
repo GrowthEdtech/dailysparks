@@ -9,6 +9,7 @@ import {
   getProfileByParentId,
   getProfileByEmail,
   listParentProfiles,
+  listDispatchableDeliveryProfiles,
   listEligibleDeliveryProfiles,
   updateParentSubscription,
   updateStudentGoodnotesDelivery,
@@ -421,6 +422,83 @@ describe("mvp store", () => {
 
     expect(eligibleProfiles.map((profile) => profile.parent.email)).toEqual([
       "future-trial@example.com",
+    ]);
+  });
+
+  test("only includes healthy channels in dispatchable delivery eligibility", async () => {
+    await getOrCreateParentProfile({
+      email: "healthy-goodnotes@example.com",
+      fullName: "Healthy Goodnotes Parent",
+      studentName: "Ava",
+    });
+    await updateStudentPreferences("healthy-goodnotes@example.com", {
+      studentName: "Ava",
+      goodnotesEmail: "ava@goodnotes.email",
+      programme: "PYP",
+      programmeYear: 5,
+    });
+    await updateStudentGoodnotesDelivery("healthy-goodnotes@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Ready.",
+    });
+    await updateParentSubscription("healthy-goodnotes@example.com", {
+      subscriptionStatus: "active",
+    });
+
+    await getOrCreateParentProfile({
+      email: "failed-goodnotes@example.com",
+      fullName: "Failed Goodnotes Parent",
+      studentName: "Bea",
+    });
+    await updateStudentPreferences("failed-goodnotes@example.com", {
+      studentName: "Bea",
+      goodnotesEmail: "bea@goodnotes.email",
+      programme: "MYP",
+      programmeYear: 3,
+    });
+    await updateStudentGoodnotesDelivery("failed-goodnotes@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "failed",
+      goodnotesLastDeliveryMessage: "SMTP relay timeout.",
+    });
+    await updateParentSubscription("failed-goodnotes@example.com", {
+      subscriptionStatus: "active",
+    });
+
+    await getOrCreateParentProfile({
+      email: "idle-notion@example.com",
+      fullName: "Idle Notion Parent",
+      studentName: "Kai",
+    });
+    await updateStudentPreferences("idle-notion@example.com", {
+      studentName: "Kai",
+      goodnotesEmail: "",
+      programme: "DP",
+      programmeYear: 1,
+    });
+    await updateParentNotionConnection("idle-notion@example.com", {
+      notionConnected: true,
+      notionWorkspaceId: "workspace-1",
+      notionDatabaseId: "db-1",
+      notionDataSourceId: "data-source-1",
+      notionLastSyncStatus: "idle",
+      notionLastSyncMessage: "Awaiting first archive.",
+    });
+    await updateParentSubscription("idle-notion@example.com", {
+      subscriptionStatus: "active",
+    });
+
+    const dispatchableProfiles = await listDispatchableDeliveryProfiles();
+    const deliveryEligibleProfiles = await listEligibleDeliveryProfiles();
+
+    expect(dispatchableProfiles.map((profile) => profile.parent.email)).toEqual([
+      "healthy-goodnotes@example.com",
+    ]);
+    expect(deliveryEligibleProfiles.map((profile) => profile.parent.email)).toEqual([
+      "failed-goodnotes@example.com",
+      "healthy-goodnotes@example.com",
+      "idle-notion@example.com",
     ]);
   });
 

@@ -22,6 +22,7 @@ import {
 import { getFirebaseAdminDb } from "./firebase-admin";
 import type { ProfileStore } from "./profile-store";
 import { hasAutomatedDeliverySubscription } from "./delivery-eligibility";
+import { hasDispatchableDeliveryChannel } from "./delivery-readiness";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -228,6 +229,13 @@ function isEligibleForAutomatedDelivery(profile: ParentProfile) {
   );
 }
 
+function isDispatchableForAutomatedDelivery(profile: ParentProfile) {
+  return (
+    hasAutomatedDeliverySubscription(profile.parent) &&
+    hasDispatchableDeliveryChannel(profile)
+  );
+}
+
 async function findParentByEmail(email: string) {
   const db = getFirebaseAdminDb();
   const snapshot = await db
@@ -430,6 +438,16 @@ export const firestoreProfileStore: ProfileStore = {
 
     return profiles
       .filter((profile) => isEligibleForAutomatedDelivery(profile))
+      .sort((left, right) =>
+        left.parent.email.localeCompare(right.parent.email),
+      );
+  },
+
+  async listDispatchableDeliveryProfiles() {
+    const profiles = await listAllProfiles();
+
+    return profiles
+      .filter((profile) => isDispatchableForAutomatedDelivery(profile))
       .sort((left, right) =>
         left.parent.email.localeCompare(right.parent.email),
       );

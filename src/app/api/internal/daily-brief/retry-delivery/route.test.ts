@@ -268,6 +268,42 @@ describe("daily brief retry-delivery route", () => {
     expect(history[0]?.failedDeliveryTargets).toHaveLength(1);
   });
 
+  test("can retry a verified channel that is currently unhealthy", async () => {
+    const profile = await createEligibleProgrammeProfile(
+      "pyp-retry@example.com",
+      "PYP",
+    );
+    await updateStudentGoodnotesDelivery("pyp-retry@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "failed",
+      goodnotesLastDeliveryMessage: "SMTP timed out.",
+    });
+    await createDailyBriefHistoryEntry(
+      buildHistoryInput({
+        failedDeliveryTargets: [
+          {
+            parentId: profile.parent.id,
+            parentEmail: profile.parent.email,
+            channel: "goodnotes",
+            errorMessage: "SMTP timed out.",
+          },
+        ],
+      }),
+    );
+
+    const response = await retryDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:10:00.000Z",
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.summary.retriedCount).toBe(1);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+  });
+
   test("only retries failed canary profiles when canary mode is enabled", async () => {
     process.env.DAILY_BRIEF_DELIVERY_MODE = "canary";
     process.env.DAILY_BRIEF_CANARY_PARENT_EMAILS = "canary-family@example.com";

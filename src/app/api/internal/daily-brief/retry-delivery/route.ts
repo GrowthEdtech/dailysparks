@@ -11,13 +11,15 @@ import { listPendingDeliveryTargets } from "../../../../../lib/daily-brief-deliv
 import { planDailyBriefDispatch } from "../../../../../lib/daily-brief-delivery-policy";
 import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
+import { hasAutomatedDeliverySubscription } from "../../../../../lib/delivery-eligibility";
+import { filterRetryableProfilesByProgramme } from "../../../../../lib/delivery-readiness";
 import {
   getDailyBriefSchedulerHeaderName,
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
 import { getDailyBriefDispatchRunDates } from "../../../../../lib/daily-brief-run-date";
-import { listEligibleDeliveryProfiles } from "../../../../../lib/mvp-store";
+import { listParentProfiles } from "../../../../../lib/mvp-store";
 
 type DailyBriefRetryDeliveryRequestBody = {
   runDate?: string;
@@ -177,7 +179,9 @@ export async function POST(request: Request) {
   const retryCandidates = history.filter((entry) =>
     isRetryCandidate(entry, retryAttemptTimestamp)
   );
-  const eligibleProfiles = await listEligibleDeliveryProfiles();
+  const activeProfiles = (await listParentProfiles()).filter((profile) =>
+    hasAutomatedDeliverySubscription(profile.parent),
+  );
   let retriedCount = 0;
   let deliveryAttemptCount = 0;
   let deliverySuccessCount = 0;
@@ -190,11 +194,10 @@ export async function POST(request: Request) {
     const failedParentIds = new Set(
       brief.failedDeliveryTargets.map((target) => target.parentId),
     );
-    const eligibleProgrammeProfiles = eligibleProfiles.filter(
-      (profile) =>
-        profile.student.programme === brief.programme &&
-        failedParentIds.has(profile.parent.id),
-    );
+    const eligibleProgrammeProfiles = filterRetryableProfilesByProgramme(
+      activeProfiles,
+      brief.programme,
+    ).filter((profile) => failedParentIds.has(profile.parent.id));
     const dispatchPlan = planDailyBriefDispatch(eligibleProgrammeProfiles);
     const programmeProfiles = dispatchPlan.selectedProfiles;
     const dispatchContext =
@@ -254,7 +257,7 @@ export async function POST(request: Request) {
       ...retrySummary.deliveryReceipts,
     ];
     const pendingTargets = listPendingDeliveryTargets({
-      profiles: eligibleProfiles.filter(
+      profiles: activeProfiles.filter(
         (profile) => profile.student.programme === brief.programme,
       ),
       deliveryReceipts: nextDeliveryReceipts,

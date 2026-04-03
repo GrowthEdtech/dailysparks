@@ -3,7 +3,10 @@ import {
   updateParentNotionConnection,
   updateStudentGoodnotesDelivery,
 } from "./mvp-store";
-import { getNotionChannelState } from "./notion-channel-state";
+import {
+  canDispatchDeliveryChannel,
+  canRetryDeliveryChannel,
+} from "./delivery-readiness";
 import type {
   DailyBriefDeliveryChannel,
   DailyBriefDeliveryReceipt,
@@ -88,9 +91,9 @@ function shouldAttemptChannel(
   } = {},
 ) {
   const channelConfigured =
-    channel === "goodnotes"
-      ? profile.student.goodnotesConnected
-      : getNotionChannelState(profile).verified;
+    options.retryTargets
+      ? canRetryDeliveryChannel(profile, channel)
+      : canDispatchDeliveryChannel(profile, channel);
 
   if (!channelConfigured) {
     return false;

@@ -138,6 +138,8 @@ async function createEligibleProgrammeProfile(
       notionWorkspaceName: `${programme} Workspace`,
       notionDatabaseId: `${programme.toLowerCase()}-database`,
       notionDataSourceId: `${programme.toLowerCase()}-data-source`,
+      notionLastSyncStatus: "success",
+      notionLastSyncMessage: "Notion ready.",
     });
   }
 }

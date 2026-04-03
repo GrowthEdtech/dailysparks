@@ -100,4 +100,24 @@ describe("notion-channel-state", () => {
     expect(state.verified).toBe(true);
     expect(state.healthy).toBe(true);
   });
+
+  test("does not treat an idle sync as healthy even after verification", () => {
+    const state = getNotionChannelState(
+      createProfile({
+        parent: {
+          notionWorkspaceId: "workspace-1",
+          notionDatabaseId: "db-1",
+          notionDataSourceId: "data-source-1",
+          notionLastSyncStatus: "idle",
+        },
+        student: {
+          notionConnected: true,
+        },
+      }),
+    );
+
+    expect(state.configured).toBe(true);
+    expect(state.verified).toBe(true);
+    expect(state.healthy).toBe(false);
+  });
 });
