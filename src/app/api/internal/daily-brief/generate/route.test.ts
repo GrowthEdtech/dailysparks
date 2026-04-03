@@ -379,4 +379,74 @@ describe("daily brief generate route", () => {
     expect(history).toHaveLength(1);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  test("does not let same-day test history block production generation", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+    await configureRuntime();
+
+    await upsertDailyBriefCandidateSnapshot({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate()],
+    });
+    await createDailyBriefHistoryEntry({
+      scheduledFor: "2026-04-03",
+      recordKind: "test",
+      headline: "Test-only rehearsal brief",
+      summary: "This test brief should not block production generation.",
+      programme: "PYP",
+      status: "published",
+      topicTags: ["science"],
+      sourceReferences: [
+        {
+          sourceId: "bbc",
+          sourceName: "BBC",
+          sourceDomain: "bbc.com",
+          articleTitle: "Students map sea turtles",
+          articleUrl: "https://www.bbc.com/news/world-123",
+        },
+      ],
+      aiConnectionId: "nf-relay",
+      aiConnectionName: "NF Relay",
+      aiModel: "gpt-5.4",
+      promptPolicyId: "policy-1",
+      promptVersionLabel: "v1.0.0",
+      promptVersion: "v1.0.0",
+      repetitionRisk: "low",
+      repetitionNotes: "Test history only.",
+      adminNotes: "Created by admin test run.",
+      briefMarkdown: "## Test\nRehearsal output",
+      pipelineStage: "published",
+      candidateSnapshotAt: "2026-04-03T05:00:00.000Z",
+      generationCompletedAt: "2026-04-03T06:00:00.000Z",
+      pdfBuiltAt: "2026-04-03T06:05:00.000Z",
+      deliveryWindowAt: "2026-04-03T01:00:00.000Z",
+      lastDeliveryAttemptAt: "2026-04-03T01:00:00.000Z",
+      deliveryAttemptCount: 1,
+      deliverySuccessCount: 1,
+      deliveryFailureCount: 0,
+      failureReason: "",
+      retryEligibleUntil: null,
+    });
+
+    const response = await generateDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+    const productionHistory = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+      recordKind: "production",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.generatedCount).toBe(1);
+    expect(body.summary.skippedProgrammes).toEqual([]);
+    expect(productionHistory).toHaveLength(1);
+    expect(productionHistory[0]?.recordKind).toBe("production");
+  });
 });

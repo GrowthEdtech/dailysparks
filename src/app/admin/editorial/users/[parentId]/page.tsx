@@ -9,6 +9,7 @@ import {
   getInvoiceStatusLabel,
   getPlanLabel,
 } from "../users-admin-helpers";
+import { getFamilyDeliveryHealthRollup } from "../../../../../lib/delivery-health-rollup";
 
 type UserDetailAdminPageProps = {
   params: Promise<{
@@ -25,6 +26,8 @@ export default async function UserDetailAdminPage({
   if (!profile) {
     notFound();
   }
+
+  const deliveryHealth = getFamilyDeliveryHealthRollup(profile);
 
   return (
     <section className="space-y-6">
@@ -50,7 +53,7 @@ export default async function UserDetailAdminPage({
 
           <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
             <p className="font-semibold text-[#0f172a]">
-              {getDerivedUserTypeLabel(profile.parent.subscriptionStatus)}
+              {getDerivedUserTypeLabel(profile.parent)}
             </p>
             <p className="mt-2">{getPlanLabel(profile.parent.subscriptionPlan)}</p>
             <p>{getInvoiceStatusLabel(profile)}</p>
@@ -67,7 +70,7 @@ export default async function UserDetailAdminPage({
           <dl className="mt-4 grid gap-3 text-sm leading-6 text-slate-600">
             <div className="flex items-start justify-between gap-4">
               <dt className="font-semibold text-[#0f172a]">User type</dt>
-              <dd>{getDerivedUserTypeLabel(profile.parent.subscriptionStatus)}</dd>
+              <dd>{getDerivedUserTypeLabel(profile.parent)}</dd>
             </div>
             <div className="flex items-start justify-between gap-4">
               <dt className="font-semibold text-[#0f172a]">Subscription status</dt>
@@ -155,8 +158,38 @@ export default async function UserDetailAdminPage({
               <dd>{profile.student.goodnotesConnected ? "Connected" : "Not connected"}</dd>
             </div>
             <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Goodnotes health</dt>
+              <dd>{deliveryHealth.goodnotes.label}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Goodnotes status</dt>
+              <dd>{profile.student.goodnotesLastDeliveryMessage || "No delivery result yet"}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
               <dt className="font-semibold text-[#0f172a]">Notion</dt>
               <dd>{profile.student.notionConnected ? "Connected" : "Not connected"}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Notion archive</dt>
+              <dd>{deliveryHealth.notion.configured ? "Configured" : "Not configured"}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Notion verification</dt>
+              <dd>
+                {deliveryHealth.notion.verified
+                  ? "Verified"
+                  : deliveryHealth.notion.configured
+                    ? "Pending verification"
+                    : "Not verified"}
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Notion health</dt>
+              <dd>{deliveryHealth.notion.label}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Notion status</dt>
+              <dd>{profile.parent.notionLastSyncMessage || "No sync result yet"}</dd>
             </div>
           </dl>
         </section>

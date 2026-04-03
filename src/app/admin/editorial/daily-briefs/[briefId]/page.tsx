@@ -5,9 +5,11 @@ import { getDailyBriefHistoryEntry } from "../../../../../lib/daily-brief-histor
 import {
   buildPipelineTimeline,
   formatAdminDateTime,
+  formatRecordKindLabel,
   formatPipelineStageLabel,
   getDeliverySummaryLabel,
   getPipelineStageBadgeClasses,
+  getRecordKindBadgeClasses,
   getRetryWindowLabel,
 } from "../daily-brief-admin-helpers";
 
@@ -54,6 +56,13 @@ export default async function DailyBriefDetailPage({
             <p className="mt-4 text-xs font-semibold uppercase tracking-[0.24em] text-[#b45309]">
               Daily brief record
             </p>
+            <div className="mt-3">
+              <span
+                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getRecordKindBadgeClasses(entry.recordKind)}`}
+              >
+                {formatRecordKindLabel(entry.recordKind)}
+              </span>
+            </div>
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0f172a]">
               {entry.headline}
             </h1>

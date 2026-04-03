@@ -1,36 +1,31 @@
 import type {
   ParentProfile,
   SubscriptionPlan,
-  SubscriptionStatus,
 } from "../../../../lib/mvp-types";
+import {
+  DERIVED_ACCESS_STATES,
+  getDerivedAccessState,
+  getDerivedAccessStateFilterLabel,
+  getDerivedUserTypeLabel as getDerivedUserTypeLabelFromAccessState,
+  isDerivedAccessStateFilter,
+  type DerivedAccessState,
+} from "../../../../lib/access-state";
+import { getFamilyDeliveryHealthRollup } from "../../../../lib/delivery-health-rollup";
 
-export const USER_STATUS_FILTERS = [
-  "trial",
-  "active",
-  "canceled",
-  "free",
-] as const;
+export const USER_STATUS_FILTERS = DERIVED_ACCESS_STATES;
 
 export function isSubscriptionStatus(
   value: string | undefined,
-): value is SubscriptionStatus {
-  return USER_STATUS_FILTERS.includes(value as SubscriptionStatus);
+): value is DerivedAccessState {
+  return isDerivedAccessStateFilter(value);
 }
 
-export function getDerivedUserTypeLabel(status: SubscriptionStatus) {
-  if (status === "active") {
-    return "Active family";
-  }
+export function getDerivedUserTypeLabel(profile: ParentProfile["parent"]) {
+  return getDerivedUserTypeLabelFromAccessState(profile);
+}
 
-  if (status === "canceled") {
-    return "Canceled family";
-  }
-
-  if (status === "free") {
-    return "Free family";
-  }
-
-  return "Trial family";
+export function getDerivedAccessFilterLabel(state: DerivedAccessState) {
+  return getDerivedAccessStateFilterLabel(state);
 }
 
 export function getPlanLabel(plan: SubscriptionPlan) {
@@ -71,21 +66,7 @@ export function getInvoiceStatusLabel(profile: ParentProfile) {
 }
 
 export function getDeliveryLabels(profile: ParentProfile) {
-  const labels: string[] = [];
-
-  if (profile.student.goodnotesConnected) {
-    labels.push("Goodnotes ready");
-  }
-
-  if (profile.student.notionConnected) {
-    labels.push("Notion ready");
-  }
-
-  if (labels.length === 0) {
-    labels.push("Delivery not ready");
-  }
-
-  return labels;
+  return getFamilyDeliveryHealthRollup(profile).labels;
 }
 
 export function compareProfilesByCreatedAtDesc(
@@ -103,17 +84,18 @@ export function compareProfilesByCreatedAtDesc(
 }
 
 export function countProfilesByStatus(profiles: ParentProfile[]) {
-  return profiles.reduce<Record<SubscriptionStatus, number>>(
+  return profiles.reduce<Record<DerivedAccessState, number>>(
     (counts, profile) => ({
       ...counts,
-      [profile.parent.subscriptionStatus]:
-        counts[profile.parent.subscriptionStatus] + 1,
+      [getDerivedAccessState(profile.parent)]:
+        counts[getDerivedAccessState(profile.parent)] + 1,
     }),
     {
-      free: 0,
-      trial: 0,
       active: 0,
+      trial_active: 0,
+      trial_expired: 0,
       canceled: 0,
+      free: 0,
     },
   );
 }

@@ -48,6 +48,12 @@ function defaultPipelineStageForStatus(
   return "generated";
 }
 
+function defaultRecordKind(
+  recordKind: DailyBriefHistoryRecord["recordKind"] | undefined,
+) {
+  return recordKind ?? "production";
+}
+
 export async function listDailyBriefHistory(
   filters: DailyBriefHistoryFilters = {},
 ) {
@@ -59,6 +65,10 @@ export async function listDailyBriefHistory(
     }
 
     if (filters.programme && entry.programme !== filters.programme) {
+      return false;
+    }
+
+    if (filters.recordKind && entry.recordKind !== filters.recordKind) {
       return false;
     }
 
@@ -81,6 +91,7 @@ export async function createDailyBriefHistoryEntry(
   const record: DailyBriefHistoryRecord = {
     id: crypto.randomUUID(),
     scheduledFor: input.scheduledFor,
+    recordKind: defaultRecordKind(input.recordKind),
     headline: input.headline.trim(),
     summary: input.summary.trim(),
     programme: input.programme,
@@ -150,6 +161,10 @@ export async function updateDailyBriefHistoryEntry(
 
   if ("headline" in input) {
     nextInput.headline = input.headline?.trim() ?? "";
+  }
+
+  if ("recordKind" in input) {
+    nextInput.recordKind = defaultRecordKind(input.recordKind);
   }
 
   if ("summary" in input) {

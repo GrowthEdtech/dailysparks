@@ -100,8 +100,145 @@ describe("UsersAdminPage", () => {
     expect(markup).toContain("MYP 3");
     expect(markup).toContain("Yearly plan");
     expect(markup).toContain("Invoice paid");
-    expect(markup).toContain("Goodnotes ready");
-    expect(markup).toContain("Notion ready");
+    expect(markup).toContain("Goodnotes healthy");
+    expect(markup).toContain("Notion healthy");
     expect(markup).toContain("/admin/editorial/users/parent-1");
+  });
+
+  test("renders expired trials as a separate business-facing user type", async () => {
+    listParentProfilesMock.mockResolvedValue([
+      {
+        parent: {
+          id: "parent-2",
+          email: "expired@example.com",
+          fullName: "Expired Trial Parent",
+          subscriptionStatus: "trial",
+          subscriptionPlan: null,
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          trialStartedAt: "2026-03-20T00:00:00.000Z",
+          trialEndsAt: "2026-03-27T00:00:00.000Z",
+          subscriptionActivatedAt: null,
+          subscriptionRenewalAt: null,
+          latestInvoiceId: null,
+          latestInvoiceNumber: null,
+          latestInvoiceStatus: null,
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: null,
+          latestInvoiceCurrency: null,
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: null,
+          latestInvoicePeriodEnd: null,
+          notionWorkspaceId: null,
+          notionWorkspaceName: null,
+          notionBotId: null,
+          notionDatabaseId: null,
+          notionDatabaseName: null,
+          notionDataSourceId: null,
+          notionAuthorizedAt: null,
+          notionLastSyncedAt: null,
+          notionLastSyncStatus: null,
+          notionLastSyncMessage: null,
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-03-20T00:00:00.000Z",
+          updatedAt: "2026-03-27T00:00:00.000Z",
+        },
+        student: {
+          id: "student-2",
+          parentId: "parent-2",
+          studentName: "Mia",
+          programme: "PYP",
+          programmeYear: 5,
+          goodnotesEmail: "",
+          goodnotesConnected: false,
+          goodnotesVerifiedAt: null,
+          goodnotesLastTestSentAt: null,
+          goodnotesLastDeliveryStatus: null,
+          goodnotesLastDeliveryMessage: null,
+          notionConnected: false,
+          createdAt: "2026-03-20T00:00:00.000Z",
+          updatedAt: "2026-03-27T00:00:00.000Z",
+        },
+      },
+    ]);
+
+    const markup = renderToStaticMarkup(
+      await UsersAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("Trial expired family");
+  });
+
+  test("surfaces failed delivery channels as business-facing attention states", async () => {
+    listParentProfilesMock.mockResolvedValue([
+      {
+        parent: {
+          id: "parent-3",
+          email: "attention@example.com",
+          fullName: "Needs Attention Parent",
+          subscriptionStatus: "active",
+          subscriptionPlan: "monthly",
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          trialStartedAt: "2026-04-01T00:00:00.000Z",
+          trialEndsAt: "2026-04-08T00:00:00.000Z",
+          subscriptionActivatedAt: "2026-04-01T00:00:00.000Z",
+          subscriptionRenewalAt: "2026-05-01T00:00:00.000Z",
+          latestInvoiceId: null,
+          latestInvoiceNumber: null,
+          latestInvoiceStatus: null,
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: null,
+          latestInvoiceCurrency: null,
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: null,
+          latestInvoicePeriodEnd: null,
+          notionWorkspaceId: "workspace-1",
+          notionWorkspaceName: "Family Workspace",
+          notionBotId: "bot-1",
+          notionDatabaseId: "db-1",
+          notionDatabaseName: "Daily Sparks",
+          notionDataSourceId: "data-source-1",
+          notionAuthorizedAt: "2026-04-02T00:00:00.000Z",
+          notionLastSyncedAt: "2026-04-02T03:00:00.000Z",
+          notionLastSyncStatus: "failed",
+          notionLastSyncMessage: "Notion API timeout.",
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-02T03:00:00.000Z",
+        },
+        student: {
+          id: "student-3",
+          parentId: "parent-3",
+          studentName: "Katherine",
+          programme: "MYP",
+          programmeYear: 3,
+          goodnotesEmail: "katherine@goodnotes.email",
+          goodnotesConnected: true,
+          goodnotesVerifiedAt: "2026-04-02T00:00:00.000Z",
+          goodnotesLastTestSentAt: "2026-04-02T02:00:00.000Z",
+          goodnotesLastDeliveryStatus: "failed",
+          goodnotesLastDeliveryMessage: "SMTP relay timeout.",
+          notionConnected: true,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-02T03:00:00.000Z",
+        },
+      },
+    ]);
+
+    const markup = renderToStaticMarkup(
+      await UsersAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("Goodnotes needs attention");
+    expect(markup).toContain("Notion needs attention");
   });
 });

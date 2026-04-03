@@ -27,6 +27,11 @@ describe("DailyBriefsAdminPage", () => {
 
     expect(markup).toContain("No daily briefs recorded yet");
     expect(markup).toContain("Generation history will appear here");
+    expect(listDailyBriefHistoryMock).toHaveBeenCalledWith({
+      programme: undefined,
+      recordKind: "production",
+      status: undefined,
+    });
   });
 
   test("renders recorded daily briefs when history exists", async () => {
@@ -34,6 +39,7 @@ describe("DailyBriefsAdminPage", () => {
       {
         id: "brief-1",
         scheduledFor: "2026-04-02",
+        recordKind: "production",
         headline: "Students debate how cities should respond to rising heat.",
         summary: "A climate brief.",
         programme: "MYP",
@@ -90,6 +96,62 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("Preflight passed");
     expect(markup).toContain("12 delivered");
     expect(markup).toContain("/admin/editorial/daily-briefs/brief-1");
+  });
+
+  test("renders a visible test-run badge when a test brief is present", async () => {
+    listDailyBriefHistoryMock.mockResolvedValue([
+      {
+        id: "brief-test-1",
+        scheduledFor: "2026-04-02",
+        recordKind: "test",
+        headline: "Test rehearsal brief",
+        summary: "A canary rehearsal summary.",
+        programme: "PYP",
+        status: "published",
+        topicTags: ["rehearsal"],
+        sourceReferences: [],
+        aiConnectionId: "nf-relay",
+        aiConnectionName: "NF Relay",
+        aiModel: "gpt-5.4",
+        promptPolicyId: "policy-1",
+        promptVersionLabel: "v1.1.1",
+        promptVersion: "v1.1.1",
+        repetitionRisk: "low",
+        repetitionNotes: "No similar brief.",
+        adminNotes: "",
+        briefMarkdown: "## Today",
+        pipelineStage: "published",
+        candidateSnapshotAt: "2026-04-02T05:00:00.000Z",
+        generationCompletedAt: "2026-04-02T06:00:00.000Z",
+        pdfBuiltAt: "2026-04-02T06:05:00.000Z",
+        deliveryWindowAt: "2026-04-02T09:00:00.000Z",
+        lastDeliveryAttemptAt: "2026-04-02T09:00:00.000Z",
+        deliveryAttemptCount: 1,
+        deliverySuccessCount: 1,
+        deliveryFailureCount: 0,
+        deliveryReceipts: [],
+        failedDeliveryTargets: [],
+        failureReason: "",
+        retryEligibleUntil: null,
+        createdAt: "2026-04-02T00:00:00.000Z",
+        updatedAt: "2026-04-02T00:00:00.000Z",
+      },
+    ]);
+
+    const markup = renderToStaticMarkup(
+      await DailyBriefsAdminPage({
+        searchParams: Promise.resolve({
+          kind: "test",
+        }),
+      }),
+    );
+
+    expect(markup).toContain("Test run");
+    expect(listDailyBriefHistoryMock).toHaveBeenCalledWith({
+      programme: undefined,
+      recordKind: "test",
+      status: undefined,
+    });
   });
 
   test("stacks programme and status filters vertically at every width", async () => {

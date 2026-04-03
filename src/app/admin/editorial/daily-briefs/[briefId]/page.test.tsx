@@ -28,6 +28,7 @@ describe("DailyBriefDetailPage", () => {
     getDailyBriefHistoryEntryMock.mockResolvedValue({
       id: "brief-1",
       scheduledFor: "2026-04-02",
+      recordKind: "test",
       headline: "Students debate how cities should respond to rising heat.",
       summary: "A climate brief.",
       programme: "MYP",
@@ -102,6 +103,7 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("Pipeline timeline");
     expect(markup).toContain("Delivery health");
     expect(markup).toContain("Delivery receipts");
+    expect(markup).toContain("Test run");
     expect(markup).toContain(
       "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
     );

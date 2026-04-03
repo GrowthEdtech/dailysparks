@@ -1,11 +1,15 @@
 import Link from "next/link";
 
 import { listParentProfiles } from "../../../../lib/mvp-store";
-import { type SubscriptionStatus } from "../../../../lib/mvp-types";
+import {
+  getDerivedAccessState,
+  type DerivedAccessState,
+} from "../../../../lib/access-state";
 import {
   compareProfilesByCreatedAtDesc,
   countProfilesByStatus,
   formatAdminDate,
+  getDerivedAccessFilterLabel,
   getDeliveryLabels,
   getDerivedUserTypeLabel,
   getInvoiceStatusLabel,
@@ -20,7 +24,7 @@ type UsersAdminPageProps = {
   }>;
 };
 
-function buildFilterHref(status?: SubscriptionStatus) {
+function buildFilterHref(status?: DerivedAccessState) {
   if (!status) {
     return "/admin/editorial/users";
   }
@@ -37,7 +41,7 @@ export default async function UsersAdminPage({
     : undefined;
   const allProfiles = (await listParentProfiles()).sort(compareProfilesByCreatedAtDesc);
   const visibleProfiles = status
-    ? allProfiles.filter((profile) => profile.parent.subscriptionStatus === status)
+    ? allProfiles.filter((profile) => getDerivedAccessState(profile.parent) === status)
     : allProfiles;
   const statusCounts = countProfilesByStatus(allProfiles);
 
@@ -73,7 +77,7 @@ export default async function UsersAdminPage({
               Active / trial
             </p>
             <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {statusCounts.active + statusCounts.trial}
+              {statusCounts.active + statusCounts.trial_active}
             </p>
           </div>
         </div>
@@ -106,7 +110,7 @@ export default async function UsersAdminPage({
                       : "border-slate-200 bg-white text-slate-600"
                   }`}
                 >
-                  {statusOption}
+                  {getDerivedAccessFilterLabel(statusOption)}
                 </Link>
               ))}
             </div>
@@ -143,7 +147,7 @@ export default async function UsersAdminPage({
                 <div className="max-w-3xl">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      {getDerivedUserTypeLabel(profile.parent.subscriptionStatus)}
+                      {getDerivedUserTypeLabel(profile.parent)}
                     </span>
                     <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       {getPlanLabel(profile.parent.subscriptionPlan)}

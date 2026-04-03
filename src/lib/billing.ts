@@ -1,10 +1,13 @@
 import type {
   ParentRecord,
   SubscriptionPlan,
-  SubscriptionStatus,
 } from "./mvp-types";
 import type { PricingMarket } from "./pricing-market";
 import { getPricingForPlan, getYearlySavingsCopy } from "./pricing-market";
+import {
+  getDerivedAccessState,
+  getEffectiveAccessStatusLabel,
+} from "./access-state";
 
 type BillingSummaryRow = {
   label: string;
@@ -69,22 +72,6 @@ function formatPlanName(plan: SubscriptionPlan) {
   }
 
   return "No plan selected";
-}
-
-function formatStatus(status: SubscriptionStatus) {
-  if (status === "active") {
-    return "Active";
-  }
-
-  if (status === "canceled") {
-    return "Canceled";
-  }
-
-  if (status === "free") {
-    return "Free";
-  }
-
-  return "Trial";
 }
 
 export function getSubscriptionPlanBadgeLabel(parent: ParentRecord) {
@@ -200,8 +187,9 @@ export function getLatestInvoiceSummary(parent: ParentRecord): InvoiceSummary | 
   };
 }
 
-export function getBillingSummary(parent: ParentRecord) {
-  const statusLabel = formatStatus(parent.subscriptionStatus);
+export function getBillingSummary(parent: ParentRecord, now = new Date()) {
+  const accessState = getDerivedAccessState(parent, now);
+  const statusLabel = getEffectiveAccessStatusLabel(accessState);
   const planName = formatPlanName(parent.subscriptionPlan);
   const summary = {
     title: `${statusLabel} access`,
@@ -246,6 +234,29 @@ export function getBillingSummary(parent: ParentRecord) {
               },
             ]
           : []),
+      ],
+    };
+  }
+
+  if (accessState === "trial_expired") {
+    return {
+      title: "Trial expired",
+      subtitle: parent.subscriptionPlan
+        ? `${planName} plan selected, but checkout still needs to be completed.`
+        : "Your trial has ended and daily delivery is paused.",
+      detail: parent.subscriptionPlan
+        ? "Finish Stripe checkout to reactivate Daily Sparks and resume delivery."
+        : "Choose monthly or yearly billing to resume delivery and unlock new reading briefs.",
+      statusLabel,
+      summaryRows: [
+        {
+          label: "Trial started on",
+          value: formatDate(parent.trialStartedAt),
+        },
+        {
+          label: "Trial ended on",
+          value: formatDate(parent.trialEndsAt),
+        },
       ],
     };
   }

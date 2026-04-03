@@ -87,4 +87,26 @@ describe("NotionSyncCard", () => {
       "inline-flex min-w-[17rem] items-center justify-center gap-2 rounded-full bg-[#0f172a] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60",
     );
   });
+
+  test("shows verification-needed messaging when the archive exists but sync has not succeeded yet", () => {
+    const markup = renderToStaticMarkup(
+      <NotionSyncCard
+        notionConfigured
+        initialProfile={{
+          ...initialProfile,
+          parent: {
+            ...initialProfile.parent,
+            notionWorkspaceId: "workspace-1",
+            notionWorkspaceName: "Growth Education",
+            notionDatabaseId: "db-1",
+            notionDatabaseName: "Daily Sparks",
+            notionDataSourceId: "data-source-1",
+            notionLastSyncStatus: "idle",
+          },
+        }}
+      />,
+    );
+
+    expect(markup).toContain("Verification needed");
+  });
 });

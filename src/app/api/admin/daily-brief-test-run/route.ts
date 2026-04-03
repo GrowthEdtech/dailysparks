@@ -7,6 +7,7 @@ import {
   getDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
 } from "../../../../lib/daily-brief-run-auth";
+import { getNextDailyBriefBusinessDate } from "../../../../lib/daily-brief-run-date";
 import { POST as deliverDailyBriefRoute } from "../../internal/daily-brief/deliver/route";
 import { POST as generateDailyBriefRoute } from "../../internal/daily-brief/generate/route";
 import { POST as ingestDailyBriefRoute } from "../../internal/daily-brief/ingest/route";
@@ -36,10 +37,6 @@ function badRequest(message: string) {
 
 function serviceUnavailable(message: string) {
   return Response.json({ message }, { status: 503 });
-}
-
-function buildRunDate(now = new Date()) {
-  return now.toISOString().slice(0, 10);
 }
 
 function isValidRunDate(value: string) {
@@ -139,12 +136,13 @@ export async function POST(request: Request) {
   const runDate =
     typeof parsedBody.runDate === "string"
       ? parsedBody.runDate
-      : buildRunDate(new Date(Date.now() + 24 * 60 * 60 * 1000));
+      : getNextDailyBriefBusinessDate();
 
   const ingest = await readStageResponse(
     await ingestDailyBriefRoute(
       buildSchedulerRequest("/api/internal/daily-brief/ingest", {
         runDate,
+        recordKind: "test",
       }),
     ),
   );
@@ -166,6 +164,7 @@ export async function POST(request: Request) {
     await generateDailyBriefRoute(
       buildSchedulerRequest("/api/internal/daily-brief/generate", {
         runDate,
+        recordKind: "test",
       }),
     ),
   );
@@ -187,6 +186,7 @@ export async function POST(request: Request) {
     await preflightDailyBriefRoute(
       buildSchedulerRequest("/api/internal/daily-brief/preflight", {
         runDate,
+        recordKind: "test",
       }),
     ),
   );
@@ -208,6 +208,7 @@ export async function POST(request: Request) {
     await deliverDailyBriefRoute(
       buildSchedulerRequest("/api/internal/daily-brief/deliver", {
         runDate,
+        recordKind: "test",
         dispatchMode: "canary",
         canaryParentEmails: DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS,
       }),

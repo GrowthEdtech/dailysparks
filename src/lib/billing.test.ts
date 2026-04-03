@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { ParentRecord } from "./mvp-types";
 import {
   getBillingPlanDefinitions,
+  getBillingSummary,
   getLatestInvoiceSummary,
   getSubscriptionPlanBadgeLabel,
 } from "./billing";
@@ -138,5 +139,21 @@ describe("latest invoice summary", () => {
         }),
       ]),
     );
+  });
+});
+
+describe("billing summary", () => {
+  test("shows an expired-trial summary once the trial has passed", () => {
+    const parent = createParentRecord({
+      subscriptionStatus: "trial",
+      subscriptionPlan: null,
+      trialEndsAt: "2026-04-02T00:00:00.000Z",
+    });
+
+    const summary = getBillingSummary(parent, new Date("2026-04-03T00:00:00.000Z"));
+
+    expect(summary.title).toBe("Trial expired");
+    expect(summary.statusLabel).toBe("Trial expired");
+    expect(summary.detail).toMatch(/resume/i);
   });
 });

@@ -109,8 +109,78 @@ describe("UserDetailAdminPage", () => {
     expect(markup).toContain("Trial family");
     expect(markup).toContain("DP 1");
     expect(markup).toContain("Monthly plan");
-    expect(markup).toContain("Goodnotes ready");
-    expect(markup).toContain("Notion ready");
+    expect(markup).toContain("Goodnotes healthy");
+    expect(markup).toContain("Notion healthy");
+    expect(markup).toContain("Goodnotes status");
+    expect(markup).toContain("Ready.");
+    expect(markup).toContain("Notion status");
+    expect(markup).toContain("Synced.");
+  });
+
+  test("renders expired trial families with the derived user type", async () => {
+    getProfileByParentIdMock.mockResolvedValue({
+      parent: {
+        id: "parent-2",
+        email: "expired@example.com",
+        fullName: "Expired Trial Parent",
+        subscriptionStatus: "trial",
+        subscriptionPlan: null,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        trialStartedAt: "2026-03-20T00:00:00.000Z",
+        trialEndsAt: "2026-03-27T00:00:00.000Z",
+        subscriptionActivatedAt: null,
+        subscriptionRenewalAt: null,
+        latestInvoiceId: null,
+        latestInvoiceNumber: null,
+        latestInvoiceStatus: null,
+        latestInvoiceHostedUrl: null,
+        latestInvoicePdfUrl: null,
+        latestInvoiceAmountPaid: null,
+        latestInvoiceCurrency: null,
+        latestInvoicePaidAt: null,
+        latestInvoicePeriodStart: null,
+        latestInvoicePeriodEnd: null,
+        notionWorkspaceId: null,
+        notionWorkspaceName: null,
+        notionBotId: null,
+        notionDatabaseId: null,
+        notionDatabaseName: null,
+        notionDataSourceId: null,
+        notionAuthorizedAt: null,
+        notionLastSyncedAt: null,
+        notionLastSyncStatus: null,
+        notionLastSyncMessage: null,
+        notionLastSyncPageId: null,
+        notionLastSyncPageUrl: null,
+        createdAt: "2026-03-20T00:00:00.000Z",
+        updatedAt: "2026-03-27T00:00:00.000Z",
+      },
+      student: {
+        id: "student-2",
+        parentId: "parent-2",
+        studentName: "Mia",
+        programme: "PYP",
+        programmeYear: 5,
+        goodnotesEmail: "",
+        goodnotesConnected: false,
+        goodnotesVerifiedAt: null,
+        goodnotesLastTestSentAt: null,
+        goodnotesLastDeliveryStatus: null,
+        goodnotesLastDeliveryMessage: null,
+        notionConnected: false,
+        createdAt: "2026-03-20T00:00:00.000Z",
+        updatedAt: "2026-03-27T00:00:00.000Z",
+      },
+    });
+
+    const markup = renderToStaticMarkup(
+      await UserDetailAdminPage({
+        params: Promise.resolve({ parentId: "parent-2" }),
+      }),
+    );
+
+    expect(markup).toContain("Trial expired family");
   });
 
   test("calls notFound when the parent profile does not exist", async () => {

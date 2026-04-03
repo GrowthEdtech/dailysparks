@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import type { ParentProfile } from "../lib/mvp-types";
+import { getNotionChannelState } from "../lib/notion-channel-state";
 import { deliveryPrimaryButtonClassName } from "./delivery-channel-button-styles";
 
 type NotionSyncCardProps = {
@@ -70,6 +71,7 @@ export default function NotionSyncCard({
   const isConfigured = notionConfigured;
   const isConnected = Boolean(parent.notionWorkspaceId);
   const hasArchive = Boolean(parent.notionDatabaseId);
+  const notionChannelState = getNotionChannelState({ parent, student });
   const lastSyncAt = formatTimestamp(parent.notionLastSyncedAt);
   const notionStatus = searchParams.get("notion");
   const helperMessage = useMemo(() => {
@@ -312,6 +314,21 @@ export default function NotionSyncCard({
                 {hasArchive && parent.notionDatabaseName ? (
                   <span className="rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]">
                     {parent.notionDatabaseName}
+                  </span>
+                ) : null}
+                {notionChannelState.healthy ? (
+                  <span className="rounded-full bg-[#eefbf3] px-3 py-1 text-xs font-semibold text-[#15803d]">
+                    Healthy
+                  </span>
+                ) : null}
+                {!notionChannelState.healthy && notionChannelState.verified ? (
+                  <span className="rounded-full bg-[#fff1f2] px-3 py-1 text-xs font-semibold text-rose-600">
+                    Needs attention
+                  </span>
+                ) : null}
+                {!notionChannelState.verified && notionChannelState.configured ? (
+                  <span className="rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]">
+                    Verification needed
                   </span>
                 ) : null}
               </div>

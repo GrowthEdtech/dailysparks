@@ -58,6 +58,7 @@ export type GenerateDailyBriefDraftsOptions = {
   scheduledFor: string;
   candidates?: EditorialSourceCandidate[];
   historyEntries?: DailyBriefHistoryRecord[];
+  recordKind?: DailyBriefHistoryRecord["recordKind"];
   promptPolicy?: PromptPolicyRecord;
   fetchImpl?: typeof fetch;
   now?: Date;
@@ -312,6 +313,7 @@ export async function generateDailyBriefDrafts(
 
     generatedBriefs.push({
       scheduledFor: options.scheduledFor,
+      recordKind: options.recordKind ?? "production",
       headline: generatedPayload.headline,
       summary: generatedPayload.summary,
       programme,

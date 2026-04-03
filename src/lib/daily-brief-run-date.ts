@@ -15,3 +15,9 @@ export function getDailyBriefBusinessDate(now = new Date()) {
 
   return `${year}-${month}-${day}`;
 }
+
+export function getNextDailyBriefBusinessDate(now = new Date()) {
+  return getDailyBriefBusinessDate(
+    new Date(now.getTime() + 24 * 60 * 60 * 1000),
+  );
+}

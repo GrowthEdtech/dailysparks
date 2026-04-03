@@ -12,6 +12,7 @@ export const DAILY_BRIEF_REPETITION_RISKS = [
   "medium",
   "high",
 ] as const;
+export const DAILY_BRIEF_RECORD_KINDS = ["production", "test"] as const;
 export const DAILY_BRIEF_PIPELINE_STAGES = [
   "ingested",
   "generated",
@@ -25,6 +26,7 @@ export const DAILY_BRIEF_PIPELINE_STAGES = [
 export type DailyBriefStatus = (typeof DAILY_BRIEF_STATUSES)[number];
 export type DailyBriefRepetitionRisk =
   (typeof DAILY_BRIEF_REPETITION_RISKS)[number];
+export type DailyBriefRecordKind = (typeof DAILY_BRIEF_RECORD_KINDS)[number];
 export type DailyBriefPipelineStage =
   (typeof DAILY_BRIEF_PIPELINE_STAGES)[number];
 export const DAILY_BRIEF_DELIVERY_CHANNELS = [
@@ -61,6 +63,7 @@ export type DailyBriefDeliveryReceipt = {
 export type DailyBriefHistoryRecord = {
   id: string;
   scheduledFor: string;
+  recordKind: DailyBriefRecordKind;
   headline: string;
   summary: string;
   programme: Programme;

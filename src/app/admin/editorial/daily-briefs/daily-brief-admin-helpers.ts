@@ -1,6 +1,7 @@
 import type {
   DailyBriefHistoryRecord,
   DailyBriefPipelineStage,
+  DailyBriefRecordKind,
 } from "../../../../lib/daily-brief-history-schema";
 
 const PIPELINE_STAGE_LABELS: Record<DailyBriefPipelineStage, string> = {
@@ -23,6 +24,16 @@ const PIPELINE_STAGE_BADGE_CLASSES: Record<DailyBriefPipelineStage, string> = {
   failed: "border-rose-200 bg-rose-50 text-rose-800",
 };
 
+const RECORD_KIND_LABELS: Record<DailyBriefRecordKind, string> = {
+  production: "Production",
+  test: "Test run",
+};
+
+const RECORD_KIND_BADGE_CLASSES: Record<DailyBriefRecordKind, string> = {
+  production: "border-slate-200 bg-white text-slate-500",
+  test: "border-sky-200 bg-sky-50 text-sky-800",
+};
+
 type DailyBriefTimelineItem = {
   label: string;
   value: string;
@@ -34,6 +45,14 @@ export function formatPipelineStageLabel(stage: DailyBriefPipelineStage) {
 
 export function getPipelineStageBadgeClasses(stage: DailyBriefPipelineStage) {
   return PIPELINE_STAGE_BADGE_CLASSES[stage];
+}
+
+export function formatRecordKindLabel(kind: DailyBriefRecordKind) {
+  return RECORD_KIND_LABELS[kind];
+}
+
+export function getRecordKindBadgeClasses(kind: DailyBriefRecordKind) {
+  return RECORD_KIND_BADGE_CLASSES[kind];
 }
 
 export function formatAdminDateTime(value: string | null) {

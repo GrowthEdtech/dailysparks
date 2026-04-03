@@ -2,7 +2,9 @@ import Link from "next/link";
 
 import { listDailyBriefHistory } from "../../../../lib/daily-brief-history-store";
 import {
+  DAILY_BRIEF_RECORD_KINDS,
   DAILY_BRIEF_STATUSES,
+  type DailyBriefRecordKind,
   type DailyBriefStatus,
 } from "../../../../lib/daily-brief-history-schema";
 import {
@@ -11,15 +13,18 @@ import {
   type Programme,
 } from "../../../../lib/mvp-types";
 import {
+  formatRecordKindLabel,
   formatPipelineStageLabel,
   getDeliverySummaryLabel,
   getPipelineStageBadgeClasses,
+  getRecordKindBadgeClasses,
   getRetryWindowLabel,
 } from "./daily-brief-admin-helpers";
 import ManualTestRunPanel from "./manual-test-run-panel";
 
 type DailyBriefsAdminPageProps = {
   searchParams: Promise<{
+    kind?: string;
     programme?: string;
     status?: string;
   }>;
@@ -33,6 +38,15 @@ function parseStatus(value: string | undefined): DailyBriefStatus | undefined {
   return value &&
     DAILY_BRIEF_STATUSES.includes(value as DailyBriefStatus)
     ? (value as DailyBriefStatus)
+    : undefined;
+}
+
+function parseRecordKind(
+  value: string | undefined,
+): DailyBriefRecordKind | undefined {
+  return value &&
+    DAILY_BRIEF_RECORD_KINDS.includes(value as DailyBriefRecordKind)
+    ? (value as DailyBriefRecordKind)
     : undefined;
 }
 
@@ -50,10 +64,15 @@ function formatDate(value: string) {
 }
 
 function buildFilterHref(filters: {
+  kind?: DailyBriefRecordKind;
   programme?: Programme;
   status?: DailyBriefStatus;
 }) {
   const nextSearchParams = new URLSearchParams();
+
+  if (filters.kind) {
+    nextSearchParams.set("kind", filters.kind);
+  }
 
   if (filters.programme) {
     nextSearchParams.set("programme", filters.programme);
@@ -73,9 +92,10 @@ export default async function DailyBriefsAdminPage({
   searchParams,
 }: DailyBriefsAdminPageProps) {
   const resolvedSearchParams = await searchParams;
+  const recordKind = parseRecordKind(resolvedSearchParams.kind) ?? "production";
   const programme = parseProgramme(resolvedSearchParams.programme);
   const status = parseStatus(resolvedSearchParams.status);
-  const history = await listDailyBriefHistory({ programme, status });
+  const history = await listDailyBriefHistory({ programme, recordKind, status });
 
   return (
     <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -98,11 +118,36 @@ export default async function DailyBriefsAdminPage({
         <div className="flex flex-col gap-4 md:w-full md:max-w-[19rem]">
           <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Record type
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {DAILY_BRIEF_RECORD_KINDS.map((kindOption) => (
+                <Link
+                  key={kindOption}
+                  href={buildFilterHref({
+                    kind: kindOption,
+                    programme,
+                    status,
+                  })}
+                  className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
+                    recordKind === kindOption
+                      ? "border-[#0f172a] bg-[#0f172a] text-white"
+                      : "border-slate-200 bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  {formatRecordKindLabel(kindOption)}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
               Programme
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Link
-                href={buildFilterHref({ status })}
+                href={buildFilterHref({ kind: recordKind, status })}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                   !programme
                     ? "border-[#0f172a] bg-[#0f172a] text-white"
@@ -115,6 +160,7 @@ export default async function DailyBriefsAdminPage({
                 <Link
                   key={programmeOption}
                   href={buildFilterHref({
+                    kind: recordKind,
                     programme: programmeOption,
                     status,
                   })}
@@ -136,7 +182,7 @@ export default async function DailyBriefsAdminPage({
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Link
-                href={buildFilterHref({ programme })}
+                href={buildFilterHref({ kind: recordKind, programme })}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                   !status
                     ? "border-[#0f172a] bg-[#0f172a] text-white"
@@ -149,6 +195,7 @@ export default async function DailyBriefsAdminPage({
                 <Link
                   key={statusOption}
                   href={buildFilterHref({
+                    kind: recordKind,
                     programme,
                     status: statusOption,
                   })}
@@ -194,6 +241,11 @@ export default async function DailyBriefsAdminPage({
                     </span>
                     <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       {entry.status}
+                    </span>
+                    <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getRecordKindBadgeClasses(entry.recordKind)}`}
+                    >
+                      {formatRecordKindLabel(entry.recordKind)}
                     </span>
                     <span
                       className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getPipelineStageBadgeClasses(entry.pipelineStage)}`}

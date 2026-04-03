@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         routeError instanceof Error
           ? routeError.message
           : "Notion sync failed. Please try again.",
-      notionConnected: true,
+      notionConnected: profile.student.notionConnected,
     });
 
     return Response.json(nextProfile, { status: 502 });

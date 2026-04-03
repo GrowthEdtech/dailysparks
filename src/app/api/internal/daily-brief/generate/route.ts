@@ -7,6 +7,10 @@ import {
   listDailyBriefHistory,
 } from "../../../../../lib/daily-brief-history-store";
 import {
+  DAILY_BRIEF_RECORD_KINDS,
+  type DailyBriefRecordKind,
+} from "../../../../../lib/daily-brief-history-schema";
+import {
   getDailyBriefSchedulerHeaderName,
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
@@ -16,6 +20,7 @@ import { generateDailyBriefDrafts } from "../../../../../lib/daily-brief-orchest
 
 type DailyBriefGenerateRequestBody = {
   runDate?: string;
+  recordKind?: string;
 };
 
 function serviceUnavailable(message: string) {
@@ -49,6 +54,13 @@ function buildDeliveryWindowTimestamp(runDate: string) {
   return Number.isNaN(parsed) ? null : new Date(parsed).toISOString();
 }
 
+function normalizeRecordKind(value: unknown): DailyBriefRecordKind | undefined {
+  return typeof value === "string" &&
+    DAILY_BRIEF_RECORD_KINDS.includes(value as DailyBriefRecordKind)
+    ? (value as DailyBriefRecordKind)
+    : undefined;
+}
+
 async function parseRequestBody(
   request: Request,
 ): Promise<DailyBriefGenerateRequestBody | Response> {
@@ -72,6 +84,13 @@ async function parseRequestBody(
       (typeof payload.runDate !== "string" || !isValidRunDate(payload.runDate))
     ) {
       return badRequest("runDate must use YYYY-MM-DD format.");
+    }
+
+    if (
+      payload.recordKind !== undefined &&
+      normalizeRecordKind(payload.recordKind) === undefined
+    ) {
+      return badRequest("recordKind must be production or test when provided.");
     }
 
     return payload;
@@ -100,6 +119,7 @@ export async function POST(request: Request) {
   }
 
   const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
+  const recordKind = normalizeRecordKind(parsedBody.recordKind) ?? "production";
   const candidateSnapshot = await getDailyBriefCandidateSnapshot(runDate);
 
   if (!candidateSnapshot) {
@@ -118,6 +138,7 @@ export async function POST(request: Request) {
   });
   const historyEntries = await listDailyBriefHistory({
     scheduledFor: runDate,
+    recordKind,
   });
 
   try {
@@ -125,6 +146,7 @@ export async function POST(request: Request) {
       scheduledFor: runDate,
       candidates: frozenSnapshot.candidates,
       historyEntries,
+      recordKind,
       fetchImpl: fetch,
     });
     const generationCompletedAt = new Date().toISOString();
@@ -134,6 +156,7 @@ export async function POST(request: Request) {
     for (const brief of generation.generatedBriefs) {
       const createdEntry = await createDailyBriefHistoryEntry({
         scheduledFor: brief.scheduledFor,
+        recordKind,
         headline: brief.headline,
         summary: brief.summary,
         programme: brief.programme,
@@ -169,6 +192,7 @@ export async function POST(request: Request) {
     return Response.json({
       mode: "generate",
       runDate,
+      recordKind,
       selectedTopic: generation.selectedTopic
         ? {
             clusterKey: generation.selectedTopic.clusterKey,

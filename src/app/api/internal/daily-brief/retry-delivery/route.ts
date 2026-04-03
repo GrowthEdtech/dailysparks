@@ -2,7 +2,11 @@ import {
   listDailyBriefHistory,
   updateDailyBriefHistoryEntry,
 } from "../../../../../lib/daily-brief-history-store";
-import type { DailyBriefHistoryRecord } from "../../../../../lib/daily-brief-history-schema";
+import {
+  DAILY_BRIEF_RECORD_KINDS,
+  type DailyBriefHistoryRecord,
+  type DailyBriefRecordKind,
+} from "../../../../../lib/daily-brief-history-schema";
 import { planDailyBriefDispatch } from "../../../../../lib/daily-brief-delivery-policy";
 import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
@@ -16,6 +20,7 @@ import { listEligibleDeliveryProfiles } from "../../../../../lib/mvp-store";
 
 type DailyBriefRetryDeliveryRequestBody = {
   runDate?: string;
+  recordKind?: string;
 };
 
 function serviceUnavailable(message: string) {
@@ -67,6 +72,13 @@ function appendAdminNotes(existing: string, note: string) {
   return `${trimmedExisting}\n${trimmedNote}`;
 }
 
+function normalizeRecordKind(value: unknown): DailyBriefRecordKind | undefined {
+  return typeof value === "string" &&
+    DAILY_BRIEF_RECORD_KINDS.includes(value as DailyBriefRecordKind)
+    ? (value as DailyBriefRecordKind)
+    : undefined;
+}
+
 async function parseRequestBody(
   request: Request,
 ): Promise<DailyBriefRetryDeliveryRequestBody | Response> {
@@ -90,6 +102,13 @@ async function parseRequestBody(
       (typeof payload.runDate !== "string" || !isValidRunDate(payload.runDate))
     ) {
       return badRequest("runDate must use YYYY-MM-DD format.");
+    }
+
+    if (
+      payload.recordKind !== undefined &&
+      normalizeRecordKind(payload.recordKind) === undefined
+    ) {
+      return badRequest("recordKind must be production or test when provided.");
     }
 
     return payload;
@@ -118,9 +137,11 @@ export async function POST(request: Request) {
   }
 
   const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
+  const recordKind = normalizeRecordKind(parsedBody.recordKind) ?? "production";
   const retryAttemptTimestamp = buildRetryAttemptTimestamp(runDate);
   const history = await listDailyBriefHistory({
     scheduledFor: runDate,
+    recordKind,
   });
   const retryCandidates = history.filter((entry) =>
     isRetryCandidate(entry, retryAttemptTimestamp)
@@ -253,6 +274,7 @@ export async function POST(request: Request) {
   return Response.json({
     mode: "retry-delivery",
     runDate,
+    recordKind,
     summary: {
       dispatchMode,
       targetedProfileCount,

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     notionDataSourceId: archive.dataSourceId,
     notionLastSyncStatus: "idle",
     notionLastSyncMessage: "Archive created. You can now send a test page.",
-    notionConnected: true,
+    notionConnected: false,
   });
 
   return Response.json(nextProfile);

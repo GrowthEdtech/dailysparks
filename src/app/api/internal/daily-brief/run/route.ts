@@ -133,7 +133,7 @@ function buildStageRequest(
       [getDailyBriefSchedulerHeaderName()]: schedulerSecret,
       "content-type": "application/json",
     },
-    body: JSON.stringify({ runDate }),
+    body: JSON.stringify({ runDate, recordKind: "production" }),
   });
 }
 
@@ -193,6 +193,7 @@ export async function POST(request: Request) {
       getActivePromptPolicy(),
       listDailyBriefHistory({
         scheduledFor: runDate,
+        recordKind: "production",
       }),
     ]);
   const activeSources = sources.filter((source) => source.active);

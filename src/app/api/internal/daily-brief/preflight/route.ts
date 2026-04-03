@@ -2,7 +2,11 @@ import {
   listDailyBriefHistory,
   updateDailyBriefHistoryEntry,
 } from "../../../../../lib/daily-brief-history-store";
-import type { DailyBriefHistoryRecord } from "../../../../../lib/daily-brief-history-schema";
+import {
+  DAILY_BRIEF_RECORD_KINDS,
+  type DailyBriefHistoryRecord,
+  type DailyBriefRecordKind,
+} from "../../../../../lib/daily-brief-history-schema";
 import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import {
   getDailyBriefSchedulerHeaderName,
@@ -13,6 +17,7 @@ import { getDailyBriefBusinessDate } from "../../../../../lib/daily-brief-run-da
 
 type DailyBriefPreflightRequestBody = {
   runDate?: string;
+  recordKind?: string;
 };
 
 function serviceUnavailable(message: string) {
@@ -55,6 +60,13 @@ function hasDeliveryReadyArtifacts(entry: DailyBriefHistoryRecord) {
   );
 }
 
+function normalizeRecordKind(value: unknown): DailyBriefRecordKind | undefined {
+  return typeof value === "string" &&
+    DAILY_BRIEF_RECORD_KINDS.includes(value as DailyBriefRecordKind)
+    ? (value as DailyBriefRecordKind)
+    : undefined;
+}
+
 async function parseRequestBody(
   request: Request,
 ): Promise<DailyBriefPreflightRequestBody | Response> {
@@ -78,6 +90,13 @@ async function parseRequestBody(
       (typeof payload.runDate !== "string" || !isValidRunDate(payload.runDate))
     ) {
       return badRequest("runDate must use YYYY-MM-DD format.");
+    }
+
+    if (
+      payload.recordKind !== undefined &&
+      normalizeRecordKind(payload.recordKind) === undefined
+    ) {
+      return badRequest("recordKind must be production or test when provided.");
     }
 
     return payload;
@@ -106,8 +125,10 @@ export async function POST(request: Request) {
   }
 
   const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
+  const recordKind = normalizeRecordKind(parsedBody.recordKind) ?? "production";
   const history = await listDailyBriefHistory({
     scheduledFor: runDate,
+    recordKind,
   });
   const preflightCandidates = history.filter(isPreflightCandidate);
   const blockers: string[] = [];
@@ -165,6 +186,7 @@ export async function POST(request: Request) {
       mode: "preflight",
       ready: false,
       runDate,
+      recordKind,
       blockers,
       opsAlert,
       summary: {
@@ -194,6 +216,7 @@ export async function POST(request: Request) {
     mode: "preflight",
     ready: true,
     runDate,
+    recordKind,
     blockers: [],
     summary: {
       historyEntryCount: history.length,

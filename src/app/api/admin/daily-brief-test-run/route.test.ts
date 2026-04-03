@@ -75,6 +75,7 @@ beforeEach(() => {
 
 afterEach(() => {
   process.env = { ...ORIGINAL_ENV };
+  vi.useRealTimers();
 });
 
 describe("daily brief test run admin route", () => {
@@ -92,27 +93,36 @@ describe("daily brief test run admin route", () => {
 
   test("runs the staged pipeline and forces delivery to admin@geledtech.com only", async () => {
     const cookie = await signIn();
+    let ingestRequestBody: Record<string, unknown> | null = null;
+    let generateRequestBody: Record<string, unknown> | null = null;
+    let preflightRequestBody: Record<string, unknown> | null = null;
     let deliverRequestBody: Record<string, unknown> | null = null;
 
-    ingestRouteMock.mockResolvedValue(
-      Response.json({
+    ingestRouteMock.mockImplementation(async (request: Request) => {
+      ingestRequestBody = (await request.json()) as Record<string, unknown>;
+
+      return Response.json({
         mode: "ingest",
         summary: { candidateCount: 3 },
-      }),
-    );
-    generateRouteMock.mockResolvedValue(
-      Response.json({
+      });
+    });
+    generateRouteMock.mockImplementation(async (request: Request) => {
+      generateRequestBody = (await request.json()) as Record<string, unknown>;
+
+      return Response.json({
         mode: "generate",
         summary: { generatedCount: 1 },
-      }),
-    );
-    preflightRouteMock.mockResolvedValue(
-      Response.json({
+      });
+    });
+    preflightRouteMock.mockImplementation(async (request: Request) => {
+      preflightRequestBody = (await request.json()) as Record<string, unknown>;
+
+      return Response.json({
         mode: "preflight",
         ready: true,
         summary: { approvedCount: 1 },
-      }),
-    );
+      });
+    });
     deliverRouteMock.mockImplementation(async (request: Request) => {
       deliverRequestBody = (await request.json()) as Record<string, unknown>;
 
@@ -149,10 +159,78 @@ describe("daily brief test run admin route", () => {
     expect(generateRouteMock).toHaveBeenCalledTimes(1);
     expect(preflightRouteMock).toHaveBeenCalledTimes(1);
     expect(deliverRouteMock).toHaveBeenCalledTimes(1);
+    expect(ingestRequestBody).toEqual({
+      runDate: "2026-04-04",
+      recordKind: "test",
+    });
+    expect(generateRequestBody).toEqual({
+      runDate: "2026-04-04",
+      recordKind: "test",
+    });
+    expect(preflightRequestBody).toEqual({
+      runDate: "2026-04-04",
+      recordKind: "test",
+    });
     expect(deliverRequestBody).toEqual({
       runDate: "2026-04-04",
+      recordKind: "test",
       dispatchMode: "canary",
       canaryParentEmails: ["admin@geledtech.com"],
+    });
+  });
+
+  test("defaults to the next Hong Kong business date when runDate is omitted", async () => {
+    const cookie = await signIn();
+    let ingestRequestBody: Record<string, unknown> | null = null;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-03T16:30:00.000Z"));
+
+    ingestRouteMock.mockImplementation(async (request: Request) => {
+      ingestRequestBody = (await request.json()) as Record<string, unknown>;
+
+      return Response.json({
+        mode: "ingest",
+        summary: { candidateCount: 2 },
+      });
+    });
+    generateRouteMock.mockResolvedValue(
+      Response.json({
+        mode: "generate",
+        summary: { generatedCount: 1 },
+      }),
+    );
+    preflightRouteMock.mockResolvedValue(
+      Response.json({
+        mode: "preflight",
+        ready: true,
+        summary: { approvedCount: 1 },
+      }),
+    );
+    deliverRouteMock.mockResolvedValue(
+      Response.json({
+        mode: "deliver",
+        summary: { deliveredCount: 1 },
+      }),
+    );
+
+    const response = await dailyBriefTestRunRoute(
+      new Request("http://localhost:3000/api/admin/daily-brief-test-run", {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.runDate).toBe("2026-04-05");
+    expect(ingestRequestBody).toMatchObject({
+      runDate: "2026-04-05",
+      recordKind: "test",
     });
   });
 });

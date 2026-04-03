@@ -2,7 +2,11 @@ import {
   listDailyBriefHistory,
   updateDailyBriefHistoryEntry,
 } from "../../../../../lib/daily-brief-history-store";
-import type { DailyBriefHistoryRecord } from "../../../../../lib/daily-brief-history-schema";
+import {
+  DAILY_BRIEF_RECORD_KINDS,
+  type DailyBriefHistoryRecord,
+  type DailyBriefRecordKind,
+} from "../../../../../lib/daily-brief-history-schema";
 import {
   DAILY_BRIEF_DISPATCH_MODES,
   type DailyBriefDispatchMode,
@@ -20,6 +24,7 @@ import { listEligibleDeliveryProfiles } from "../../../../../lib/mvp-store";
 
 type DailyBriefDeliverRequestBody = {
   runDate?: string;
+  recordKind?: string;
   dispatchMode?: string;
   canaryParentEmails?: string[];
 };
@@ -57,6 +62,13 @@ function normalizeDispatchMode(value: unknown): DailyBriefDispatchMode | undefin
   return typeof value === "string" &&
     (DAILY_BRIEF_DISPATCH_MODES as readonly string[]).includes(value)
     ? (value as DailyBriefDispatchMode)
+    : undefined;
+}
+
+function normalizeRecordKind(value: unknown): DailyBriefRecordKind | undefined {
+  return typeof value === "string" &&
+    DAILY_BRIEF_RECORD_KINDS.includes(value as DailyBriefRecordKind)
+    ? (value as DailyBriefRecordKind)
     : undefined;
 }
 
@@ -115,6 +127,13 @@ async function parseRequestBody(
       return badRequest("runDate must use YYYY-MM-DD format.");
     }
 
+    if (
+      payload.recordKind !== undefined &&
+      normalizeRecordKind(payload.recordKind) === undefined
+    ) {
+      return badRequest("recordKind must be production or test when provided.");
+    }
+
     return payload;
   } catch {
     return badRequest("Request body must be valid JSON.");
@@ -141,6 +160,7 @@ export async function POST(request: Request) {
   }
 
   const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
+  const recordKind = normalizeRecordKind(parsedBody.recordKind) ?? "production";
   const dispatchOverrides = {
     mode: normalizeDispatchMode(parsedBody.dispatchMode),
     canaryParentEmails: normalizeCanaryParentEmails(
@@ -149,6 +169,7 @@ export async function POST(request: Request) {
   };
   const history = await listDailyBriefHistory({
     scheduledFor: runDate,
+    recordKind,
   });
   const deliverableBriefs = history.filter(isDeliverableBrief);
   const eligibleProfiles = await listEligibleDeliveryProfiles();
@@ -315,6 +336,7 @@ export async function POST(request: Request) {
   return Response.json({
     mode: "deliver",
     runDate,
+    recordKind,
     summary: {
       dispatchMode,
       targetedProfileCount,

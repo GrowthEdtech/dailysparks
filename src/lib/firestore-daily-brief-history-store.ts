@@ -2,6 +2,7 @@ import { getFirebaseAdminDb } from "./firebase-admin";
 import {
   DAILY_BRIEF_DELIVERY_CHANNELS,
   DAILY_BRIEF_PIPELINE_STAGES,
+  DAILY_BRIEF_RECORD_KINDS,
   DAILY_BRIEF_REPETITION_RISKS,
   DAILY_BRIEF_STATUSES,
   type DailyBriefDeliveryChannel,
@@ -9,6 +10,7 @@ import {
   type DailyBriefFailedDeliveryTarget,
   type DailyBriefHistoryRecord,
   type DailyBriefPipelineStage,
+  type DailyBriefRecordKind,
   type DailyBriefRepetitionRisk,
   type DailyBriefSourceReference,
   type DailyBriefStatus,
@@ -40,6 +42,13 @@ function normalizeStatus(value: unknown): DailyBriefStatus {
   return DAILY_BRIEF_STATUSES.includes(normalized as DailyBriefStatus)
     ? (normalized as DailyBriefStatus)
     : "draft";
+}
+
+function normalizeRecordKind(value: unknown): DailyBriefRecordKind {
+  const normalized = normalizeString(value);
+  return DAILY_BRIEF_RECORD_KINDS.includes(normalized as DailyBriefRecordKind)
+    ? (normalized as DailyBriefRecordKind)
+    : "production";
 }
 
 function normalizeRepetitionRisk(value: unknown): DailyBriefRepetitionRisk {
@@ -123,6 +132,7 @@ function normalizeEntry(
   return {
     id,
     scheduledFor: normalizeString(raw?.scheduledFor),
+    recordKind: normalizeRecordKind(raw?.recordKind),
     headline: normalizeString(raw?.headline),
     summary: normalizeString(raw?.summary),
     programme: normalizeProgramme(raw?.programme),

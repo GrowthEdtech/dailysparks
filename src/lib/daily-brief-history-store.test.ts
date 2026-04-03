@@ -15,6 +15,7 @@ const ORIGINAL_ENV = { ...process.env };
 function buildBriefInput(overrides: Partial<Parameters<typeof createDailyBriefHistoryEntry>[0]> = {}) {
   return {
     scheduledFor: "2026-04-02",
+    recordKind: "production" as const,
     headline: "Students debate how cities should respond to rising heat.",
     summary:
       "A family-friendly brief about how cities, schools, and communities respond to heat waves.",
@@ -117,7 +118,7 @@ describe("daily brief history store", () => {
     expect(fetchedEntry?.deliveryAttemptCount).toBe(0);
   });
 
-  test("filters history by scheduled date, programme, and status", async () => {
+  test("filters history by scheduled date, programme, status, and record kind", async () => {
     await createDailyBriefHistoryEntry(
       buildBriefInput({
         scheduledFor: "2026-04-01",
@@ -137,6 +138,7 @@ describe("daily brief history store", () => {
         scheduledFor: "2026-04-02",
         programme: "DP",
         status: "failed",
+        recordKind: "test",
       }),
     );
 
@@ -151,6 +153,10 @@ describe("daily brief history store", () => {
       scheduledFor: "2026-04-02",
       status: "failed",
     });
+    const byRecordKind = await listDailyBriefHistory({
+      scheduledFor: "2026-04-02",
+      recordKind: "production",
+    });
 
     expect(byDate).toHaveLength(2);
     expect(byDate.every((entry) => entry.scheduledFor === "2026-04-02")).toBe(
@@ -160,6 +166,8 @@ describe("daily brief history store", () => {
     expect(byDateAndProgramme[0]?.programme).toBe("MYP");
     expect(byStatus).toHaveLength(1);
     expect(byStatus[0]?.programme).toBe("DP");
+    expect(byRecordKind).toHaveLength(1);
+    expect(byRecordKind[0]?.recordKind).toBe("production");
   });
 
   test("stores pipeline metadata fields for staged scheduler flow", async () => {
