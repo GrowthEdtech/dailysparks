@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -18,6 +18,7 @@ vi.mock("../../../../../lib/notion", () => ({
 
 import { POST as runDailyBriefRoute } from "./route";
 import { createAiConnection } from "../../../../../lib/ai-connection-store";
+import { getDailyBriefCandidateSnapshot } from "../../../../../lib/daily-brief-candidate-store";
 import { listDailyBriefHistory } from "../../../../../lib/daily-brief-history-store";
 import { createPromptPolicy } from "../../../../../lib/prompt-policy-store";
 import {
@@ -159,19 +160,49 @@ async function configureRuntime() {
   });
 }
 
+async function seedEditorialSources(storePath: string) {
+  const timestamp = "2026-04-03T00:00:00.000Z";
+
+  await writeFile(
+    storePath,
+    JSON.stringify(
+      {
+        sources: [
+          {
+            id: "bbc",
+            name: "BBC",
+            domain: "bbc.com",
+            homepage: "https://www.bbc.com/news",
+            roles: ["daily-news"],
+            usageTiers: ["primary-selection"],
+            recommendedProgrammes: ["PYP", "MYP", "DP"],
+            sections: ["world"],
+            ingestionMode: "metadata-only",
+            active: true,
+            notes: "Primary source",
+            seededFromPolicy: true,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+          },
+        ],
+      },
+      null,
+      2,
+    ),
+  );
+}
+
 beforeEach(async () => {
   tempDirectory = await mkdtemp(
     path.join(tmpdir(), "daily-sparks-daily-run-route-"),
   );
+  const editorialStorePath = path.join(tempDirectory, "editorial-sources.json");
   process.env = {
     ...ORIGINAL_ENV,
     NODE_ENV: "test",
     DAILY_SPARKS_STORE_BACKEND: "local",
     DAILY_SPARKS_STORE_PATH: path.join(tempDirectory, "mvp-store.json"),
-    DAILY_SPARKS_EDITORIAL_STORE_PATH: path.join(
-      tempDirectory,
-      "editorial-sources.json",
-    ),
+    DAILY_SPARKS_EDITORIAL_STORE_PATH: editorialStorePath,
     DAILY_SPARKS_AI_CONNECTION_STORE_PATH: path.join(
       tempDirectory,
       "ai-connections.json",
@@ -184,10 +215,15 @@ beforeEach(async () => {
       tempDirectory,
       "daily-brief-history.json",
     ),
+    DAILY_SPARKS_DAILY_BRIEF_CANDIDATE_STORE_PATH: path.join(
+      tempDirectory,
+      "candidate-snapshots.json",
+    ),
     DAILY_SPARKS_AI_CONFIG_ENCRYPTION_SECRET:
       "test-ai-connection-encryption-secret",
     DAILY_SPARKS_SCHEDULER_SECRET: SCHEDULER_HEADER_FIXTURE,
   };
+  await seedEditorialSources(editorialStorePath);
   sendBriefToGoodnotesMock.mockReset();
   createNotionBriefPageMock.mockReset();
   sendBriefToGoodnotesMock.mockResolvedValue({
@@ -292,16 +328,20 @@ describe("daily brief orchestration route", () => {
     const history = await listDailyBriefHistory({
       scheduledFor: "2026-04-03",
     });
+    const candidateSnapshot = await getDailyBriefCandidateSnapshot("2026-04-03");
 
     expect(response.status).toBe(200);
     expect(body.mode).toBe("run");
     expect(body.ready).toBe(true);
+    expect(body.stages.ingest.summary.candidateCount).toBe(1);
     expect(body.summary.generatedCount).toBe(2);
     expect(body.summary.historyCreatedCount).toBe(2);
+    expect(body.stages.preflight.ready).toBe(true);
     expect(body.summary.publishedCount).toBe(2);
     expect(body.summary.deliveryAttemptCount).toBe(2);
     expect(body.summary.deliverySuccessCount).toBe(2);
     expect(body.summary.deliveryFailureCount).toBe(0);
+    expect(candidateSnapshot?.candidateCount).toBe(1);
     expect(history).toHaveLength(2);
     expect(history.every((entry) => entry.status === "published")).toBe(true);
     expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
@@ -336,9 +376,12 @@ describe("daily brief orchestration route", () => {
     });
 
     expect(secondResponse.status).toBe(200);
+    expect(body.stages.ingest.summary.candidateCount).toBe(1);
     expect(body.summary.generatedCount).toBe(0);
     expect(body.summary.historyCreatedCount).toBe(0);
     expect(body.summary.skippedProgrammes).toEqual(["PYP"]);
+    expect(body.stages.preflight).toBeNull();
+    expect(body.stages.deliver).toBeNull();
     expect(history).toHaveLength(1);
     expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
   });
@@ -377,6 +420,7 @@ describe("daily brief orchestration route", () => {
     expect(body.summary.deliveryFailureCount).toBe(1);
     expect(publishedEntry?.status).toBe("published");
     expect(failedEntry?.status).toBe("failed");
-    expect(failedEntry?.adminNotes).toMatch(/delivery failed/i);
+    expect(failedEntry?.failureReason).toMatch(/delivery attempts failed/i);
+    expect(failedEntry?.failedDeliveryTargets).toHaveLength(1);
   });
 });

@@ -1,24 +1,29 @@
 import { getDefaultAiConnection } from "../../../../../lib/ai-connection-store";
-import {
-  createDailyBriefHistoryEntry,
-  listDailyBriefHistory,
-} from "../../../../../lib/daily-brief-history-store";
+import { listDailyBriefHistory } from "../../../../../lib/daily-brief-history-store";
 import {
   getDailyBriefSchedulerHeaderName,
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
-import { generateDailyBriefDrafts } from "../../../../../lib/daily-brief-orchestrator";
+import { POST as deliverDailyBriefRoute } from "../deliver/route";
+import { POST as generateDailyBriefRoute } from "../generate/route";
+import { POST as ingestDailyBriefRoute } from "../ingest/route";
+import { POST as preflightDailyBriefRoute } from "../preflight/route";
 import { listEditorialSources } from "../../../../../lib/editorial-source-store";
 import { listEligibleDeliveryProfiles } from "../../../../../lib/mvp-store";
 import { getActivePromptPolicy } from "../../../../../lib/prompt-policy-store";
-import { sendBriefToGoodnotes } from "../../../../../lib/goodnotes-delivery";
-import { createNotionBriefPage } from "../../../../../lib/notion";
-import type { ParentProfile } from "../../../../../lib/mvp-types";
 
 type DailyRunRequestBody = {
   dryRun?: boolean;
   runDate?: string;
+};
+
+type StageResponseBody = {
+  mode?: string;
+  ready?: boolean;
+  blockers?: string[];
+  summary?: Record<string, unknown>;
+  selectedTopic?: unknown;
 };
 
 function serviceUnavailable(message: string) {
@@ -33,16 +38,13 @@ function badRequest(message: string) {
   return Response.json({ message }, { status: 400 });
 }
 
-function internalError(message: string) {
-  return Response.json({ message }, { status: 500 });
-}
-
 function buildRunDate(now = new Date()) {
   return now.toISOString().slice(0, 10);
 }
 
 function isValidRunDate(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
 }
 
 async function parseRequestBody(
@@ -63,10 +65,7 @@ async function parseRequestBody(
   try {
     const payload = JSON.parse(bodyText) as DailyRunRequestBody;
 
-    if (
-      payload.dryRun !== undefined &&
-      typeof payload.dryRun !== "boolean"
-    ) {
+    if (payload.dryRun !== undefined && typeof payload.dryRun !== "boolean") {
       return badRequest("dryRun must be a boolean when provided.");
     }
 
@@ -126,51 +125,47 @@ function buildPreflightSummary(args: {
   };
 }
 
-async function deliverBriefToProfiles(
-  profiles: ParentProfile[],
-  brief: Awaited<ReturnType<typeof generateDailyBriefDrafts>>["generatedBriefs"][number],
+function buildStageRequest(
+  pathname: string,
+  schedulerSecret: string,
+  runDate: string,
 ) {
-  let deliveryAttemptCount = 0;
-  let deliverySuccessCount = 0;
-  let deliveryFailureCount = 0;
-  const notes: string[] = [];
+  return new Request(`http://localhost:3000${pathname}`, {
+    method: "POST",
+    headers: {
+      [getDailyBriefSchedulerHeaderName()]: schedulerSecret,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ runDate }),
+  });
+}
 
-  for (const profile of profiles) {
-    if (profile.student.goodnotesConnected) {
-      deliveryAttemptCount += 1;
-
-      try {
-        await sendBriefToGoodnotes(profile, brief);
-        deliverySuccessCount += 1;
-      } catch {
-        deliveryFailureCount += 1;
-        notes.push(`Goodnotes delivery failed for ${profile.parent.email}.`);
-      }
-    }
-
-    if (profile.student.notionConnected) {
-      deliveryAttemptCount += 1;
-
-      try {
-        await createNotionBriefPage(profile, brief);
-        deliverySuccessCount += 1;
-      } catch {
-        deliveryFailureCount += 1;
-        notes.push(`Notion delivery failed for ${profile.parent.email}.`);
-      }
-    }
+async function parseStageResponse(
+  response: Response,
+): Promise<StageResponseBody | Response> {
+  if (!response.ok) {
+    return response;
   }
 
-  if (deliveryAttemptCount === 0) {
-    notes.push(`No delivery channels were ready for ${brief.programme}.`);
-  }
+  return (await response.json()) as StageResponseBody;
+}
 
-  return {
-    deliveryAttemptCount,
-    deliverySuccessCount,
-    deliveryFailureCount,
-    notes,
-  };
+function getSummaryNumber(
+  body: StageResponseBody | null,
+  key: string,
+) {
+  const value = body?.summary?.[key];
+
+  return typeof value === "number" ? value : 0;
+}
+
+function getSummaryStringArray(
+  body: StageResponseBody | null,
+  key: string,
+) {
+  const value = body?.summary?.[key];
+
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
 export async function POST(request: Request) {
@@ -236,111 +231,141 @@ export async function POST(request: Request) {
     );
   }
 
-  const runtimePromptPolicy = activePromptPolicy;
+  const schedulerSecret =
+    request.headers.get(getDailyBriefSchedulerHeaderName()) ?? "";
+  const ingestBody = await parseStageResponse(
+    await ingestDailyBriefRoute(
+      buildStageRequest(
+        "/api/internal/daily-brief/ingest",
+        schedulerSecret,
+        runDate,
+      ),
+    ),
+  );
 
-  if (!runtimePromptPolicy) {
-    return internalError("Daily brief run is missing an active prompt policy.");
+  if (ingestBody instanceof Response) {
+    return ingestBody;
   }
 
-  try {
-    const generation = await generateDailyBriefDrafts({
-      scheduledFor: runDate,
-      historyEntries: history,
-      promptPolicy: runtimePromptPolicy,
-      fetchImpl: fetch,
-    });
-    const createdHistoryEntries = [];
-    let publishedCount = 0;
-    let failedCount = 0;
-    let deliveryAttemptCount = 0;
-    let deliverySuccessCount = 0;
-    let deliveryFailureCount = 0;
+  const generateBody = await parseStageResponse(
+    await generateDailyBriefRoute(
+      buildStageRequest(
+        "/api/internal/daily-brief/generate",
+        schedulerSecret,
+        runDate,
+      ),
+    ),
+  );
 
-    for (const brief of generation.generatedBriefs) {
-      const programmeProfiles = eligibleProfiles.filter(
-        (profile) => profile.student.programme === brief.programme,
-      );
-      const deliverySummary = await deliverBriefToProfiles(programmeProfiles, brief);
-      const finalStatus =
-        deliverySummary.deliveryFailureCount > 0 &&
-        deliverySummary.deliverySuccessCount === 0
-          ? "failed"
-          : "published";
-      const adminNotes = [
-        `Delivery attempts: ${deliverySummary.deliveryAttemptCount}.`,
-        `Successful deliveries: ${deliverySummary.deliverySuccessCount}.`,
-        `Failed deliveries: ${deliverySummary.deliveryFailureCount}.`,
-        ...deliverySummary.notes,
-      ]
-        .filter(Boolean)
-        .join(" ");
-      const createdEntry = await createDailyBriefHistoryEntry({
-        scheduledFor: brief.scheduledFor,
-        headline: brief.headline,
-        summary: brief.summary,
-        programme: brief.programme,
-        status: finalStatus,
-        topicTags: brief.topicTags,
-        sourceReferences: brief.sourceReferences,
-        aiConnectionId: brief.aiConnectionId,
-        aiConnectionName: brief.aiConnectionName,
-        aiModel: brief.aiModel,
-        promptPolicyId: brief.promptPolicyId,
-        promptVersionLabel: brief.promptVersionLabel,
-        promptVersion: brief.promptVersion,
-        repetitionRisk: brief.repetitionRisk,
-        repetitionNotes: brief.repetitionNotes,
-        adminNotes,
-        briefMarkdown: brief.briefMarkdown,
-      });
+  if (generateBody instanceof Response) {
+    return generateBody;
+  }
 
-      createdHistoryEntries.push(createdEntry);
-      deliveryAttemptCount += deliverySummary.deliveryAttemptCount;
-      deliverySuccessCount += deliverySummary.deliverySuccessCount;
-      deliveryFailureCount += deliverySummary.deliveryFailureCount;
+  const generatedCount = getSummaryNumber(generateBody, "generatedCount");
+  const historyCreatedCount = getSummaryNumber(generateBody, "historyCreatedCount");
+  const skippedProgrammes = getSummaryStringArray(generateBody, "skippedProgrammes");
 
-      if (finalStatus === "published") {
-        publishedCount += 1;
-      } else {
-        failedCount += 1;
-      }
-    }
-
+  if (generatedCount === 0) {
     return Response.json({
       mode: "run",
       ready: true,
       runDate,
       blockers: [],
-      selectedTopic: generation.selectedTopic
-        ? {
-            clusterKey: generation.selectedTopic.clusterKey,
-            headline: generation.selectedTopic.headline,
-            sourceReferenceCount: generation.selectedTopic.sourceReferences.length,
-            candidateCount: generation.selectedTopic.topicCandidates.length,
-          }
-        : null,
+      stages: {
+        ingest: ingestBody,
+        generate: generateBody,
+        preflight: null,
+        deliver: null,
+      },
+      selectedTopic: generateBody.selectedTopic ?? null,
       summary: {
-        eligibleProfileCount: eligibleProfiles.length,
-        eligibleProgrammes: Array.from(
-          new Set(eligibleProfiles.map((profile) => profile.student.programme)),
-        ).sort(),
-        activeSourceCount: activeSources.length,
-        activeSourceIds: activeSources.map((source) => source.id),
-        generatedCount: generation.generatedBriefs.length,
-        skippedProgrammes: generation.skippedProgrammes,
-        historyCreatedCount: createdHistoryEntries.length,
-        publishedCount,
-        failedCount,
-        deliveryAttemptCount,
-        deliverySuccessCount,
-        deliveryFailureCount,
+        generatedCount,
+        historyCreatedCount,
+        skippedProgrammes,
+        publishedCount: 0,
+        failedCount: 0,
+        deliveryAttemptCount: 0,
+        deliverySuccessCount: 0,
+        deliveryFailureCount: 0,
       },
     });
-  } catch (error) {
-    console.error("Daily brief run failed", error);
-
-    return internalError(
-      "Daily brief run failed before completion. Check server logs for details.",
-    );
   }
+
+  const preflightBody = await parseStageResponse(
+    await preflightDailyBriefRoute(
+      buildStageRequest(
+        "/api/internal/daily-brief/preflight",
+        schedulerSecret,
+        runDate,
+      ),
+    ),
+  );
+
+  if (preflightBody instanceof Response) {
+    return preflightBody;
+  }
+
+  if (preflightBody.ready === false) {
+    return Response.json({
+      mode: "run",
+      ready: false,
+      runDate,
+      blockers: preflightBody.blockers ?? [],
+      stages: {
+        ingest: ingestBody,
+        generate: generateBody,
+        preflight: preflightBody,
+        deliver: null,
+      },
+      selectedTopic: generateBody.selectedTopic ?? null,
+      summary: {
+        generatedCount,
+        historyCreatedCount,
+        skippedProgrammes,
+        publishedCount: 0,
+        failedCount: 0,
+        deliveryAttemptCount: 0,
+        deliverySuccessCount: 0,
+        deliveryFailureCount: 0,
+      },
+    });
+  }
+
+  const deliverBody = await parseStageResponse(
+    await deliverDailyBriefRoute(
+      buildStageRequest(
+        "/api/internal/daily-brief/deliver",
+        schedulerSecret,
+        runDate,
+      ),
+    ),
+  );
+
+  if (deliverBody instanceof Response) {
+    return deliverBody;
+  }
+
+  return Response.json({
+    mode: "run",
+    ready: true,
+    runDate,
+    blockers: [],
+    stages: {
+      ingest: ingestBody,
+      generate: generateBody,
+      preflight: preflightBody,
+      deliver: deliverBody,
+    },
+    selectedTopic: generateBody.selectedTopic ?? null,
+    summary: {
+      generatedCount,
+      historyCreatedCount,
+      skippedProgrammes,
+      publishedCount: getSummaryNumber(deliverBody, "deliveredCount"),
+      failedCount: getSummaryNumber(deliverBody, "failedCount"),
+      deliveryAttemptCount: getSummaryNumber(deliverBody, "deliveryAttemptCount"),
+      deliverySuccessCount: getSummaryNumber(deliverBody, "deliverySuccessCount"),
+      deliveryFailureCount: getSummaryNumber(deliverBody, "deliveryFailureCount"),
+    },
+  });
 }
