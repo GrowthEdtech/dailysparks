@@ -9,10 +9,12 @@ import {
   compareProfilesByCreatedAtDesc,
   countProfilesByStatus,
   formatAdminDate,
+  getCountryRegionLabel,
   getDerivedAccessFilterLabel,
   getDeliveryLabels,
   getDerivedUserTypeLabel,
   getInvoiceStatusLabel,
+  getLocalDeliveryScheduleLabel,
   getPlanLabel,
   isSubscriptionStatus,
   USER_STATUS_FILTERS,
@@ -164,7 +166,7 @@ export default async function UsersAdminPage({
                     {profile.parent.email}
                   </p>
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-4 grid gap-3 lg:grid-cols-3">
                     <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                         Student
@@ -191,6 +193,18 @@ export default async function UsersAdminPage({
                           </span>
                         ))}
                       </div>
+                    </div>
+
+                    <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        Local delivery window
+                      </p>
+                      <p className="mt-2 text-base font-semibold text-[#0f172a]">
+                        {getCountryRegionLabel(profile)}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {getLocalDeliveryScheduleLabel(profile)}
+                      </p>
                     </div>
                   </div>
                 </div>

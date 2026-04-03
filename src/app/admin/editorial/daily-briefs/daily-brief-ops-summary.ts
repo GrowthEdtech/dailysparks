@@ -1,4 +1,5 @@
 import { getDerivedAccessState } from "../../../../lib/access-state";
+import { buildProfileLocalDeliveryWindowLabel } from "../../../../lib/delivery-window";
 import type { DailyBriefHistoryRecord } from "../../../../lib/daily-brief-history-schema";
 import type { ParentProfile } from "../../../../lib/mvp-types";
 import { getFamilyDeliveryHealthRollup } from "../../../../lib/delivery-health-rollup";
@@ -9,6 +10,7 @@ export type DailyBriefSkippedFamily = {
   studentName: string;
   programme: ParentProfile["student"]["programme"];
   reason: string;
+  localDeliveryWindow: string;
 };
 
 export type DailyBriefChannelWatchItem = {
@@ -16,6 +18,7 @@ export type DailyBriefChannelWatchItem = {
   parentEmail: string;
   studentName: string;
   issues: string[];
+  localDeliveryWindow: string;
 };
 
 export type DailyBriefFollowUpBrief = {
@@ -191,6 +194,7 @@ export function buildDailyBriefOpsSummary({
           parentEmail: profile.parent.email,
           studentName: profile.student.studentName,
           issues: rollup.labels,
+          localDeliveryWindow: buildProfileLocalDeliveryWindowLabel(profile),
         },
       ];
     },
@@ -217,6 +221,7 @@ export function buildDailyBriefOpsSummary({
           studentName: profile.student.studentName,
           programme: profile.student.programme,
           reason: buildSkippedReason(profile, relevantBriefs, rollup.overall),
+          localDeliveryWindow: buildProfileLocalDeliveryWindowLabel(profile),
         },
       ];
     },

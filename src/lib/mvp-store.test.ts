@@ -5,6 +5,7 @@ import path from "node:path";
 
 import {
   getOrCreateParentProfile,
+  updateParentDeliveryPreferences,
   getProfileByParentId,
   getProfileByEmail,
   listParentProfiles,
@@ -46,6 +47,9 @@ describe("mvp store", () => {
     expect(profile.parent.trialEndsAt).toBeTruthy();
     expect(profile.parent.subscriptionActivatedAt).toBeNull();
     expect(profile.parent.subscriptionRenewalAt).toBeNull();
+    expect(profile.parent.countryCode).toBe("HK");
+    expect(profile.parent.deliveryTimeZone).toBe("Asia/Hong_Kong");
+    expect(profile.parent.preferredDeliveryLocalTime).toBe("09:00");
     expect(profile.parent.latestInvoiceId).toBeNull();
     expect(profile.parent.latestInvoiceHostedUrl).toBeNull();
     expect(profile.student.studentName).toBe("Katherine");
@@ -109,6 +113,48 @@ describe("mvp store", () => {
     expect(reloaded?.student.goodnotesLastDeliveryMessage).toMatch(/saved/i);
     expect(reloaded?.student.programme).toBe("MYP");
     expect(reloaded?.student.programmeYear).toBe(3);
+  });
+
+  test("updates parent delivery locale preferences and persists them", async () => {
+    await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    const updated = await updateParentDeliveryPreferences("parent@example.com", {
+      countryCode: "US",
+      deliveryTimeZone: "America/Los_Angeles",
+      preferredDeliveryLocalTime: "18:30",
+    });
+
+    expect(updated?.parent.countryCode).toBe("US");
+    expect(updated?.parent.deliveryTimeZone).toBe("America/Los_Angeles");
+    expect(updated?.parent.preferredDeliveryLocalTime).toBe("18:30");
+
+    const reloaded = await getProfileByEmail("parent@example.com");
+
+    expect(reloaded?.parent.countryCode).toBe("US");
+    expect(reloaded?.parent.deliveryTimeZone).toBe("America/Los_Angeles");
+    expect(reloaded?.parent.preferredDeliveryLocalTime).toBe("18:30");
+  });
+
+  test("falls back to normalized delivery locale defaults when preferences are invalid", async () => {
+    await getOrCreateParentProfile({
+      email: "fallback@example.com",
+      fullName: "Fallback Parent",
+      studentName: "Mia",
+    });
+
+    const updated = await updateParentDeliveryPreferences("fallback@example.com", {
+      countryCode: "??",
+      deliveryTimeZone: "Mars/Olympus",
+      preferredDeliveryLocalTime: "18:15",
+    });
+
+    expect(updated?.parent.countryCode).toBe("HK");
+    expect(updated?.parent.deliveryTimeZone).toBe("Asia/Hong_Kong");
+    expect(updated?.parent.preferredDeliveryLocalTime).toBe("09:00");
   });
 
   test("updates Goodnotes delivery status and resets it when the destination changes", async () => {

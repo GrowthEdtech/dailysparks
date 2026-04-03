@@ -7,6 +7,7 @@ import {
   type DailyBriefHistoryRecord,
   type DailyBriefRecordKind,
 } from "../../../../../lib/daily-brief-history-schema";
+import { listPendingDeliveryTargets } from "../../../../../lib/daily-brief-delivery-progress";
 import { planDailyBriefDispatch } from "../../../../../lib/daily-brief-delivery-policy";
 import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
@@ -15,12 +16,13 @@ import {
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
-import { getDailyBriefBusinessDate } from "../../../../../lib/daily-brief-run-date";
+import { getDailyBriefDispatchRunDates } from "../../../../../lib/daily-brief-run-date";
 import { listEligibleDeliveryProfiles } from "../../../../../lib/mvp-store";
 
 type DailyBriefRetryDeliveryRequestBody = {
   runDate?: string;
   recordKind?: string;
+  dispatchTimestamp?: string;
 };
 
 function serviceUnavailable(message: string) {
@@ -40,10 +42,22 @@ function isValidRunDate(value: string) {
     !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
 }
 
-function buildRetryAttemptTimestamp(runDate: string) {
-  const parsed = Date.parse(`${runDate}T09:10:00+08:00`);
+function normalizeDispatchTimestamp(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    return undefined;
+  }
 
-  return Number.isNaN(parsed) ? new Date().toISOString() : new Date(parsed).toISOString();
+  return Number.isNaN(Date.parse(value)) ? undefined : new Date(value).toISOString();
+}
+
+function buildRetryEligibleUntil(dispatchTimestamp: string) {
+  const parsed = Date.parse(dispatchTimestamp);
+
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+
+  return new Date(parsed + 30 * 60 * 1000).toISOString();
 }
 
 function isRetryCandidate(
@@ -111,6 +125,13 @@ async function parseRequestBody(
       return badRequest("recordKind must be production or test when provided.");
     }
 
+    if (
+      payload.dispatchTimestamp !== undefined &&
+      normalizeDispatchTimestamp(payload.dispatchTimestamp) === undefined
+    ) {
+      return badRequest("dispatchTimestamp must be a valid ISO timestamp.");
+    }
+
     return payload;
   } catch {
     return badRequest("Request body must be valid JSON.");
@@ -136,13 +157,23 @@ export async function POST(request: Request) {
     return parsedBody;
   }
 
-  const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
+  const retryAttemptTimestamp =
+    normalizeDispatchTimestamp(parsedBody.dispatchTimestamp) ??
+    new Date().toISOString();
+  const runDatesProcessed = parsedBody.runDate
+    ? [parsedBody.runDate]
+    : getDailyBriefDispatchRunDates(new Date(retryAttemptTimestamp));
   const recordKind = normalizeRecordKind(parsedBody.recordKind) ?? "production";
-  const retryAttemptTimestamp = buildRetryAttemptTimestamp(runDate);
-  const history = await listDailyBriefHistory({
-    scheduledFor: runDate,
-    recordKind,
-  });
+  const history = (
+    await Promise.all(
+      runDatesProcessed.map((scheduledFor) =>
+        listDailyBriefHistory({
+          scheduledFor,
+          recordKind,
+        }),
+      ),
+    )
+  ).flat();
   const retryCandidates = history.filter((entry) =>
     isRetryCandidate(entry, retryAttemptTimestamp)
   );
@@ -178,7 +209,7 @@ export async function POST(request: Request) {
       await emitDailyBriefOpsAlert({
         stage: "retry-delivery",
         severity: "warning",
-        runDate,
+        runDate: brief.scheduledFor,
         title: "Daily brief retry skipped",
         message:
           dispatchPlan.mode === "canary"
@@ -197,6 +228,7 @@ export async function POST(request: Request) {
 
     const retrySummary = await deliverHistoryBriefToProfiles(programmeProfiles, brief, {
       retryTargets: brief.failedDeliveryTargets,
+      successfulReceipts: brief.deliveryReceipts,
       attachmentMode: dispatchPlan.mode === "canary" ? "canary" : "production",
     });
     const nextDeliveryAttemptCount =
@@ -217,6 +249,18 @@ export async function POST(request: Request) {
     ];
     const hasRemainingFailures = remainingFailedTargets.length > 0;
     const hasAnySuccess = nextDeliverySuccessCount > 0;
+    const nextDeliveryReceipts = [
+      ...brief.deliveryReceipts,
+      ...retrySummary.deliveryReceipts,
+    ];
+    const pendingTargets = listPendingDeliveryTargets({
+      profiles: eligibleProfiles.filter(
+        (profile) => profile.student.programme === brief.programme,
+      ),
+      deliveryReceipts: nextDeliveryReceipts,
+      failedDeliveryTargets: remainingFailedTargets,
+    });
+    const hasPendingTargets = pendingTargets.length > 0;
 
     retriedCount += 1;
     deliveryAttemptCount += retrySummary.deliveryAttemptCount;
@@ -224,26 +268,37 @@ export async function POST(request: Request) {
     deliveryFailureCount += retrySummary.deliveryFailureCount;
 
     await updateDailyBriefHistoryEntry(brief.id, {
-      status: hasRemainingFailures && !hasAnySuccess ? "failed" : "published",
-      pipelineStage: hasRemainingFailures && !hasAnySuccess ? "failed" : "published",
+      status: hasPendingTargets
+        ? "approved"
+        : hasRemainingFailures && !hasAnySuccess
+          ? "failed"
+          : "published",
+      pipelineStage: hasPendingTargets
+        ? "delivering"
+        : hasRemainingFailures && !hasAnySuccess
+          ? "failed"
+          : "published",
       lastDeliveryAttemptAt: retryAttemptTimestamp,
       deliveryAttemptCount: nextDeliveryAttemptCount,
       deliverySuccessCount: nextDeliverySuccessCount,
       deliveryFailureCount: nextDeliveryFailureCount,
-      deliveryReceipts: [
-        ...brief.deliveryReceipts,
-        ...retrySummary.deliveryReceipts,
-      ],
+      deliveryReceipts: nextDeliveryReceipts,
       failedDeliveryTargets: remainingFailedTargets,
-      retryEligibleUntil: hasRemainingFailures ? brief.retryEligibleUntil : null,
+      retryEligibleUntil: hasRemainingFailures
+        ? buildRetryEligibleUntil(retryAttemptTimestamp)
+        : null,
       failureReason: hasRemainingFailures
         ? hasAnySuccess
-          ? `${remainingFailedTargets.length} delivery target(s) still need retry.`
+          ? hasPendingTargets
+            ? `${remainingFailedTargets.length} delivery target(s) still need retry while later local delivery windows remain pending.`
+            : `${remainingFailedTargets.length} delivery target(s) still need retry.`
           : "All configured delivery attempts failed."
-        : "",
+        : hasPendingTargets
+          ? `${pendingTargets.length} delivery target(s) remain in future local windows.`
+          : "",
       adminNotes: appendAdminNotes(
         brief.adminNotes,
-        `${dispatchContext} Retry attempts: ${retrySummary.deliveryAttemptCount}. Successful retries: ${retrySummary.deliverySuccessCount}. Failed retries: ${retrySummary.deliveryFailureCount}.`,
+        `${dispatchContext} Retry attempts: ${retrySummary.deliveryAttemptCount}. Successful retries: ${retrySummary.deliverySuccessCount}. Failed retries: ${retrySummary.deliveryFailureCount}. Pending future targets: ${pendingTargets.length}.`,
       ),
     });
 
@@ -251,7 +306,7 @@ export async function POST(request: Request) {
       await emitDailyBriefOpsAlert({
         stage: "retry-delivery",
         severity: hasAnySuccess ? "warning" : "critical",
-        runDate,
+        runDate: brief.scheduledFor,
         title: hasAnySuccess
           ? "Daily brief retry completed with remaining failures"
           : "Daily brief retry exhausted without success",
@@ -273,7 +328,8 @@ export async function POST(request: Request) {
 
   return Response.json({
     mode: "retry-delivery",
-    runDate,
+    runDate: runDatesProcessed[0],
+    runDatesProcessed,
     recordKind,
     summary: {
       dispatchMode,

@@ -43,6 +43,9 @@ describe("UserDetailAdminPage", () => {
         id: "parent-1",
         email: "parent@example.com",
         fullName: "Parent Example",
+        countryCode: "US",
+        deliveryTimeZone: "America/Los_Angeles",
+        preferredDeliveryLocalTime: "18:30",
         subscriptionStatus: "trial",
         subscriptionPlan: "monthly",
         stripeCustomerId: "cus_123",
@@ -115,6 +118,11 @@ describe("UserDetailAdminPage", () => {
     expect(markup).toContain("Ready.");
     expect(markup).toContain("Notion status");
     expect(markup).toContain("Synced.");
+    expect(markup).toContain("Country / region");
+    expect(markup).toContain("United States");
+    expect(markup).toContain("Time zone");
+    expect(markup).toContain("America/Los Angeles");
+    expect(markup).toContain("6:30 PM · America/Los Angeles");
   });
 
   test("renders expired trial families with the derived user type", async () => {
@@ -123,6 +131,9 @@ describe("UserDetailAdminPage", () => {
         id: "parent-2",
         email: "expired@example.com",
         fullName: "Expired Trial Parent",
+        countryCode: "HK",
+        deliveryTimeZone: "Asia/Hong_Kong",
+        preferredDeliveryLocalTime: "09:00",
         subscriptionStatus: "trial",
         subscriptionPlan: null,
         stripeCustomerId: null,

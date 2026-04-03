@@ -176,6 +176,7 @@ describe("daily brief test run admin route", () => {
       recordKind: "test",
       dispatchMode: "canary",
       canaryParentEmails: ["admin@geledtech.com"],
+      forceDispatch: true,
     });
   });
 

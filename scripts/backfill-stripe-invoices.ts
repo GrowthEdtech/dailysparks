@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { execSync } from "node:child_process";
 
+import { resolveDeliveryPreferences } from "../src/lib/delivery-locale";
 import type { ParentRecord } from "../src/lib/mvp-types";
 import {
   getStripeBackfillUpdate,
@@ -144,6 +145,20 @@ function encodeFirestoreValue(value: number | string | null) {
 
 function toParentRecord(fields: Record<string, Record<string, unknown>>, documentName: string): ParentRecord {
   const timestamp = new Date().toISOString();
+  const deliveryPreferences = resolveDeliveryPreferences({
+    countryCode:
+      typeof decodeFirestoreValue(fields.countryCode) === "string"
+        ? String(decodeFirestoreValue(fields.countryCode))
+        : null,
+    deliveryTimeZone:
+      typeof decodeFirestoreValue(fields.deliveryTimeZone) === "string"
+        ? String(decodeFirestoreValue(fields.deliveryTimeZone))
+        : null,
+    preferredDeliveryLocalTime:
+      typeof decodeFirestoreValue(fields.preferredDeliveryLocalTime) === "string"
+        ? String(decodeFirestoreValue(fields.preferredDeliveryLocalTime))
+        : null,
+  });
 
   return {
     id: documentName.split("/").pop() ?? String(decodeFirestoreValue(fields.email) ?? ""),
@@ -195,6 +210,10 @@ function toParentRecord(fields: Record<string, Record<string, unknown>>, documen
       String(decodeFirestoreValue(fields.subscriptionRenewalAt)).trim()
         ? String(decodeFirestoreValue(fields.subscriptionRenewalAt))
         : null,
+    countryCode: deliveryPreferences.countryCode,
+    deliveryTimeZone: deliveryPreferences.deliveryTimeZone,
+    preferredDeliveryLocalTime:
+      deliveryPreferences.preferredDeliveryLocalTime,
     latestInvoiceId:
       typeof decodeFirestoreValue(fields.latestInvoiceId) === "string" &&
       String(decodeFirestoreValue(fields.latestInvoiceId)).trim()

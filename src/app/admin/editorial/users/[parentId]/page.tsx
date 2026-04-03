@@ -4,9 +4,11 @@ import { notFound } from "next/navigation";
 import { getProfileByParentId } from "../../../../../lib/mvp-store";
 import {
   formatAdminDate,
+  getCountryRegionLabel,
   getDeliveryLabels,
   getDerivedUserTypeLabel,
   getInvoiceStatusLabel,
+  getLocalDeliveryScheduleLabel,
   getPlanLabel,
 } from "../users-admin-helpers";
 import { getFamilyDeliveryHealthRollup } from "../../../../../lib/delivery-health-rollup";
@@ -83,6 +85,18 @@ export default async function UserDetailAdminPage({
             <div className="flex items-start justify-between gap-4">
               <dt className="font-semibold text-[#0f172a]">Last updated</dt>
               <dd>{formatAdminDate(profile.parent.updatedAt)}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Country / region</dt>
+              <dd>{getCountryRegionLabel(profile)}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Time zone</dt>
+              <dd>{profile.parent.deliveryTimeZone.replaceAll("_", " ")}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Local delivery time</dt>
+              <dd>{getLocalDeliveryScheduleLabel(profile)}</dd>
             </div>
           </dl>
         </section>

@@ -184,8 +184,8 @@ If both are present, the Secret Manager reference is preferred.
 
 ### Canary dispatch and ops alerts
 
-The staged pipeline also supports an operator-safe canary mode for the `09:00`
-dispatch wave:
+The staged pipeline also supports an operator-safe canary mode for the rolling
+local-time dispatch waves:
 
 ```env
 DAILY_BRIEF_DELIVERY_MODE=canary
@@ -195,7 +195,7 @@ DAILY_BRIEF_CANARY_PARENT_EMAILS=first-family@example.com,second-family@example.
 - `all` is the default dispatch mode and targets every eligible family
 - `canary` limits the `deliver` and `retry-delivery` stages to the configured
   parent email allowlist
-- briefs still generate for the day, but the `09:00` send only reaches the
+- briefs still generate for the day, but each rolling delivery wave only reaches the
   canary set until you switch back to `all`
 
 Ops alerts always log a structured payload server-side. You can also forward
@@ -234,13 +234,14 @@ The scheduler helper now creates or updates these jobs by default:
 - `dailysparks-brief-ingest-0300` -> `/api/internal/daily-brief/ingest` -> `0 3 * * *`
 - `dailysparks-brief-ingest-0500` -> `/api/internal/daily-brief/ingest` -> `0 5 * * *`
 - `dailysparks-brief-generate-0600` -> `/api/internal/daily-brief/generate` -> `0 6 * * *`
-- `dailysparks-brief-preflight-0850` -> `/api/internal/daily-brief/preflight` -> `50 8 * * *`
-- `dailysparks-brief-deliver-0900` -> `/api/internal/daily-brief/deliver` -> `0 9 * * *`
-- `dailysparks-brief-retry-0910` -> `/api/internal/daily-brief/retry-delivery` -> `10 9 * * *`
+- `dailysparks-brief-preflight-0615` -> `/api/internal/daily-brief/preflight` -> `15 6 * * *`
+- `dailysparks-brief-deliver-half-hourly` -> `/api/internal/daily-brief/deliver` -> `0,30 * * * *`
+- `dailysparks-brief-retry-half-hourly` -> `/api/internal/daily-brief/retry-delivery` -> `10,40 * * * *`
 
 All default schedules run in `Asia/Hong_Kong`, and all jobs reuse the same
 header-secret authentication. The helper also deletes the legacy single job
-`dailysparks-daily-brief` by default so the staged jobs do not double-trigger.
+`dailysparks-daily-brief` plus the old fixed-window staged jobs by default so
+the rolling-wave jobs do not double-trigger.
 
 Optional overrides:
 
@@ -257,9 +258,9 @@ DAILY_BRIEF_SCHEDULER_INGEST_0100_SCHEDULE="0 1 * * *"
 DAILY_BRIEF_SCHEDULER_INGEST_0300_SCHEDULE="0 3 * * *"
 DAILY_BRIEF_SCHEDULER_INGEST_0500_SCHEDULE="0 5 * * *"
 DAILY_BRIEF_SCHEDULER_GENERATE_0600_SCHEDULE="0 6 * * *"
-DAILY_BRIEF_SCHEDULER_PREFLIGHT_0850_SCHEDULE="50 8 * * *"
-DAILY_BRIEF_SCHEDULER_DELIVER_0900_SCHEDULE="0 9 * * *"
-DAILY_BRIEF_SCHEDULER_RETRY_0910_SCHEDULE="10 9 * * *"
+DAILY_BRIEF_SCHEDULER_PREFLIGHT_0615_SCHEDULE="15 6 * * *"
+DAILY_BRIEF_SCHEDULER_DELIVER_HALF_HOURLY_SCHEDULE="0,30 * * * *"
+DAILY_BRIEF_SCHEDULER_RETRY_HALF_HOURLY_SCHEDULE="10,40 * * * *"
 DAILY_BRIEF_SCHEDULER_LEGACY_JOB_NAME=dailysparks-daily-brief
 DAILY_BRIEF_SCHEDULER_CLEANUP_LEGACY_JOB=true
 ```
@@ -273,13 +274,16 @@ The helper is idempotent:
 
 ### Operational expectation
 
-The staged model is designed around a `09:00` delivery SLA:
+The staged model is designed around a fixed editorial business day in
+`Asia/Hong_Kong`, but delivery itself rolls by each family's local time zone:
 
 - `01:00`, `03:00`, `05:00`: refresh candidate sources
 - `06:00`: freeze topic selection and generate programme briefs
-- `08:50`: verify delivery readiness
-- `09:00`: dispatch approved briefs
-- `09:10`: retry only failed recipient-channel combinations
+- `06:15`: verify delivery readiness once generation finishes
+- every `30` minutes: dispatch approved briefs that are now due in the
+  family's local delivery window
+- every `30` minutes offset by `10` minutes: retry only failed
+  recipient-channel combinations that are still within their retry window
 
 ### Operator dry run
 
@@ -309,7 +313,9 @@ When the system is ready, a real scheduled run will:
 - refresh candidate snapshots overnight
 - generate only the programmes that have eligible recipients
 - write staged `Daily Briefs` history entries
-- dispatch through configured Goodnotes and Notion channels at `09:00`
+- dispatch through configured Goodnotes and Notion channels in rolling
+  half-hourly waves keyed off each family's `deliveryTimeZone` and
+  `preferredDeliveryLocalTime`
 - retry failed deliveries in a separate retry window instead of regenerating content
 
 ### Operator checklist
@@ -319,21 +325,21 @@ Recommended production rollout pattern:
 1. Start with `DAILY_BRIEF_DELIVERY_MODE=canary`
 2. Set `DAILY_BRIEF_CANARY_PARENT_EMAILS` to `1-3` real test families
 3. Confirm `generate` writes draft history entries by `06:10`
-4. Confirm `preflight` upgrades them to `approved / preflight_passed` by `08:50`
-5. Watch the `09:00` canary dispatch and the `09:10` retry wave
+4. Confirm `preflight` upgrades them to `approved / preflight_passed` by `06:20`
+5. Watch the first canary delivery wave and the matching retry waves
 6. Switch back to `DAILY_BRIEF_DELIVERY_MODE=all` only after a clean canary day
 
 The system emits critical alerts for:
 
-- `08:50` preflight blockers
-- `09:00` delivery runs with no eligible targets
-- `09:00` delivery runs where every configured channel fails
-- `09:10` retry runs that still end with unresolved failures
+- preflight blockers after generation
+- delivery waves with no eligible targets
+- delivery waves where every configured channel fails
+- retry waves that still end with unresolved failures
 
 It emits warning alerts for:
 
-- partial `09:00` delivery failures that still need retry
-- `09:10` retry waves with remaining unresolved targets
+- partial delivery-wave failures that still need retry
+- retry waves with remaining unresolved targets
 
 See the detailed operations runbook in
 [`docs/plans/2026-04-03-daily-brief-operations-runbook.md`](docs/plans/2026-04-03-daily-brief-operations-runbook.md).

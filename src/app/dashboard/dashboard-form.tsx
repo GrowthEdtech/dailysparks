@@ -2,13 +2,26 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { BookOpen, CreditCard, Save, Send } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { BookOpen, Clock3, CreditCard, Save, Send } from "lucide-react";
 
 import AccountMenu from "../../components/account-menu";
 import GoodnotesDeliveryCard from "../../components/goodnotes-delivery-card";
 import NotionSyncCard from "../../components/notion-sync-card";
 import { getBillingSummary } from "../../lib/billing";
+import {
+  DEFAULT_COUNTRY_CODE,
+  DEFAULT_DELIVERY_TIME_ZONE,
+  DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
+  buildDeliveryTimeOptions,
+  formatPreferredDeliveryLocalTime,
+  formatTimeZoneLabel,
+  getDefaultDeliveryTimeZoneForCountry,
+  getDeliveryCountryOptions,
+  getDeliveryTimeZoneOptions,
+  inferCountryCodeFromBrowser,
+  resolveDeliveryPreferences,
+} from "../../lib/delivery-locale";
 import {
   getDefaultProgrammeYear,
   type ParentProfile,
@@ -24,7 +37,12 @@ type DashboardFormProps = {
 type RouteMessage = {
   message?: string;
   student?: ParentProfile["student"];
+  parent?: ParentProfile["parent"];
 };
+
+const DELIVERY_COUNTRY_OPTIONS = getDeliveryCountryOptions();
+const DELIVERY_TIME_OPTIONS = buildDeliveryTimeOptions();
+const DELIVERY_TIME_ZONE_OPTIONS = getDeliveryTimeZoneOptions();
 
 function hasMeaningfulStudentName(studentName: string) {
   const normalizedStudentName = studentName.trim();
@@ -52,9 +70,29 @@ export default function DashboardForm({
   const [programmeYear, setProgrammeYear] = useState(
     initialProfile.student.programmeYear,
   );
+  const [countryCode, setCountryCode] = useState(initialProfile.parent.countryCode);
+  const [deliveryTimeZone, setDeliveryTimeZone] = useState(
+    initialProfile.parent.deliveryTimeZone,
+  );
+  const [preferredDeliveryLocalTime, setPreferredDeliveryLocalTime] = useState(
+    initialProfile.parent.preferredDeliveryLocalTime,
+  );
+  const [savedCountryCode, setSavedCountryCode] = useState(
+    initialProfile.parent.countryCode,
+  );
+  const [savedDeliveryTimeZone, setSavedDeliveryTimeZone] = useState(
+    initialProfile.parent.deliveryTimeZone,
+  );
+  const [savedPreferredDeliveryLocalTime, setSavedPreferredDeliveryLocalTime] =
+    useState(initialProfile.parent.preferredDeliveryLocalTime);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [deliveryErrorMessage, setDeliveryErrorMessage] = useState("");
+  const [deliverySuccessMessage, setDeliverySuccessMessage] = useState("");
+  const [isSavingDeliveryPreferences, setIsSavingDeliveryPreferences] =
+    useState(false);
+  const hasAppliedBrowserDeliveryDetection = useRef(false);
   const [isPending, startTransition] = useTransition();
 
   const billingSummary = getBillingSummary(initialProfile.parent);
@@ -65,12 +103,84 @@ export default function DashboardForm({
   const displayStudentName = hasSavedStudentName
     ? savedStudentName.trim()
     : "Your child";
+  const hasSavedDeliveryPreferences =
+    savedCountryCode !== DEFAULT_COUNTRY_CODE ||
+    savedDeliveryTimeZone !== DEFAULT_DELIVERY_TIME_ZONE ||
+    savedPreferredDeliveryLocalTime !== DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME;
+
+  useEffect(() => {
+    if (hasAppliedBrowserDeliveryDetection.current) {
+      return;
+    }
+
+    if (
+      savedCountryCode !== DEFAULT_COUNTRY_CODE ||
+      savedDeliveryTimeZone !== DEFAULT_DELIVERY_TIME_ZONE ||
+      savedPreferredDeliveryLocalTime !== DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME
+    ) {
+      hasAppliedBrowserDeliveryDetection.current = true;
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const browserTimeZone =
+      Intl.DateTimeFormat().resolvedOptions().timeZone ?? DEFAULT_DELIVERY_TIME_ZONE;
+    const primaryLanguage =
+      typeof navigator !== "undefined"
+        ? navigator.languages?.[0] ?? navigator.language
+        : null;
+    let region: string | null = null;
+
+    try {
+      region = primaryLanguage ? new Intl.Locale(primaryLanguage).region ?? null : null;
+    } catch {
+      region = null;
+    }
+
+    const detectedPreferences = resolveDeliveryPreferences({
+      countryCode: inferCountryCodeFromBrowser({
+        region,
+        timeZone: browserTimeZone,
+      }),
+      deliveryTimeZone: browserTimeZone,
+      preferredDeliveryLocalTime,
+    });
+
+    hasAppliedBrowserDeliveryDetection.current = true;
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      setCountryCode(detectedPreferences.countryCode);
+      setDeliveryTimeZone(detectedPreferences.deliveryTimeZone);
+      setPreferredDeliveryLocalTime(
+        detectedPreferences.preferredDeliveryLocalTime,
+      );
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [
+    preferredDeliveryLocalTime,
+    savedCountryCode,
+    savedDeliveryTimeZone,
+    savedPreferredDeliveryLocalTime,
+  ]);
 
   function handleProgrammeChange(nextProgramme: Programme) {
     setSuccessMessage("");
     setErrorMessage("");
     setProgramme(nextProgramme);
     setProgrammeYear(getDefaultProgrammeYear(nextProgramme));
+  }
+
+  function handleCountryCodeChange(nextCountryCode: string) {
+    setDeliveryErrorMessage("");
+    setDeliverySuccessMessage("");
+    setCountryCode(nextCountryCode);
+    setDeliveryTimeZone(getDefaultDeliveryTimeZoneForCountry(nextCountryCode));
   }
 
   async function handleSave() {
@@ -115,6 +225,59 @@ export default function DashboardForm({
     } catch {
       setErrorMessage("We could not reach the local API. Please try again.");
       setIsSaving(false);
+    }
+  }
+
+  async function handleSaveDeliveryPreferences() {
+    setDeliveryErrorMessage("");
+    setDeliverySuccessMessage("");
+    setIsSavingDeliveryPreferences(true);
+
+    try {
+      const response = await fetch("/api/profile/delivery-preferences", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          countryCode,
+          deliveryTimeZone,
+          preferredDeliveryLocalTime,
+        }),
+      });
+
+      const body = (await response.json().catch(() => null)) as RouteMessage | null;
+
+      if (!response.ok) {
+        setDeliveryErrorMessage(
+          body?.message ?? "We could not save your delivery schedule.",
+        );
+        setIsSavingDeliveryPreferences(false);
+        return;
+      }
+
+      if (body?.parent) {
+        setCountryCode(body.parent.countryCode);
+        setDeliveryTimeZone(body.parent.deliveryTimeZone);
+        setPreferredDeliveryLocalTime(body.parent.preferredDeliveryLocalTime);
+        setSavedCountryCode(body.parent.countryCode);
+        setSavedDeliveryTimeZone(body.parent.deliveryTimeZone);
+        setSavedPreferredDeliveryLocalTime(
+          body.parent.preferredDeliveryLocalTime,
+        );
+      }
+
+      setDeliverySuccessMessage("Delivery schedule saved.");
+      setIsSavingDeliveryPreferences(false);
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      setDeliveryErrorMessage(
+        "We could not reach the local API. Please try again.",
+      );
+      setIsSavingDeliveryPreferences(false);
     }
   }
 
@@ -324,6 +487,126 @@ export default function DashboardForm({
                   : hasSavedStudentName
                     ? "Update child name"
                     : "Save child name"}
+              </button>
+            </section>
+
+            <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                    Delivery timing
+                  </p>
+                  <h2 className="mt-2 text-xl font-bold text-[#0f172a]">
+                    Deliver daily briefs in your local time
+                  </h2>
+                </div>
+                {hasSavedDeliveryPreferences ? (
+                  <span className="rounded-full bg-[#eefbf3] px-3 py-1 text-xs font-semibold text-[#15803d]">
+                    Saved
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]">
+                    Auto-detected
+                  </span>
+                )}
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Daily Sparks will use your selected country for a friendly setup
+                flow, then schedule delivery by time zone. Right now this family is
+                set to{" "}
+                <span className="font-semibold text-[#0f172a]">
+                  {formatPreferredDeliveryLocalTime(preferredDeliveryLocalTime)}
+                </span>{" "}
+                in{" "}
+                <span className="font-semibold text-[#0f172a]">
+                  {formatTimeZoneLabel(deliveryTimeZone)}
+                </span>
+                .
+              </p>
+
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-slate-700">
+                    Country / region
+                  </span>
+                  <select
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#0f172a] outline-none transition focus:border-[#0f172a]"
+                    value={countryCode}
+                    onChange={(event) => handleCountryCodeChange(event.target.value)}
+                  >
+                    {DELIVERY_COUNTRY_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-slate-700">
+                    Local delivery time
+                  </span>
+                  <select
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#0f172a] outline-none transition focus:border-[#0f172a]"
+                    value={preferredDeliveryLocalTime}
+                    onChange={(event) => {
+                      setDeliveryErrorMessage("");
+                      setDeliverySuccessMessage("");
+                      setPreferredDeliveryLocalTime(event.target.value);
+                    }}
+                  >
+                    {DELIVERY_TIME_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <label className="mt-4 flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  Time zone
+                </span>
+                <select
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#0f172a] outline-none transition focus:border-[#0f172a]"
+                  value={deliveryTimeZone}
+                  onChange={(event) => {
+                    setDeliveryErrorMessage("");
+                    setDeliverySuccessMessage("");
+                    setDeliveryTimeZone(event.target.value);
+                  }}
+                >
+                  {DELIVERY_TIME_ZONE_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {formatTimeZoneLabel(option)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {deliveryErrorMessage ? (
+                <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {deliveryErrorMessage}
+                </p>
+              ) : null}
+
+              {deliverySuccessMessage ? (
+                <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {deliverySuccessMessage}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={handleSaveDeliveryPreferences}
+                disabled={isSavingDeliveryPreferences || isPending}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Clock3 className="h-4 w-4" />
+                {isSavingDeliveryPreferences || isPending
+                  ? "Saving..."
+                  : "Save delivery schedule"}
               </button>
             </section>
 

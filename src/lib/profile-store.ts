@@ -1,6 +1,7 @@
 import type {
   CreateParentProfileInput,
   ParentProfile,
+  UpdateParentDeliveryPreferencesInput,
   UpdateParentNotionInput,
   UpdateParentSubscriptionInput,
   UpdateStudentGoodnotesInput,
@@ -30,5 +31,9 @@ export type ProfileStore = {
   updateParentNotionConnection(
     email: string,
     input: UpdateParentNotionInput,
+  ): Promise<ParentProfile | null>;
+  updateParentDeliveryPreferences(
+    email: string,
+    input: UpdateParentDeliveryPreferencesInput,
   ): Promise<ParentProfile | null>;
 };

@@ -16,9 +16,10 @@ INGEST_0100_SCHEDULE="${DAILY_BRIEF_SCHEDULER_INGEST_0100_SCHEDULE:-0 1 * * *}"
 INGEST_0300_SCHEDULE="${DAILY_BRIEF_SCHEDULER_INGEST_0300_SCHEDULE:-0 3 * * *}"
 INGEST_0500_SCHEDULE="${DAILY_BRIEF_SCHEDULER_INGEST_0500_SCHEDULE:-0 5 * * *}"
 GENERATE_0600_SCHEDULE="${DAILY_BRIEF_SCHEDULER_GENERATE_0600_SCHEDULE:-0 6 * * *}"
-PREFLIGHT_0850_SCHEDULE="${DAILY_BRIEF_SCHEDULER_PREFLIGHT_0850_SCHEDULE:-50 8 * * *}"
-DELIVER_0900_SCHEDULE="${DAILY_BRIEF_SCHEDULER_DELIVER_0900_SCHEDULE:-0 9 * * *}"
-RETRY_0910_SCHEDULE="${DAILY_BRIEF_SCHEDULER_RETRY_0910_SCHEDULE:-10 9 * * *}"
+PREFLIGHT_0615_SCHEDULE="${DAILY_BRIEF_SCHEDULER_PREFLIGHT_0615_SCHEDULE:-15 6 * * *}"
+DELIVER_HALF_HOURLY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_DELIVER_HALF_HOURLY_SCHEDULE:-0,30 * * * *}"
+RETRY_HALF_HOURLY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_RETRY_HALF_HOURLY_SCHEDULE:-10,40 * * * *}"
+LEGACY_STAGE_JOB_NAMES="${DAILY_BRIEF_SCHEDULER_LEGACY_STAGE_JOB_NAMES:-${JOB_PREFIX}-preflight-0850,${JOB_PREFIX}-deliver-0900,${JOB_PREFIX}-retry-0910}"
 SCHEDULER_SECRET="${DAILY_SPARKS_SCHEDULER_SECRET:-}"
 SCHEDULER_SECRET_SECRET="${DAILY_SPARKS_SCHEDULER_SECRET_SECRET:-}"
 
@@ -94,9 +95,9 @@ JOB_SPECS=(
   "${JOB_PREFIX}-ingest-0300|${INGEST_0300_SCHEDULE}|/api/internal/daily-brief/ingest|Refresh the Daily Sparks candidate snapshot for the 03:00 ingestion window.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-ingest-0500|${INGEST_0500_SCHEDULE}|/api/internal/daily-brief/ingest|Refresh the Daily Sparks candidate snapshot for the 05:00 ingestion window.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-generate-0600|${GENERATE_0600_SCHEDULE}|/api/internal/daily-brief/generate|Generate and freeze the Daily Sparks programme briefs for the day.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
-  "${JOB_PREFIX}-preflight-0850|${PREFLIGHT_0850_SCHEDULE}|/api/internal/daily-brief/preflight|Run delivery preflight checks before the 09:00 Daily Sparks dispatch window.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
-  "${JOB_PREFIX}-deliver-0900|${DELIVER_0900_SCHEDULE}|/api/internal/daily-brief/deliver|Dispatch approved Daily Sparks briefs to Goodnotes and Notion at 09:00.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
-  "${JOB_PREFIX}-retry-0910|${RETRY_0910_SCHEDULE}|/api/internal/daily-brief/retry-delivery|Retry failed Daily Sparks recipient-channel deliveries after the dispatch wave.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
+  "${JOB_PREFIX}-preflight-0615|${PREFLIGHT_0615_SCHEDULE}|/api/internal/daily-brief/preflight|Run delivery preflight checks before the rolling local-time Daily Sparks dispatch waves begin.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
+  "${JOB_PREFIX}-deliver-half-hourly|${DELIVER_HALF_HOURLY_SCHEDULE}|/api/internal/daily-brief/deliver|Dispatch approved Daily Sparks briefs in rolling local-time delivery waves every 30 minutes.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
+  "${JOB_PREFIX}-retry-half-hourly|${RETRY_HALF_HOURLY_SCHEDULE}|/api/internal/daily-brief/retry-delivery|Retry failed Daily Sparks recipient-channel deliveries on a 30-minute cadence.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
 )
 
 for spec in "${JOB_SPECS[@]}"; do
@@ -122,6 +123,26 @@ if [[ "${CLEANUP_LEGACY_JOB}" == "true" ]] && [[ -n "${LEGACY_JOB_NAME}" ]]; the
 
     echo "Deleted legacy Cloud Scheduler job: ${LEGACY_JOB_NAME}"
   fi
+fi
+
+if [[ "${CLEANUP_LEGACY_JOB}" == "true" ]] && [[ -n "${LEGACY_STAGE_JOB_NAMES}" ]]; then
+  IFS=',' read -r -a legacy_stage_job_names <<<"${LEGACY_STAGE_JOB_NAMES}"
+  for legacy_stage_job_name in "${legacy_stage_job_names[@]}"; do
+    if [[ -z "${legacy_stage_job_name}" ]]; then
+      continue
+    fi
+
+    if gcloud scheduler jobs describe "${legacy_stage_job_name}" \
+      --project "${PROJECT_ID}" \
+      --location "${LOCATION}" >/dev/null 2>&1; then
+      gcloud scheduler jobs delete "${legacy_stage_job_name}" \
+        --project "${PROJECT_ID}" \
+        --location "${LOCATION}" \
+        --quiet
+
+      echo "Deleted legacy staged Cloud Scheduler job: ${legacy_stage_job_name}"
+    fi
+  done
 fi
 
 echo "Project / location: ${PROJECT_ID} / ${LOCATION}"

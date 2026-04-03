@@ -21,3 +21,14 @@ export function getNextDailyBriefBusinessDate(now = new Date()) {
     new Date(now.getTime() + 24 * 60 * 60 * 1000),
   );
 }
+
+export function getDailyBriefDispatchRunDates(now = new Date()) {
+  const currentBusinessDate = getDailyBriefBusinessDate(now);
+  const previousBusinessDate = getDailyBriefBusinessDate(
+    new Date(now.getTime() - 24 * 60 * 60 * 1000),
+  );
+
+  return currentBusinessDate === previousBusinessDate
+    ? [currentBusinessDate]
+    : [currentBusinessDate, previousBusinessDate];
+}

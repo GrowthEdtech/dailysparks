@@ -28,6 +28,9 @@ const initialProfile: ParentProfile = {
     id: "parent_123",
     email: "parent@example.com",
     fullName: "Katherine Parent",
+    countryCode: "HK",
+    deliveryTimeZone: "Asia/Hong_Kong",
+    preferredDeliveryLocalTime: "09:00",
     subscriptionStatus: "trial",
     subscriptionPlan: "monthly",
     stripeCustomerId: null,
@@ -122,6 +125,22 @@ describe("DashboardForm", () => {
     expect(markup).toContain("Current child name");
     expect(markup).toContain("Update child name");
     expect(markup).not.toContain("Add your child&#x27;s first name");
+  });
+
+  test("renders a delivery timing card with country, time zone, and local send time controls", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardForm initialProfile={initialProfile} notionConfigured={true} />,
+    );
+
+    expect(markup).toContain("Delivery timing");
+    expect(markup).toContain("Deliver daily briefs in your local time");
+    expect(markup).toContain("Country / region");
+    expect(markup).toContain("Local delivery time");
+    expect(markup).toContain("Time zone");
+    expect(markup).toContain("Save delivery schedule");
+    expect(markup).toContain("Hong Kong");
+    expect(markup).toContain("9:00 AM");
+    expect(markup).toContain("Asia/Hong Kong");
   });
 
   test("uses a darker text color for typed child names than the placeholder", () => {

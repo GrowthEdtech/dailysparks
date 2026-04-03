@@ -36,6 +36,9 @@ describe("UsersAdminPage", () => {
           id: "parent-1",
           email: "parent@example.com",
           fullName: "Parent Example",
+          countryCode: "US",
+          deliveryTimeZone: "America/Los_Angeles",
+          preferredDeliveryLocalTime: "18:30",
           subscriptionStatus: "active",
           subscriptionPlan: "yearly",
           stripeCustomerId: "cus_123",
@@ -102,6 +105,8 @@ describe("UsersAdminPage", () => {
     expect(markup).toContain("Invoice paid");
     expect(markup).toContain("Goodnotes healthy");
     expect(markup).toContain("Notion healthy");
+    expect(markup).toContain("United States");
+    expect(markup).toContain("6:30 PM · America/Los Angeles");
     expect(markup).toContain("/admin/editorial/users/parent-1");
   });
 
@@ -112,6 +117,9 @@ describe("UsersAdminPage", () => {
           id: "parent-2",
           email: "expired@example.com",
           fullName: "Expired Trial Parent",
+          countryCode: "HK",
+          deliveryTimeZone: "Asia/Hong_Kong",
+          preferredDeliveryLocalTime: "09:00",
           subscriptionStatus: "trial",
           subscriptionPlan: null,
           stripeCustomerId: null,
@@ -180,6 +188,9 @@ describe("UsersAdminPage", () => {
           id: "parent-3",
           email: "attention@example.com",
           fullName: "Needs Attention Parent",
+          countryCode: "GB",
+          deliveryTimeZone: "Europe/London",
+          preferredDeliveryLocalTime: "08:30",
           subscriptionStatus: "active",
           subscriptionPlan: "monthly",
           stripeCustomerId: null,

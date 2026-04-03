@@ -10,6 +10,9 @@ function buildProfile(overrides: Partial<ParentProfile> = {}): ParentProfile {
       id: "parent-1",
       email: "family@example.com",
       fullName: "Family Example",
+      countryCode: "HK",
+      deliveryTimeZone: "Asia/Hong_Kong",
+      preferredDeliveryLocalTime: "09:00",
       subscriptionStatus: "active",
       subscriptionPlan: "monthly",
       stripeCustomerId: null,
@@ -125,6 +128,9 @@ describe("buildDailyBriefOpsSummary", () => {
           id: "parent-2",
           email: "attention@example.com",
           fullName: "Attention Family",
+          countryCode: "US",
+          deliveryTimeZone: "America/New_York",
+          preferredDeliveryLocalTime: "09:00",
         },
         student: {
           id: "student-2",
@@ -141,6 +147,9 @@ describe("buildDailyBriefOpsSummary", () => {
           id: "parent-3",
           email: "verification@example.com",
           fullName: "Verification Family",
+          countryCode: "GB",
+          deliveryTimeZone: "Europe/London",
+          preferredDeliveryLocalTime: "09:00",
           notionWorkspaceId: "workspace-1",
           notionWorkspaceName: "Family Workspace",
           notionBotId: "bot-1",
@@ -195,10 +204,12 @@ describe("buildDailyBriefOpsSummary", () => {
         expect.objectContaining({
           parentEmail: "attention@example.com",
           reason: "Delivery channel needs attention",
+          localDeliveryWindow: "9:00 AM · America/New York",
         }),
         expect.objectContaining({
           parentEmail: "verification@example.com",
           reason: "Brief blocked before dispatch",
+          localDeliveryWindow: "9:00 AM · Europe/London",
         }),
       ]),
     );
@@ -207,10 +218,12 @@ describe("buildDailyBriefOpsSummary", () => {
         expect.objectContaining({
           parentEmail: "attention@example.com",
           issues: ["Goodnotes needs attention"],
+          localDeliveryWindow: "9:00 AM · America/New York",
         }),
         expect.objectContaining({
           parentEmail: "verification@example.com",
           issues: ["Notion verification needed"],
+          localDeliveryWindow: "9:00 AM · Europe/London",
         }),
       ]),
     );
@@ -281,5 +294,46 @@ describe("buildDailyBriefOpsSummary", () => {
         }),
       ]),
     );
+  });
+
+  test("captures each active family's local delivery window in the ops summary", () => {
+    const profiles = [
+      buildProfile({
+        parent: {
+          id: "parent-ny",
+          email: "newyork@example.com",
+          fullName: "New York Family",
+          countryCode: "US",
+          deliveryTimeZone: "America/New_York",
+          preferredDeliveryLocalTime: "09:30",
+        },
+        student: {
+          id: "student-ny",
+          parentId: "parent-ny",
+          studentName: "Avery",
+          goodnotesLastDeliveryStatus: "failed",
+          goodnotesLastDeliveryMessage: "Relay timeout.",
+        },
+      }),
+    ];
+
+    const summary = buildDailyBriefOpsSummary({
+      profiles,
+      history: [],
+      runDate: "2026-04-03",
+    });
+
+    expect(summary.skippedFamilies).toEqual([
+      expect.objectContaining({
+        parentEmail: "newyork@example.com",
+        localDeliveryWindow: "9:30 AM · America/New York",
+      }),
+    ]);
+    expect(summary.channelWatchlist).toEqual([
+      expect.objectContaining({
+        parentEmail: "newyork@example.com",
+        localDeliveryWindow: "9:30 AM · America/New York",
+      }),
+    ]);
   });
 });

@@ -1,6 +1,12 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import {
+  DEFAULT_COUNTRY_CODE,
+  DEFAULT_DELIVERY_TIME_ZONE,
+  DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
+  resolveDeliveryPreferences,
+} from "./delivery-locale";
 import type {
   GoodnotesDeliveryStatus,
   MvpStoreData,
@@ -10,6 +16,7 @@ import type {
   Programme,
   StudentRecord,
   SubscriptionPlan,
+  UpdateParentDeliveryPreferencesInput,
   UpdateParentNotionInput,
   UpdateStudentGoodnotesInput,
 } from "./mvp-types";
@@ -124,6 +131,18 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
   const notionLastSyncMessage = normalizeNullableString(raw.notionLastSyncMessage);
   const notionLastSyncPageId = normalizeNullableString(raw.notionLastSyncPageId);
   const notionLastSyncPageUrl = normalizeNullableString(raw.notionLastSyncPageUrl);
+  const deliveryPreferences = resolveDeliveryPreferences({
+    countryCode:
+      typeof raw.countryCode === "string" ? raw.countryCode : DEFAULT_COUNTRY_CODE,
+    deliveryTimeZone:
+      typeof raw.deliveryTimeZone === "string"
+        ? raw.deliveryTimeZone
+        : DEFAULT_DELIVERY_TIME_ZONE,
+    preferredDeliveryLocalTime:
+      typeof raw.preferredDeliveryLocalTime === "string"
+        ? raw.preferredDeliveryLocalTime
+        : DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
+  });
 
   return {
     id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
@@ -132,6 +151,9 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
       typeof raw.fullName === "string" && raw.fullName.trim()
         ? raw.fullName.trim()
         : "Daily Sparks Parent",
+    countryCode: deliveryPreferences.countryCode,
+    deliveryTimeZone: deliveryPreferences.deliveryTimeZone,
+    preferredDeliveryLocalTime: deliveryPreferences.preferredDeliveryLocalTime,
     subscriptionStatus:
       raw.subscriptionStatus === "free" ||
       raw.subscriptionStatus === "trial" ||
@@ -348,6 +370,9 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     id: crypto.randomUUID(),
     email,
     fullName,
+    countryCode: DEFAULT_COUNTRY_CODE,
+    deliveryTimeZone: DEFAULT_DELIVERY_TIME_ZONE,
+    preferredDeliveryLocalTime: DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
     subscriptionStatus: "trial",
     subscriptionPlan: null,
     stripeCustomerId: null,
@@ -871,6 +896,39 @@ export const localProfileStore: ProfileStore = {
     }
 
     const now = new Date().toISOString();
+    parent.updatedAt = now;
+    student.updatedAt = now;
+
+    await writeStore(store);
+
+    return toProfile(parent, student);
+  },
+
+  async updateParentDeliveryPreferences(
+    email,
+    input: UpdateParentDeliveryPreferencesInput,
+  ) {
+    const normalizedEmail = normalizeEmail(email);
+    const store = await readStore();
+    const parent = store.parents.find((record) => record.email === normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = findStudentForParent(store, parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    const nextPreferences = resolveDeliveryPreferences(input);
+    const now = new Date().toISOString();
+
+    parent.countryCode = nextPreferences.countryCode;
+    parent.deliveryTimeZone = nextPreferences.deliveryTimeZone;
+    parent.preferredDeliveryLocalTime =
+      nextPreferences.preferredDeliveryLocalTime;
     parent.updatedAt = now;
     student.updatedAt = now;
 

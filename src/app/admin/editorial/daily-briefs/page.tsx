@@ -402,6 +402,12 @@ export default async function DailyBriefsAdminPage({
                     <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                       {family.programme} · {family.studentName}
                     </p>
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Local delivery window
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">
+                      {family.localDeliveryWindow}
+                    </p>
                     <p className="mt-2 text-sm leading-6 text-slate-600">
                       {family.reason}
                     </p>
@@ -432,6 +438,12 @@ export default async function DailyBriefsAdminPage({
                     </p>
                     <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                       {family.studentName}
+                    </p>
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Local delivery window
+                    </p>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">
+                      {family.localDeliveryWindow}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {family.issues.map((issue) => (

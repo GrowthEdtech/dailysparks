@@ -303,6 +303,9 @@ describe("DailyBriefsAdminPage", () => {
           id: "parent-healthy",
           email: "healthy@example.com",
           fullName: "Healthy Family",
+          countryCode: "HK",
+          deliveryTimeZone: "Asia/Hong_Kong",
+          preferredDeliveryLocalTime: "09:00",
           subscriptionStatus: "active",
           subscriptionPlan: "monthly",
           stripeCustomerId: null,
@@ -358,6 +361,9 @@ describe("DailyBriefsAdminPage", () => {
           id: "parent-attention",
           email: "attention@example.com",
           fullName: "Attention Family",
+          countryCode: "US",
+          deliveryTimeZone: "America/New_York",
+          preferredDeliveryLocalTime: "09:00",
           subscriptionStatus: "active",
           subscriptionPlan: "monthly",
           stripeCustomerId: null,
@@ -413,6 +419,9 @@ describe("DailyBriefsAdminPage", () => {
           id: "parent-verification",
           email: "verification@example.com",
           fullName: "Verification Family",
+          countryCode: "GB",
+          deliveryTimeZone: "Europe/London",
+          preferredDeliveryLocalTime: "09:00",
           subscriptionStatus: "active",
           subscriptionPlan: "monthly",
           stripeCustomerId: null,
@@ -480,6 +489,9 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("verification@example.com");
     expect(markup).toContain("Goodnotes needs attention");
     expect(markup).toContain("Notion verification needed");
+    expect(markup).toContain("Local delivery window");
+    expect(markup).toContain("9:00 AM · America/New York");
+    expect(markup).toContain("9:00 AM · Europe/London");
     expect(markup).toContain("Source validation failed.");
   });
 });

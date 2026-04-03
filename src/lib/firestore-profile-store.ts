@@ -4,6 +4,7 @@ import type {
   ParentRecord,
   StudentRecord,
   SubscriptionPlan,
+  UpdateParentDeliveryPreferencesInput,
   UpdateParentNotionInput,
   UpdateStudentGoodnotesInput,
 } from "./mvp-types";
@@ -12,6 +13,12 @@ import {
   getDefaultProgrammeYear,
   isSubscriptionPlan,
 } from "./mvp-types";
+import {
+  DEFAULT_COUNTRY_CODE,
+  DEFAULT_DELIVERY_TIME_ZONE,
+  DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
+  resolveDeliveryPreferences,
+} from "./delivery-locale";
 import { getFirebaseAdminDb } from "./firebase-admin";
 import type { ProfileStore } from "./profile-store";
 import { hasAutomatedDeliverySubscription } from "./delivery-eligibility";
@@ -101,11 +108,26 @@ function normalizeParentRecord(
   const notionLastSyncMessage = normalizeNullableString(raw?.notionLastSyncMessage);
   const notionLastSyncPageId = normalizeNullableString(raw?.notionLastSyncPageId);
   const notionLastSyncPageUrl = normalizeNullableString(raw?.notionLastSyncPageUrl);
+  const deliveryPreferences = resolveDeliveryPreferences({
+    countryCode:
+      typeof raw?.countryCode === "string" ? raw.countryCode : DEFAULT_COUNTRY_CODE,
+    deliveryTimeZone:
+      typeof raw?.deliveryTimeZone === "string"
+        ? raw.deliveryTimeZone
+        : DEFAULT_DELIVERY_TIME_ZONE,
+    preferredDeliveryLocalTime:
+      typeof raw?.preferredDeliveryLocalTime === "string"
+        ? raw.preferredDeliveryLocalTime
+        : DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
+  });
 
   return {
     id,
     email: normalizeEmail(raw?.email ?? ""),
     fullName: raw?.fullName?.trim() || "Daily Sparks Parent",
+    countryCode: deliveryPreferences.countryCode,
+    deliveryTimeZone: deliveryPreferences.deliveryTimeZone,
+    preferredDeliveryLocalTime: deliveryPreferences.preferredDeliveryLocalTime,
     subscriptionStatus:
       raw?.subscriptionStatus === "free" ||
       raw?.subscriptionStatus === "trial" ||
@@ -305,6 +327,9 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     id: db.collection("parents").doc().id,
     email,
     fullName,
+    countryCode: DEFAULT_COUNTRY_CODE,
+    deliveryTimeZone: DEFAULT_DELIVERY_TIME_ZONE,
+    preferredDeliveryLocalTime: DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
     subscriptionStatus: "trial",
     subscriptionPlan: null,
     stripeCustomerId: null,
@@ -777,6 +802,40 @@ export const firestoreProfileStore: ProfileStore = {
     }
 
     const now = new Date().toISOString();
+    parent.updatedAt = now;
+    student.updatedAt = now;
+
+    await db.collection("parents").doc(parent.id).set(parent);
+    await db.collection("students").doc(student.id).set(student);
+
+    return toProfile(parent, student);
+  },
+
+  async updateParentDeliveryPreferences(
+    email,
+    input: UpdateParentDeliveryPreferencesInput,
+  ) {
+    const db = getFirebaseAdminDb();
+    const normalizedEmail = normalizeEmail(email);
+    const parent = await findParentByEmail(normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = await findStudentByParentId(parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    const nextPreferences = resolveDeliveryPreferences(input);
+    const now = new Date().toISOString();
+
+    parent.countryCode = nextPreferences.countryCode;
+    parent.deliveryTimeZone = nextPreferences.deliveryTimeZone;
+    parent.preferredDeliveryLocalTime =
+      nextPreferences.preferredDeliveryLocalTime;
     parent.updatedAt = now;
     student.updatedAt = now;
 

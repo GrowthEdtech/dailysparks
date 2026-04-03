@@ -171,7 +171,7 @@ export async function POST(request: Request) {
       severity: "critical",
       runDate,
       title: "Daily brief preflight blocked",
-      message: `${blockers.length} blocker(s) prevented the 08:50 preflight from approving today’s briefs.`,
+      message: `${blockers.length} blocker(s) prevented the preflight stage from approving today’s briefs.`,
       details: {
         blockers,
         historyEntryCount: history.length,

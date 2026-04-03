@@ -51,6 +51,9 @@ export type ParentRecord = {
   id: string;
   email: string;
   fullName: string;
+  countryCode: string;
+  deliveryTimeZone: string;
+  preferredDeliveryLocalTime: string;
   subscriptionStatus: SubscriptionStatus;
   subscriptionPlan: SubscriptionPlan;
   stripeCustomerId: string | null;
@@ -170,6 +173,12 @@ export type UpdateParentNotionInput = {
   notionLastSyncPageId?: string | null;
   notionLastSyncPageUrl?: string | null;
   notionConnected?: boolean;
+};
+
+export type UpdateParentDeliveryPreferencesInput = {
+  countryCode: string;
+  deliveryTimeZone: string;
+  preferredDeliveryLocalTime: string;
 };
 
 export type NotionConnectionSecretRecord = {

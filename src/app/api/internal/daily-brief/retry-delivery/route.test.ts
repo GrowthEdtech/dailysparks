@@ -23,6 +23,7 @@ import {
 } from "../../../../../lib/daily-brief-history-store";
 import {
   getOrCreateParentProfile,
+  updateParentDeliveryPreferences,
   updateParentSubscription,
   updateStudentGoodnotesDelivery,
   updateStudentPreferences,
@@ -104,6 +105,11 @@ function buildHistoryInput(
 async function createEligibleProgrammeProfile(
   email: string,
   programme: "PYP" | "MYP" | "DP",
+  deliveryPreferences?: {
+    countryCode: string;
+    deliveryTimeZone: string;
+    preferredDeliveryLocalTime: string;
+  },
 ) {
   const profile = await getOrCreateParentProfile({
     email,
@@ -119,6 +125,9 @@ async function createEligibleProgrammeProfile(
     programme,
     programmeYear: programme === "DP" ? 1 : programme === "MYP" ? 3 : 5,
   });
+  if (deliveryPreferences) {
+    await updateParentDeliveryPreferences(email, deliveryPreferences);
+  }
   await updateStudentGoodnotesDelivery(email, {
     goodnotesConnected: true,
     goodnotesVerifiedAt: "2026-04-02T00:00:00.000Z",
@@ -174,6 +183,16 @@ describe("daily brief retry-delivery route", () => {
     );
     await createDailyBriefHistoryEntry(
       buildHistoryInput({
+        deliveryReceipts: [
+          {
+            parentId: firstProfile.parent.id,
+            parentEmail: firstProfile.parent.email,
+            channel: "goodnotes",
+            attachmentFileName: "daily-sparks-pyp.pdf",
+            externalId: "smtp-message-id",
+            externalUrl: null,
+          },
+        ],
         failedDeliveryTargets: [
           {
             parentId: secondProfile.parent.id,
@@ -188,6 +207,7 @@ describe("daily brief retry-delivery route", () => {
     const response = await retryDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
         runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:10:00.000Z",
       }),
     );
     const body = await response.json();
@@ -234,6 +254,7 @@ describe("daily brief retry-delivery route", () => {
     const response = await retryDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
         runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:10:00.000Z",
       }),
     );
     const body = await response.json();
@@ -281,6 +302,7 @@ describe("daily brief retry-delivery route", () => {
     const response = await retryDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
         runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:10:00.000Z",
       }),
     );
     const body = await response.json();
@@ -303,5 +325,60 @@ describe("daily brief retry-delivery route", () => {
         parentId: generalProfile.parent.id,
       }),
     ]);
+  });
+
+  test("falls back to the previous business date when retrying after Hong Kong midnight", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-03T16:40:00.000Z"));
+
+    try {
+      const retryProfile = await createEligibleProgrammeProfile(
+        "west-coast@example.com",
+        "PYP",
+        {
+          countryCode: "US",
+          deliveryTimeZone: "America/Los_Angeles",
+          preferredDeliveryLocalTime: "09:00",
+        },
+      );
+      await createDailyBriefHistoryEntry(
+        buildHistoryInput({
+          scheduledFor: "2026-04-03",
+          status: "approved",
+          pipelineStage: "delivering",
+          failedDeliveryTargets: [
+            {
+              parentId: retryProfile.parent.id,
+              parentEmail: retryProfile.parent.email,
+              channel: "goodnotes",
+              errorMessage: "SMTP timed out.",
+            },
+          ],
+          deliveryReceipts: [],
+          deliverySuccessCount: 0,
+          deliveryFailureCount: 1,
+          retryEligibleUntil: "2026-04-03T17:10:00.000Z",
+        }),
+      );
+
+      const response = await retryDailyBriefRoute(
+        buildRequest(SCHEDULER_HEADER_FIXTURE, {
+          dispatchTimestamp: "2026-04-03T16:40:00.000Z",
+        }),
+      );
+      const body = await response.json();
+      const history = await listDailyBriefHistory({
+        scheduledFor: "2026-04-03",
+      });
+
+      expect(response.status).toBe(200);
+      expect(body.summary.retriedCount).toBe(1);
+      expect(body.runDatesProcessed).toEqual(["2026-04-04", "2026-04-03"]);
+      expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+      expect(history[0]?.status).toBe("published");
+      expect(history[0]?.failedDeliveryTargets).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

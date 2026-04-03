@@ -3,6 +3,10 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import {
+  GET as getDeliveryPreferences,
+  PUT as updateDeliveryPreferences,
+} from "./profile/delivery-preferences/route";
 import { GET as getProfile, PUT as updateProfile } from "./profile/route";
 import { PUT as updateBilling } from "./billing/route";
 import {
@@ -343,6 +347,70 @@ describe("auth routes", () => {
     expect(body.student.studentName).toBe("Katherine");
     expect(body.student.programme).toBe("DP");
     expect(body.student.programmeYear).toBe(2);
+  });
+
+  test("updates and returns the parent delivery timing preferences", async () => {
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    const updateResponse = await updateDeliveryPreferences(
+      new Request("http://localhost:3000/api/profile/delivery-preferences", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+        body: JSON.stringify({
+          countryCode: "US",
+          deliveryTimeZone: "America/Los_Angeles",
+          preferredDeliveryLocalTime: "18:30",
+        }),
+      }),
+    );
+    const updatedBody = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(200);
+    expect(updatedBody.parent.countryCode).toBe("US");
+    expect(updatedBody.parent.deliveryTimeZone).toBe("America/Los_Angeles");
+    expect(updatedBody.parent.preferredDeliveryLocalTime).toBe("18:30");
+
+    const getResponse = await getDeliveryPreferences(
+      new Request("http://localhost:3000/api/profile/delivery-preferences", {
+        headers: {
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+      }),
+    );
+    const getBody = await getResponse.json();
+
+    expect(getResponse.status).toBe(200);
+    expect(getBody).toEqual({
+      countryCode: "US",
+      deliveryTimeZone: "America/Los_Angeles",
+      preferredDeliveryLocalTime: "18:30",
+    });
   });
 
   test("saves a Goodnotes destination and marks it as waiting for a welcome note", async () => {

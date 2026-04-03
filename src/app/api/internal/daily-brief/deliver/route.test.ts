@@ -23,6 +23,7 @@ import {
 } from "../../../../../lib/daily-brief-history-store";
 import {
   getOrCreateParentProfile,
+  updateParentDeliveryPreferences,
   updateParentNotionConnection,
   updateParentSubscription,
   updateStudentGoodnotesDelivery,
@@ -96,6 +97,11 @@ async function createEligibleProgrammeProfile(
   email: string,
   programme: "PYP" | "MYP" | "DP",
   channels: Array<"goodnotes" | "notion">,
+  deliveryPreferences?: {
+    countryCode: string;
+    deliveryTimeZone: string;
+    preferredDeliveryLocalTime: string;
+  },
 ) {
   await getOrCreateParentProfile({
     email,
@@ -111,6 +117,10 @@ async function createEligibleProgrammeProfile(
     programme,
     programmeYear: programme === "DP" ? 1 : programme === "MYP" ? 3 : 5,
   });
+
+  if (deliveryPreferences) {
+    await updateParentDeliveryPreferences(email, deliveryPreferences);
+  }
 
   if (channels.includes("goodnotes")) {
     await updateStudentGoodnotesDelivery(email, {
@@ -198,6 +208,7 @@ describe("daily brief deliver route", () => {
     const response = await deliverDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
         runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
       }),
     );
     const body = await response.json();
@@ -237,6 +248,7 @@ describe("daily brief deliver route", () => {
     const response = await deliverDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
         runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
       }),
     );
     const body = await response.json();
@@ -280,6 +292,7 @@ describe("daily brief deliver route", () => {
     const response = await deliverDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
         runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
       }),
     );
     const body = await response.json();
@@ -321,6 +334,7 @@ describe("daily brief deliver route", () => {
         runDate: "2026-04-03",
         dispatchMode: "canary",
         canaryParentEmails: ["canary-family@example.com"],
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
       }),
     );
     const body = await response.json();
@@ -354,6 +368,7 @@ describe("daily brief deliver route", () => {
     const response = await deliverDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
         runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
       }),
     );
     const body = await response.json();
@@ -385,6 +400,7 @@ describe("daily brief deliver route", () => {
     const response = await deliverDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
         runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
       }),
     );
     const body = await response.json();
@@ -398,5 +414,122 @@ describe("daily brief deliver route", () => {
     expect(history[0]?.pipelineStage).toBe("failed");
     expect(history[0]?.deliveryFailureCount).toBe(1);
     expect(history[0]?.failedDeliveryTargets).toHaveLength(1);
+  });
+
+  test("keeps a brief in delivering state until later time-zone families are due", async () => {
+    await createEligibleProgrammeProfile(
+      "hk-family@example.com",
+      "PYP",
+      ["goodnotes"],
+      {
+        countryCode: "HK",
+        deliveryTimeZone: "Asia/Hong_Kong",
+        preferredDeliveryLocalTime: "09:00",
+      },
+    );
+    await createEligibleProgrammeProfile(
+      "us-family@example.com",
+      "PYP",
+      ["goodnotes"],
+      {
+        countryCode: "US",
+        deliveryTimeZone: "America/New_York",
+        preferredDeliveryLocalTime: "09:00",
+      },
+    );
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const firstWaveResponse = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
+      }),
+    );
+    const firstWaveBody = await firstWaveResponse.json();
+    let history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(firstWaveResponse.status).toBe(200);
+    expect(firstWaveBody.summary.deliveredCount).toBe(1);
+    expect(firstWaveBody.summary.pendingFutureProfileCount).toBe(1);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[0]).toMatchObject({
+      parent: {
+        email: "hk-family@example.com",
+      },
+    });
+    expect(history[0]?.status).toBe("approved");
+    expect(history[0]?.pipelineStage).toBe("delivering");
+    expect(history[0]?.deliveryReceipts).toHaveLength(1);
+
+    const secondWaveResponse = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T13:30:00.000Z",
+      }),
+    );
+    const secondWaveBody = await secondWaveResponse.json();
+    history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(secondWaveResponse.status).toBe(200);
+    expect(secondWaveBody.summary.deliveredCount).toBe(1);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(2);
+    expect(sendBriefToGoodnotesMock.mock.calls[1]?.[0]).toMatchObject({
+      parent: {
+        email: "us-family@example.com",
+      },
+    });
+    expect(history[0]?.status).toBe("published");
+    expect(history[0]?.pipelineStage).toBe("published");
+    expect(history[0]?.deliveryReceipts).toHaveLength(2);
+  });
+
+  test("falls back to the previous business date when late local-time waves cross Hong Kong midnight", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-03T16:30:00.000Z"));
+
+    try {
+      await createEligibleProgrammeProfile(
+        "us-family@example.com",
+        "PYP",
+        ["goodnotes"],
+        {
+          countryCode: "US",
+          deliveryTimeZone: "America/Los_Angeles",
+          preferredDeliveryLocalTime: "09:00",
+        },
+      );
+      await createDailyBriefHistoryEntry(
+        buildHistoryInput({
+          scheduledFor: "2026-04-03",
+        }),
+      );
+
+      const response = await deliverDailyBriefRoute(
+        buildRequest(SCHEDULER_HEADER_FIXTURE, {
+          dispatchTimestamp: "2026-04-03T16:30:00.000Z",
+        }),
+      );
+      const body = await response.json();
+      const history = await listDailyBriefHistory({
+        scheduledFor: "2026-04-03",
+      });
+
+      expect(response.status).toBe(200);
+      expect(body.summary.deliveredCount).toBe(1);
+      expect(body.runDatesProcessed).toEqual(["2026-04-04", "2026-04-03"]);
+      expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+      expect(sendBriefToGoodnotesMock.mock.calls[0]?.[0]).toMatchObject({
+        parent: {
+          email: "us-family@example.com",
+        },
+      });
+      expect(history[0]?.status).toBe("published");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

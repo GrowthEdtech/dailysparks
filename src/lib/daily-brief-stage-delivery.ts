@@ -81,7 +81,11 @@ function toGeneratedBriefDraft(
 function shouldAttemptChannel(
   profile: ParentProfile,
   channel: DailyBriefDeliveryChannel,
-  targets?: DailyBriefFailedDeliveryTarget[],
+  options: {
+    retryTargets?: DailyBriefFailedDeliveryTarget[];
+    successfulReceipts?: DailyBriefDeliveryReceipt[];
+    blockedTargets?: DailyBriefFailedDeliveryTarget[];
+  } = {},
 ) {
   const channelConfigured =
     channel === "goodnotes"
@@ -92,14 +96,32 @@ function shouldAttemptChannel(
     return false;
   }
 
-  if (!targets) {
-    return true;
+  if (
+    options.successfulReceipts?.some(
+      (receipt) =>
+        receipt.parentId === profile.parent.id && receipt.channel === channel,
+    )
+  ) {
+    return false;
   }
 
-  return targets.some(
-    (target) =>
-      target.parentId === profile.parent.id && target.channel === channel,
-  );
+  if (options.retryTargets) {
+    return options.retryTargets.some(
+      (target) =>
+        target.parentId === profile.parent.id && target.channel === channel,
+    );
+  }
+
+  if (
+    options.blockedTargets?.some(
+      (target) =>
+        target.parentId === profile.parent.id && target.channel === channel,
+    )
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 export async function deliverHistoryBriefToProfiles(
@@ -107,6 +129,8 @@ export async function deliverHistoryBriefToProfiles(
   brief: DailyBriefHistoryRecord,
   options: {
     retryTargets?: DailyBriefFailedDeliveryTarget[];
+    successfulReceipts?: DailyBriefDeliveryReceipt[];
+    blockedTargets?: DailyBriefFailedDeliveryTarget[];
     attachmentMode?: "production" | "canary";
   } = {},
 ): Promise<DailyBriefDeliveryAttemptSummary> {
@@ -118,7 +142,7 @@ export async function deliverHistoryBriefToProfiles(
   const failedDeliveryTargets: DailyBriefFailedDeliveryTarget[] = [];
 
   for (const profile of profiles) {
-    if (shouldAttemptChannel(profile, "goodnotes", options.retryTargets)) {
+    if (shouldAttemptChannel(profile, "goodnotes", options)) {
       deliveryAttemptCount += 1;
 
       try {
@@ -163,7 +187,7 @@ export async function deliverHistoryBriefToProfiles(
       }
     }
 
-    if (shouldAttemptChannel(profile, "notion", options.retryTargets)) {
+    if (shouldAttemptChannel(profile, "notion", options)) {
       deliveryAttemptCount += 1;
 
       try {

@@ -1,5 +1,6 @@
 import type {
   CreateParentProfileInput,
+  UpdateParentDeliveryPreferencesInput,
   UpdateParentNotionInput,
   UpdateParentSubscriptionInput,
   UpdateStudentGoodnotesInput,
@@ -68,4 +69,11 @@ export async function updateParentNotionConnection(
   input: UpdateParentNotionInput,
 ) {
   return getProfileStore().updateParentNotionConnection(email, input);
+}
+
+export async function updateParentDeliveryPreferences(
+  email: string,
+  input: UpdateParentDeliveryPreferencesInput,
+) {
+  return getProfileStore().updateParentDeliveryPreferences(email, input);
 }

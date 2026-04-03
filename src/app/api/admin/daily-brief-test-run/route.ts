@@ -211,6 +211,7 @@ export async function POST(request: Request) {
         recordKind: "test",
         dispatchMode: "canary",
         canaryParentEmails: DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS,
+        forceDispatch: true,
       }),
     ),
   );

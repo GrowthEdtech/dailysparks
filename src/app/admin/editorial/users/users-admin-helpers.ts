@@ -10,6 +10,11 @@ import {
   isDerivedAccessStateFilter,
   type DerivedAccessState,
 } from "../../../../lib/access-state";
+import {
+  formatPreferredDeliveryLocalTime,
+  formatTimeZoneLabel,
+  getCountryLabel,
+} from "../../../../lib/delivery-locale";
 import { getFamilyDeliveryHealthRollup } from "../../../../lib/delivery-health-rollup";
 
 export const USER_STATUS_FILTERS = DERIVED_ACCESS_STATES;
@@ -67,6 +72,16 @@ export function getInvoiceStatusLabel(profile: ParentProfile) {
 
 export function getDeliveryLabels(profile: ParentProfile) {
   return getFamilyDeliveryHealthRollup(profile).labels;
+}
+
+export function getCountryRegionLabel(profile: ParentProfile) {
+  return getCountryLabel(profile.parent.countryCode);
+}
+
+export function getLocalDeliveryScheduleLabel(profile: ParentProfile) {
+  return `${formatPreferredDeliveryLocalTime(
+    profile.parent.preferredDeliveryLocalTime,
+  )} · ${formatTimeZoneLabel(profile.parent.deliveryTimeZone)}`;
 }
 
 export function compareProfilesByCreatedAtDesc(
