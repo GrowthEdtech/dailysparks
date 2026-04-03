@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 
 import type { ParentProfile } from "../lib/mvp-types";
+import { deliveryPrimaryButtonClassName } from "./delivery-channel-button-styles";
 import GoodnotesDeliveryCard from "./goodnotes-delivery-card";
 
 vi.mock("next/image", () => ({
@@ -85,5 +86,15 @@ describe("GoodnotesDeliveryCard", () => {
     expect(markup).toContain(
       "Goodnotes destination saved. Send a welcome note to confirm this destination.",
     );
+  });
+
+  test("matches the shared primary CTA width and centered layout used by Notion", () => {
+    const markup = renderToStaticMarkup(
+      <GoodnotesDeliveryCard initialProfile={initialProfile} />,
+    );
+
+    expect(markup).toContain(deliveryPrimaryButtonClassName);
+    expect(markup).toContain("flex justify-center");
+    expect(markup).not.toContain("sm:col-span-2");
   });
 });

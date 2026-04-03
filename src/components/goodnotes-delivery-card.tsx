@@ -343,20 +343,23 @@ export default function GoodnotesDeliveryCard({
               </dl>
             ) : null}
 
-            <div className="mt-4 grid gap-2 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => void sendTestBrief()}
-                disabled={isWorking || isPending}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0f172a] px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
-              >
-                {isWorking ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-                {isConnected ? "Send another welcome note" : "Send welcome note"}
-              </button>
+            <div className="mt-4">
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => void sendTestBrief()}
+                  disabled={isWorking || isPending}
+                  className={deliveryPrimaryButtonClassName}
+                >
+                  {isWorking ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  {isConnected ? "Send another welcome note" : "Send welcome note"}
+                </button>
+              </div>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
@@ -375,6 +378,7 @@ export default function GoodnotesDeliveryCard({
                 <Unplug className="h-4 w-4" />
                 Disconnect
               </button>
+              </div>
             </div>
           </div>
         )}
