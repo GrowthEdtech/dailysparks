@@ -2,6 +2,7 @@ import {
   getDailyBriefCandidateSnapshot,
   upsertDailyBriefCandidateSnapshot,
 } from "../../../../../lib/daily-brief-candidate-store";
+import { isDailyBriefEditorialCohort } from "../../../../../lib/daily-brief-cohorts";
 import {
   createDailyBriefHistoryEntry,
   listDailyBriefHistory,
@@ -17,10 +18,12 @@ import {
 } from "../../../../../lib/daily-brief-run-auth";
 import { getDailyBriefBusinessDate } from "../../../../../lib/daily-brief-run-date";
 import { generateDailyBriefDrafts } from "../../../../../lib/daily-brief-orchestrator";
+import { buildSelectedTopicRecord } from "../../../../../lib/brief-selector";
 
 type DailyBriefGenerateRequestBody = {
   runDate?: string;
   recordKind?: string;
+  editorialCohort?: string;
 };
 
 function serviceUnavailable(message: string) {
@@ -93,6 +96,13 @@ async function parseRequestBody(
       return badRequest("recordKind must be production or test when provided.");
     }
 
+    if (
+      payload.editorialCohort !== undefined &&
+      !isDailyBriefEditorialCohort(payload.editorialCohort)
+    ) {
+      return badRequest("editorialCohort must be APAC, EMEA, or AMER.");
+    }
+
     return payload;
   } catch {
     return badRequest("Request body must be valid JSON.");
@@ -120,6 +130,9 @@ export async function POST(request: Request) {
 
   const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
   const recordKind = normalizeRecordKind(parsedBody.recordKind) ?? "production";
+  const editorialCohort = isDailyBriefEditorialCohort(parsedBody.editorialCohort)
+    ? parsedBody.editorialCohort
+    : "APAC";
   const candidateSnapshot = await getDailyBriefCandidateSnapshot(runDate);
 
   if (!candidateSnapshot) {
@@ -135,12 +148,23 @@ export async function POST(request: Request) {
   try {
     const generation = await generateDailyBriefDrafts({
       scheduledFor: runDate,
+      editorialCohort,
       candidates: candidateSnapshot.candidates,
       historyEntries,
       recordKind,
+      selectedTopicRecord: candidateSnapshot.selectedTopic,
       fetchImpl: fetch,
     });
     const generationCompletedAt = new Date().toISOString();
+    const selectedTopicRecord =
+      candidateSnapshot.selectedTopic ??
+      (generation.selectedTopic && generation.generatedBriefs.length > 0
+        ? buildSelectedTopicRecord({
+            selectedTopic: generation.selectedTopic,
+            selectedAt: generationCompletedAt,
+            selectedByCohort: editorialCohort,
+          })
+        : null);
     const shouldFreezeSnapshot =
       generation.generatedBriefs.length > 0 &&
       candidateSnapshot.selectionStatus !== "frozen";
@@ -150,6 +174,7 @@ export async function POST(request: Request) {
           candidates: candidateSnapshot.candidates,
           selectionStatus: "frozen",
           selectionFrozenAt: generationCompletedAt,
+          selectedTopic: selectedTopicRecord,
         })
       : candidateSnapshot;
     const deliveryWindowAt = buildDeliveryWindowTimestamp(runDate);
@@ -162,6 +187,7 @@ export async function POST(request: Request) {
         headline: brief.headline,
         summary: brief.summary,
         programme: brief.programme,
+        editorialCohort: brief.editorialCohort,
         status: "draft",
         topicTags: brief.topicTags,
         sourceReferences: brief.sourceReferences,
@@ -195,6 +221,7 @@ export async function POST(request: Request) {
       mode: "generate",
       runDate,
       recordKind,
+      editorialCohort,
       selectedTopic: generation.selectedTopic
         ? {
             clusterKey: generation.selectedTopic.clusterKey,

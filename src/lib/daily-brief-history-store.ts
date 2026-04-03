@@ -1,4 +1,5 @@
 import { firestoreDailyBriefHistoryStore } from "./firestore-daily-brief-history-store";
+import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
 import type { DailyBriefHistoryRecord } from "./daily-brief-history-schema";
 import { localDailyBriefHistoryStore } from "./local-daily-brief-history-store";
 import type {
@@ -54,6 +55,12 @@ function defaultRecordKind(
   return recordKind ?? "production";
 }
 
+function defaultEditorialCohort(
+  editorialCohort: DailyBriefEditorialCohort | undefined,
+) {
+  return editorialCohort ?? "APAC";
+}
+
 export async function listDailyBriefHistory(
   filters: DailyBriefHistoryFilters = {},
 ) {
@@ -65,6 +72,13 @@ export async function listDailyBriefHistory(
     }
 
     if (filters.programme && entry.programme !== filters.programme) {
+      return false;
+    }
+
+    if (
+      filters.editorialCohort &&
+      entry.editorialCohort !== filters.editorialCohort
+    ) {
       return false;
     }
 
@@ -95,6 +109,7 @@ export async function createDailyBriefHistoryEntry(
     headline: input.headline.trim(),
     summary: input.summary.trim(),
     programme: input.programme,
+    editorialCohort: defaultEditorialCohort(input.editorialCohort),
     status: input.status,
     topicTags: input.topicTags.map((tag) => tag.trim()).filter(Boolean),
     sourceReferences: input.sourceReferences.map((reference) => ({
@@ -173,6 +188,10 @@ export async function updateDailyBriefHistoryEntry(
 
   if ("programme" in input) {
     nextInput.programme = input.programme;
+  }
+
+  if ("editorialCohort" in input) {
+    nextInput.editorialCohort = defaultEditorialCohort(input.editorialCohort);
   }
 
   if ("status" in input) {

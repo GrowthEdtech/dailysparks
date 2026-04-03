@@ -3,7 +3,9 @@ import {
   DAILY_BRIEF_CANDIDATE_SELECTION_STATUSES,
   type DailyBriefCandidateSelectionStatus,
   type DailyBriefCandidateSnapshotRecord,
+  type DailyBriefSelectedTopicRecord,
 } from "./daily-brief-candidate-schema";
+import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
 import type { DailyBriefCandidateSnapshotStore } from "./daily-brief-candidate-store-types";
 import type { EditorialSourceCandidate } from "./source-ingestion";
 
@@ -29,6 +31,14 @@ function normalizeSelectionStatus(
   )
     ? (normalized as DailyBriefCandidateSelectionStatus)
     : "open";
+}
+
+function normalizeEditorialCohort(
+  value: unknown,
+): DailyBriefEditorialCohort {
+  return value === "APAC" || value === "EMEA" || value === "AMER"
+    ? value
+    : "APAC";
 }
 
 function normalizeCandidate(
@@ -71,9 +81,41 @@ function normalizeSnapshot(
       typeof raw?.candidateCount === "number" ? raw.candidateCount : candidates.length,
     selectionStatus: normalizeSelectionStatus(raw?.selectionStatus),
     selectionFrozenAt: normalizeString(raw?.selectionFrozenAt) || null,
+    selectedTopic: normalizeSelectedTopic(raw?.selectedTopic),
     createdAt: normalizeString(raw?.createdAt) || timestamp,
     updatedAt: normalizeString(raw?.updatedAt) || timestamp,
   };
+}
+
+function normalizeSelectedTopic(
+  raw: Partial<DailyBriefSelectedTopicRecord> | null | undefined,
+) {
+  if (!raw) {
+    return null;
+  }
+
+  const sourceReferences = Array.isArray(raw.sourceReferences)
+    ? raw.sourceReferences.map((reference) => ({
+        sourceId: normalizeString(reference?.sourceId),
+        sourceName: normalizeString(reference?.sourceName),
+        sourceDomain: normalizeString(reference?.sourceDomain),
+        articleTitle: normalizeString(reference?.articleTitle),
+        articleUrl: normalizeString(reference?.articleUrl),
+      }))
+    : [];
+
+  return {
+    clusterKey: normalizeString(raw.clusterKey),
+    headline: normalizeString(raw.headline),
+    summary: normalizeString(raw.summary),
+    sourceReferences,
+    candidateCount:
+      typeof raw.candidateCount === "number"
+        ? raw.candidateCount
+        : sourceReferences.length,
+    selectedAt: normalizeString(raw.selectedAt),
+    selectedByCohort: normalizeEditorialCohort(raw.selectedByCohort),
+  } satisfies DailyBriefSelectedTopicRecord;
 }
 
 export const firestoreDailyBriefCandidateStore: DailyBriefCandidateSnapshotStore =

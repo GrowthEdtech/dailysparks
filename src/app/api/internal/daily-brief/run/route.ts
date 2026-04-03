@@ -1,4 +1,8 @@
 import { getDefaultAiConnection } from "../../../../../lib/ai-connection-store";
+import {
+  DAILY_BRIEF_EDITORIAL_COHORTS,
+  type DailyBriefEditorialCohort,
+} from "../../../../../lib/daily-brief-cohorts";
 import { listDailyBriefHistory } from "../../../../../lib/daily-brief-history-store";
 import {
   getDailyBriefSchedulerHeaderName,
@@ -126,6 +130,7 @@ function buildStageRequest(
   pathname: string,
   schedulerSecret: string,
   runDate: string,
+  editorialCohort?: DailyBriefEditorialCohort,
 ) {
   return new Request(`http://localhost:3000${pathname}`, {
     method: "POST",
@@ -133,7 +138,11 @@ function buildStageRequest(
       [getDailyBriefSchedulerHeaderName()]: schedulerSecret,
       "content-type": "application/json",
     },
-    body: JSON.stringify({ runDate, recordKind: "production" }),
+    body: JSON.stringify({
+      runDate,
+      recordKind: "production",
+      ...(editorialCohort ? { editorialCohort } : {}),
+    }),
   });
 }
 
@@ -164,6 +173,12 @@ function getSummaryStringArray(
 
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
+
+type CohortStageResult = {
+  editorialCohort: DailyBriefEditorialCohort;
+  generate: StageResponseBody | null;
+  preflight: StageResponseBody | null;
+};
 
 export async function POST(request: Request) {
   if (!isDailyBriefSchedulerConfigured()) {
@@ -245,23 +260,70 @@ export async function POST(request: Request) {
     return ingestBody;
   }
 
-  const generateBody = await parseStageResponse(
-    await generateDailyBriefRoute(
-      buildStageRequest(
-        "/api/internal/daily-brief/generate",
-        schedulerSecret,
-        runDate,
+  const cohortStages: CohortStageResult[] = [];
+  const stageBlockers: string[] = [];
+  let generatedCount = 0;
+  let historyCreatedCount = 0;
+  const skippedProgrammes = new Set<string>();
+  const selectedTopics: Partial<Record<DailyBriefEditorialCohort, unknown>> = {};
+
+  for (const editorialCohort of DAILY_BRIEF_EDITORIAL_COHORTS) {
+    const generateBody = await parseStageResponse(
+      await generateDailyBriefRoute(
+        buildStageRequest(
+          "/api/internal/daily-brief/generate",
+          schedulerSecret,
+          runDate,
+          editorialCohort,
+        ),
       ),
-    ),
-  );
+    );
 
-  if (generateBody instanceof Response) {
-    return generateBody;
+    if (generateBody instanceof Response) {
+      return generateBody;
+    }
+
+    cohortStages.push({
+      editorialCohort,
+      generate: generateBody,
+      preflight: null,
+    });
+    generatedCount += getSummaryNumber(generateBody, "generatedCount");
+    historyCreatedCount += getSummaryNumber(generateBody, "historyCreatedCount");
+    getSummaryStringArray(generateBody, "skippedProgrammes").forEach((programme) =>
+      skippedProgrammes.add(programme),
+    );
+    selectedTopics[editorialCohort] = generateBody.selectedTopic ?? null;
+
+    if (getSummaryNumber(generateBody, "generatedCount") === 0) {
+      continue;
+    }
+
+    const preflightBody = await parseStageResponse(
+      await preflightDailyBriefRoute(
+        buildStageRequest(
+          "/api/internal/daily-brief/preflight",
+          schedulerSecret,
+          runDate,
+          editorialCohort,
+        ),
+      ),
+    );
+
+    if (preflightBody instanceof Response) {
+      return preflightBody;
+    }
+
+    cohortStages[cohortStages.length - 1] = {
+      editorialCohort,
+      generate: generateBody,
+      preflight: preflightBody,
+    };
+
+    if (preflightBody.ready === false) {
+      stageBlockers.push(...(preflightBody.blockers ?? []));
+    }
   }
-
-  const generatedCount = getSummaryNumber(generateBody, "generatedCount");
-  const historyCreatedCount = getSummaryNumber(generateBody, "historyCreatedCount");
-  const skippedProgrammes = getSummaryStringArray(generateBody, "skippedProgrammes");
 
   if (generatedCount === 0) {
     return Response.json({
@@ -271,15 +333,14 @@ export async function POST(request: Request) {
       blockers: [],
       stages: {
         ingest: ingestBody,
-        generate: generateBody,
-        preflight: null,
+        cohorts: cohortStages,
         deliver: null,
       },
-      selectedTopic: generateBody.selectedTopic ?? null,
+      selectedTopicByCohort: selectedTopics,
       summary: {
         generatedCount,
         historyCreatedCount,
-        skippedProgrammes,
+        skippedProgrammes: Array.from(skippedProgrammes),
         publishedCount: 0,
         failedCount: 0,
         deliveryAttemptCount: 0,
@@ -289,37 +350,22 @@ export async function POST(request: Request) {
     });
   }
 
-  const preflightBody = await parseStageResponse(
-    await preflightDailyBriefRoute(
-      buildStageRequest(
-        "/api/internal/daily-brief/preflight",
-        schedulerSecret,
-        runDate,
-      ),
-    ),
-  );
-
-  if (preflightBody instanceof Response) {
-    return preflightBody;
-  }
-
-  if (preflightBody.ready === false) {
+  if (stageBlockers.length > 0) {
     return Response.json({
       mode: "run",
       ready: false,
       runDate,
-      blockers: preflightBody.blockers ?? [],
+      blockers: stageBlockers,
       stages: {
         ingest: ingestBody,
-        generate: generateBody,
-        preflight: preflightBody,
+        cohorts: cohortStages,
         deliver: null,
       },
-      selectedTopic: generateBody.selectedTopic ?? null,
+      selectedTopicByCohort: selectedTopics,
       summary: {
         generatedCount,
         historyCreatedCount,
-        skippedProgrammes,
+        skippedProgrammes: Array.from(skippedProgrammes),
         publishedCount: 0,
         failedCount: 0,
         deliveryAttemptCount: 0,
@@ -344,21 +390,20 @@ export async function POST(request: Request) {
   }
 
   return Response.json({
-    mode: "run",
-    ready: true,
-    runDate,
-    blockers: [],
-    stages: {
-      ingest: ingestBody,
-      generate: generateBody,
-      preflight: preflightBody,
-      deliver: deliverBody,
-    },
-    selectedTopic: generateBody.selectedTopic ?? null,
+      mode: "run",
+      ready: true,
+      runDate,
+      blockers: [],
+      stages: {
+        ingest: ingestBody,
+        cohorts: cohortStages,
+        deliver: deliverBody,
+      },
+    selectedTopicByCohort: selectedTopics,
     summary: {
       generatedCount,
       historyCreatedCount,
-      skippedProgrammes,
+      skippedProgrammes: Array.from(skippedProgrammes),
       publishedCount: getSummaryNumber(deliverBody, "deliveredCount"),
       failedCount: getSummaryNumber(deliverBody, "failedCount"),
       deliveryAttemptCount: getSummaryNumber(deliverBody, "deliveryAttemptCount"),

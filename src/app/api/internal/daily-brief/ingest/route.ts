@@ -122,6 +122,7 @@ export async function POST(request: Request) {
   const snapshot = await upsertDailyBriefCandidateSnapshot({
     scheduledFor: runDate,
     candidates,
+    selectedTopic: existingSnapshot?.selectedTopic ?? null,
     selectionStatus: existingSnapshot?.selectionStatus ?? "open",
     selectionFrozenAt: existingSnapshot?.selectionFrozenAt ?? null,
   });

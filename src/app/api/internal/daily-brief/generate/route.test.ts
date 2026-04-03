@@ -16,6 +16,7 @@ import { createAiConnection } from "../../../../../lib/ai-connection-store";
 import { createPromptPolicy } from "../../../../../lib/prompt-policy-store";
 import {
   getOrCreateParentProfile,
+  updateParentDeliveryPreferences,
   updateParentNotionConnection,
   updateParentSubscription,
   updateStudentGoodnotesDelivery,
@@ -96,6 +97,11 @@ async function createEligibleProgrammeProfile(
   email: string,
   programme: "PYP" | "MYP" | "DP",
   channel: "goodnotes" | "notion",
+  deliveryPreferences?: {
+    countryCode: string;
+    deliveryTimeZone: string;
+    preferredDeliveryLocalTime: string;
+  },
 ) {
   await getOrCreateParentProfile({
     email,
@@ -111,6 +117,10 @@ async function createEligibleProgrammeProfile(
     programme,
     programmeYear: programme === "DP" ? 1 : programme === "MYP" ? 3 : 5,
   });
+
+  if (deliveryPreferences) {
+    await updateParentDeliveryPreferences(email, deliveryPreferences);
+  }
 
   if (channel === "goodnotes") {
     await updateStudentGoodnotesDelivery(email, {
@@ -500,5 +510,69 @@ describe("daily brief generate route", () => {
     expect(snapshot?.selectionStatus).toBe("open");
     expect(snapshot?.selectionFrozenAt).toBeNull();
     expect(history).toHaveLength(0);
+  });
+
+  test("reuses the locked selected topic across later cohort waves", async () => {
+    await createEligibleProgrammeProfile(
+      "apac-family@example.com",
+      "PYP",
+      "goodnotes",
+      {
+        countryCode: "HK",
+        deliveryTimeZone: "Asia/Hong_Kong",
+        preferredDeliveryLocalTime: "09:00",
+      },
+    );
+    await createEligibleProgrammeProfile(
+      "emea-family@example.com",
+      "PYP",
+      "goodnotes",
+      {
+        countryCode: "GB",
+        deliveryTimeZone: "Europe/London",
+        preferredDeliveryLocalTime: "09:00",
+      },
+    );
+    await configureRuntime();
+
+    await upsertDailyBriefCandidateSnapshot({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate()],
+    });
+
+    const apacResponse = await generateDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        editorialCohort: "APAC",
+      }),
+    );
+    const apacBody = await apacResponse.json();
+    const frozenSnapshot = await getDailyBriefCandidateSnapshot("2026-04-03");
+
+    expect(apacResponse.status).toBe(200);
+    expect(apacBody.summary.generatedCount).toBe(1);
+    expect(frozenSnapshot?.selectedTopic).toMatchObject({
+      clusterKey: "students map sea turtles",
+      selectedByCohort: "APAC",
+    });
+
+    const emeaResponse = await generateDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        editorialCohort: "EMEA",
+      }),
+    );
+    const emeaBody = await emeaResponse.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(emeaResponse.status).toBe(200);
+    expect(emeaBody.selectedTopic.clusterKey).toBe("students map sea turtles");
+    expect(emeaBody.summary.generatedCount).toBe(1);
+    expect(history.map((entry) => entry.editorialCohort).sort()).toEqual([
+      "APAC",
+      "EMEA",
+    ]);
   });
 });

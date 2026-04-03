@@ -231,19 +231,21 @@ DAILY_SPARKS_SCHEDULER_SECRET_SECRET=daily-sparks-scheduler-secret \
 The scheduler helper now creates or updates these jobs by default:
 
 - `dailysparks-brief-ingest-0100` -> `/api/internal/daily-brief/ingest` -> `0 1 * * *`
-- `dailysparks-brief-generate-0200` -> `/api/internal/daily-brief/generate` -> `0 2 * * *`
-- `dailysparks-brief-preflight-0215` -> `/api/internal/daily-brief/preflight` -> `15 2 * * *`
+- `dailysparks-brief-generate-apac-0200` -> `/api/internal/daily-brief/generate` -> `0 2 * * *` -> `{"editorialCohort":"APAC"}`
+- `dailysparks-brief-preflight-apac-0215` -> `/api/internal/daily-brief/preflight` -> `15 2 * * *` -> `{"editorialCohort":"APAC"}`
 - `dailysparks-brief-ingest-0300` -> `/api/internal/daily-brief/ingest` -> `0 3 * * *`
+- `dailysparks-brief-generate-emea-0400` -> `/api/internal/daily-brief/generate` -> `0 4 * * *` -> `{"editorialCohort":"EMEA"}`
+- `dailysparks-brief-preflight-emea-0415` -> `/api/internal/daily-brief/preflight` -> `15 4 * * *` -> `{"editorialCohort":"EMEA"}`
 - `dailysparks-brief-ingest-0500` -> `/api/internal/daily-brief/ingest` -> `0 5 * * *`
-- `dailysparks-brief-generate-0600` -> `/api/internal/daily-brief/generate` -> `0 6 * * *`
-- `dailysparks-brief-preflight-0615` -> `/api/internal/daily-brief/preflight` -> `15 6 * * *`
+- `dailysparks-brief-generate-amer-0600` -> `/api/internal/daily-brief/generate` -> `0 6 * * *` -> `{"editorialCohort":"AMER"}`
+- `dailysparks-brief-preflight-amer-0615` -> `/api/internal/daily-brief/preflight` -> `15 6 * * *` -> `{"editorialCohort":"AMER"}`
 - `dailysparks-brief-deliver-half-hourly` -> `/api/internal/daily-brief/deliver` -> `0,30 * * * *`
 - `dailysparks-brief-retry-half-hourly` -> `/api/internal/daily-brief/retry-delivery` -> `10,40 * * * *`
 
 All default schedules run in `Asia/Hong_Kong`, and all jobs reuse the same
 header-secret authentication. The helper also deletes the legacy single job
-`dailysparks-daily-brief` plus the old fixed-window staged jobs by default so
-the rolling-wave jobs do not double-trigger.
+`dailysparks-daily-brief` plus the old single-edition staged jobs by default so
+the rolling-wave cohort jobs do not double-trigger.
 
 Optional overrides:
 
@@ -257,12 +259,14 @@ DAILY_BRIEF_SCHEDULER_ATTEMPT_DEADLINE=1200s
 DAILY_BRIEF_SCHEDULER_MAX_RETRY_ATTEMPTS=0
 DAILY_BRIEF_SCHEDULER_MESSAGE_BODY={}
 DAILY_BRIEF_SCHEDULER_INGEST_0100_SCHEDULE="0 1 * * *"
-DAILY_BRIEF_SCHEDULER_GENERATE_0200_SCHEDULE="0 2 * * *"
-DAILY_BRIEF_SCHEDULER_PREFLIGHT_0215_SCHEDULE="15 2 * * *"
+DAILY_BRIEF_SCHEDULER_GENERATE_APAC_0200_SCHEDULE="0 2 * * *"
+DAILY_BRIEF_SCHEDULER_PREFLIGHT_APAC_0215_SCHEDULE="15 2 * * *"
 DAILY_BRIEF_SCHEDULER_INGEST_0300_SCHEDULE="0 3 * * *"
+DAILY_BRIEF_SCHEDULER_GENERATE_EMEA_0400_SCHEDULE="0 4 * * *"
+DAILY_BRIEF_SCHEDULER_PREFLIGHT_EMEA_0415_SCHEDULE="15 4 * * *"
 DAILY_BRIEF_SCHEDULER_INGEST_0500_SCHEDULE="0 5 * * *"
-DAILY_BRIEF_SCHEDULER_GENERATE_0600_SCHEDULE="0 6 * * *"
-DAILY_BRIEF_SCHEDULER_PREFLIGHT_0615_SCHEDULE="15 6 * * *"
+DAILY_BRIEF_SCHEDULER_GENERATE_AMER_0600_SCHEDULE="0 6 * * *"
+DAILY_BRIEF_SCHEDULER_PREFLIGHT_AMER_0615_SCHEDULE="15 6 * * *"
 DAILY_BRIEF_SCHEDULER_DELIVER_HALF_HOURLY_SCHEDULE="0,30 * * * *"
 DAILY_BRIEF_SCHEDULER_RETRY_HALF_HOURLY_SCHEDULE="10,40 * * * *"
 DAILY_BRIEF_SCHEDULER_LEGACY_JOB_NAME=dailysparks-daily-brief
@@ -271,8 +275,8 @@ DAILY_BRIEF_SCHEDULER_CLEANUP_LEGACY_JOB=true
 
 The helper is idempotent:
 
-- it creates each stage job if it does not exist
-- it updates each stage job in place if it already exists
+- it creates each cohort/stage job if it does not exist
+- it updates each cohort/stage job in place if it already exists
 - it deletes the legacy single job when cleanup is enabled
 - it always keeps the route on header-secret auth and clears any stale OAuth or OIDC token config
 

@@ -20,6 +20,7 @@ function buildBriefInput(overrides: Partial<Parameters<typeof createDailyBriefHi
     summary:
       "A family-friendly brief about how cities, schools, and communities respond to heat waves.",
     programme: "MYP" as const,
+    editorialCohort: "APAC" as const,
     status: "draft" as const,
     topicTags: ["climate", "cities"],
     sourceReferences: [
@@ -113,17 +114,19 @@ describe("daily brief history store", () => {
     expect(fetchedEntry?.sourceReferences[0]?.sourceName).toBe("Reuters");
     expect(fetchedEntry?.promptPolicyId).toBe("policy-1");
     expect(fetchedEntry?.promptVersionLabel).toBe("v1.0.0");
+    expect(fetchedEntry?.editorialCohort).toBe("APAC");
     expect(fetchedEntry?.pipelineStage).toBe("generated");
     expect(fetchedEntry?.candidateSnapshotAt).toBe("2026-04-02T05:00:00.000Z");
     expect(fetchedEntry?.deliveryAttemptCount).toBe(0);
   });
 
-  test("filters history by scheduled date, programme, status, and record kind", async () => {
+  test("filters history by scheduled date, programme, status, record kind, and cohort", async () => {
     await createDailyBriefHistoryEntry(
       buildBriefInput({
         scheduledFor: "2026-04-01",
         programme: "PYP",
         status: "published",
+        editorialCohort: "APAC",
       }),
     );
     await createDailyBriefHistoryEntry(
@@ -131,6 +134,7 @@ describe("daily brief history store", () => {
         scheduledFor: "2026-04-02",
         programme: "MYP",
         status: "draft",
+        editorialCohort: "EMEA",
       }),
     );
     await createDailyBriefHistoryEntry(
@@ -139,6 +143,7 @@ describe("daily brief history store", () => {
         programme: "DP",
         status: "failed",
         recordKind: "test",
+        editorialCohort: "AMER",
       }),
     );
 
@@ -157,6 +162,10 @@ describe("daily brief history store", () => {
       scheduledFor: "2026-04-02",
       recordKind: "production",
     });
+    const byCohort = await listDailyBriefHistory({
+      scheduledFor: "2026-04-02",
+      editorialCohort: "EMEA",
+    });
 
     expect(byDate).toHaveLength(2);
     expect(byDate.every((entry) => entry.scheduledFor === "2026-04-02")).toBe(
@@ -168,6 +177,8 @@ describe("daily brief history store", () => {
     expect(byStatus[0]?.programme).toBe("DP");
     expect(byRecordKind).toHaveLength(1);
     expect(byRecordKind[0]?.recordKind).toBe("production");
+    expect(byCohort).toHaveLength(1);
+    expect(byCohort[0]?.editorialCohort).toBe("EMEA");
   });
 
   test("stores pipeline metadata fields for staged scheduler flow", async () => {

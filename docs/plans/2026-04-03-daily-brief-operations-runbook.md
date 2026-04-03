@@ -10,12 +10,14 @@ delivery SLA for production families.
 All times below are `Asia/Hong_Kong`.
 
 - `01:00` `ingest` refresh #1
-- `02:00` `generate` early global wave
-- `02:15` `preflight` early global wave
+- `02:00` `generate` APAC cohort edition
+- `02:15` `preflight` APAC cohort edition
 - `03:00` `ingest` refresh #2
+- `04:00` `generate` EMEA cohort edition
+- `04:15` `preflight` EMEA cohort edition
 - `05:00` `ingest` refresh #3
-- `06:00` `generate` standard backstop wave
-- `06:15` `preflight` standard backstop wave
+- `06:00` `generate` AMER cohort edition
+- `06:15` `preflight` AMER cohort edition
 - every `30` minutes `deliver`
 - every `30` minutes offset by `10` minutes `retry-delivery`
 
@@ -83,24 +85,34 @@ DAILY_BRIEF_OPS_ALERT_WEBHOOK_URL_SECRET=daily-brief-ops-alert-webhook
 
 Open `Daily Briefs` admin and confirm:
 
-- new records were created for the target date
+- new `APAC` records were created for the target date
 - `pipelineStage` is `generated` or `preflight_passed`
 - `candidateSnapshotAt` and `generationCompletedAt` are populated
+- the selected topic is locked and reused for later cohorts
 
 If not, manually inspect:
 
 - `/api/internal/daily-brief/generate`
 - the relevant Cloud Run logs
 
-If the early wave succeeds, the later `03:00` and `05:00` ingestion refreshes
-should leave the frozen snapshot untouched.
+If the APAC wave succeeds, the later `03:00` and `05:00` ingestion refreshes
+should leave the frozen snapshot untouched so the later cohorts reuse the same
+topic.
+
+### After 04:15
+
+Confirm:
+
+- the `EMEA` edition exists for the same `runDate`
+- it reused the same locked topic as the earlier `APAC` edition
+- no unexpected `preflight` blocker alert fired
 
 ### After 06:15
 
 Confirm:
 
-- the standard backstop wave either no-ops cleanly because briefs are already
-  approved, or approves briefs because the early wave failed
+- the `AMER` edition exists for the same `runDate`
+- it reused the same locked topic as the earlier cohorts
 - no unexpected `preflight` blocker alert fired
 
 If preflight blocks:
@@ -140,7 +152,7 @@ curl -sS -X POST \
   https://dailysparks.geledtech.com/api/internal/daily-brief/preflight \
   -H "content-type: application/json" \
   -H "x-daily-sparks-scheduler-secret: ${DAILY_SPARKS_SCHEDULER_SECRET}" \
-  -d '{"runDate":"2026-04-04"}'
+  -d '{"runDate":"2026-04-04","editorialCohort":"EMEA"}'
 ```
 
 ```bash

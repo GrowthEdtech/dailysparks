@@ -4,7 +4,13 @@ import {
 } from "./editorial-policy";
 import { getDefaultAiConnectionWithSecret } from "./ai-connection-store";
 import { generateOpenAiCompatibleText } from "./ai-runtime";
+import {
+  buildEditorialCohortEvaluationDate,
+  filterProfilesByEditorialCohort,
+  type DailyBriefEditorialCohort,
+} from "./daily-brief-cohorts";
 import { listDailyBriefHistory } from "./daily-brief-history-store";
+import type { DailyBriefSelectedTopicRecord } from "./daily-brief-candidate-schema";
 import type {
   DailyBriefHistoryRecord,
   DailyBriefRepetitionRisk,
@@ -12,11 +18,14 @@ import type {
 import { listEligibleDeliveryProfiles } from "./mvp-store";
 import type { Programme } from "./mvp-types";
 import {
-  buildResolvedPromptPreview,
-  getActivePromptPolicy,
+  buildResolvedPromptPreview, getActivePromptPolicy,
 } from "./prompt-policy-store";
 import type { PromptPolicyRecord } from "./prompt-policy-schema";
-import { selectDailyTopicCluster, type SelectedDailyTopic } from "./brief-selector";
+import {
+  hydrateSelectedTopicFromRecord,
+  selectDailyTopicCluster,
+  type SelectedDailyTopic,
+} from "./brief-selector";
 import {
   ingestEditorialSourceCandidates,
   type EditorialSourceCandidate,
@@ -56,10 +65,12 @@ export type DailyBriefGenerationResult = {
 
 export type GenerateDailyBriefDraftsOptions = {
   scheduledFor: string;
+  editorialCohort?: DailyBriefEditorialCohort;
   candidates?: EditorialSourceCandidate[];
   historyEntries?: DailyBriefHistoryRecord[];
   recordKind?: DailyBriefHistoryRecord["recordKind"];
   promptPolicy?: PromptPolicyRecord;
+  selectedTopicRecord?: DailyBriefSelectedTopicRecord | null;
   fetchImpl?: typeof fetch;
   now?: Date;
 };
@@ -96,12 +107,15 @@ function getDaysBetween(left: string, right: string) {
 function getExistingProgrammeSet(
   historyEntries: DailyBriefHistoryRecord[],
   scheduledFor: string,
+  editorialCohort: DailyBriefEditorialCohort,
 ) {
   return new Set(
     historyEntries
       .filter(
         (entry) =>
-          entry.scheduledFor === scheduledFor && entry.status !== "failed",
+          entry.scheduledFor === scheduledFor &&
+          entry.editorialCohort === editorialCohort &&
+          entry.status !== "failed",
       )
       .map((entry) => entry.programme),
   );
@@ -241,8 +255,15 @@ function buildRepetitionAssessment(
 export async function generateDailyBriefDrafts(
   options: GenerateDailyBriefDraftsOptions,
 ): Promise<DailyBriefGenerationResult> {
+  const editorialCohort = options.editorialCohort ?? "APAC";
+  const evaluationDate = buildEditorialCohortEvaluationDate(options.scheduledFor);
   const profiles = await listEligibleDeliveryProfiles();
-  const eligibleProgrammes = extractEligibleProgrammes(profiles);
+  const cohortProfiles = filterProfilesByEditorialCohort(
+    profiles,
+    editorialCohort,
+    evaluationDate,
+  );
+  const eligibleProgrammes = extractEligibleProgrammes(cohortProfiles);
 
   if (eligibleProgrammes.length === 0) {
     return {
@@ -266,7 +287,13 @@ export async function generateDailyBriefDrafts(
 
   const candidates =
     options.candidates ?? (await ingestEditorialSourceCandidates({ now: options.now }));
-  const selectedTopic = selectDailyTopicCluster(candidates, eligibleProgrammes);
+  const selectedTopic = options.selectedTopicRecord
+    ? hydrateSelectedTopicFromRecord({
+        record: options.selectedTopicRecord,
+        candidates,
+        eligibleProgrammes,
+      })
+    : selectDailyTopicCluster(candidates, eligibleProgrammes);
 
   if (!selectedTopic) {
     return {
@@ -280,6 +307,7 @@ export async function generateDailyBriefDrafts(
   const existingProgrammes = getExistingProgrammeSet(
     historyEntries,
     options.scheduledFor,
+    editorialCohort,
   );
   const generatedBriefs: GeneratedDailyBriefDraft[] = [];
   const skippedProgrammes: Programme[] = [];
@@ -317,6 +345,7 @@ export async function generateDailyBriefDrafts(
       headline: generatedPayload.headline,
       summary: generatedPayload.summary,
       programme,
+      editorialCohort,
       status: "draft",
       topicTags: generatedPayload.topicTags,
       sourceReferences: selectedTopic.sourceReferences,

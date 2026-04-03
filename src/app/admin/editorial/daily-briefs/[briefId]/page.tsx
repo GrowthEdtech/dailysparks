@@ -5,9 +5,11 @@ import { getDailyBriefHistoryEntry } from "../../../../../lib/daily-brief-histor
 import {
   buildPipelineTimeline,
   formatAdminDateTime,
+  formatEditorialCohortLabel,
   formatRecordKindLabel,
   formatPipelineStageLabel,
   getDeliverySummaryLabel,
+  getEditorialCohortBadgeClasses,
   getPipelineStageBadgeClasses,
   getRecordKindBadgeClasses,
   getRetryWindowLabel,
@@ -57,11 +59,18 @@ export default async function DailyBriefDetailPage({
               Daily brief record
             </p>
             <div className="mt-3">
-              <span
-                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getRecordKindBadgeClasses(entry.recordKind)}`}
-              >
-                {formatRecordKindLabel(entry.recordKind)}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getRecordKindBadgeClasses(entry.recordKind)}`}
+                >
+                  {formatRecordKindLabel(entry.recordKind)}
+                </span>
+                <span
+                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getEditorialCohortBadgeClasses(entry.editorialCohort)}`}
+                >
+                  {formatEditorialCohortLabel(entry.editorialCohort)}
+                </span>
+              </div>
             </div>
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0f172a]">
               {entry.headline}
@@ -76,6 +85,7 @@ export default async function DailyBriefDetailPage({
               {formatDate(entry.scheduledFor)}
             </p>
             <p className="mt-2">Programme: {entry.programme}</p>
+            <p>Cohort: {formatEditorialCohortLabel(entry.editorialCohort)}</p>
             <p>Status: {entry.status}</p>
             <p className="mt-2">
               Pipeline:{" "}

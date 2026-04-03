@@ -336,9 +336,12 @@ describe("daily brief orchestration route", () => {
     expect(body.mode).toBe("run");
     expect(body.ready).toBe(true);
     expect(body.stages.ingest.summary.candidateCount).toBe(1);
+    expect(body.stages.cohorts).toHaveLength(3);
+    expect(body.stages.cohorts[0].editorialCohort).toBe("APAC");
+    expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(2);
+    expect(body.stages.cohorts[0].preflight.ready).toBe(true);
     expect(body.summary.generatedCount).toBe(2);
     expect(body.summary.historyCreatedCount).toBe(2);
-    expect(body.stages.preflight.ready).toBe(true);
     expect(body.summary.publishedCount).toBe(2);
     expect(body.summary.deliveryAttemptCount).toBe(2);
     expect(body.summary.deliverySuccessCount).toBe(2);
@@ -382,7 +385,9 @@ describe("daily brief orchestration route", () => {
     expect(body.summary.generatedCount).toBe(0);
     expect(body.summary.historyCreatedCount).toBe(0);
     expect(body.summary.skippedProgrammes).toEqual(["PYP"]);
-    expect(body.stages.preflight).toBeNull();
+    expect(body.stages.cohorts).toHaveLength(3);
+    expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(0);
+    expect(body.stages.cohorts[0].preflight).toBeNull();
     expect(body.stages.deliver).toBeNull();
     expect(history).toHaveLength(1);
     expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
@@ -416,6 +421,7 @@ describe("daily brief orchestration route", () => {
 
     expect(response.status).toBe(200);
     expect(body.summary.generatedCount).toBe(2);
+    expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(2);
     expect(body.summary.publishedCount).toBe(1);
     expect(body.summary.failedCount).toBe(1);
     expect(body.summary.deliverySuccessCount).toBe(1);

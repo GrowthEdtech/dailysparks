@@ -15,6 +15,7 @@ import {
   type DailyBriefSourceReference,
   type DailyBriefStatus,
 } from "./daily-brief-history-schema";
+import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
 import type { DailyBriefHistoryStore } from "./daily-brief-history-store-types";
 import { IB_PROGRAMMES, type Programme } from "./mvp-types";
 
@@ -35,6 +36,14 @@ function normalizeProgramme(value: unknown): Programme {
   return IB_PROGRAMMES.includes(normalized as Programme)
     ? (normalized as Programme)
     : "PYP";
+}
+
+function normalizeEditorialCohort(value: unknown): DailyBriefEditorialCohort {
+  const normalized = normalizeString(value);
+
+  return normalized === "APAC" || normalized === "EMEA" || normalized === "AMER"
+    ? normalized
+    : "APAC";
 }
 
 function normalizeStatus(value: unknown): DailyBriefStatus {
@@ -136,6 +145,7 @@ function normalizeEntry(
     headline: normalizeString(raw?.headline),
     summary: normalizeString(raw?.summary),
     programme: normalizeProgramme(raw?.programme),
+    editorialCohort: normalizeEditorialCohort(raw?.editorialCohort),
     status: normalizeStatus(raw?.status),
     topicTags: normalizeStringArray(raw?.topicTags),
     sourceReferences: Array.isArray(raw?.sourceReferences)

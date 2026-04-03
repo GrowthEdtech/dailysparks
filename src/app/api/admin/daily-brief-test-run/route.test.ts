@@ -166,10 +166,12 @@ describe("daily brief test run admin route", () => {
     expect(generateRequestBody).toEqual({
       runDate: "2026-04-04",
       recordKind: "test",
+      editorialCohort: "APAC",
     });
     expect(preflightRequestBody).toEqual({
       runDate: "2026-04-04",
       recordKind: "test",
+      editorialCohort: "APAC",
     });
     expect(deliverRequestBody).toEqual({
       runDate: "2026-04-04",

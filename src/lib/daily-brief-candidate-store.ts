@@ -1,6 +1,7 @@
 import type {
   DailyBriefCandidateSelectionStatus,
   DailyBriefCandidateSnapshotRecord,
+  DailyBriefSelectedTopicRecord,
 } from "./daily-brief-candidate-schema";
 import type {
   CreateDailyBriefCandidateSnapshotInput,
@@ -47,6 +48,19 @@ function buildSourceIds(record: CreateDailyBriefCandidateSnapshotInput) {
   );
 }
 
+function cloneSelectedTopic(
+  value: DailyBriefSelectedTopicRecord | null | undefined,
+) {
+  if (!value) {
+    return null;
+  }
+
+  return {
+    ...value,
+    sourceReferences: value.sourceReferences.map((reference) => ({ ...reference })),
+  } satisfies DailyBriefSelectedTopicRecord;
+}
+
 export async function listDailyBriefCandidateSnapshots() {
   const snapshots = await getDailyBriefCandidateSnapshotStore().listSnapshots();
 
@@ -74,6 +88,9 @@ export async function upsertDailyBriefCandidateSnapshot(
     candidateCount: input.candidates.length,
     selectionStatus: normalizeSelectionStatus(input.selectionStatus),
     selectionFrozenAt: input.selectionFrozenAt ?? null,
+    selectedTopic: cloneSelectedTopic(
+      input.selectedTopic ?? existingSnapshot?.selectedTopic,
+    ),
     createdAt: existingSnapshot?.createdAt ?? timestamp,
     updatedAt: timestamp,
   };

@@ -12,6 +12,10 @@ import {
   type DailyBriefDispatchMode,
   planDailyBriefDispatch,
 } from "../../../../../lib/daily-brief-delivery-policy";
+import {
+  buildEditorialCohortEvaluationDate,
+  filterProfilesByEditorialCohort,
+} from "../../../../../lib/daily-brief-cohorts";
 import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import { listPendingDeliveryTargets } from "../../../../../lib/daily-brief-delivery-progress";
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
@@ -225,12 +229,23 @@ export async function POST(request: Request) {
   const dispatchMode = planDailyBriefDispatch([], dispatchOverrides).mode;
 
   for (const brief of deliverableBriefs) {
-    const activeProgrammeProfiles = allProfiles.filter(
+    const cohortEvaluationDate = buildEditorialCohortEvaluationDate(
+      brief.scheduledFor,
+    );
+    const activeProgrammeProfiles = filterProfilesByEditorialCohort(
+      allProfiles,
+      brief.editorialCohort,
+      cohortEvaluationDate,
+    ).filter(
       (profile) =>
         profile.student.programme === brief.programme &&
         hasAutomatedDeliverySubscription(profile.parent),
     );
-    const eligibleProgrammeProfiles = dispatchableProfiles.filter(
+    const eligibleProgrammeProfiles = filterProfilesByEditorialCohort(
+      dispatchableProfiles,
+      brief.editorialCohort,
+      cohortEvaluationDate,
+    ).filter(
       (profile) => profile.student.programme === brief.programme,
     );
     const deliveryWindowSplit = forceDispatch

@@ -1,5 +1,10 @@
 import Link from "next/link";
 
+import {
+  DAILY_BRIEF_EDITORIAL_COHORTS,
+  isDailyBriefEditorialCohort,
+  type DailyBriefEditorialCohort,
+} from "../../../../lib/daily-brief-cohorts";
 import { listDailyBriefHistory } from "../../../../lib/daily-brief-history-store";
 import { getDailyBriefBusinessDate } from "../../../../lib/daily-brief-run-date";
 import {
@@ -15,9 +20,11 @@ import {
   type Programme,
 } from "../../../../lib/mvp-types";
 import {
+  formatEditorialCohortLabel,
   formatRecordKindLabel,
   formatPipelineStageLabel,
   getDeliverySummaryLabel,
+  getEditorialCohortBadgeClasses,
   getPipelineStageBadgeClasses,
   getRecordKindBadgeClasses,
   getRetryWindowLabel,
@@ -30,6 +37,7 @@ type DailyBriefsAdminPageProps = {
     kind?: string;
     programme?: string;
     status?: string;
+    cohort?: string;
   }>;
 };
 
@@ -53,6 +61,12 @@ function parseRecordKind(
     : undefined;
 }
 
+function parseEditorialCohort(
+  value: string | undefined,
+): DailyBriefEditorialCohort | undefined {
+  return value && isDailyBriefEditorialCohort(value) ? value : undefined;
+}
+
 function formatDate(value: string) {
   const date = new Date(`${value}T00:00:00.000Z`);
 
@@ -70,6 +84,7 @@ function buildFilterHref(filters: {
   kind?: DailyBriefRecordKind;
   programme?: Programme;
   status?: DailyBriefStatus;
+  cohort?: DailyBriefEditorialCohort;
 }) {
   const nextSearchParams = new URLSearchParams();
 
@@ -85,6 +100,10 @@ function buildFilterHref(filters: {
     nextSearchParams.set("status", filters.status);
   }
 
+  if (filters.cohort) {
+    nextSearchParams.set("cohort", filters.cohort);
+  }
+
   const query = nextSearchParams.toString();
   return query
     ? `/admin/editorial/daily-briefs?${query}`
@@ -98,8 +117,9 @@ export default async function DailyBriefsAdminPage({
   const recordKind = parseRecordKind(resolvedSearchParams.kind) ?? "production";
   const programme = parseProgramme(resolvedSearchParams.programme);
   const status = parseStatus(resolvedSearchParams.status);
+  const editorialCohort = parseEditorialCohort(resolvedSearchParams.cohort);
   const [history, productionHistoryForToday, profiles] = await Promise.all([
-    listDailyBriefHistory({ programme, recordKind, status }),
+    listDailyBriefHistory({ programme, editorialCohort, recordKind, status }),
     listDailyBriefHistory({
       scheduledFor: getDailyBriefBusinessDate(),
       recordKind: "production",
@@ -147,6 +167,7 @@ export default async function DailyBriefsAdminPage({
                     kind: kindOption,
                     programme,
                     status,
+                    cohort: editorialCohort,
                   })}
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                     recordKind === kindOption
@@ -166,7 +187,11 @@ export default async function DailyBriefsAdminPage({
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Link
-                href={buildFilterHref({ kind: recordKind, status })}
+                href={buildFilterHref({
+                  kind: recordKind,
+                  status,
+                  cohort: editorialCohort,
+                })}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                   !programme
                     ? "border-[#0f172a] bg-[#0f172a] text-white"
@@ -182,6 +207,7 @@ export default async function DailyBriefsAdminPage({
                     kind: recordKind,
                     programme: programmeOption,
                     status,
+                    cohort: editorialCohort,
                   })}
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                     programme === programmeOption
@@ -201,7 +227,11 @@ export default async function DailyBriefsAdminPage({
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <Link
-                href={buildFilterHref({ kind: recordKind, programme })}
+                href={buildFilterHref({
+                  kind: recordKind,
+                  programme,
+                  cohort: editorialCohort,
+                })}
                 className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
                   !status
                     ? "border-[#0f172a] bg-[#0f172a] text-white"
@@ -217,6 +247,7 @@ export default async function DailyBriefsAdminPage({
                     kind: recordKind,
                     programme,
                     status: statusOption,
+                    cohort: editorialCohort,
                   })}
                   className={`rounded-full border px-3 py-1.5 text-sm font-medium capitalize ${
                     status === statusOption
@@ -225,6 +256,46 @@ export default async function DailyBriefsAdminPage({
                   }`}
                 >
                   {statusOption}
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Cohort
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Link
+                href={buildFilterHref({
+                  kind: recordKind,
+                  programme,
+                  status,
+                })}
+                className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
+                  !editorialCohort
+                    ? "border-[#0f172a] bg-[#0f172a] text-white"
+                    : "border-slate-200 bg-slate-50 text-slate-600"
+                }`}
+              >
+                All
+              </Link>
+              {DAILY_BRIEF_EDITORIAL_COHORTS.map((cohortOption) => (
+                <Link
+                  key={cohortOption}
+                  href={buildFilterHref({
+                    kind: recordKind,
+                    programme,
+                    status,
+                    cohort: cohortOption,
+                  })}
+                  className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
+                    editorialCohort === cohortOption
+                      ? "border-[#0f172a] bg-[#0f172a] text-white"
+                      : "border-slate-200 bg-slate-50 text-slate-600"
+                  }`}
+                >
+                  {formatEditorialCohortLabel(cohortOption)}
                 </Link>
               ))}
             </div>
@@ -523,6 +594,11 @@ export default async function DailyBriefsAdminPage({
                       {entry.status}
                     </span>
                     <span
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getEditorialCohortBadgeClasses(entry.editorialCohort)}`}
+                    >
+                      {formatEditorialCohortLabel(entry.editorialCohort)}
+                    </span>
+                    <span
                       className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getRecordKindBadgeClasses(entry.recordKind)}`}
                     >
                       {formatRecordKindLabel(entry.recordKind)}
@@ -553,6 +629,9 @@ export default async function DailyBriefsAdminPage({
                   </p>
                   <p className="mt-1 font-semibold text-[#0f172a]">
                     {formatPipelineStageLabel(entry.pipelineStage)}
+                  </p>
+                  <p className="mt-1">
+                    {formatEditorialCohortLabel(entry.editorialCohort)} edition
                   </p>
                   <p className="mt-1">{entry.aiConnectionName}</p>
                   <p>{entry.aiModel}</p>

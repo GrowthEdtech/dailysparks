@@ -1,3 +1,5 @@
+import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
+import type { DailyBriefSelectedTopicRecord } from "./daily-brief-candidate-schema";
 import type { DailyBriefSourceReference } from "./daily-brief-history-schema";
 import type { Programme } from "./mvp-types";
 import type { EditorialSourceCandidate } from "./source-ingestion";
@@ -11,7 +13,7 @@ export type SelectedDailyTopic = {
   eligibleProgrammes: Programme[];
 };
 
-function getClusterKey(candidate: EditorialSourceCandidate) {
+export function getDailyTopicClusterKey(candidate: EditorialSourceCandidate) {
   return candidate.normalizedTitle || candidate.normalizedUrl || candidate.id;
 }
 
@@ -72,7 +74,7 @@ export function selectDailyTopicCluster(
   const clusters = new Map<string, EditorialSourceCandidate[]>();
 
   for (const candidate of candidates) {
-    const clusterKey = getClusterKey(candidate);
+    const clusterKey = getDailyTopicClusterKey(candidate);
     const current = clusters.get(clusterKey) ?? [];
 
     current.push(candidate);
@@ -116,5 +118,44 @@ export function selectDailyTopicCluster(
     topicCandidates: selectedCluster.candidates,
     sourceReferences: buildSourceReferences(selectedCluster.candidates),
     eligibleProgrammes: [...eligibleProgrammes],
+  };
+}
+
+export function buildSelectedTopicRecord(input: {
+  selectedTopic: SelectedDailyTopic;
+  selectedAt: string;
+  selectedByCohort: DailyBriefEditorialCohort;
+}): DailyBriefSelectedTopicRecord {
+  return {
+    clusterKey: input.selectedTopic.clusterKey,
+    headline: input.selectedTopic.headline,
+    summary: input.selectedTopic.summary,
+    sourceReferences: input.selectedTopic.sourceReferences.map((reference) => ({
+      ...reference,
+    })),
+    candidateCount: input.selectedTopic.topicCandidates.length,
+    selectedAt: input.selectedAt,
+    selectedByCohort: input.selectedByCohort,
+  };
+}
+
+export function hydrateSelectedTopicFromRecord(input: {
+  record: DailyBriefSelectedTopicRecord;
+  candidates: EditorialSourceCandidate[];
+  eligibleProgrammes: Programme[];
+}): SelectedDailyTopic {
+  const matchingCandidates = input.candidates.filter(
+    (candidate) => getDailyTopicClusterKey(candidate) === input.record.clusterKey,
+  );
+
+  return {
+    clusterKey: input.record.clusterKey,
+    headline: input.record.headline,
+    summary: input.record.summary,
+    topicCandidates: matchingCandidates,
+    sourceReferences: input.record.sourceReferences.map((reference) => ({
+      ...reference,
+    })),
+    eligibleProgrammes: [...input.eligibleProgrammes],
   };
 }

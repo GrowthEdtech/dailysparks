@@ -430,12 +430,12 @@ describe("daily brief deliver route", () => {
       },
     );
     await createEligibleProgrammeProfile(
-      "us-family@example.com",
+      "bangkok-family@example.com",
       "PYP",
       ["goodnotes"],
       {
-        countryCode: "US",
-        deliveryTimeZone: "America/New_York",
+        countryCode: "TH",
+        deliveryTimeZone: "Asia/Bangkok",
         preferredDeliveryLocalTime: "09:00",
       },
     );
@@ -481,7 +481,7 @@ describe("daily brief deliver route", () => {
     expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(2);
     expect(sendBriefToGoodnotesMock.mock.calls[1]?.[0]).toMatchObject({
       parent: {
-        email: "us-family@example.com",
+        email: "bangkok-family@example.com",
       },
     });
     expect(history[0]?.status).toBe("published");
@@ -507,6 +507,7 @@ describe("daily brief deliver route", () => {
       await createDailyBriefHistoryEntry(
         buildHistoryInput({
           scheduledFor: "2026-04-03",
+          editorialCohort: "AMER",
         }),
       );
 

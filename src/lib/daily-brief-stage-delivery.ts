@@ -58,6 +58,7 @@ function toGeneratedBriefDraft(
 ): GeneratedDailyBriefDraft {
   return {
     scheduledFor: brief.scheduledFor,
+    editorialCohort: brief.editorialCohort,
     recordKind: brief.recordKind,
     headline: brief.headline,
     summary: brief.summary,

@@ -1,3 +1,4 @@
+import type { DailyBriefEditorialCohort } from "../../../../lib/daily-brief-cohorts";
 import type {
   DailyBriefHistoryRecord,
   DailyBriefPipelineStage,
@@ -34,6 +35,18 @@ const RECORD_KIND_BADGE_CLASSES: Record<DailyBriefRecordKind, string> = {
   test: "border-sky-200 bg-sky-50 text-sky-800",
 };
 
+const COHORT_LABELS: Record<DailyBriefEditorialCohort, string> = {
+  APAC: "APAC",
+  EMEA: "EMEA",
+  AMER: "AMER",
+};
+
+const COHORT_BADGE_CLASSES: Record<DailyBriefEditorialCohort, string> = {
+  APAC: "border-cyan-200 bg-cyan-50 text-cyan-800",
+  EMEA: "border-amber-200 bg-amber-50 text-amber-900",
+  AMER: "border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800",
+};
+
 type DailyBriefTimelineItem = {
   label: string;
   value: string;
@@ -53,6 +66,16 @@ export function formatRecordKindLabel(kind: DailyBriefRecordKind) {
 
 export function getRecordKindBadgeClasses(kind: DailyBriefRecordKind) {
   return RECORD_KIND_BADGE_CLASSES[kind];
+}
+
+export function formatEditorialCohortLabel(cohort: DailyBriefEditorialCohort) {
+  return COHORT_LABELS[cohort];
+}
+
+export function getEditorialCohortBadgeClasses(
+  cohort: DailyBriefEditorialCohort,
+) {
+  return COHORT_BADGE_CLASSES[cohort];
 }
 
 export function formatAdminDateTime(value: string | null) {

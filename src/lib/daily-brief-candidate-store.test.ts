@@ -109,6 +109,23 @@ describe("daily brief candidate store", () => {
       candidates: [buildCandidate("beta"), buildCandidate("gamma")],
       selectionStatus: "frozen",
       selectionFrozenAt: "2026-04-03T06:00:00.000Z",
+      selectedTopic: {
+        clusterKey: "headline beta",
+        headline: "Headline beta",
+        summary: "Summary beta",
+        sourceReferences: [
+          {
+            sourceId: "beta-source",
+            sourceName: "Source beta",
+            sourceDomain: "beta.example.com",
+            articleTitle: "Headline beta",
+            articleUrl: "https://beta.example.com/articles/beta",
+          },
+        ],
+        candidateCount: 2,
+        selectedAt: "2026-04-03T06:00:00.000Z",
+        selectedByCohort: "APAC",
+      },
     });
 
     const snapshot = await getDailyBriefCandidateSnapshot("2026-04-03");
@@ -116,6 +133,59 @@ describe("daily brief candidate store", () => {
     expect(snapshot?.candidateCount).toBe(2);
     expect(snapshot?.selectionStatus).toBe("frozen");
     expect(snapshot?.selectionFrozenAt).toBe("2026-04-03T06:00:00.000Z");
+    expect(snapshot?.selectedTopic?.selectedByCohort).toBe("APAC");
+    expect(snapshot?.selectedTopic?.sourceReferences).toHaveLength(1);
+  });
+
+  test("preserves a locked selected topic when a later upsert omits it", async () => {
+    await upsertDailyBriefCandidateSnapshot({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate("alpha"), buildCandidate("beta")],
+      selectionStatus: "frozen",
+      selectionFrozenAt: "2026-04-03T02:00:00.000Z",
+      selectedTopic: {
+        clusterKey: "headline alpha",
+        headline: "Headline alpha",
+        summary: "Summary alpha",
+        sourceReferences: [
+          {
+            sourceId: "alpha-source",
+            sourceName: "Source alpha",
+            sourceDomain: "alpha.example.com",
+            articleTitle: "Headline alpha",
+            articleUrl: "https://alpha.example.com/articles/alpha",
+          },
+        ],
+        candidateCount: 2,
+        selectedAt: "2026-04-03T02:00:00.000Z",
+        selectedByCohort: "APAC",
+      },
+    });
+
+    const updatedSnapshot = await upsertDailyBriefCandidateSnapshot({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate("beta"), buildCandidate("gamma")],
+      selectionStatus: "frozen",
+      selectionFrozenAt: "2026-04-03T02:00:00.000Z",
+    });
+
+    expect(updatedSnapshot.selectedTopic).toEqual({
+      clusterKey: "headline alpha",
+      headline: "Headline alpha",
+      summary: "Summary alpha",
+      sourceReferences: [
+        {
+          sourceId: "alpha-source",
+          sourceName: "Source alpha",
+          sourceDomain: "alpha.example.com",
+          articleTitle: "Headline alpha",
+          articleUrl: "https://alpha.example.com/articles/alpha",
+        },
+      ],
+      candidateCount: 2,
+      selectedAt: "2026-04-03T02:00:00.000Z",
+      selectedByCohort: "APAC",
+    });
   });
 
   test("persists snapshots to the configured local JSON store", async () => {

@@ -27,6 +27,7 @@ export type UpdateDailyBriefHistoryEntryInput = Partial<
 
 export type DailyBriefHistoryFilters = {
   programme?: DailyBriefHistoryRecord["programme"];
+  editorialCohort?: DailyBriefHistoryRecord["editorialCohort"];
   recordKind?: DailyBriefHistoryRecord["recordKind"];
   status?: DailyBriefHistoryRecord["status"];
   scheduledFor?: DailyBriefHistoryRecord["scheduledFor"];

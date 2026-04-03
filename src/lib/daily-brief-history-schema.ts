@@ -1,3 +1,4 @@
+import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
 import type { Programme } from "./mvp-types";
 
 export const DAILY_BRIEF_STATUSES = [
@@ -67,6 +68,7 @@ export type DailyBriefHistoryRecord = {
   headline: string;
   summary: string;
   programme: Programme;
+  editorialCohort: DailyBriefEditorialCohort;
   status: DailyBriefStatus;
   topicTags: string[];
   sourceReferences: DailyBriefSourceReference[];

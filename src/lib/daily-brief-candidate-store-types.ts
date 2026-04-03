@@ -2,7 +2,11 @@ import type { DailyBriefCandidateSnapshotRecord } from "./daily-brief-candidate-
 
 export type CreateDailyBriefCandidateSnapshotInput = Omit<
   DailyBriefCandidateSnapshotRecord,
-  "id" | "sourceIds" | "candidateCount" | "createdAt" | "updatedAt"
+  | "id"
+  | "sourceIds"
+  | "candidateCount"
+  | "createdAt"
+  | "updatedAt"
 >;
 
 export type DailyBriefCandidateSnapshotStore = {

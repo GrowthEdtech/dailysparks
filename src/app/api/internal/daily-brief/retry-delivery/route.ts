@@ -14,6 +14,10 @@ import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-st
 import { hasAutomatedDeliverySubscription } from "../../../../../lib/delivery-eligibility";
 import { filterRetryableProfilesByProgramme } from "../../../../../lib/delivery-readiness";
 import {
+  buildEditorialCohortEvaluationDate,
+  filterProfilesByEditorialCohort,
+} from "../../../../../lib/daily-brief-cohorts";
+import {
   getDailyBriefSchedulerHeaderName,
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
@@ -194,8 +198,13 @@ export async function POST(request: Request) {
     const failedParentIds = new Set(
       brief.failedDeliveryTargets.map((target) => target.parentId),
     );
-    const eligibleProgrammeProfiles = filterRetryableProfilesByProgramme(
+    const cohortProfiles = filterProfilesByEditorialCohort(
       activeProfiles,
+      brief.editorialCohort,
+      buildEditorialCohortEvaluationDate(brief.scheduledFor),
+    );
+    const eligibleProgrammeProfiles = filterRetryableProfilesByProgramme(
+      cohortProfiles,
       brief.programme,
     ).filter((profile) => failedParentIds.has(profile.parent.id));
     const dispatchPlan = planDailyBriefDispatch(eligibleProgrammeProfiles);
@@ -257,7 +266,7 @@ export async function POST(request: Request) {
       ...retrySummary.deliveryReceipts,
     ];
     const pendingTargets = listPendingDeliveryTargets({
-      profiles: activeProfiles.filter(
+      profiles: cohortProfiles.filter(
         (profile) => profile.student.programme === brief.programme,
       ),
       deliveryReceipts: nextDeliveryReceipts,

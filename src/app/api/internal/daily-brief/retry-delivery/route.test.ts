@@ -380,6 +380,7 @@ describe("daily brief retry-delivery route", () => {
       await createDailyBriefHistoryEntry(
         buildHistoryInput({
           scheduledFor: "2026-04-03",
+          editorialCohort: "AMER",
           status: "approved",
           pipelineStage: "delivering",
           failedDeliveryTargets: [

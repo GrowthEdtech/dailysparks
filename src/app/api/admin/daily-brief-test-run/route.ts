@@ -1,4 +1,8 @@
 import {
+  buildEditorialCohortEvaluationDate,
+  getEditorialCohortForProfile,
+} from "../../../../lib/daily-brief-cohorts";
+import {
   clearEditorialAdminSessionCookieHeader,
   getEditorialAdminSessionFromRequest,
 } from "../../../../lib/editorial-admin-auth";
@@ -8,6 +12,7 @@ import {
   isDailyBriefSchedulerConfigured,
 } from "../../../../lib/daily-brief-run-auth";
 import { getNextDailyBriefBusinessDate } from "../../../../lib/daily-brief-run-date";
+import { getProfileByEmail } from "../../../../lib/mvp-store";
 import { POST as deliverDailyBriefRoute } from "../../internal/daily-brief/deliver/route";
 import { POST as generateDailyBriefRoute } from "../../internal/daily-brief/generate/route";
 import { POST as ingestDailyBriefRoute } from "../../internal/daily-brief/ingest/route";
@@ -137,6 +142,15 @@ export async function POST(request: Request) {
     typeof parsedBody.runDate === "string"
       ? parsedBody.runDate
       : getNextDailyBriefBusinessDate();
+  const targetProfile = await getProfileByEmail(
+    DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS[0],
+  );
+  const editorialCohort = targetProfile
+    ? getEditorialCohortForProfile(
+        targetProfile,
+        buildEditorialCohortEvaluationDate(runDate),
+      )
+    : "APAC";
 
   const ingest = await readStageResponse(
     await ingestDailyBriefRoute(
@@ -165,6 +179,7 @@ export async function POST(request: Request) {
       buildSchedulerRequest("/api/internal/daily-brief/generate", {
         runDate,
         recordKind: "test",
+        editorialCohort,
       }),
     ),
   );
@@ -187,6 +202,7 @@ export async function POST(request: Request) {
       buildSchedulerRequest("/api/internal/daily-brief/preflight", {
         runDate,
         recordKind: "test",
+        editorialCohort,
       }),
     ),
   );
@@ -222,6 +238,7 @@ export async function POST(request: Request) {
         success: false,
         failedStage: "deliver",
         runDate,
+        editorialCohort,
         targetParentEmails: DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS,
         stages: { ingest, generate, preflight, deliver },
       },
@@ -232,6 +249,7 @@ export async function POST(request: Request) {
   return Response.json({
     success: true,
     runDate,
+    editorialCohort,
     targetParentEmails: DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS,
     stages: {
       ingest,

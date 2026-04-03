@@ -2,6 +2,7 @@ import {
   listDailyBriefHistory,
   updateDailyBriefHistoryEntry,
 } from "../../../../../lib/daily-brief-history-store";
+import { isDailyBriefEditorialCohort } from "../../../../../lib/daily-brief-cohorts";
 import {
   DAILY_BRIEF_RECORD_KINDS,
   type DailyBriefHistoryRecord,
@@ -18,6 +19,7 @@ import { getDailyBriefBusinessDate } from "../../../../../lib/daily-brief-run-da
 type DailyBriefPreflightRequestBody = {
   runDate?: string;
   recordKind?: string;
+  editorialCohort?: string;
 };
 
 function serviceUnavailable(message: string) {
@@ -106,6 +108,13 @@ async function parseRequestBody(
       return badRequest("recordKind must be production or test when provided.");
     }
 
+    if (
+      payload.editorialCohort !== undefined &&
+      !isDailyBriefEditorialCohort(payload.editorialCohort)
+    ) {
+      return badRequest("editorialCohort must be APAC, EMEA, or AMER.");
+    }
+
     return payload;
   } catch {
     return badRequest("Request body must be valid JSON.");
@@ -133,9 +142,13 @@ export async function POST(request: Request) {
 
   const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
   const recordKind = normalizeRecordKind(parsedBody.recordKind) ?? "production";
+  const editorialCohort = isDailyBriefEditorialCohort(parsedBody.editorialCohort)
+    ? parsedBody.editorialCohort
+    : "APAC";
   const history = await listDailyBriefHistory({
     scheduledFor: runDate,
     recordKind,
+    editorialCohort,
   });
   const preflightCandidates = history.filter(isPreflightCandidate);
   const alreadyApprovedEntries = history.filter(isAlreadyApproved);
@@ -154,6 +167,7 @@ export async function POST(request: Request) {
       ready: true,
       runDate,
       recordKind,
+      editorialCohort,
       blockers: [],
       summary: {
         historyEntryCount: history.length,
@@ -218,6 +232,7 @@ export async function POST(request: Request) {
       ready: false,
       runDate,
       recordKind,
+      editorialCohort,
       blockers,
       opsAlert,
       summary: {
@@ -249,6 +264,7 @@ export async function POST(request: Request) {
     ready: true,
     runDate,
     recordKind,
+    editorialCohort,
     blockers: [],
     summary: {
       historyEntryCount: history.length,
