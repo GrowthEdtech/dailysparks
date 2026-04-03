@@ -9,6 +9,7 @@ import {
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
+import { getDailyBriefBusinessDate } from "../../../../../lib/daily-brief-run-date";
 
 type DailyBriefPreflightRequestBody = {
   runDate?: string;
@@ -26,10 +27,6 @@ function badRequest(message: string) {
   return Response.json({ message }, { status: 400 });
 }
 
-function buildRunDate(now = new Date()) {
-  return now.toISOString().slice(0, 10);
-}
-
 function isValidRunDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) &&
     !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
@@ -42,10 +39,18 @@ function isPreflightCandidate(entry: DailyBriefHistoryRecord) {
   );
 }
 
+function hasStructuredBriefContent(entry: DailyBriefHistoryRecord) {
+  return Boolean(
+    entry.headline.trim() &&
+      entry.summary.trim() &&
+      entry.briefMarkdown.trim() &&
+      entry.topicTags.length > 0,
+  );
+}
+
 function hasDeliveryReadyArtifacts(entry: DailyBriefHistoryRecord) {
   return Boolean(
-    entry.briefMarkdown.trim() &&
-      entry.sourceReferences.length > 0 &&
+    entry.sourceReferences.length > 0 &&
       entry.deliveryWindowAt,
   );
 }
@@ -100,7 +105,7 @@ export async function POST(request: Request) {
     return parsedBody;
   }
 
-  const runDate = parsedBody.runDate ?? buildRunDate();
+  const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
   const history = await listDailyBriefHistory({
     scheduledFor: runDate,
   });
@@ -111,14 +116,31 @@ export async function POST(request: Request) {
     blockers.push("No generated briefs exist for this run date.");
   }
 
-  const readyCandidates = preflightCandidates.filter(hasDeliveryReadyArtifacts);
-  const notReadyCandidates = preflightCandidates.filter(
+  const structuredContentCandidates = preflightCandidates.filter(
+    hasStructuredBriefContent,
+  );
+  const deliveryReadyCandidates = preflightCandidates.filter(
+    hasDeliveryReadyArtifacts,
+  );
+  const missingStructuredContentCandidates = preflightCandidates.filter(
+    (entry) => !hasStructuredBriefContent(entry),
+  );
+  const missingDeliveryArtifactCandidates = preflightCandidates.filter(
     (entry) => !hasDeliveryReadyArtifacts(entry),
   );
+  const readyCandidates = preflightCandidates.filter(
+    (entry) => hasStructuredBriefContent(entry) && hasDeliveryReadyArtifacts(entry),
+  );
 
-  if (notReadyCandidates.length > 0) {
+  if (missingStructuredContentCandidates.length > 0) {
     blockers.push(
-      `${notReadyCandidates.length} brief(s) are missing delivery-ready artifacts.`,
+      `${missingStructuredContentCandidates.length} brief(s) are missing required structured content.`,
+    );
+  }
+
+  if (missingDeliveryArtifactCandidates.length > 0) {
+    blockers.push(
+      `${missingDeliveryArtifactCandidates.length} brief(s) are missing delivery-ready artifacts.`,
     );
   }
 
@@ -133,6 +155,8 @@ export async function POST(request: Request) {
         blockers,
         historyEntryCount: history.length,
         candidateCount: preflightCandidates.length,
+        structuredContentCount: structuredContentCandidates.length,
+        deliveryReadyArtifactCount: deliveryReadyCandidates.length,
         readyBriefCount: readyCandidates.length,
       },
     });
@@ -146,6 +170,8 @@ export async function POST(request: Request) {
       summary: {
         historyEntryCount: history.length,
         candidateCount: preflightCandidates.length,
+        structuredContentCount: structuredContentCandidates.length,
+        deliveryReadyArtifactCount: deliveryReadyCandidates.length,
         readyBriefCount: readyCandidates.length,
         blockerCount: blockers.length,
         approvedCount: 0,
@@ -172,6 +198,8 @@ export async function POST(request: Request) {
     summary: {
       historyEntryCount: history.length,
       candidateCount: preflightCandidates.length,
+      structuredContentCount: structuredContentCandidates.length,
+      deliveryReadyArtifactCount: deliveryReadyCandidates.length,
       readyBriefCount: readyCandidates.length,
       blockerCount: 0,
       approvedCount: approvedEntries.filter(Boolean).length,

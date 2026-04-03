@@ -14,6 +14,7 @@ import {
 } from "./mvp-types";
 import { getFirebaseAdminDb } from "./firebase-admin";
 import type { ProfileStore } from "./profile-store";
+import { hasAutomatedDeliverySubscription } from "./delivery-eligibility";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -196,13 +197,13 @@ function compareProfilesByCreatedAtDesc(
 }
 
 function isEligibleForAutomatedDelivery(profile: ParentProfile) {
-  const hasActiveSubscription =
-    profile.parent.subscriptionStatus === "trial" ||
-    profile.parent.subscriptionStatus === "active";
   const hasReadyDeliveryChannel =
     profile.student.goodnotesConnected || profile.student.notionConnected;
 
-  return hasActiveSubscription && hasReadyDeliveryChannel;
+  return (
+    hasAutomatedDeliverySubscription(profile.parent) &&
+    hasReadyDeliveryChannel
+  );
 }
 
 async function findParentByEmail(email: string) {

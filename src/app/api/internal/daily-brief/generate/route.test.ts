@@ -339,4 +339,44 @@ describe("daily brief generate route", () => {
     ]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  test("does not create duplicate drafts when the same run date is generated twice", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+    await configureRuntime();
+
+    await upsertDailyBriefCandidateSnapshot({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate()],
+    });
+
+    const firstResponse = await generateDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    expect(firstResponse.status).toBe(200);
+
+    fetchMock.mockClear();
+
+    const secondResponse = await generateDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await secondResponse.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(secondResponse.status).toBe(200);
+    expect(body.summary.generatedCount).toBe(0);
+    expect(body.summary.historyCreatedCount).toBe(0);
+    expect(body.summary.skippedProgrammes).toEqual(["PYP"]);
+    expect(history).toHaveLength(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

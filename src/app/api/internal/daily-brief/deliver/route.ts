@@ -15,6 +15,7 @@ import {
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
+import { getDailyBriefBusinessDate } from "../../../../../lib/daily-brief-run-date";
 import { listEligibleDeliveryProfiles } from "../../../../../lib/mvp-store";
 
 type DailyBriefDeliverRequestBody = {
@@ -33,10 +34,6 @@ function unauthorized(message: string) {
 
 function badRequest(message: string) {
   return Response.json({ message }, { status: 400 });
-}
-
-function buildRunDate(now = new Date()) {
-  return now.toISOString().slice(0, 10);
 }
 
 function isValidRunDate(value: string) {
@@ -143,7 +140,7 @@ export async function POST(request: Request) {
     return parsedBody;
   }
 
-  const runDate = parsedBody.runDate ?? buildRunDate();
+  const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
   const dispatchOverrides = {
     mode: normalizeDispatchMode(parsedBody.dispatchMode),
     canaryParentEmails: normalizeCanaryParentEmails(
@@ -184,11 +181,9 @@ export async function POST(request: Request) {
     targetedProfileCount += programmeProfiles.length;
     skippedProfileCount += dispatchPlan.skippedProfiles.length;
 
-    if (eligibleProgrammeProfiles.length === 0 || programmeProfiles.length === 0) {
+    if (eligibleProgrammeProfiles.length === 0) {
       const failureReason =
-        eligibleProgrammeProfiles.length === 0
-          ? "No eligible delivery profiles were ready for this programme."
-          : "No canary delivery profiles were configured for this programme.";
+        "No eligible delivery profiles were ready for this programme.";
 
       await updateDailyBriefHistoryEntry(brief.id, {
         status: "failed",
@@ -215,6 +210,31 @@ export async function POST(request: Request) {
         },
       });
       failedCount += 1;
+      continue;
+    }
+
+    if (programmeProfiles.length === 0) {
+      await updateDailyBriefHistoryEntry(brief.id, {
+        adminNotes: appendAdminNotes(
+          brief.adminNotes,
+          `${dispatchContext} No canary delivery profiles matched this programme, so the brief stayed ready for a later full dispatch.`,
+        ),
+      });
+      await emitDailyBriefOpsAlert({
+        stage: "deliver",
+        severity: "info",
+        runDate,
+        title: "Daily brief skipped for canary dispatch",
+        message:
+          "A deliverable brief stayed in the ready queue because the current canary allowlist had no recipients for this programme.",
+        details: {
+          programme: brief.programme,
+          dispatchMode: dispatchPlan.mode,
+          eligibleProfileCount: eligibleProgrammeProfiles.length,
+          targetedProfileCount: 0,
+          skippedProfileCount: dispatchPlan.skippedProfiles.length,
+        },
+      });
       continue;
     }
 

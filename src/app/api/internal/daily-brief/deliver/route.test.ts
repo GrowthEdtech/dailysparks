@@ -340,6 +340,39 @@ describe("daily brief deliver route", () => {
     });
   });
 
+  test("keeps the brief recoverable when canary mode has no matching recipients", async () => {
+    process.env.DAILY_BRIEF_DELIVERY_MODE = "canary";
+    process.env.DAILY_BRIEF_CANARY_PARENT_EMAILS = "different-family@example.com";
+
+    await createEligibleProgrammeProfile(
+      "general-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.dispatchMode).toBe("canary");
+    expect(body.summary.deliveredCount).toBe(0);
+    expect(body.summary.failedCount).toBe(0);
+    expect(body.summary.skippedProfileCount).toBe(1);
+    expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
+    expect(history[0]?.status).toBe("approved");
+    expect(history[0]?.pipelineStage).toBe("preflight_passed");
+    expect(history[0]?.failureReason).toBe("");
+    expect(history[0]?.adminNotes).toMatch(/no canary delivery profiles/i);
+  });
+
   test("marks the brief failed when all configured deliveries fail", async () => {
     await createEligibleProgrammeProfile(
       "pyp-family@example.com",

@@ -328,6 +328,56 @@ describe("mvp store", () => {
     ]);
   });
 
+  test("excludes expired trial families from automated delivery eligibility", async () => {
+    await getOrCreateParentProfile({
+      email: "expired-trial@example.com",
+      fullName: "Expired Trial Parent",
+      studentName: "Ava",
+    });
+    await updateStudentPreferences("expired-trial@example.com", {
+      studentName: "Ava",
+      goodnotesEmail: "ava@goodnotes.email",
+      programme: "PYP",
+      programmeYear: 5,
+    });
+    await updateStudentGoodnotesDelivery("expired-trial@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Ready.",
+    });
+    await updateParentSubscription("expired-trial@example.com", {
+      subscriptionStatus: "trial",
+      trialEndsAt: "2026-03-31T23:59:59.000Z",
+    });
+
+    await getOrCreateParentProfile({
+      email: "future-trial@example.com",
+      fullName: "Future Trial Parent",
+      studentName: "Milo",
+    });
+    await updateStudentPreferences("future-trial@example.com", {
+      studentName: "Milo",
+      goodnotesEmail: "milo@goodnotes.email",
+      programme: "MYP",
+      programmeYear: 3,
+    });
+    await updateStudentGoodnotesDelivery("future-trial@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Ready.",
+    });
+    await updateParentSubscription("future-trial@example.com", {
+      subscriptionStatus: "trial",
+      trialEndsAt: "2026-04-10T00:00:00.000Z",
+    });
+
+    const eligibleProfiles = await listEligibleDeliveryProfiles();
+
+    expect(eligibleProfiles.map((profile) => profile.parent.email)).toEqual([
+      "future-trial@example.com",
+    ]);
+  });
+
   test("lists all parent profiles sorted by newest registration first", async () => {
     const storePath = process.env.DAILY_SPARKS_STORE_PATH as string;
 

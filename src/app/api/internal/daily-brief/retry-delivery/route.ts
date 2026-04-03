@@ -11,6 +11,7 @@ import {
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
+import { getDailyBriefBusinessDate } from "../../../../../lib/daily-brief-run-date";
 import { listEligibleDeliveryProfiles } from "../../../../../lib/mvp-store";
 
 type DailyBriefRetryDeliveryRequestBody = {
@@ -27,10 +28,6 @@ function unauthorized(message: string) {
 
 function badRequest(message: string) {
   return Response.json({ message }, { status: 400 });
-}
-
-function buildRunDate(now = new Date()) {
-  return now.toISOString().slice(0, 10);
 }
 
 function isValidRunDate(value: string) {
@@ -120,7 +117,7 @@ export async function POST(request: Request) {
     return parsedBody;
   }
 
-  const runDate = parsedBody.runDate ?? buildRunDate();
+  const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
   const retryAttemptTimestamp = buildRetryAttemptTimestamp(runDate);
   const history = await listDailyBriefHistory({
     scheduledFor: runDate,

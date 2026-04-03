@@ -7,6 +7,8 @@ import {
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
+import { getDailyBriefBusinessDate } from "../../../../../lib/daily-brief-run-date";
+import { resolveEditorialFeedTargets } from "../../../../../lib/editorial-feed-registry";
 import { listEditorialSources } from "../../../../../lib/editorial-source-store";
 import { ingestEditorialSourceCandidates } from "../../../../../lib/source-ingestion";
 
@@ -24,10 +26,6 @@ function unauthorized(message: string) {
 
 function badRequest(message: string) {
   return Response.json({ message }, { status: 400 });
-}
-
-function buildRunDate(now = new Date()) {
-  return now.toISOString().slice(0, 10);
 }
 
 function isValidRunDate(value: string) {
@@ -85,9 +83,18 @@ export async function POST(request: Request) {
     return parsedBody;
   }
 
-  const runDate = parsedBody.runDate ?? buildRunDate();
+  const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
   const sources = await listEditorialSources();
   const activeSources = sources.filter((source) => source.active);
+  const supportedSourceIds = new Set(
+    resolveEditorialFeedTargets(activeSources).map((target) => target.sourceId),
+  );
+  const supportedSources = activeSources.filter((source) =>
+    supportedSourceIds.has(source.id)
+  );
+  const unsupportedSources = activeSources.filter((source) =>
+    !supportedSourceIds.has(source.id)
+  );
   const existingSnapshot = await getDailyBriefCandidateSnapshot(runDate);
   const candidates = await ingestEditorialSourceCandidates({
     sources: activeSources,
@@ -106,6 +113,9 @@ export async function POST(request: Request) {
     summary: {
       activeSourceCount: activeSources.length,
       activeSourceIds: activeSources.map((source) => source.id),
+      supportedSourceCount: supportedSources.length,
+      supportedSourceIds: supportedSources.map((source) => source.id),
+      unsupportedSourceIds: unsupportedSources.map((source) => source.id),
       candidateCount: candidates.length,
       snapshotId: snapshot.id,
       updatedExisting: Boolean(existingSnapshot),

@@ -92,7 +92,7 @@ function getDaysBetween(left: string, right: string) {
   return Math.abs(leftDate - rightDate) / (1000 * 60 * 60 * 24);
 }
 
-function getPublishedProgrammeSet(
+function getExistingProgrammeSet(
   historyEntries: DailyBriefHistoryRecord[],
   scheduledFor: string,
 ) {
@@ -100,7 +100,7 @@ function getPublishedProgrammeSet(
     historyEntries
       .filter(
         (entry) =>
-          entry.scheduledFor === scheduledFor && entry.status === "published",
+          entry.scheduledFor === scheduledFor && entry.status !== "failed",
       )
       .map((entry) => entry.programme),
   );
@@ -161,12 +161,30 @@ function parseGeneratedBriefPayload(text: string): GeneratedBriefPayload {
         .map((tag) => tag.trim())
         .filter(Boolean);
 
-  return {
+  const result = {
     headline: String(payload.headline ?? "").trim(),
     summary: String(payload.summary ?? "").trim(),
     briefMarkdown: String(payload.briefMarkdown ?? "").trim(),
     topicTags,
   };
+
+  if (!result.headline) {
+    throw new Error("AI output must include a non-empty headline.");
+  }
+
+  if (!result.summary) {
+    throw new Error("AI output must include a non-empty summary.");
+  }
+
+  if (!result.briefMarkdown) {
+    throw new Error("AI output must include non-empty briefMarkdown.");
+  }
+
+  if (result.topicTags.length === 0) {
+    throw new Error("AI output must include at least one topic tag.");
+  }
+
+  return result;
 }
 
 function buildRepetitionAssessment(
@@ -258,7 +276,7 @@ export async function generateDailyBriefDrafts(
   }
 
   const historyEntries = options.historyEntries ?? (await listDailyBriefHistory());
-  const publishedProgrammes = getPublishedProgrammeSet(
+  const existingProgrammes = getExistingProgrammeSet(
     historyEntries,
     options.scheduledFor,
   );
@@ -266,7 +284,7 @@ export async function generateDailyBriefDrafts(
   const skippedProgrammes: Programme[] = [];
 
   for (const programme of eligibleProgrammes) {
-    if (publishedProgrammes.has(programme)) {
+    if (existingProgrammes.has(programme)) {
       skippedProgrammes.push(programme);
       continue;
     }

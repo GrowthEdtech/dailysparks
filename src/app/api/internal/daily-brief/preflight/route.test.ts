@@ -140,7 +140,7 @@ describe("daily brief preflight route", () => {
   test("blocks dispatch when delivery-ready artifacts are missing", async () => {
     await createDailyBriefHistoryEntry(
       buildHistoryInput({
-        briefMarkdown: "",
+        deliveryWindowAt: null,
       }),
     );
 
@@ -156,6 +156,27 @@ describe("daily brief preflight route", () => {
     expect(body.blockers.join(" ")).toMatch(/delivery-ready/i);
     expect(body.summary.readyBriefCount).toBe(0);
     expect(body.summary.blockerCount).toBeGreaterThan(0);
+  });
+
+  test("blocks dispatch when generated briefs are missing required structured content", async () => {
+    await createDailyBriefHistoryEntry(
+      buildHistoryInput({
+        headline: "",
+        pdfBuiltAt: "2026-04-03T06:05:00.000Z",
+      }),
+    );
+
+    const response = await preflightDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.ready).toBe(false);
+    expect(body.blockers.join(" ")).toMatch(/structured content/i);
+    expect(body.summary.readyBriefCount).toBe(0);
   });
 
   test("marks ready briefs as approved and preflight_passed", async () => {

@@ -11,6 +11,7 @@ import {
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
+import { getDailyBriefBusinessDate } from "../../../../../lib/daily-brief-run-date";
 import { generateDailyBriefDrafts } from "../../../../../lib/daily-brief-orchestrator";
 
 type DailyBriefGenerateRequestBody = {
@@ -35,10 +36,6 @@ function internalError(message: string) {
 
 function notFound(message: string) {
   return Response.json({ message }, { status: 404 });
-}
-
-function buildRunDate(now = new Date()) {
-  return now.toISOString().slice(0, 10);
 }
 
 function isValidRunDate(value: string) {
@@ -102,7 +99,7 @@ export async function POST(request: Request) {
     return parsedBody;
   }
 
-  const runDate = parsedBody.runDate ?? buildRunDate();
+  const runDate = parsedBody.runDate ?? getDailyBriefBusinessDate();
   const candidateSnapshot = await getDailyBriefCandidateSnapshot(runDate);
 
   if (!candidateSnapshot) {

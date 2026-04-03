@@ -344,4 +344,134 @@ describe("daily brief orchestrator", () => {
     expect(result.skippedProgrammes).toContain("PYP");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  test("treats existing same-day drafts as already generated for idempotent reruns", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+
+    const connection = await createAiConnection({
+      name: "NF Relay",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: TEST_AI_CONNECTION_TOKEN,
+      active: true,
+      isDefault: true,
+      notes: "Primary runtime connection.",
+    });
+
+    const promptPolicy = await createPromptPolicy({
+      name: "Family Daily Sparks Core",
+      versionLabel: "v1.0.0",
+      sharedInstructions: "Use clear, family-facing language.",
+      antiRepetitionInstructions: "Avoid repeating recent editorial angles.",
+      outputContractInstructions:
+        "Return JSON with headline, summary, briefMarkdown, and topicTags.",
+      pypInstructions: "Use short sentences and concrete examples.",
+      mypInstructions: "Add comparisons and causes.",
+      dpInstructions: "Add evidence limits and nuance.",
+      notes: "Primary policy",
+    });
+
+    await createDailyBriefHistoryEntry({
+      scheduledFor: "2026-04-03",
+      headline: "Existing PYP draft",
+      summary: "Already generated for PYP.",
+      programme: "PYP",
+      status: "draft",
+      topicTags: ["oceans"],
+      sourceReferences: [
+        {
+          sourceId: "bbc",
+          sourceName: "BBC",
+          sourceDomain: "bbc.com",
+          articleTitle: "Students map sea turtles",
+          articleUrl: "https://www.bbc.com/news/world-123",
+        },
+      ],
+      aiConnectionId: connection.id,
+      aiConnectionName: connection.name,
+      aiModel: connection.defaultModel,
+      promptPolicyId: promptPolicy.id,
+      promptVersionLabel: promptPolicy.versionLabel,
+      promptVersion: promptPolicy.versionLabel,
+      repetitionRisk: "low",
+      repetitionNotes: "Already generated.",
+      adminNotes: "",
+      briefMarkdown: "## PYP\nExisting draft",
+      pipelineStage: "generated",
+      candidateSnapshotAt: "2026-04-03T05:00:00.000Z",
+      generationCompletedAt: "2026-04-03T06:00:00.000Z",
+      pdfBuiltAt: null,
+      deliveryWindowAt: "2026-04-03T01:00:00.000Z",
+      lastDeliveryAttemptAt: null,
+      deliveryAttemptCount: 0,
+      deliverySuccessCount: 0,
+      deliveryFailureCount: 0,
+      failureReason: "",
+      retryEligibleUntil: null,
+    });
+
+    const result = await generateDailyBriefDrafts({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate({})],
+      fetchImpl: fetchMock,
+      now: new Date("2026-04-03T08:00:00.000Z"),
+    });
+
+    expect(result.generatedBriefs).toEqual([]);
+    expect(result.skippedProgrammes).toEqual(["PYP"]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test("rejects AI payloads that omit required non-empty output fields", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+    await createAiConnection({
+      name: "NF Relay",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: TEST_AI_CONNECTION_TOKEN,
+      active: true,
+      isDefault: true,
+      notes: "Primary runtime connection.",
+    });
+    await createPromptPolicy({
+      name: "Family Daily Sparks Core",
+      versionLabel: "v1.0.0",
+      sharedInstructions: "Use clear, family-facing language.",
+      antiRepetitionInstructions: "Avoid repeating recent editorial angles.",
+      outputContractInstructions:
+        "Return JSON with headline, summary, briefMarkdown, and topicTags.",
+      pypInstructions: "Use short sentences and concrete examples.",
+      mypInstructions: "Add comparisons and causes.",
+      dpInstructions: "Add evidence limits and nuance.",
+      notes: "Primary policy",
+    });
+
+    fetchMock.mockResolvedValueOnce(
+      createChatCompletionResponse({
+        headline: "",
+        summary: "Still has summary.",
+        briefMarkdown: "## PYP\nStudents are helping map turtle routes.",
+        topicTags: ["oceans"],
+      }),
+    );
+
+    await expect(
+      generateDailyBriefDrafts({
+        scheduledFor: "2026-04-03",
+        candidates: [buildCandidate({})],
+        fetchImpl: fetchMock,
+        now: new Date("2026-04-03T08:00:00.000Z"),
+      }),
+    ).rejects.toThrow(/headline/i);
+  });
 });

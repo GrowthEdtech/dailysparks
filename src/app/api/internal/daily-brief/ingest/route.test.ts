@@ -125,6 +125,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   process.env = { ...ORIGINAL_ENV };
 
@@ -176,6 +177,70 @@ describe("daily brief ingest route", () => {
     expect(snapshot?.sourceIds).toEqual(["bbc"]);
   });
 
+  test("reports supported source coverage separately from unsupported active sources", async () => {
+    const timestamp = "2026-04-03T00:00:00.000Z";
+
+    await writeFile(
+      editorialStorePath,
+      JSON.stringify(
+        {
+          sources: [
+            {
+              id: "bbc",
+              name: "BBC",
+              domain: "bbc.com",
+              homepage: "https://www.bbc.com/news",
+              roles: ["daily-news"],
+              usageTiers: ["primary-selection"],
+              recommendedProgrammes: ["PYP", "MYP", "DP"],
+              sections: ["world"],
+              ingestionMode: "metadata-only",
+              active: true,
+              notes: "Supported source",
+              seededFromPolicy: true,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            },
+            {
+              id: "ap",
+              name: "AP",
+              domain: "apnews.com",
+              homepage: "https://apnews.com/",
+              roles: ["daily-news"],
+              usageTiers: ["primary-selection"],
+              recommendedProgrammes: ["MYP", "DP"],
+              sections: ["world"],
+              ingestionMode: "metadata-only",
+              active: true,
+              notes: "Unsupported feed mapping",
+              seededFromPolicy: true,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            },
+          ],
+        },
+        null,
+        2,
+      ),
+    );
+    fetchMock.mockResolvedValueOnce(
+      createFeedResponse([{ title: "Students map sea turtles", slug: "sea-turtles" }]),
+    );
+
+    const response = await ingestDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.summary.activeSourceCount).toBe(2);
+    expect(body.summary.supportedSourceCount).toBe(1);
+    expect(body.summary.supportedSourceIds).toEqual(["bbc"]);
+    expect(body.summary.unsupportedSourceIds).toEqual(["ap"]);
+  });
+
   test("updates the same run date snapshot instead of duplicating it", async () => {
     fetchMock.mockResolvedValueOnce(
       createFeedResponse([{ title: "Students map sea turtles", slug: "sea-turtles" }]),
@@ -211,5 +276,21 @@ describe("daily brief ingest route", () => {
       "New forest classroom",
       "Students build weather stations",
     ]);
+  });
+
+  test("defaults omitted runDate to the Hong Kong business date", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-03T17:30:00.000Z"));
+    fetchMock.mockResolvedValueOnce(
+      createFeedResponse([{ title: "Harbour cleanup begins", slug: "harbour-cleanup" }]),
+    );
+
+    const response = await ingestDailyBriefRoute(buildRequest());
+    const body = await response.json();
+    const snapshot = await getDailyBriefCandidateSnapshot("2026-04-04");
+
+    expect(response.status).toBe(200);
+    expect(body.runDate).toBe("2026-04-04");
+    expect(snapshot?.scheduledFor).toBe("2026-04-04");
   });
 });
