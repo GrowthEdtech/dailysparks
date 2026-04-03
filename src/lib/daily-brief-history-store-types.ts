@@ -1,8 +1,27 @@
 import type { DailyBriefHistoryRecord } from "./daily-brief-history-schema";
 
+type DailyBriefLifecycleField =
+  | "pipelineStage"
+  | "candidateSnapshotAt"
+  | "generationCompletedAt"
+  | "pdfBuiltAt"
+  | "deliveryWindowAt"
+  | "lastDeliveryAttemptAt"
+  | "deliveryAttemptCount"
+  | "deliverySuccessCount"
+  | "deliveryFailureCount"
+  | "failedDeliveryTargets"
+  | "failureReason"
+  | "retryEligibleUntil";
+
 export type CreateDailyBriefHistoryEntryInput = Omit<
   DailyBriefHistoryRecord,
-  "id" | "createdAt" | "updatedAt"
+  "id" | "createdAt" | "updatedAt" | DailyBriefLifecycleField
+> &
+  Partial<Pick<DailyBriefHistoryRecord, DailyBriefLifecycleField>>;
+
+export type UpdateDailyBriefHistoryEntryInput = Partial<
+  Omit<DailyBriefHistoryRecord, "id" | "createdAt" | "updatedAt">
 >;
 
 export type DailyBriefHistoryFilters = {
@@ -17,4 +36,8 @@ export type DailyBriefHistoryStore = {
   createEntry(
     record: DailyBriefHistoryRecord,
   ): Promise<DailyBriefHistoryRecord>;
+  updateEntry(
+    id: string,
+    record: Partial<Omit<DailyBriefHistoryRecord, "id" | "createdAt" | "updatedAt">>,
+  ): Promise<DailyBriefHistoryRecord | null>;
 };

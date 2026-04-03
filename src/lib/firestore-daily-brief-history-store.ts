@@ -1,8 +1,13 @@
 import { getFirebaseAdminDb } from "./firebase-admin";
 import {
+  DAILY_BRIEF_DELIVERY_CHANNELS,
+  DAILY_BRIEF_PIPELINE_STAGES,
   DAILY_BRIEF_REPETITION_RISKS,
   DAILY_BRIEF_STATUSES,
+  type DailyBriefDeliveryChannel,
+  type DailyBriefFailedDeliveryTarget,
   type DailyBriefHistoryRecord,
+  type DailyBriefPipelineStage,
   type DailyBriefRepetitionRisk,
   type DailyBriefSourceReference,
   type DailyBriefStatus,
@@ -43,6 +48,44 @@ function normalizeRepetitionRisk(value: unknown): DailyBriefRepetitionRisk {
   )
     ? (normalized as DailyBriefRepetitionRisk)
     : "low";
+}
+
+function normalizePipelineStage(value: unknown): DailyBriefPipelineStage {
+  const normalized = normalizeString(value);
+  return DAILY_BRIEF_PIPELINE_STAGES.includes(
+    normalized as DailyBriefPipelineStage,
+  )
+    ? (normalized as DailyBriefPipelineStage)
+    : "generated";
+}
+
+function normalizeNullableString(value: unknown) {
+  return normalizeString(value) || null;
+}
+
+function normalizeCount(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function normalizeDeliveryChannel(value: unknown): DailyBriefDeliveryChannel {
+  const normalized = normalizeString(value);
+
+  return DAILY_BRIEF_DELIVERY_CHANNELS.includes(
+    normalized as DailyBriefDeliveryChannel,
+  )
+    ? (normalized as DailyBriefDeliveryChannel)
+    : "goodnotes";
+}
+
+function normalizeFailedDeliveryTarget(
+  raw: Partial<DailyBriefFailedDeliveryTarget> | undefined,
+): DailyBriefFailedDeliveryTarget {
+  return {
+    parentId: normalizeString(raw?.parentId),
+    parentEmail: normalizeString(raw?.parentEmail),
+    channel: normalizeDeliveryChannel(raw?.channel),
+    errorMessage: normalizeString(raw?.errorMessage),
+  };
 }
 
 function normalizeSourceReference(
@@ -86,6 +129,22 @@ function normalizeEntry(
     repetitionNotes: normalizeString(raw?.repetitionNotes),
     adminNotes: normalizeString(raw?.adminNotes),
     briefMarkdown: normalizeString(raw?.briefMarkdown),
+    pipelineStage: normalizePipelineStage(raw?.pipelineStage),
+    candidateSnapshotAt: normalizeNullableString(raw?.candidateSnapshotAt),
+    generationCompletedAt: normalizeNullableString(raw?.generationCompletedAt),
+    pdfBuiltAt: normalizeNullableString(raw?.pdfBuiltAt),
+    deliveryWindowAt: normalizeNullableString(raw?.deliveryWindowAt),
+    lastDeliveryAttemptAt: normalizeNullableString(raw?.lastDeliveryAttemptAt),
+    deliveryAttemptCount: normalizeCount(raw?.deliveryAttemptCount),
+    deliverySuccessCount: normalizeCount(raw?.deliverySuccessCount),
+    deliveryFailureCount: normalizeCount(raw?.deliveryFailureCount),
+    failedDeliveryTargets: Array.isArray(raw?.failedDeliveryTargets)
+      ? raw.failedDeliveryTargets.map((target) =>
+          normalizeFailedDeliveryTarget(target),
+        )
+      : [],
+    failureReason: normalizeString(raw?.failureReason),
+    retryEligibleUntil: normalizeNullableString(raw?.retryEligibleUntil),
     createdAt: normalizeString(raw?.createdAt) || timestamp,
     updatedAt: normalizeString(raw?.updatedAt) || timestamp,
   };
@@ -128,6 +187,32 @@ export const firestoreDailyBriefHistoryStore: DailyBriefHistoryStore = {
       .collection("editorialDailyBriefHistory")
       .doc(nextEntry.id)
       .set(nextEntry);
+
+    return nextEntry;
+  },
+
+  async updateEntry(id, record) {
+    const collection = getFirebaseAdminDb().collection(
+      "editorialDailyBriefHistory",
+    );
+    const document = await collection.doc(id).get();
+
+    if (!document.exists) {
+      return null;
+    }
+
+    const existingEntry = normalizeEntry(
+      document.id,
+      document.data() as Partial<DailyBriefHistoryRecord> | undefined,
+    );
+    const nextEntry = normalizeEntry(document.id, {
+      ...existingEntry,
+      ...record,
+      createdAt: existingEntry.createdAt,
+      updatedAt: new Date().toISOString(),
+    });
+
+    await collection.doc(id).set(nextEntry);
 
     return nextEntry;
   },

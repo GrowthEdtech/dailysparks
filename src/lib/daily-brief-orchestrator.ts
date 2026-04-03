@@ -26,7 +26,21 @@ const PROGRAMME_ORDER: Programme[] = ["PYP", "MYP", "DP"];
 
 export type GeneratedDailyBriefDraft = Omit<
   DailyBriefHistoryRecord,
-  "id" | "createdAt" | "updatedAt"
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "pipelineStage"
+  | "candidateSnapshotAt"
+  | "generationCompletedAt"
+  | "pdfBuiltAt"
+  | "deliveryWindowAt"
+  | "lastDeliveryAttemptAt"
+  | "deliveryAttemptCount"
+  | "deliverySuccessCount"
+  | "deliveryFailureCount"
+  | "failedDeliveryTargets"
+  | "failureReason"
+  | "retryEligibleUntil"
 > & {
   resolvedPrompt: string;
   sourceClusterKey: string;

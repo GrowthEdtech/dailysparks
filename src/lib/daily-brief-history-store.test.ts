@@ -7,6 +7,7 @@ import {
   createDailyBriefHistoryEntry,
   getDailyBriefHistoryEntry,
   listDailyBriefHistory,
+  updateDailyBriefHistoryEntry,
 } from "./daily-brief-history-store";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -40,6 +41,17 @@ function buildBriefInput(overrides: Partial<Parameters<typeof createDailyBriefHi
     adminNotes: "Strong family discussion potential.",
     briefMarkdown:
       "## Today\nCities are testing how to keep schools and public spaces safe during extreme heat.",
+    pipelineStage: "generated" as const,
+    candidateSnapshotAt: "2026-04-02T05:00:00.000Z",
+    generationCompletedAt: "2026-04-02T06:00:00.000Z",
+    pdfBuiltAt: null,
+    deliveryWindowAt: "2026-04-02T01:00:00.000Z",
+    lastDeliveryAttemptAt: null,
+    deliveryAttemptCount: 0,
+    deliverySuccessCount: 0,
+    deliveryFailureCount: 0,
+    failureReason: "",
+    retryEligibleUntil: null,
     ...overrides,
   };
 }
@@ -99,6 +111,9 @@ describe("daily brief history store", () => {
     expect(fetchedEntry?.sourceReferences[0]?.sourceName).toBe("Reuters");
     expect(fetchedEntry?.promptPolicyId).toBe("policy-1");
     expect(fetchedEntry?.promptVersionLabel).toBe("v1.0.0");
+    expect(fetchedEntry?.pipelineStage).toBe("generated");
+    expect(fetchedEntry?.candidateSnapshotAt).toBe("2026-04-02T05:00:00.000Z");
+    expect(fetchedEntry?.deliveryAttemptCount).toBe(0);
   });
 
   test("filters history by scheduled date, programme, and status", async () => {
@@ -144,5 +159,73 @@ describe("daily brief history store", () => {
     expect(byDateAndProgramme[0]?.programme).toBe("MYP");
     expect(byStatus).toHaveLength(1);
     expect(byStatus[0]?.programme).toBe("DP");
+  });
+
+  test("stores pipeline metadata fields for staged scheduler flow", async () => {
+    const createdEntry = await createDailyBriefHistoryEntry(
+      buildBriefInput({
+        status: "approved",
+        pipelineStage: "preflight_passed",
+        pdfBuiltAt: "2026-04-02T06:05:00.000Z",
+        lastDeliveryAttemptAt: "2026-04-02T09:10:00.000Z",
+        deliveryAttemptCount: 2,
+        deliverySuccessCount: 1,
+        deliveryFailureCount: 1,
+        failureReason: "One destination timed out.",
+        retryEligibleUntil: "2026-04-02T09:30:00.000Z",
+      }),
+    );
+    const fetchedEntry = await getDailyBriefHistoryEntry(createdEntry.id);
+
+    expect(fetchedEntry?.pipelineStage).toBe("preflight_passed");
+    expect(fetchedEntry?.pdfBuiltAt).toBe("2026-04-02T06:05:00.000Z");
+    expect(fetchedEntry?.lastDeliveryAttemptAt).toBe(
+      "2026-04-02T09:10:00.000Z",
+    );
+    expect(fetchedEntry?.deliveryAttemptCount).toBe(2);
+    expect(fetchedEntry?.deliverySuccessCount).toBe(1);
+    expect(fetchedEntry?.deliveryFailureCount).toBe(1);
+    expect(fetchedEntry?.failureReason).toBe("One destination timed out.");
+    expect(fetchedEntry?.retryEligibleUntil).toBe("2026-04-02T09:30:00.000Z");
+  });
+
+  test("updates an existing history entry with preflight status and stage changes", async () => {
+    const createdEntry = await createDailyBriefHistoryEntry(buildBriefInput());
+
+    const updatedEntry = await updateDailyBriefHistoryEntry(createdEntry.id, {
+      status: "approved",
+      pipelineStage: "preflight_passed",
+      adminNotes: "Ready for dispatch.",
+    });
+    const fetchedEntry = await getDailyBriefHistoryEntry(createdEntry.id);
+
+    expect(updatedEntry?.status).toBe("approved");
+    expect(updatedEntry?.pipelineStage).toBe("preflight_passed");
+    expect(updatedEntry?.adminNotes).toContain("Ready for dispatch.");
+    expect(fetchedEntry?.status).toBe("approved");
+  });
+
+  test("preserves untouched fields when applying a partial history update", async () => {
+    const createdEntry = await createDailyBriefHistoryEntry(
+      buildBriefInput({
+        scheduledFor: "2026-04-03",
+        headline: "Original headline",
+        programme: "PYP",
+      }),
+    );
+
+    const updatedEntry = await updateDailyBriefHistoryEntry(createdEntry.id, {
+      status: "published",
+      pipelineStage: "published",
+    });
+    const filteredHistory = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(updatedEntry?.scheduledFor).toBe("2026-04-03");
+    expect(updatedEntry?.headline).toBe("Original headline");
+    expect(updatedEntry?.programme).toBe("PYP");
+    expect(filteredHistory).toHaveLength(1);
+    expect(filteredHistory[0]?.id).toBe(createdEntry.id);
   });
 });
