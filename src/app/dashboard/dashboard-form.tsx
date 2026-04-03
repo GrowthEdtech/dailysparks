@@ -35,6 +35,10 @@ function hasMeaningfulStudentName(studentName: string) {
   );
 }
 
+export function shouldShowStudentNameSetupCard(persistedStudentName: string) {
+  return !hasMeaningfulStudentName(persistedStudentName);
+}
+
 export default function DashboardForm({
   initialProfile,
   notionConfigured,
@@ -44,6 +48,9 @@ export default function DashboardForm({
   const [programme, setProgramme] = useState(initialProfile.student.programme);
   const [programmeYear, setProgrammeYear] = useState(
     initialProfile.student.programmeYear,
+  );
+  const [showStudentNameSetupCard, setShowStudentNameSetupCard] = useState(
+    shouldShowStudentNameSetupCard(initialProfile.student.studentName),
   );
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -94,6 +101,9 @@ export default function DashboardForm({
         setStudentName(body.student.studentName);
         setProgramme(body.student.programme);
         setProgrammeYear(body.student.programmeYear);
+        setShowStudentNameSetupCard(
+          shouldShowStudentNameSetupCard(body.student.studentName),
+        );
       }
 
       setSuccessMessage("Preferences saved.");
@@ -251,7 +261,7 @@ export default function DashboardForm({
               </div>
             </section>
 
-            {!hasStudentName ? (
+            {showStudentNameSetupCard ? (
               <section className="rounded-3xl border border-[#fbbf24]/30 bg-[#fff7dd] p-6 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b45309]">
                   One last setup detail

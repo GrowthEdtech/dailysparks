@@ -1,8 +1,9 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import type { ParentProfile } from "../../lib/mvp-types";
+import * as DashboardFormModule from "./dashboard-form";
 import DashboardForm from "./dashboard-form";
 
 vi.mock("next/navigation", () => ({
@@ -79,6 +80,10 @@ const initialProfile: ParentProfile = {
   },
 };
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("DashboardForm", () => {
   test("uses a wide desktop container and two-column layout instead of mobile-only stacking", () => {
     const markup = renderToStaticMarkup(
@@ -92,5 +97,32 @@ describe("DashboardForm", () => {
     expect(markup).toContain("order-2 space-y-6 lg:order-1");
     expect(markup).toContain("order-1 space-y-6 lg:order-2");
     expect(markup).not.toContain("max-w-md flex-col gap-6 px-4");
+  });
+
+  test("keeps the child name setup card visible while the first valid name is being typed", () => {
+    expect(
+      DashboardFormModule.shouldShowStudentNameSetupCard?.("Student"),
+    ).toBe(true);
+    expect(
+      DashboardFormModule.shouldShowStudentNameSetupCard?.("Katherine"),
+    ).toBe(false);
+  });
+
+  test("renders the child name setup card when the persisted name is still the placeholder", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardForm
+        initialProfile={{
+          ...initialProfile,
+          student: {
+            ...initialProfile.student,
+            studentName: "Student",
+          },
+        }}
+        notionConfigured={true}
+      />,
+    );
+
+    expect(markup).toContain("Add your child&#x27;s first name");
+    expect(markup).toContain("Save child name");
   });
 });
