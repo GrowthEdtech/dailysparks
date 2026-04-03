@@ -50,6 +50,7 @@ function buildBriefInput(overrides: Partial<Parameters<typeof createDailyBriefHi
     deliveryAttemptCount: 0,
     deliverySuccessCount: 0,
     deliveryFailureCount: 0,
+    deliveryReceipts: [],
     failureReason: "",
     retryEligibleUntil: null,
     ...overrides,
@@ -171,6 +172,17 @@ describe("daily brief history store", () => {
         deliveryAttemptCount: 2,
         deliverySuccessCount: 1,
         deliveryFailureCount: 1,
+        deliveryReceipts: [
+          {
+            parentId: "parent-1",
+            parentEmail: "family@example.com",
+            channel: "goodnotes",
+            attachmentFileName:
+              "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
+            externalId: "smtp-message-id",
+            externalUrl: null,
+          },
+        ],
         failureReason: "One destination timed out.",
         retryEligibleUntil: "2026-04-02T09:30:00.000Z",
       }),
@@ -185,6 +197,15 @@ describe("daily brief history store", () => {
     expect(fetchedEntry?.deliveryAttemptCount).toBe(2);
     expect(fetchedEntry?.deliverySuccessCount).toBe(1);
     expect(fetchedEntry?.deliveryFailureCount).toBe(1);
+    expect(fetchedEntry?.deliveryReceipts).toEqual([
+      expect.objectContaining({
+        channel: "goodnotes",
+        parentEmail: "family@example.com",
+        attachmentFileName:
+          "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
+        externalId: "smtp-message-id",
+      }),
+    ]);
     expect(fetchedEntry?.failureReason).toBe("One destination timed out.");
     expect(fetchedEntry?.retryEligibleUntil).toBe("2026-04-02T09:30:00.000Z");
   });

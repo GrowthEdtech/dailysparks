@@ -10,6 +10,7 @@ type DailyBriefLifecycleField =
   | "deliveryAttemptCount"
   | "deliverySuccessCount"
   | "deliveryFailureCount"
+  | "deliveryReceipts"
   | "failedDeliveryTargets"
   | "failureReason"
   | "retryEligibleUntil";

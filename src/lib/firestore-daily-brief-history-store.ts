@@ -5,6 +5,7 @@ import {
   DAILY_BRIEF_REPETITION_RISKS,
   DAILY_BRIEF_STATUSES,
   type DailyBriefDeliveryChannel,
+  type DailyBriefDeliveryReceipt,
   type DailyBriefFailedDeliveryTarget,
   type DailyBriefHistoryRecord,
   type DailyBriefPipelineStage,
@@ -88,6 +89,19 @@ function normalizeFailedDeliveryTarget(
   };
 }
 
+function normalizeDeliveryReceipt(
+  raw: Partial<DailyBriefDeliveryReceipt> | undefined,
+): DailyBriefDeliveryReceipt {
+  return {
+    parentId: normalizeString(raw?.parentId),
+    parentEmail: normalizeString(raw?.parentEmail),
+    channel: normalizeDeliveryChannel(raw?.channel),
+    attachmentFileName: normalizeNullableString(raw?.attachmentFileName),
+    externalId: normalizeNullableString(raw?.externalId),
+    externalUrl: normalizeNullableString(raw?.externalUrl),
+  };
+}
+
 function normalizeSourceReference(
   raw: Partial<DailyBriefSourceReference> | undefined,
 ): DailyBriefSourceReference {
@@ -138,6 +152,11 @@ function normalizeEntry(
     deliveryAttemptCount: normalizeCount(raw?.deliveryAttemptCount),
     deliverySuccessCount: normalizeCount(raw?.deliverySuccessCount),
     deliveryFailureCount: normalizeCount(raw?.deliveryFailureCount),
+    deliveryReceipts: Array.isArray(raw?.deliveryReceipts)
+      ? raw.deliveryReceipts.map((receipt) =>
+          normalizeDeliveryReceipt(receipt),
+        )
+      : [],
     failedDeliveryTargets: Array.isArray(raw?.failedDeliveryTargets)
       ? raw.failedDeliveryTargets.map((target) =>
           normalizeFailedDeliveryTarget(target),

@@ -1,6 +1,7 @@
 import { sendBriefToGoodnotes } from "./goodnotes-delivery";
 import type {
   DailyBriefDeliveryChannel,
+  DailyBriefDeliveryReceipt,
   DailyBriefFailedDeliveryTarget,
   DailyBriefHistoryRecord,
 } from "./daily-brief-history-schema";
@@ -12,6 +13,7 @@ export type DailyBriefDeliveryAttemptSummary = {
   deliveryAttemptCount: number;
   deliverySuccessCount: number;
   deliveryFailureCount: number;
+  deliveryReceipts: DailyBriefDeliveryReceipt[];
   failedDeliveryTargets: DailyBriefFailedDeliveryTarget[];
 };
 
@@ -78,6 +80,7 @@ export async function deliverHistoryBriefToProfiles(
   let deliveryAttemptCount = 0;
   let deliverySuccessCount = 0;
   let deliveryFailureCount = 0;
+  const deliveryReceipts: DailyBriefDeliveryReceipt[] = [];
   const failedDeliveryTargets: DailyBriefFailedDeliveryTarget[] = [];
 
   for (const profile of profiles) {
@@ -85,10 +88,18 @@ export async function deliverHistoryBriefToProfiles(
       deliveryAttemptCount += 1;
 
       try {
-        await sendBriefToGoodnotes(profile, deliveryBrief, {
+        const result = await sendBriefToGoodnotes(profile, deliveryBrief, {
           attachmentMode: options.attachmentMode ?? "production",
         });
         deliverySuccessCount += 1;
+        deliveryReceipts.push({
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          channel: "goodnotes",
+          attachmentFileName: result.attachmentFileName,
+          externalId: result.messageId,
+          externalUrl: null,
+        });
       } catch (error) {
         deliveryFailureCount += 1;
         failedDeliveryTargets.push({
@@ -105,8 +116,16 @@ export async function deliverHistoryBriefToProfiles(
       deliveryAttemptCount += 1;
 
       try {
-        await createNotionBriefPage(profile, deliveryBrief);
+        const result = await createNotionBriefPage(profile, deliveryBrief);
         deliverySuccessCount += 1;
+        deliveryReceipts.push({
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          channel: "notion",
+          attachmentFileName: null,
+          externalId: result.pageId,
+          externalUrl: result.pageUrl,
+        });
       } catch (error) {
         deliveryFailureCount += 1;
         failedDeliveryTargets.push({
@@ -124,6 +143,7 @@ export async function deliverHistoryBriefToProfiles(
     deliveryAttemptCount,
     deliverySuccessCount,
     deliveryFailureCount,
+    deliveryReceipts,
     failedDeliveryTargets,
   };
 }

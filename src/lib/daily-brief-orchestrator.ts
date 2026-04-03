@@ -38,6 +38,7 @@ export type GeneratedDailyBriefDraft = Omit<
   | "deliveryAttemptCount"
   | "deliverySuccessCount"
   | "deliveryFailureCount"
+  | "deliveryReceipts"
   | "failedDeliveryTargets"
   | "failureReason"
   | "retryEligibleUntil"

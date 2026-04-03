@@ -49,6 +49,15 @@ export type DailyBriefFailedDeliveryTarget = {
   errorMessage: string;
 };
 
+export type DailyBriefDeliveryReceipt = {
+  parentId: string;
+  parentEmail: string;
+  channel: DailyBriefDeliveryChannel;
+  attachmentFileName: string | null;
+  externalId: string | null;
+  externalUrl: string | null;
+};
+
 export type DailyBriefHistoryRecord = {
   id: string;
   scheduledFor: string;
@@ -77,6 +86,7 @@ export type DailyBriefHistoryRecord = {
   deliveryAttemptCount: number;
   deliverySuccessCount: number;
   deliveryFailureCount: number;
+  deliveryReceipts: DailyBriefDeliveryReceipt[];
   failedDeliveryTargets: DailyBriefFailedDeliveryTarget[];
   failureReason: string;
   retryEligibleUntil: string | null;

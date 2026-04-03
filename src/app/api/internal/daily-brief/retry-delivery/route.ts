@@ -212,6 +212,10 @@ export async function POST(request: Request) {
       deliveryAttemptCount: nextDeliveryAttemptCount,
       deliverySuccessCount: nextDeliverySuccessCount,
       deliveryFailureCount: nextDeliveryFailureCount,
+      deliveryReceipts: [
+        ...brief.deliveryReceipts,
+        ...retrySummary.deliveryReceipts,
+      ],
       failedDeliveryTargets: remainingFailedTargets,
       retryEligibleUntil: hasRemainingFailures ? brief.retryEligibleUntil : null,
       failureReason: hasRemainingFailures

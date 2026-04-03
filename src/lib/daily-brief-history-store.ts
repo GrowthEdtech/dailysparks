@@ -113,6 +113,15 @@ export async function createDailyBriefHistoryEntry(
     deliveryAttemptCount: input.deliveryAttemptCount ?? 0,
     deliverySuccessCount: input.deliverySuccessCount ?? 0,
     deliveryFailureCount: input.deliveryFailureCount ?? 0,
+    deliveryReceipts:
+      input.deliveryReceipts?.map((receipt) => ({
+        parentId: receipt.parentId.trim(),
+        parentEmail: receipt.parentEmail.trim(),
+        channel: receipt.channel,
+        attachmentFileName: receipt.attachmentFileName?.trim() || null,
+        externalId: receipt.externalId?.trim() || null,
+        externalUrl: receipt.externalUrl?.trim() || null,
+      })) ?? [],
     failedDeliveryTargets:
       input.failedDeliveryTargets?.map((target) => ({
         parentId: target.parentId.trim(),
@@ -244,6 +253,18 @@ export async function updateDailyBriefHistoryEntry(
 
   if ("deliveryFailureCount" in input) {
     nextInput.deliveryFailureCount = input.deliveryFailureCount;
+  }
+
+  if ("deliveryReceipts" in input) {
+    nextInput.deliveryReceipts =
+      input.deliveryReceipts?.map((receipt) => ({
+        parentId: receipt.parentId.trim(),
+        parentEmail: receipt.parentEmail.trim(),
+        channel: receipt.channel,
+        attachmentFileName: receipt.attachmentFileName?.trim() || null,
+        externalId: receipt.externalId?.trim() || null,
+        externalUrl: receipt.externalUrl?.trim() || null,
+      })) ?? [];
   }
 
   if ("failedDeliveryTargets" in input) {

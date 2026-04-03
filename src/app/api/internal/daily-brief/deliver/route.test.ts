@@ -214,6 +214,14 @@ describe("daily brief deliver route", () => {
     expect(createNotionBriefPageMock).not.toHaveBeenCalled();
     expect(publishedEntry?.status).toBe("published");
     expect(publishedEntry?.pipelineStage).toBe("published");
+    expect(publishedEntry?.deliveryReceipts).toEqual([
+      expect.objectContaining({
+        channel: "goodnotes",
+        parentEmail: "pyp-family@example.com",
+        attachmentFileName: "daily-sparks-pyp.pdf",
+        externalId: "smtp-message-id",
+      }),
+    ]);
     expect(untouchedEntry?.status).toBe("draft");
   });
 

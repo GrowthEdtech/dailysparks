@@ -210,6 +210,55 @@ export default async function DailyBriefDetailPage({
                 ))}
               </div>
             ) : null}
+
+            {entry.deliveryReceipts.length > 0 ? (
+              <div className="mt-6 space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Delivery receipts
+                </h3>
+                {entry.deliveryReceipts.map((receipt) => (
+                  <article
+                    key={`${receipt.parentId}-${receipt.channel}-${receipt.externalId ?? receipt.attachmentFileName ?? "receipt"}`}
+                    className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          {receipt.channel}
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                          {receipt.parentEmail}
+                        </p>
+                      </div>
+                      {receipt.externalUrl ? (
+                        <a
+                          href={receipt.externalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sm font-semibold text-[#0f172a] underline underline-offset-4"
+                        >
+                          Open external record
+                        </a>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                      <p>
+                        <span className="font-semibold text-[#0f172a]">
+                          Attachment filename:
+                        </span>{" "}
+                        {receipt.attachmentFileName ?? "Not applicable"}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-[#0f172a]">
+                          External id:
+                        </span>{" "}
+                        {receipt.externalId ?? "Not recorded"}
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
           </section>
 
           <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">

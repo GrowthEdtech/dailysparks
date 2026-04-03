@@ -61,6 +61,17 @@ describe("DailyBriefDetailPage", () => {
       deliveryAttemptCount: 2,
       deliverySuccessCount: 3,
       deliveryFailureCount: 2,
+      deliveryReceipts: [
+        {
+          parentId: "parent-1",
+          parentEmail: "family@example.com",
+          channel: "goodnotes",
+          attachmentFileName:
+            "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
+          externalId: "smtp-message-id",
+          externalUrl: null,
+        },
+      ],
       failedDeliveryTargets: [
         {
           parentId: "parent-1",
@@ -90,6 +101,10 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("## Today");
     expect(markup).toContain("Pipeline timeline");
     expect(markup).toContain("Delivery health");
+    expect(markup).toContain("Delivery receipts");
+    expect(markup).toContain(
+      "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
+    );
     expect(markup).toContain("Retry eligible until");
     expect(markup).toContain(
       "Two configured deliveries timed out during the 09:10 retry window.",
