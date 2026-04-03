@@ -104,4 +104,18 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("flex flex-col gap-4");
     expect(markup).not.toContain("md:grid-cols-2");
   });
+
+  test("renders the manual canary test panel copy", async () => {
+    listDailyBriefHistoryMock.mockResolvedValue([]);
+
+    const markup = renderToStaticMarkup(
+      await DailyBriefsAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("Manual canary test");
+    expect(markup).toContain("admin@geledtech.com");
+    expect(markup).toContain("Run staged test");
+  });
 });

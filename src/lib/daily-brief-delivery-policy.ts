@@ -11,6 +11,11 @@ export type DailyBriefDispatchPlan = {
   skippedProfiles: ParentProfile[];
 };
 
+export type DailyBriefDispatchOverrides = {
+  mode?: DailyBriefDispatchMode;
+  canaryParentEmails?: string[];
+};
+
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
@@ -30,8 +35,9 @@ export function getDailyBriefCanaryParentEmails() {
 
 export function planDailyBriefDispatch(
   profiles: ParentProfile[],
+  overrides: DailyBriefDispatchOverrides = {},
 ): DailyBriefDispatchPlan {
-  const mode = getDailyBriefDispatchMode();
+  const mode = overrides.mode ?? getDailyBriefDispatchMode();
 
   if (mode === "all") {
     return {
@@ -42,7 +48,9 @@ export function planDailyBriefDispatch(
     };
   }
 
-  const canaryParentEmails = getDailyBriefCanaryParentEmails();
+  const canaryParentEmails =
+    overrides.canaryParentEmails?.map((value) => normalizeEmail(value)).filter(Boolean) ??
+    getDailyBriefCanaryParentEmails();
   const canaryEmailSet = new Set(canaryParentEmails);
   const selectedProfiles = profiles.filter((profile) =>
     canaryEmailSet.has(normalizeEmail(profile.parent.email)),

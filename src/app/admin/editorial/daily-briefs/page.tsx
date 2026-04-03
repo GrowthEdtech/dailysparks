@@ -16,6 +16,7 @@ import {
   getPipelineStageBadgeClasses,
   getRetryWindowLabel,
 } from "./daily-brief-admin-helpers";
+import ManualTestRunPanel from "./manual-test-run-panel";
 
 type DailyBriefsAdminPageProps = {
   searchParams: Promise<{
@@ -164,6 +165,8 @@ export default async function DailyBriefsAdminPage({
           </div>
         </div>
       </div>
+
+      <ManualTestRunPanel />
 
       {history.length === 0 ? (
         <div className="mt-8 rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-10">

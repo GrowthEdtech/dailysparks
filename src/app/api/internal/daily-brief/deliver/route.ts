@@ -3,7 +3,11 @@ import {
   updateDailyBriefHistoryEntry,
 } from "../../../../../lib/daily-brief-history-store";
 import type { DailyBriefHistoryRecord } from "../../../../../lib/daily-brief-history-schema";
-import { planDailyBriefDispatch } from "../../../../../lib/daily-brief-delivery-policy";
+import {
+  DAILY_BRIEF_DISPATCH_MODES,
+  type DailyBriefDispatchMode,
+  planDailyBriefDispatch,
+} from "../../../../../lib/daily-brief-delivery-policy";
 import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
 import {
@@ -15,6 +19,8 @@ import { listEligibleDeliveryProfiles } from "../../../../../lib/mvp-store";
 
 type DailyBriefDeliverRequestBody = {
   runDate?: string;
+  dispatchMode?: string;
+  canaryParentEmails?: string[];
 };
 
 function serviceUnavailable(message: string) {
@@ -48,6 +54,24 @@ function buildRetryEligibleUntil(runDate: string) {
   const parsed = Date.parse(`${runDate}T09:30:00+08:00`);
 
   return Number.isNaN(parsed) ? null : new Date(parsed).toISOString();
+}
+
+function normalizeDispatchMode(value: unknown): DailyBriefDispatchMode | undefined {
+  return typeof value === "string" &&
+    (DAILY_BRIEF_DISPATCH_MODES as readonly string[]).includes(value)
+    ? (value as DailyBriefDispatchMode)
+    : undefined;
+}
+
+function normalizeCanaryParentEmails(value: unknown) {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 function isDeliverableBrief(entry: DailyBriefHistoryRecord) {
@@ -120,6 +144,12 @@ export async function POST(request: Request) {
   }
 
   const runDate = parsedBody.runDate ?? buildRunDate();
+  const dispatchOverrides = {
+    mode: normalizeDispatchMode(parsedBody.dispatchMode),
+    canaryParentEmails: normalizeCanaryParentEmails(
+      parsedBody.canaryParentEmails,
+    ),
+  };
   const history = await listDailyBriefHistory({
     scheduledFor: runDate,
   });
@@ -135,13 +165,16 @@ export async function POST(request: Request) {
   let targetedProfileCount = 0;
   let skippedProfileCount = 0;
 
-  const dispatchMode = planDailyBriefDispatch([]).mode;
+  const dispatchMode = planDailyBriefDispatch([], dispatchOverrides).mode;
 
   for (const brief of deliverableBriefs) {
     const eligibleProgrammeProfiles = eligibleProfiles.filter(
       (profile) => profile.student.programme === brief.programme,
     );
-    const dispatchPlan = planDailyBriefDispatch(eligibleProgrammeProfiles);
+    const dispatchPlan = planDailyBriefDispatch(
+      eligibleProgrammeProfiles,
+      dispatchOverrides,
+    );
     const programmeProfiles = dispatchPlan.selectedProfiles;
     const dispatchContext =
       dispatchPlan.mode === "canary"

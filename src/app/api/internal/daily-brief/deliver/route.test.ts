@@ -292,6 +292,40 @@ describe("daily brief deliver route", () => {
     expect(history[0]?.status).toBe("published");
   });
 
+  test("honors request-level canary overrides without changing global env", async () => {
+    await createEligibleProgrammeProfile(
+      "canary-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createEligibleProgrammeProfile(
+      "general-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchMode: "canary",
+        canaryParentEmails: ["canary-family@example.com"],
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.summary.dispatchMode).toBe("canary");
+    expect(body.summary.targetedProfileCount).toBe(1);
+    expect(body.summary.skippedProfileCount).toBe(1);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[0]).toMatchObject({
+      parent: {
+        email: "canary-family@example.com",
+      },
+    });
+  });
+
   test("marks the brief failed when all configured deliveries fail", async () => {
     await createEligibleProgrammeProfile(
       "pyp-family@example.com",
