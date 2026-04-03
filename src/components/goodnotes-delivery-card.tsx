@@ -76,7 +76,7 @@ export default function GoodnotesDeliveryCard({
     }
 
     if (hasEmail) {
-      return "Your Goodnotes destination is saved and waiting for a live test brief before regular delivery starts.";
+      return "Your Goodnotes destination is saved and waiting for a welcome note before regular delivery starts.";
     }
 
     return "Add the name your child uses before @goodnotes.email. You can test, update, or remove this destination anytime.";
@@ -160,14 +160,14 @@ export default function GoodnotesDeliveryCard({
           applyStudent(body.student);
         }
 
-        setErrorMessage(body?.message ?? "We could not run the Goodnotes test brief.");
+        setErrorMessage(body?.message ?? "We could not send the Goodnotes welcome note.");
         setIsWorking(false);
         return;
       }
 
       applyStudent(body.student);
       setSuccessMessage(
-        body.message ?? "Goodnotes test brief recorded for this destination.",
+        body.message ?? "Goodnotes welcome note sent for this destination.",
       );
       setIsWorking(false);
 
@@ -175,7 +175,7 @@ export default function GoodnotesDeliveryCard({
         router.refresh();
       });
     } catch {
-      setErrorMessage("We could not run the Goodnotes test brief.");
+      setErrorMessage("We could not send the Goodnotes welcome note.");
       setIsWorking(false);
     }
   }
@@ -355,7 +355,7 @@ export default function GoodnotesDeliveryCard({
                 ) : (
                   <Send className="h-4 w-4" />
                 )}
-                {isConnected ? "Send another test brief" : "Send test brief"}
+                {isConnected ? "Send another welcome note" : "Send welcome note"}
               </button>
               <button
                 type="button"

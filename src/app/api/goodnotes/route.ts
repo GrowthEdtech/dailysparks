@@ -76,7 +76,7 @@ export async function PUT(request: Request) {
     goodnotesLastTestSentAt: null,
     goodnotesLastDeliveryStatus: "idle",
     goodnotesLastDeliveryMessage:
-      "Goodnotes destination saved. Send a test brief to confirm this destination.",
+      "Goodnotes destination saved. Send a welcome note to confirm this destination.",
   });
 
   if (!profile) {

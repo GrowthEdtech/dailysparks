@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   }
 
   if (!existingProfile.student.goodnotesEmail) {
-    return badRequest("Save a Goodnotes destination before sending a test brief.");
+    return badRequest("Save a Goodnotes destination before sending a welcome note.");
   }
 
   if (!isGoodnotesDeliveryConfigured()) {
@@ -49,14 +49,14 @@ export async function POST(request: Request) {
       goodnotesConnected: false,
       goodnotesLastDeliveryStatus: "failed",
       goodnotesLastDeliveryMessage:
-        "Goodnotes delivery is not configured yet. Please finish the delivery setup before sending a test brief.",
+        "Goodnotes delivery is not configured yet. Please finish the delivery setup before sending a welcome note.",
     });
 
     return Response.json(
       {
         ...(profile ?? existingProfile),
         message:
-          "Goodnotes delivery is not configured yet. Please finish the delivery setup before sending a test brief.",
+          "Goodnotes delivery is not configured yet. Please finish the delivery setup before sending a welcome note.",
       },
       { status: 503 },
     );
@@ -71,13 +71,13 @@ export async function POST(request: Request) {
       goodnotesConnected: false,
       goodnotesLastDeliveryStatus: "failed",
       goodnotesLastDeliveryMessage:
-        "We could not send the Goodnotes test brief right now. Please try again.",
+        "We could not send the Goodnotes welcome note right now. Please try again.",
     });
 
     return Response.json(
       {
         ...(failedProfile ?? existingProfile),
-        message: "We could not send the Goodnotes test brief right now. Please try again.",
+        message: "We could not send the Goodnotes welcome note right now. Please try again.",
       },
       { status: 502 },
     );
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     goodnotesLastTestSentAt: timestamp,
     goodnotesLastDeliveryStatus: "success",
     goodnotesLastDeliveryMessage:
-      "Test brief sent. Goodnotes delivery is ready for this destination.",
+      "Welcome note sent. Goodnotes delivery is ready for this destination.",
   });
 
   if (!profile) {
@@ -98,6 +98,6 @@ export async function POST(request: Request) {
 
   return Response.json({
     ...profile,
-    message: "Goodnotes test brief sent.",
+    message: "Goodnotes welcome note sent.",
   });
 }

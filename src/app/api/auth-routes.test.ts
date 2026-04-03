@@ -345,7 +345,7 @@ describe("auth routes", () => {
     expect(body.student.programmeYear).toBe(2);
   });
 
-  test("saves a Goodnotes destination and marks it as waiting for a test brief", async () => {
+  test("saves a Goodnotes destination and marks it as waiting for a welcome note", async () => {
     verifyIdTokenMock.mockResolvedValue({
       uid: "firebase-parent-1",
       email: "parent@example.com",
@@ -491,7 +491,7 @@ describe("auth routes", () => {
     expect(body.message).toMatch(/delivery is not configured/i);
   });
 
-  test("records a Goodnotes test brief and disconnects it cleanly", async () => {
+  test("records a Goodnotes welcome note and disconnects it cleanly", async () => {
     verifyIdTokenMock.mockResolvedValue({
       uid: "firebase-parent-1",
       email: "parent@example.com",
@@ -547,7 +547,7 @@ describe("auth routes", () => {
     expect(testBody.student.goodnotesVerifiedAt).toMatch(/^2026-/);
     expect(testBody.student.goodnotesLastTestSentAt).toMatch(/^2026-/);
     expect(testBody.student.goodnotesLastDeliveryStatus).toBe("success");
-    expect(testBody.student.goodnotesLastDeliveryMessage).toMatch(/sent/i);
+    expect(testBody.student.goodnotesLastDeliveryMessage).toMatch(/welcome note sent/i);
 
     const disconnectResponse = await disconnectGoodnotes(
       new Request("http://localhost:3000/api/goodnotes", {

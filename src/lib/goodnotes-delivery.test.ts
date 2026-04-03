@@ -19,6 +19,7 @@ vi.mock("nodemailer", () => ({
 }));
 
 import {
+  buildGoodnotesWelcomeNote,
   createGoodnotesBriefPdf,
   createGoodnotesTestBriefPdf,
   isGoodnotesDeliveryConfigured,
@@ -147,6 +148,16 @@ afterEach(() => {
 });
 
 describe("goodnotes delivery", () => {
+  test("builds a Growth Education welcome note payload for Goodnotes setup", () => {
+    const profile = createProfile();
+
+    expect(buildGoodnotesWelcomeNote(profile)).toMatchObject({
+      eyebrow: "Growth Education onboarding",
+      title: "Welcome to Daily Sparks",
+      signature: "Growth Education Limited",
+    });
+  });
+
   test("reports when SMTP delivery is configured", () => {
     expect(isGoodnotesDeliveryConfigured()).toBe(true);
 
@@ -155,14 +166,14 @@ describe("goodnotes delivery", () => {
     expect(isGoodnotesDeliveryConfigured()).toBe(false);
   });
 
-  test("creates a PDF attachment for the test brief", async () => {
+  test("creates a PDF attachment for the welcome note", async () => {
     const pdf = await createGoodnotesTestBriefPdf(createProfile());
 
     expect(pdf).toBeInstanceOf(Uint8Array);
     expect(Buffer.from(pdf).subarray(0, 4).toString()).toBe("%PDF");
   });
 
-  test("sends the test brief to the user's Goodnotes email as a PDF attachment", async () => {
+  test("sends the welcome note to the user's Goodnotes email as a PDF attachment", async () => {
     const profile = createProfile();
 
     const result = await sendTestBriefToGoodnotes(profile);
@@ -172,16 +183,17 @@ describe("goodnotes delivery", () => {
     expect(sendMailMock.mock.calls[0]?.[0]).toMatchObject({
       to: "katherine@goodnotes.email",
       from: "Growth Education Limited <info@geledtech.com>",
-      subject: expect.stringMatching(/Daily Sparks/i),
+      subject: "Welcome to Daily Sparks for Katherine",
+      text: expect.stringContaining("Growth Education Limited"),
     });
     expect(sendMailMock.mock.calls[0]?.[0].attachments?.[0]).toMatchObject({
       contentType: "application/pdf",
-      filename: "2026-04-03_DailySparks_TestBrief_MYP_delivery-check_test.pdf",
+      filename: "2026-04-03_DailySparks_WelcomeNote_MYP_getting-started_test.pdf",
     });
     expect(result).toMatchObject({
       messageId: "smtp-message-id",
       attachmentFileName:
-        "2026-04-03_DailySparks_TestBrief_MYP_delivery-check_test.pdf",
+        "2026-04-03_DailySparks_WelcomeNote_MYP_getting-started_test.pdf",
     });
   });
 
