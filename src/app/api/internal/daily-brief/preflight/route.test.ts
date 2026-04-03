@@ -214,4 +214,29 @@ describe("daily brief preflight route", () => {
       history.every((entry) => entry.pipelineStage === "preflight_passed"),
     ).toBe(true);
   });
+
+  test("treats already-approved briefs as a ready no-op during later backstop preflight waves", async () => {
+    await createDailyBriefHistoryEntry(
+      buildHistoryInput({
+        status: "approved",
+        pipelineStage: "preflight_passed",
+        pdfBuiltAt: "2026-04-03T02:05:00.000Z",
+      }),
+    );
+
+    const response = await preflightDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.ready).toBe(true);
+    expect(body.blockers).toEqual([]);
+    expect(body.summary.readyBriefCount).toBe(1);
+    expect(body.summary.approvedCount).toBe(0);
+    expect(body.summary.alreadyApprovedCount).toBe(1);
+    expect(emitDailyBriefOpsAlertMock).not.toHaveBeenCalled();
+  });
 });

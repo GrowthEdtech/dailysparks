@@ -44,6 +44,13 @@ function isPreflightCandidate(entry: DailyBriefHistoryRecord) {
   );
 }
 
+function isAlreadyApproved(entry: DailyBriefHistoryRecord) {
+  return (
+    (entry.status === "approved" && entry.pipelineStage === "preflight_passed") ||
+    entry.status === "published"
+  );
+}
+
 function hasStructuredBriefContent(entry: DailyBriefHistoryRecord) {
   return Boolean(
     entry.headline.trim() &&
@@ -131,10 +138,34 @@ export async function POST(request: Request) {
     recordKind,
   });
   const preflightCandidates = history.filter(isPreflightCandidate);
+  const alreadyApprovedEntries = history.filter(isAlreadyApproved);
   const blockers: string[] = [];
 
-  if (preflightCandidates.length === 0) {
+  if (
+    preflightCandidates.length === 0 &&
+    alreadyApprovedEntries.length === 0
+  ) {
     blockers.push("No generated briefs exist for this run date.");
+  }
+
+  if (preflightCandidates.length === 0 && alreadyApprovedEntries.length > 0) {
+    return Response.json({
+      mode: "preflight",
+      ready: true,
+      runDate,
+      recordKind,
+      blockers: [],
+      summary: {
+        historyEntryCount: history.length,
+        candidateCount: 0,
+        structuredContentCount: 0,
+        deliveryReadyArtifactCount: 0,
+        readyBriefCount: alreadyApprovedEntries.length,
+        blockerCount: 0,
+        approvedCount: 0,
+        alreadyApprovedCount: alreadyApprovedEntries.length,
+      },
+    });
   }
 
   const structuredContentCandidates = preflightCandidates.filter(
@@ -197,6 +228,7 @@ export async function POST(request: Request) {
         readyBriefCount: readyCandidates.length,
         blockerCount: blockers.length,
         approvedCount: 0,
+        alreadyApprovedCount: alreadyApprovedEntries.length,
       },
     });
   }
@@ -226,6 +258,7 @@ export async function POST(request: Request) {
       readyBriefCount: readyCandidates.length,
       blockerCount: 0,
       approvedCount: approvedEntries.filter(Boolean).length,
+      alreadyApprovedCount: alreadyApprovedEntries.length,
     },
   });
 }

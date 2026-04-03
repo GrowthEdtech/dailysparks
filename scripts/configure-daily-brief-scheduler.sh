@@ -13,6 +13,8 @@ JOB_PREFIX="${DAILY_BRIEF_SCHEDULER_JOB_PREFIX:-dailysparks-brief}"
 LEGACY_JOB_NAME="${DAILY_BRIEF_SCHEDULER_LEGACY_JOB_NAME:-dailysparks-daily-brief}"
 CLEANUP_LEGACY_JOB="${DAILY_BRIEF_SCHEDULER_CLEANUP_LEGACY_JOB:-true}"
 INGEST_0100_SCHEDULE="${DAILY_BRIEF_SCHEDULER_INGEST_0100_SCHEDULE:-0 1 * * *}"
+GENERATE_0200_SCHEDULE="${DAILY_BRIEF_SCHEDULER_GENERATE_0200_SCHEDULE:-0 2 * * *}"
+PREFLIGHT_0215_SCHEDULE="${DAILY_BRIEF_SCHEDULER_PREFLIGHT_0215_SCHEDULE:-15 2 * * *}"
 INGEST_0300_SCHEDULE="${DAILY_BRIEF_SCHEDULER_INGEST_0300_SCHEDULE:-0 3 * * *}"
 INGEST_0500_SCHEDULE="${DAILY_BRIEF_SCHEDULER_INGEST_0500_SCHEDULE:-0 5 * * *}"
 GENERATE_0600_SCHEDULE="${DAILY_BRIEF_SCHEDULER_GENERATE_0600_SCHEDULE:-0 6 * * *}"
@@ -92,10 +94,12 @@ upsert_http_job() {
 
 JOB_SPECS=(
   "${JOB_PREFIX}-ingest-0100|${INGEST_0100_SCHEDULE}|/api/internal/daily-brief/ingest|Refresh the Daily Sparks candidate snapshot for the 01:00 ingestion window.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
+  "${JOB_PREFIX}-generate-0200|${GENERATE_0200_SCHEDULE}|/api/internal/daily-brief/generate|Run the early editorial production wave so UTC+11 to UTC+14 families can still receive Daily Sparks by 09:00 local.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
+  "${JOB_PREFIX}-preflight-0215|${PREFLIGHT_0215_SCHEDULE}|/api/internal/daily-brief/preflight|Approve the early editorial production wave before the first local-time dispatch windows open.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-ingest-0300|${INGEST_0300_SCHEDULE}|/api/internal/daily-brief/ingest|Refresh the Daily Sparks candidate snapshot for the 03:00 ingestion window.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-ingest-0500|${INGEST_0500_SCHEDULE}|/api/internal/daily-brief/ingest|Refresh the Daily Sparks candidate snapshot for the 05:00 ingestion window.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
-  "${JOB_PREFIX}-generate-0600|${GENERATE_0600_SCHEDULE}|/api/internal/daily-brief/generate|Generate and freeze the Daily Sparks programme briefs for the day.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
-  "${JOB_PREFIX}-preflight-0615|${PREFLIGHT_0615_SCHEDULE}|/api/internal/daily-brief/preflight|Run delivery preflight checks before the rolling local-time Daily Sparks dispatch waves begin.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
+  "${JOB_PREFIX}-generate-0600|${GENERATE_0600_SCHEDULE}|/api/internal/daily-brief/generate|Run the standard editorial production backstop so later delivery windows still have a prepared brief if the early wave failed.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
+  "${JOB_PREFIX}-preflight-0615|${PREFLIGHT_0615_SCHEDULE}|/api/internal/daily-brief/preflight|Re-check delivery readiness during the standard backstop wave before rolling local-time dispatch continues worldwide.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-deliver-half-hourly|${DELIVER_HALF_HOURLY_SCHEDULE}|/api/internal/daily-brief/deliver|Dispatch approved Daily Sparks briefs in rolling local-time delivery waves every 30 minutes.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-retry-half-hourly|${RETRY_HALF_HOURLY_SCHEDULE}|/api/internal/daily-brief/retry-delivery|Retry failed Daily Sparks recipient-channel deliveries on a 30-minute cadence.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
 )

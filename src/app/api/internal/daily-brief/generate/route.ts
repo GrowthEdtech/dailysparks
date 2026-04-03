@@ -127,15 +127,6 @@ export async function POST(request: Request) {
       "No candidate snapshot exists for this run date. Run ingest first.",
     );
   }
-
-  const freezeTimestamp =
-    candidateSnapshot.selectionFrozenAt ?? new Date().toISOString();
-  const frozenSnapshot = await upsertDailyBriefCandidateSnapshot({
-    scheduledFor: candidateSnapshot.scheduledFor,
-    candidates: candidateSnapshot.candidates,
-    selectionStatus: "frozen",
-    selectionFrozenAt: freezeTimestamp,
-  });
   const historyEntries = await listDailyBriefHistory({
     scheduledFor: runDate,
     recordKind,
@@ -144,12 +135,23 @@ export async function POST(request: Request) {
   try {
     const generation = await generateDailyBriefDrafts({
       scheduledFor: runDate,
-      candidates: frozenSnapshot.candidates,
+      candidates: candidateSnapshot.candidates,
       historyEntries,
       recordKind,
       fetchImpl: fetch,
     });
     const generationCompletedAt = new Date().toISOString();
+    const shouldFreezeSnapshot =
+      generation.generatedBriefs.length > 0 &&
+      candidateSnapshot.selectionStatus !== "frozen";
+    const frozenSnapshot = shouldFreezeSnapshot
+      ? await upsertDailyBriefCandidateSnapshot({
+          scheduledFor: candidateSnapshot.scheduledFor,
+          candidates: candidateSnapshot.candidates,
+          selectionStatus: "frozen",
+          selectionFrozenAt: generationCompletedAt,
+        })
+      : candidateSnapshot;
     const deliveryWindowAt = buildDeliveryWindowTimestamp(runDate);
     const createdHistoryEntries = [];
 

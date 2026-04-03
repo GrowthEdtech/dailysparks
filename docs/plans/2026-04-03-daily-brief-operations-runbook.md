@@ -10,12 +10,14 @@ delivery SLA for production families.
 All times below are `Asia/Hong_Kong`.
 
 - `01:00` `ingest` refresh #1
+- `02:00` `generate` early global wave
+- `02:15` `preflight` early global wave
 - `03:00` `ingest` refresh #2
 - `05:00` `ingest` refresh #3
-- `06:00` `generate`
-- `08:50` `preflight`
-- `09:00` `deliver`
-- `09:10` `retry-delivery`
+- `06:00` `generate` standard backstop wave
+- `06:15` `preflight` standard backstop wave
+- every `30` minutes `deliver`
+- every `30` minutes offset by `10` minutes `retry-delivery`
 
 ## Dispatch modes
 
@@ -70,19 +72,19 @@ DAILY_BRIEF_OPS_ALERT_WEBHOOK_URL_SECRET=daily-brief-ops-alert-webhook
 
 ## Daily operator checks
 
-### Before 06:00
+### Before 02:00
 
 - Confirm the `ingest` jobs are enabled
 - Confirm at least one active source exists in admin
 - Confirm the default AI connection is still active
 - Confirm the active prompt policy is the intended version
 
-### After 06:00
+### After 02:15
 
 Open `Daily Briefs` admin and confirm:
 
 - new records were created for the target date
-- `pipelineStage` is `generated`
+- `pipelineStage` is `generated` or `preflight_passed`
 - `candidateSnapshotAt` and `generationCompletedAt` are populated
 
 If not, manually inspect:
@@ -90,12 +92,16 @@ If not, manually inspect:
 - `/api/internal/daily-brief/generate`
 - the relevant Cloud Run logs
 
-### At 08:50
+If the early wave succeeds, the later `03:00` and `05:00` ingestion refreshes
+should leave the frozen snapshot untouched.
+
+### After 06:15
 
 Confirm:
 
-- records advance to `approved / preflight_passed`
-- no `preflight` blocker alert fired
+- the standard backstop wave either no-ops cleanly because briefs are already
+  approved, or approves briefs because the early wave failed
+- no unexpected `preflight` blocker alert fired
 
 If preflight blocks:
 
@@ -103,7 +109,7 @@ If preflight blocks:
 2. Fix the missing artifact or upstream generation issue
 3. Re-run `preflight` manually for the same `runDate`
 
-### At 09:00
+### Rolling dispatch window
 
 Confirm:
 
@@ -111,7 +117,7 @@ Confirm:
 - `deliverySuccessCount` increases
 - `pipelineStage` becomes `published` or, in failure cases, `failed`
 
-### At 09:10
+### Rolling retry window
 
 Confirm:
 

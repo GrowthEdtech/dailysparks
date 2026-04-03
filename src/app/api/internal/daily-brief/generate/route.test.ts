@@ -449,4 +449,56 @@ describe("daily brief generate route", () => {
     expect(productionHistory).toHaveLength(1);
     expect(productionHistory[0]?.recordKind).toBe("production");
   });
+
+  test("keeps the candidate snapshot open when an early generation wave fails", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+    await configureRuntime();
+
+    await upsertDailyBriefCandidateSnapshot({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate()],
+    });
+
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: "chatcmpl-test",
+          object: "chat.completion",
+          created: 1,
+          model: "gpt-5.4",
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: "assistant",
+                content: "{}",
+              },
+              finish_reason: "stop",
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const response = await generateDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const snapshot = await getDailyBriefCandidateSnapshot("2026-04-03");
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(500);
+    expect(snapshot?.selectionStatus).toBe("open");
+    expect(snapshot?.selectionFrozenAt).toBeNull();
+    expect(history).toHaveLength(0);
+  });
 });

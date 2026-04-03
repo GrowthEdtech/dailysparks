@@ -96,6 +96,25 @@ export async function POST(request: Request) {
     !supportedSourceIds.has(source.id)
   );
   const existingSnapshot = await getDailyBriefCandidateSnapshot(runDate);
+
+  if (existingSnapshot?.selectionStatus === "frozen") {
+    return Response.json({
+      mode: "ingest",
+      runDate,
+      summary: {
+        activeSourceCount: activeSources.length,
+        activeSourceIds: activeSources.map((source) => source.id),
+        supportedSourceCount: supportedSources.length,
+        supportedSourceIds: supportedSources.map((source) => source.id),
+        unsupportedSourceIds: unsupportedSources.map((source) => source.id),
+        candidateCount: existingSnapshot.candidateCount,
+        snapshotId: existingSnapshot.id,
+        updatedExisting: true,
+        skippedBecauseFrozen: true,
+      },
+    });
+  }
+
   const candidates = await ingestEditorialSourceCandidates({
     sources: activeSources,
     fetchImpl: fetch,
@@ -119,6 +138,7 @@ export async function POST(request: Request) {
       candidateCount: candidates.length,
       snapshotId: snapshot.id,
       updatedExisting: Boolean(existingSnapshot),
+      skippedBecauseFrozen: false,
     },
   });
 }

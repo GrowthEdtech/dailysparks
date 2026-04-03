@@ -7,6 +7,7 @@ import { POST as ingestDailyBriefRoute } from "./route";
 import {
   getDailyBriefCandidateSnapshot,
   listDailyBriefCandidateSnapshots,
+  upsertDailyBriefCandidateSnapshot,
 } from "../../../../../lib/daily-brief-candidate-store";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -292,5 +293,46 @@ describe("daily brief ingest route", () => {
     expect(response.status).toBe(200);
     expect(body.runDate).toBe("2026-04-04");
     expect(snapshot?.scheduledFor).toBe("2026-04-04");
+  });
+
+  test("does not overwrite a frozen snapshot after editorial production is complete", async () => {
+    const frozenSnapshot = await upsertDailyBriefCandidateSnapshot({
+      scheduledFor: "2026-04-03",
+      candidates: [
+        {
+          id: "frozen-candidate",
+          sourceId: "bbc",
+          sourceName: "BBC",
+          sourceDomain: "bbc.com",
+          feedUrl: "https://feeds.bbci.co.uk/news/world/rss.xml",
+          section: "world",
+          title: "Frozen topic",
+          summary: "This should stay locked for the day.",
+          url: "https://www.bbc.com/news/world-frozen",
+          normalizedUrl: "https://www.bbc.com/news/world-frozen",
+          normalizedTitle: "frozen topic",
+          publishedAt: "2026-04-03T01:00:00.000Z",
+          ingestionMode: "metadata-only",
+          fetchedAt: "2026-04-03T01:05:00.000Z",
+        },
+      ],
+      selectionStatus: "frozen",
+      selectionFrozenAt: "2026-04-03T02:00:00.000Z",
+    });
+
+    const response = await ingestDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+    const storedSnapshot = await getDailyBriefCandidateSnapshot("2026-04-03");
+
+    expect(response.status).toBe(200);
+    expect(body.summary.skippedBecauseFrozen).toBe(true);
+    expect(body.summary.candidateCount).toBe(1);
+    expect(storedSnapshot?.id).toBe(frozenSnapshot.id);
+    expect(storedSnapshot?.candidates[0]?.title).toBe("Frozen topic");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

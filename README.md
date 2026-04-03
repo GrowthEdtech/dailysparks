@@ -231,6 +231,8 @@ DAILY_SPARKS_SCHEDULER_SECRET_SECRET=daily-sparks-scheduler-secret \
 The scheduler helper now creates or updates these jobs by default:
 
 - `dailysparks-brief-ingest-0100` -> `/api/internal/daily-brief/ingest` -> `0 1 * * *`
+- `dailysparks-brief-generate-0200` -> `/api/internal/daily-brief/generate` -> `0 2 * * *`
+- `dailysparks-brief-preflight-0215` -> `/api/internal/daily-brief/preflight` -> `15 2 * * *`
 - `dailysparks-brief-ingest-0300` -> `/api/internal/daily-brief/ingest` -> `0 3 * * *`
 - `dailysparks-brief-ingest-0500` -> `/api/internal/daily-brief/ingest` -> `0 5 * * *`
 - `dailysparks-brief-generate-0600` -> `/api/internal/daily-brief/generate` -> `0 6 * * *`
@@ -255,6 +257,8 @@ DAILY_BRIEF_SCHEDULER_ATTEMPT_DEADLINE=1200s
 DAILY_BRIEF_SCHEDULER_MAX_RETRY_ATTEMPTS=0
 DAILY_BRIEF_SCHEDULER_MESSAGE_BODY={}
 DAILY_BRIEF_SCHEDULER_INGEST_0100_SCHEDULE="0 1 * * *"
+DAILY_BRIEF_SCHEDULER_GENERATE_0200_SCHEDULE="0 2 * * *"
+DAILY_BRIEF_SCHEDULER_PREFLIGHT_0215_SCHEDULE="15 2 * * *"
 DAILY_BRIEF_SCHEDULER_INGEST_0300_SCHEDULE="0 3 * * *"
 DAILY_BRIEF_SCHEDULER_INGEST_0500_SCHEDULE="0 5 * * *"
 DAILY_BRIEF_SCHEDULER_GENERATE_0600_SCHEDULE="0 6 * * *"
@@ -278,12 +282,22 @@ The staged model is designed around a fixed editorial business day in
 `Asia/Hong_Kong`, but delivery itself rolls by each family's local time zone:
 
 - `01:00`, `03:00`, `05:00`: refresh candidate sources
-- `06:00`: freeze topic selection and generate programme briefs
-- `06:15`: verify delivery readiness once generation finishes
+- `02:00`: run the global-early editorial production wave so `UTC+11` to `UTC+14`
+  families still have a brief ready before `09:00 local`
+- `02:15`: preflight the early wave
+- `06:00`: run the standard backstop editorial production wave
+- `06:15`: re-run preflight as an idempotent backstop once the standard wave finishes
 - every `30` minutes: dispatch approved briefs that are now due in the
   family's local delivery window
 - every `30` minutes offset by `10` minutes: retry only failed
   recipient-channel combinations that are still within their retry window
+
+The key business rule is:
+
+- once a generation wave succeeds, the candidate snapshot is frozen for the day
+- later ingestion waves do not overwrite that frozen snapshot
+- if the early generation wave fails, the snapshot stays open so the `03:00` and
+  `05:00` ingest refreshes can still feed the `06:00` backstop wave
 
 ### Operator dry run
 
