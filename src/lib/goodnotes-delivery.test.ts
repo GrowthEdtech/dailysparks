@@ -126,6 +126,8 @@ function createGeneratedBrief(
 }
 
 beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-04-03T02:00:00.000Z"));
   process.env = {
     ...ORIGINAL_ENV,
     GOODNOTES_SMTP_URL: "smtps://info%40geledtech.com:testpass@smtp.gmail.com:465",
@@ -140,6 +142,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   process.env = { ...ORIGINAL_ENV };
 });
 
@@ -173,9 +176,13 @@ describe("goodnotes delivery", () => {
     });
     expect(sendMailMock.mock.calls[0]?.[0].attachments?.[0]).toMatchObject({
       contentType: "application/pdf",
-      filename: expect.stringMatching(/daily-sparks/i),
+      filename: "2026-04-03_DailySparks_TestBrief_MYP_delivery-check_test.pdf",
     });
-    expect(result.messageId).toBe("smtp-message-id");
+    expect(result).toMatchObject({
+      messageId: "smtp-message-id",
+      attachmentFileName:
+        "2026-04-03_DailySparks_TestBrief_MYP_delivery-check_test.pdf",
+    });
   });
 
   test("creates a PDF attachment for a generated daily brief", async () => {
@@ -204,11 +211,37 @@ describe("goodnotes delivery", () => {
     });
     expect(sendMailMock.mock.calls[0]?.[0].attachments?.[0]).toMatchObject({
       contentType: "application/pdf",
-      filename: "daily-sparks-pyp-katherine-2026-04-03.pdf",
+      filename:
+        "2026-04-03_DailySparks_DailyBrief_PYP_pyp-ocean-mapping-brief.pdf",
     });
     expect(result).toMatchObject({
       messageId: "smtp-message-id",
-      attachmentFileName: "daily-sparks-pyp-katherine-2026-04-03.pdf",
+      attachmentFileName:
+        "2026-04-03_DailySparks_DailyBrief_PYP_pyp-ocean-mapping-brief.pdf",
+    });
+  });
+
+  test("adds a canary suffix to generated brief attachment file names", async () => {
+    const profile = createProfile();
+    const brief = createGeneratedBrief({
+      headline: "Trump removes US Attorney General Pam Bondi",
+      scheduledFor: "2026-04-06",
+      programme: "PYP",
+    });
+
+    const result = await sendBriefToGoodnotes(profile, brief, {
+      attachmentMode: "canary",
+    });
+
+    expect(sendMailMock.mock.calls[0]?.[0].attachments?.[0]).toMatchObject({
+      contentType: "application/pdf",
+      filename:
+        "2026-04-06_DailySparks_DailyBrief_PYP_trump-removes-us-attorney-general-pam-bondi_canary.pdf",
+    });
+    expect(result).toMatchObject({
+      messageId: "smtp-message-id",
+      attachmentFileName:
+        "2026-04-06_DailySparks_DailyBrief_PYP_trump-removes-us-attorney-general-pam-bondi_canary.pdf",
     });
   });
 });

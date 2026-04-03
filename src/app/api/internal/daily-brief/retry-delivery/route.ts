@@ -179,6 +179,7 @@ export async function POST(request: Request) {
 
     const retrySummary = await deliverHistoryBriefToProfiles(programmeProfiles, brief, {
       retryTargets: brief.failedDeliveryTargets,
+      attachmentMode: dispatchPlan.mode === "canary" ? "canary" : "production",
     });
     const nextDeliveryAttemptCount =
       brief.deliveryAttemptCount + retrySummary.deliveryAttemptCount;

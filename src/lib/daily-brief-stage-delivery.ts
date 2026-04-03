@@ -71,6 +71,7 @@ export async function deliverHistoryBriefToProfiles(
   brief: DailyBriefHistoryRecord,
   options: {
     retryTargets?: DailyBriefFailedDeliveryTarget[];
+    attachmentMode?: "production" | "canary";
   } = {},
 ): Promise<DailyBriefDeliveryAttemptSummary> {
   const deliveryBrief = toGeneratedBriefDraft(brief);
@@ -84,7 +85,9 @@ export async function deliverHistoryBriefToProfiles(
       deliveryAttemptCount += 1;
 
       try {
-        await sendBriefToGoodnotes(profile, deliveryBrief);
+        await sendBriefToGoodnotes(profile, deliveryBrief, {
+          attachmentMode: options.attachmentMode ?? "production",
+        });
         deliverySuccessCount += 1;
       } catch (error) {
         deliveryFailureCount += 1;

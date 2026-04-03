@@ -221,6 +221,9 @@ export async function POST(request: Request) {
     const deliverySummary = await deliverHistoryBriefToProfiles(
       programmeProfiles,
       brief,
+      {
+        attachmentMode: dispatchPlan.mode === "canary" ? "canary" : "production",
+      },
     );
     const nextDeliveryAttemptCount =
       brief.deliveryAttemptCount + deliverySummary.deliveryAttemptCount;

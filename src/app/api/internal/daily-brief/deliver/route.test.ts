@@ -289,6 +289,9 @@ describe("daily brief deliver route", () => {
         email: "canary-family@example.com",
       },
     });
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[2]).toEqual({
+      attachmentMode: "canary",
+    });
     expect(history[0]?.status).toBe("published");
   });
 
@@ -323,6 +326,9 @@ describe("daily brief deliver route", () => {
       parent: {
         email: "canary-family@example.com",
       },
+    });
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[2]).toEqual({
+      attachmentMode: "canary",
     });
   });
 

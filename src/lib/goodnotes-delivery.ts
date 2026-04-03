@@ -16,6 +16,8 @@ export type GoodnotesDeliveryResult = {
   attachmentFileName: string;
 };
 
+export type GoodnotesAttachmentMode = "production" | "canary" | "test";
+
 const PAGE_WIDTH = 595;
 const PAGE_HEIGHT = 842;
 const PAGE_MARGIN = 48;
@@ -47,33 +49,54 @@ export function isGoodnotesDeliveryConfigured() {
   return getGoodnotesDeliveryConfig() !== null;
 }
 
-function toAttachmentFileName(studentName: string) {
-  const safeName = studentName
+function toAsciiSlug(value: string, fallback: string, maxSegments = 8) {
+  const slug = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return safeName
-    ? `daily-sparks-test-brief-${safeName}.pdf`
-    : "daily-sparks-test-brief.pdf";
+  if (!slug) {
+    return fallback;
+  }
+
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .slice(0, maxSegments)
+    .join("-");
+}
+
+function formatHongKongDate(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Hong_Kong",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value ?? "0000";
+  const month = parts.find((part) => part.type === "month")?.value ?? "00";
+  const day = parts.find((part) => part.type === "day")?.value ?? "00";
+
+  return `${year}-${month}-${day}`;
+}
+
+function toTestAttachmentFileName(programme: string, generatedAt = new Date()) {
+  return `${formatHongKongDate(generatedAt)}_DailySparks_TestBrief_${programme.toUpperCase()}_delivery-check_test.pdf`;
 }
 
 function toBriefAttachmentFileName(
-  studentName: string,
-  brief: Pick<GeneratedDailyBriefDraft, "programme" | "scheduledFor">,
+  brief: Pick<GeneratedDailyBriefDraft, "programme" | "scheduledFor" | "headline">,
+  attachmentMode: GoodnotesAttachmentMode = "production",
 ) {
-  const safeName = studentName
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  const safeDate = brief.scheduledFor.trim() || "daily";
-  const programme = brief.programme.toLowerCase();
+  const safeDate = brief.scheduledFor.trim() || formatHongKongDate();
+  const programme = brief.programme.toUpperCase();
+  const topicSlug = toAsciiSlug(brief.headline, "daily-reading");
+  const modeSuffix = attachmentMode === "canary" ? "_canary" : "";
 
-  return safeName
-    ? `daily-sparks-${programme}-${safeName}-${safeDate}.pdf`
-    : `daily-sparks-${programme}-${safeDate}.pdf`;
+  return `${safeDate}_DailySparks_DailyBrief_${programme}_${topicSlug}${modeSuffix}.pdf`;
 }
 
 function wrapText(
@@ -437,7 +460,7 @@ export async function sendTestBriefToGoodnotes(
     throw new Error("Goodnotes delivery is not configured yet.");
   }
 
-  const attachmentFileName = toAttachmentFileName(profile.student.studentName);
+  const attachmentFileName = toTestAttachmentFileName(profile.student.programme);
   const pdfBytes = await createGoodnotesTestBriefPdf(profile);
   const transporter = nodemailer.createTransport(config.smtpUrl);
   const result = await transporter.sendMail({
@@ -470,6 +493,9 @@ export async function sendTestBriefToGoodnotes(
 export async function sendBriefToGoodnotes(
   profile: ParentProfile,
   brief: GeneratedDailyBriefDraft,
+  options: {
+    attachmentMode?: Extract<GoodnotesAttachmentMode, "production" | "canary">;
+  } = {},
 ): Promise<GoodnotesDeliveryResult> {
   const config = getGoodnotesDeliveryConfig();
 
@@ -478,8 +504,8 @@ export async function sendBriefToGoodnotes(
   }
 
   const attachmentFileName = toBriefAttachmentFileName(
-    profile.student.studentName,
     brief,
+    options.attachmentMode ?? "production",
   );
   const pdfBytes = await createGoodnotesBriefPdf(profile, brief);
   const transporter = nodemailer.createTransport(config.smtpUrl);
