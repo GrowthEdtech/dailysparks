@@ -16,6 +16,7 @@ import {
   getCountryLabel,
 } from "../../../../lib/delivery-locale";
 import { getFamilyDeliveryHealthRollup } from "../../../../lib/delivery-health-rollup";
+import { assessOnboardingActivationReminder } from "../../../../lib/onboarding-activation-reminder";
 
 export const USER_STATUS_FILTERS = DERIVED_ACCESS_STATES;
 
@@ -113,4 +114,52 @@ export function countProfilesByStatus(profiles: ParentProfile[]) {
       free: 0,
     },
   );
+}
+
+export function countProfilesNeedingActivationReminder(profiles: ParentProfile[]) {
+  return profiles.reduce((count, profile) => {
+    const assessment = assessOnboardingActivationReminder({ profile });
+
+    return assessment.due ? count + 1 : count;
+  }, 0);
+}
+
+export function getOnboardingReminderStatus(profile: ParentProfile) {
+  const assessment = assessOnboardingActivationReminder({ profile });
+  const reminderCount = profile.parent.onboardingReminderCount;
+
+  if (profile.parent.onboardingReminderLastStatus === "failed") {
+    return {
+      label: "Reminder failed",
+      detail:
+        profile.parent.onboardingReminderLastError ||
+        "The latest activation reminder failed to send.",
+    };
+  }
+
+  if (assessment.due) {
+    return {
+      label: "Reminder due",
+      detail: assessment.reason,
+    };
+  }
+
+  if (reminderCount > 0 && assessment.eligible) {
+    return {
+      label: `${reminderCount} reminder sent${reminderCount === 1 ? "" : "s"}`,
+      detail: assessment.reason,
+    };
+  }
+
+  if (!assessment.eligible && /dispatchable channel/i.test(assessment.reason)) {
+    return {
+      label: "Connected",
+      detail: "Activation reminders are no longer needed because delivery is ready.",
+    };
+  }
+
+  return {
+    label: "Not reminded yet",
+    detail: assessment.reason,
+  };
 }

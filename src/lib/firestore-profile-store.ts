@@ -1,10 +1,12 @@
 import type {
   GoodnotesDeliveryStatus,
+  OnboardingReminderStatus,
   ParentProfile,
   ParentRecord,
   StudentRecord,
   SubscriptionPlan,
   UpdateParentDeliveryPreferencesInput,
+  UpdateParentOnboardingReminderInput,
   UpdateParentNotionInput,
   UpdateStudentGoodnotesInput,
 } from "./mvp-types";
@@ -40,6 +42,12 @@ function normalizeGoodnotesStatus(value: unknown): GoodnotesDeliveryStatus | nul
   return value === "idle" || value === "success" || value === "failed"
     ? value
     : null;
+}
+
+function normalizeOnboardingReminderStatus(
+  value: unknown,
+): OnboardingReminderStatus | null {
+  return value === "sent" || value === "failed" ? value : null;
 }
 
 function addDays(timestamp: string, days: number) {
@@ -129,6 +137,33 @@ function normalizeParentRecord(
     countryCode: deliveryPreferences.countryCode,
     deliveryTimeZone: deliveryPreferences.deliveryTimeZone,
     preferredDeliveryLocalTime: deliveryPreferences.preferredDeliveryLocalTime,
+    onboardingReminderCount:
+      typeof raw?.onboardingReminderCount === "number" &&
+      Number.isFinite(raw.onboardingReminderCount) &&
+      raw.onboardingReminderCount >= 0
+        ? raw.onboardingReminderCount
+        : 0,
+    onboardingReminderLastAttemptAt: normalizeNullableString(
+      raw?.onboardingReminderLastAttemptAt,
+    ),
+    onboardingReminderLastSentAt: normalizeNullableString(
+      raw?.onboardingReminderLastSentAt,
+    ),
+    onboardingReminderLastStage:
+      typeof raw?.onboardingReminderLastStage === "number" &&
+      Number.isFinite(raw.onboardingReminderLastStage) &&
+      raw.onboardingReminderLastStage > 0
+        ? raw.onboardingReminderLastStage
+        : null,
+    onboardingReminderLastStatus: normalizeOnboardingReminderStatus(
+      raw?.onboardingReminderLastStatus,
+    ),
+    onboardingReminderLastMessageId: normalizeNullableString(
+      raw?.onboardingReminderLastMessageId,
+    ),
+    onboardingReminderLastError: normalizeNullableString(
+      raw?.onboardingReminderLastError,
+    ),
     subscriptionStatus:
       raw?.subscriptionStatus === "free" ||
       raw?.subscriptionStatus === "trial" ||
@@ -338,6 +373,13 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     countryCode: DEFAULT_COUNTRY_CODE,
     deliveryTimeZone: DEFAULT_DELIVERY_TIME_ZONE,
     preferredDeliveryLocalTime: DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
+    onboardingReminderCount: 0,
+    onboardingReminderLastAttemptAt: null,
+    onboardingReminderLastSentAt: null,
+    onboardingReminderLastStage: null,
+    onboardingReminderLastStatus: null,
+    onboardingReminderLastMessageId: null,
+    onboardingReminderLastError: null,
     subscriptionStatus: "trial",
     subscriptionPlan: null,
     stripeCustomerId: null,
@@ -859,6 +901,85 @@ export const firestoreProfileStore: ProfileStore = {
 
     await db.collection("parents").doc(parent.id).set(parent);
     await db.collection("students").doc(student.id).set(student);
+
+    return toProfile(parent, student);
+  },
+
+  async updateParentOnboardingReminder(
+    email,
+    input: UpdateParentOnboardingReminderInput,
+  ) {
+    const db = getFirebaseAdminDb();
+    const normalizedEmail = normalizeEmail(email);
+    const parent = await findParentByEmail(normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = await findStudentByParentId(parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    if (input.onboardingReminderCount !== undefined) {
+      parent.onboardingReminderCount = Math.max(
+        0,
+        Number.isFinite(input.onboardingReminderCount)
+          ? Math.trunc(input.onboardingReminderCount)
+          : 0,
+      );
+    }
+
+    if (input.onboardingReminderLastAttemptAt !== undefined) {
+      parent.onboardingReminderLastAttemptAt =
+        typeof input.onboardingReminderLastAttemptAt === "string" &&
+        input.onboardingReminderLastAttemptAt.trim()
+          ? input.onboardingReminderLastAttemptAt
+          : null;
+    }
+
+    if (input.onboardingReminderLastSentAt !== undefined) {
+      parent.onboardingReminderLastSentAt =
+        typeof input.onboardingReminderLastSentAt === "string" &&
+        input.onboardingReminderLastSentAt.trim()
+          ? input.onboardingReminderLastSentAt
+          : null;
+    }
+
+    if (input.onboardingReminderLastStage !== undefined) {
+      parent.onboardingReminderLastStage =
+        typeof input.onboardingReminderLastStage === "number" &&
+        Number.isFinite(input.onboardingReminderLastStage) &&
+        input.onboardingReminderLastStage > 0
+          ? Math.trunc(input.onboardingReminderLastStage)
+          : null;
+    }
+
+    if (input.onboardingReminderLastStatus !== undefined) {
+      parent.onboardingReminderLastStatus = input.onboardingReminderLastStatus;
+    }
+
+    if (input.onboardingReminderLastMessageId !== undefined) {
+      parent.onboardingReminderLastMessageId =
+        typeof input.onboardingReminderLastMessageId === "string" &&
+        input.onboardingReminderLastMessageId.trim()
+          ? input.onboardingReminderLastMessageId.trim()
+          : null;
+    }
+
+    if (input.onboardingReminderLastError !== undefined) {
+      parent.onboardingReminderLastError =
+        typeof input.onboardingReminderLastError === "string" &&
+        input.onboardingReminderLastError.trim()
+          ? input.onboardingReminderLastError.trim()
+          : null;
+    }
+
+    parent.updatedAt = new Date().toISOString();
+
+    await db.collection("parents").doc(parent.id).set(parent);
 
     return toProfile(parent, student);
   },

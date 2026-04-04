@@ -9,6 +9,7 @@ import {
   getDerivedUserTypeLabel,
   getInvoiceStatusLabel,
   getLocalDeliveryScheduleLabel,
+  getOnboardingReminderStatus,
   getPlanLabel,
 } from "../users-admin-helpers";
 import { getFamilyDeliveryHealthRollup } from "../../../../../lib/delivery-health-rollup";
@@ -30,6 +31,7 @@ export default async function UserDetailAdminPage({
   }
 
   const deliveryHealth = getFamilyDeliveryHealthRollup(profile);
+  const reminderStatus = getOnboardingReminderStatus(profile);
 
   return (
     <section className="space-y-6">
@@ -204,6 +206,57 @@ export default async function UserDetailAdminPage({
             <div className="flex items-start justify-between gap-4">
               <dt className="font-semibold text-[#0f172a]">Notion status</dt>
               <dd>{profile.parent.notionLastSyncMessage || "No sync result yet"}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+            Activation reminders
+          </h2>
+          <dl className="mt-4 grid gap-3 text-sm leading-6 text-slate-600">
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Reminder status</dt>
+              <dd>{reminderStatus.label}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Reminder detail</dt>
+              <dd className="max-w-[20rem] text-right">{reminderStatus.detail}</dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Reminder count</dt>
+              <dd>
+                {profile.parent.onboardingReminderCount} reminder
+                {profile.parent.onboardingReminderCount === 1 ? "" : "s"} sent
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Last reminder sent</dt>
+              <dd>
+                {profile.parent.onboardingReminderLastSentAt
+                  ? formatAdminDate(profile.parent.onboardingReminderLastSentAt)
+                  : "Not sent yet"}
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Last attempt</dt>
+              <dd>
+                {profile.parent.onboardingReminderLastAttemptAt
+                  ? formatAdminDate(profile.parent.onboardingReminderLastAttemptAt)
+                  : "No attempt yet"}
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Latest message id</dt>
+              <dd>
+                {profile.parent.onboardingReminderLastMessageId || "No message id yet"}
+              </dd>
+            </div>
+            <div className="flex items-start justify-between gap-4">
+              <dt className="font-semibold text-[#0f172a]">Latest error</dt>
+              <dd>
+                {profile.parent.onboardingReminderLastError || "No reminder error"}
+              </dd>
             </div>
           </dl>
         </section>

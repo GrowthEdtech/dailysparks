@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   getOrCreateParentProfile,
   updateParentDeliveryPreferences,
+  updateParentOnboardingReminder,
   getProfileByParentId,
   getProfileByEmail,
   listParentProfiles,
@@ -53,6 +54,13 @@ describe("mvp store", () => {
     expect(profile.parent.preferredDeliveryLocalTime).toBe("09:00");
     expect(profile.parent.latestInvoiceId).toBeNull();
     expect(profile.parent.latestInvoiceHostedUrl).toBeNull();
+    expect(profile.parent.onboardingReminderCount).toBe(0);
+    expect(profile.parent.onboardingReminderLastAttemptAt).toBeNull();
+    expect(profile.parent.onboardingReminderLastSentAt).toBeNull();
+    expect(profile.parent.onboardingReminderLastStage).toBeNull();
+    expect(profile.parent.onboardingReminderLastStatus).toBeNull();
+    expect(profile.parent.onboardingReminderLastMessageId).toBeNull();
+    expect(profile.parent.onboardingReminderLastError).toBeNull();
     expect(profile.student.studentName).toBe("Katherine");
     expect(profile.student.programme).toBe("PYP");
     expect(profile.student.programmeYear).toBe(5);
@@ -138,6 +146,54 @@ describe("mvp store", () => {
     expect(reloaded?.parent.countryCode).toBe("US");
     expect(reloaded?.parent.deliveryTimeZone).toBe("America/Los_Angeles");
     expect(reloaded?.parent.preferredDeliveryLocalTime).toBe("18:30");
+  });
+
+  test("updates onboarding reminder tracking and persists it", async () => {
+    await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    const updated = await updateParentOnboardingReminder("parent@example.com", {
+      onboardingReminderCount: 1,
+      onboardingReminderLastAttemptAt: "2026-04-04T01:00:00.000Z",
+      onboardingReminderLastSentAt: "2026-04-04T01:00:02.000Z",
+      onboardingReminderLastStage: 1,
+      onboardingReminderLastStatus: "sent",
+      onboardingReminderLastMessageId: "reminder-message-id",
+      onboardingReminderLastError: null,
+    });
+
+    expect(updated?.parent.onboardingReminderCount).toBe(1);
+    expect(updated?.parent.onboardingReminderLastAttemptAt).toBe(
+      "2026-04-04T01:00:00.000Z",
+    );
+    expect(updated?.parent.onboardingReminderLastSentAt).toBe(
+      "2026-04-04T01:00:02.000Z",
+    );
+    expect(updated?.parent.onboardingReminderLastStage).toBe(1);
+    expect(updated?.parent.onboardingReminderLastStatus).toBe("sent");
+    expect(updated?.parent.onboardingReminderLastMessageId).toBe(
+      "reminder-message-id",
+    );
+    expect(updated?.parent.onboardingReminderLastError).toBeNull();
+
+    const reloaded = await getProfileByEmail("parent@example.com");
+
+    expect(reloaded?.parent.onboardingReminderCount).toBe(1);
+    expect(reloaded?.parent.onboardingReminderLastAttemptAt).toBe(
+      "2026-04-04T01:00:00.000Z",
+    );
+    expect(reloaded?.parent.onboardingReminderLastSentAt).toBe(
+      "2026-04-04T01:00:02.000Z",
+    );
+    expect(reloaded?.parent.onboardingReminderLastStage).toBe(1);
+    expect(reloaded?.parent.onboardingReminderLastStatus).toBe("sent");
+    expect(reloaded?.parent.onboardingReminderLastMessageId).toBe(
+      "reminder-message-id",
+    );
+    expect(reloaded?.parent.onboardingReminderLastError).toBeNull();
   });
 
   test("falls back to normalized delivery locale defaults when preferences are invalid", async () => {

@@ -38,6 +38,7 @@ export type SubscriptionStatus = "free" | "trial" | "active" | "canceled";
 export const SUBSCRIPTION_PLANS = ["monthly", "yearly"] as const;
 export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number] | null;
 export type GoodnotesDeliveryStatus = "idle" | "success" | "failed";
+export type OnboardingReminderStatus = "sent" | "failed";
 
 export function isSubscriptionPlan(
   value: string,
@@ -54,6 +55,13 @@ export type ParentRecord = {
   countryCode: string;
   deliveryTimeZone: string;
   preferredDeliveryLocalTime: string;
+  onboardingReminderCount: number;
+  onboardingReminderLastAttemptAt: string | null;
+  onboardingReminderLastSentAt: string | null;
+  onboardingReminderLastStage: number | null;
+  onboardingReminderLastStatus: OnboardingReminderStatus | null;
+  onboardingReminderLastMessageId: string | null;
+  onboardingReminderLastError: string | null;
   subscriptionStatus: SubscriptionStatus;
   subscriptionPlan: SubscriptionPlan;
   stripeCustomerId: string | null;
@@ -179,6 +187,16 @@ export type UpdateParentDeliveryPreferencesInput = {
   countryCode: string;
   deliveryTimeZone: string;
   preferredDeliveryLocalTime: string;
+};
+
+export type UpdateParentOnboardingReminderInput = {
+  onboardingReminderCount?: number;
+  onboardingReminderLastAttemptAt?: string | null;
+  onboardingReminderLastSentAt?: string | null;
+  onboardingReminderLastStage?: number | null;
+  onboardingReminderLastStatus?: OnboardingReminderStatus | null;
+  onboardingReminderLastMessageId?: string | null;
+  onboardingReminderLastError?: string | null;
 };
 
 export type NotionConnectionSecretRecord = {

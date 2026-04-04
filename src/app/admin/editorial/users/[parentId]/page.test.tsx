@@ -46,6 +46,13 @@ describe("UserDetailAdminPage", () => {
         countryCode: "US",
         deliveryTimeZone: "America/Los_Angeles",
         preferredDeliveryLocalTime: "18:30",
+        onboardingReminderCount: 0,
+        onboardingReminderLastAttemptAt: null,
+        onboardingReminderLastSentAt: null,
+        onboardingReminderLastStage: null,
+        onboardingReminderLastStatus: null,
+        onboardingReminderLastMessageId: null,
+        onboardingReminderLastError: null,
         subscriptionStatus: "trial",
         subscriptionPlan: "monthly",
         stripeCustomerId: "cus_123",
@@ -134,6 +141,13 @@ describe("UserDetailAdminPage", () => {
         countryCode: "HK",
         deliveryTimeZone: "Asia/Hong_Kong",
         preferredDeliveryLocalTime: "09:00",
+        onboardingReminderCount: 0,
+        onboardingReminderLastAttemptAt: null,
+        onboardingReminderLastSentAt: null,
+        onboardingReminderLastStage: null,
+        onboardingReminderLastStatus: null,
+        onboardingReminderLastMessageId: null,
+        onboardingReminderLastError: null,
         subscriptionStatus: "trial",
         subscriptionPlan: null,
         stripeCustomerId: null,
@@ -204,5 +218,84 @@ describe("UserDetailAdminPage", () => {
     ).rejects.toThrow("NEXT_NOT_FOUND");
 
     expect(notFoundMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("renders activation reminder tracking for setup families", async () => {
+    getProfileByParentIdMock.mockResolvedValue({
+      parent: {
+        id: "parent-3",
+        email: "setup@example.com",
+        fullName: "Setup Parent",
+        countryCode: "HK",
+        deliveryTimeZone: "Asia/Hong_Kong",
+        preferredDeliveryLocalTime: "09:00",
+        onboardingReminderCount: 1,
+        onboardingReminderLastAttemptAt: "2026-04-03T01:00:00.000Z",
+        onboardingReminderLastSentAt: "2026-04-03T01:00:05.000Z",
+        onboardingReminderLastStage: 1,
+        onboardingReminderLastStatus: "sent",
+        onboardingReminderLastMessageId: "message-1",
+        onboardingReminderLastError: null,
+        subscriptionStatus: "trial",
+        subscriptionPlan: null,
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        trialStartedAt: "2026-04-01T00:00:00.000Z",
+        trialEndsAt: "2026-04-08T00:00:00.000Z",
+        subscriptionActivatedAt: null,
+        subscriptionRenewalAt: null,
+        latestInvoiceId: null,
+        latestInvoiceNumber: null,
+        latestInvoiceStatus: null,
+        latestInvoiceHostedUrl: null,
+        latestInvoicePdfUrl: null,
+        latestInvoiceAmountPaid: null,
+        latestInvoiceCurrency: null,
+        latestInvoicePaidAt: null,
+        latestInvoicePeriodStart: null,
+        latestInvoicePeriodEnd: null,
+        notionWorkspaceId: null,
+        notionWorkspaceName: null,
+        notionBotId: null,
+        notionDatabaseId: null,
+        notionDatabaseName: null,
+        notionDataSourceId: null,
+        notionAuthorizedAt: null,
+        notionLastSyncedAt: null,
+        notionLastSyncStatus: null,
+        notionLastSyncMessage: null,
+        notionLastSyncPageId: null,
+        notionLastSyncPageUrl: null,
+        createdAt: "2026-04-01T00:00:00.000Z",
+        updatedAt: "2026-04-03T01:00:05.000Z",
+      },
+      student: {
+        id: "student-3",
+        parentId: "parent-3",
+        studentName: "Mia",
+        programme: "PYP",
+        programmeYear: 5,
+        goodnotesEmail: "",
+        goodnotesConnected: false,
+        goodnotesVerifiedAt: null,
+        goodnotesLastTestSentAt: null,
+        goodnotesLastDeliveryStatus: null,
+        goodnotesLastDeliveryMessage: null,
+        notionConnected: false,
+        createdAt: "2026-04-01T00:00:00.000Z",
+        updatedAt: "2026-04-03T01:00:05.000Z",
+      },
+    });
+
+    const markup = renderToStaticMarkup(
+      await UserDetailAdminPage({
+        params: Promise.resolve({ parentId: "parent-3" }),
+      }),
+    );
+
+    expect(markup).toContain("Activation reminders");
+    expect(markup).toContain("1 reminder sent");
+    expect(markup).toContain("Last reminder sent");
+    expect(markup).toContain("message-1");
   });
 });

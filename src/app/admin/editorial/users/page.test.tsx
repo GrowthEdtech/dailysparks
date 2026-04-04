@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const { listParentProfilesMock } = vi.hoisted(() => ({
   listParentProfilesMock: vi.fn(),
@@ -14,6 +14,10 @@ import UsersAdminPage from "./page";
 describe("UsersAdminPage", () => {
   beforeEach(() => {
     listParentProfilesMock.mockReset();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   test("renders an honest empty state when no families exist", async () => {
@@ -39,6 +43,13 @@ describe("UsersAdminPage", () => {
           countryCode: "US",
           deliveryTimeZone: "America/Los_Angeles",
           preferredDeliveryLocalTime: "18:30",
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
           subscriptionStatus: "active",
           subscriptionPlan: "yearly",
           stripeCustomerId: "cus_123",
@@ -120,6 +131,13 @@ describe("UsersAdminPage", () => {
           countryCode: "HK",
           deliveryTimeZone: "Asia/Hong_Kong",
           preferredDeliveryLocalTime: "09:00",
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
           subscriptionStatus: "trial",
           subscriptionPlan: null,
           stripeCustomerId: null,
@@ -191,6 +209,13 @@ describe("UsersAdminPage", () => {
           countryCode: "GB",
           deliveryTimeZone: "Europe/London",
           preferredDeliveryLocalTime: "08:30",
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
           subscriptionStatus: "active",
           subscriptionPlan: "monthly",
           stripeCustomerId: null,
@@ -251,5 +276,87 @@ describe("UsersAdminPage", () => {
 
     expect(markup).toContain("Goodnotes needs attention");
     expect(markup).toContain("Notion needs attention");
+  });
+
+  test("surfaces activation reminder status for families still stuck in setup", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-04T02:00:00.000Z"));
+
+    listParentProfilesMock.mockResolvedValue([
+      {
+        parent: {
+          id: "parent-4",
+          email: "setup@example.com",
+          fullName: "Setup Parent",
+          countryCode: "HK",
+          deliveryTimeZone: "Asia/Hong_Kong",
+          preferredDeliveryLocalTime: "09:00",
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
+          subscriptionStatus: "trial",
+          subscriptionPlan: null,
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          trialStartedAt: "2026-04-01T00:00:00.000Z",
+          trialEndsAt: "2026-04-08T00:00:00.000Z",
+          subscriptionActivatedAt: null,
+          subscriptionRenewalAt: null,
+          latestInvoiceId: null,
+          latestInvoiceNumber: null,
+          latestInvoiceStatus: null,
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: null,
+          latestInvoiceCurrency: null,
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: null,
+          latestInvoicePeriodEnd: null,
+          notionWorkspaceId: null,
+          notionWorkspaceName: null,
+          notionBotId: null,
+          notionDatabaseId: null,
+          notionDatabaseName: null,
+          notionDataSourceId: null,
+          notionAuthorizedAt: null,
+          notionLastSyncedAt: null,
+          notionLastSyncStatus: null,
+          notionLastSyncMessage: null,
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-01T00:00:00.000Z",
+        },
+        student: {
+          id: "student-4",
+          parentId: "parent-4",
+          studentName: "Mia",
+          programme: "PYP",
+          programmeYear: 5,
+          goodnotesEmail: "",
+          goodnotesConnected: false,
+          goodnotesVerifiedAt: null,
+          goodnotesLastTestSentAt: null,
+          goodnotesLastDeliveryStatus: null,
+          goodnotesLastDeliveryMessage: null,
+          notionConnected: false,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-01T00:00:00.000Z",
+        },
+      },
+    ]);
+
+    const markup = renderToStaticMarkup(
+      await UsersAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("Reminder due");
+    expect(markup).toContain("Needs activation reminder");
   });
 });

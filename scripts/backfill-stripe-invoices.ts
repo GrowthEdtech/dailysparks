@@ -214,6 +214,44 @@ function toParentRecord(fields: Record<string, Record<string, unknown>>, documen
     deliveryTimeZone: deliveryPreferences.deliveryTimeZone,
     preferredDeliveryLocalTime:
       deliveryPreferences.preferredDeliveryLocalTime,
+    onboardingReminderCount:
+      typeof decodeFirestoreValue(fields.onboardingReminderCount) === "number" &&
+      Number.isFinite(decodeFirestoreValue(fields.onboardingReminderCount))
+        ? Math.max(0, Math.trunc(Number(decodeFirestoreValue(fields.onboardingReminderCount))))
+        : 0,
+    onboardingReminderLastAttemptAt:
+      typeof decodeFirestoreValue(fields.onboardingReminderLastAttemptAt) === "string" &&
+      String(decodeFirestoreValue(fields.onboardingReminderLastAttemptAt)).trim()
+        ? String(decodeFirestoreValue(fields.onboardingReminderLastAttemptAt)).trim()
+        : null,
+    onboardingReminderLastSentAt:
+      typeof decodeFirestoreValue(fields.onboardingReminderLastSentAt) === "string" &&
+      String(decodeFirestoreValue(fields.onboardingReminderLastSentAt)).trim()
+        ? String(decodeFirestoreValue(fields.onboardingReminderLastSentAt)).trim()
+        : null,
+    onboardingReminderLastStage:
+      typeof decodeFirestoreValue(fields.onboardingReminderLastStage) === "number" &&
+      Number.isFinite(decodeFirestoreValue(fields.onboardingReminderLastStage)) &&
+      Number(decodeFirestoreValue(fields.onboardingReminderLastStage)) > 0
+        ? Math.trunc(Number(decodeFirestoreValue(fields.onboardingReminderLastStage)))
+        : null,
+    onboardingReminderLastStatus:
+      decodeFirestoreValue(fields.onboardingReminderLastStatus) === "sent" ||
+      decodeFirestoreValue(fields.onboardingReminderLastStatus) === "failed"
+        ? (decodeFirestoreValue(
+            fields.onboardingReminderLastStatus,
+          ) as ParentRecord["onboardingReminderLastStatus"])
+        : null,
+    onboardingReminderLastMessageId:
+      typeof decodeFirestoreValue(fields.onboardingReminderLastMessageId) === "string" &&
+      String(decodeFirestoreValue(fields.onboardingReminderLastMessageId)).trim()
+        ? String(decodeFirestoreValue(fields.onboardingReminderLastMessageId)).trim()
+        : null,
+    onboardingReminderLastError:
+      typeof decodeFirestoreValue(fields.onboardingReminderLastError) === "string" &&
+      String(decodeFirestoreValue(fields.onboardingReminderLastError)).trim()
+        ? String(decodeFirestoreValue(fields.onboardingReminderLastError)).trim()
+        : null,
     latestInvoiceId:
       typeof decodeFirestoreValue(fields.latestInvoiceId) === "string" &&
       String(decodeFirestoreValue(fields.latestInvoiceId)).trim()

@@ -23,6 +23,7 @@ GENERATE_AMER_0600_SCHEDULE="${DAILY_BRIEF_SCHEDULER_GENERATE_AMER_0600_SCHEDULE
 PREFLIGHT_AMER_0615_SCHEDULE="${DAILY_BRIEF_SCHEDULER_PREFLIGHT_AMER_0615_SCHEDULE:-15 6 * * *}"
 DELIVER_HALF_HOURLY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_DELIVER_HALF_HOURLY_SCHEDULE:-0,30 * * * *}"
 RETRY_HALF_HOURLY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_RETRY_HALF_HOURLY_SCHEDULE:-10,40 * * * *}"
+ONBOARDING_REMINDER_HALF_HOURLY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_ONBOARDING_REMINDER_HALF_HOURLY_SCHEDULE:-20,50 * * * *}"
 LEGACY_STAGE_JOB_NAMES="${DAILY_BRIEF_SCHEDULER_LEGACY_STAGE_JOB_NAMES:-${JOB_PREFIX}-generate-0200,${JOB_PREFIX}-preflight-0215,${JOB_PREFIX}-generate-0600,${JOB_PREFIX}-preflight-0615,${JOB_PREFIX}-preflight-0850,${JOB_PREFIX}-deliver-0900,${JOB_PREFIX}-retry-0910}"
 SCHEDULER_SECRET="${DAILY_SPARKS_SCHEDULER_SECRET:-}"
 SCHEDULER_SECRET_SECRET="${DAILY_SPARKS_SCHEDULER_SECRET_SECRET:-}"
@@ -106,6 +107,7 @@ JOB_SPECS=(
   "${JOB_PREFIX}-preflight-amer-0615|${PREFLIGHT_AMER_0615_SCHEDULE}|/api/internal/daily-brief/preflight|Approve the AMER cohort brief edition before the rolling Americas delivery windows begin.|{\"editorialCohort\":\"AMER\"}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-deliver-half-hourly|${DELIVER_HALF_HOURLY_SCHEDULE}|/api/internal/daily-brief/deliver|Dispatch approved Daily Sparks briefs in rolling local-time delivery waves every 30 minutes.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-retry-half-hourly|${RETRY_HALF_HOURLY_SCHEDULE}|/api/internal/daily-brief/retry-delivery|Retry failed Daily Sparks recipient-channel deliveries on a 30-minute cadence.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
+  "${JOB_PREFIX}-onboarding-reminder-half-hourly|${ONBOARDING_REMINDER_HALF_HOURLY_SCHEDULE}|/api/internal/onboarding-reminder/run|Send onboarding activation reminders to logged-in families who still do not have a dispatchable delivery channel.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
 )
 
 for spec in "${JOB_SPECS[@]}"; do
