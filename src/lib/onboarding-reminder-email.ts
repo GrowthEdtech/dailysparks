@@ -82,17 +82,23 @@ export function buildOnboardingReminderEmail(input: {
   )} · ${formatTimeZoneLabel(input.profile.parent.deliveryTimeZone)}`;
 
   const html = `
-    <div style="font-family:Helvetica,Arial,sans-serif;background:#f8fafc;padding:32px;color:#0f172a;">
-      <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:28px;padding:40px;">
-        <p style="margin:0 0 16px;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#b45309;">Growth Education</p>
-        <h1 style="margin:0 0 16px;font-size:32px;line-height:1.2;">One last step to start Daily Sparks</h1>
+    <div style="font-family:Helvetica,Arial,sans-serif;background:#eef3f9;padding:32px;color:#0f172a;">
+      <div style="max-width:640px;margin:0 auto;background:#fffdfa;border:1px solid #dbe4f0;border-radius:28px;padding:40px;">
+        <p style="margin:0 0 16px;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#b45309;">Growth Education Limited</p>
+        <h1 style="margin:0 0 16px;font-size:32px;line-height:1.2;color:#0f172a;">Your setup is almost ready</h1>
         <p style="margin:0 0 18px;font-size:16px;line-height:1.7;color:#475569;">
-          Hello ${safeParentName}, your account is ready. Connect Goodnotes so Daily Sparks can begin placing reading briefs into ${safeStudentName}'s note-taking flow.
+          Hello ${safeParentName}, your account is ready. Connect Goodnotes so Daily Sparks can begin placing each reading brief into ${safeStudentName}'s note-taking flow.
         </p>
-        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:20px;margin:24px 0;">
-          <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#1d4ed8;">Recommended setup</p>
+        <div style="background:#eef6ff;border:1px solid #c7d9ee;border-radius:20px;padding:20px;margin:24px 0;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#1d4ed8;">Recommended first step</p>
           <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">
-            Connect Goodnotes first. It is the primary delivery path for Daily Sparks. Your current local delivery window is <strong>${localWindow}</strong>.
+            Connect Goodnotes first. It is the primary delivery path for Daily Sparks, and it gives your family the simplest start.
+          </p>
+        </div>
+        <div style="background:#fff7e8;border:1px solid #f5d58e;border-radius:20px;padding:18px 20px;margin:0 0 22px;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#b45309;">Delivery window</p>
+          <p style="margin:0;font-size:15px;line-height:1.7;color:#334155;">
+            Your current local delivery window is <strong>${localWindow}</strong>.
           </p>
         </div>
         <p style="margin:0 0 22px;font-size:15px;line-height:1.7;color:#475569;">
@@ -102,21 +108,23 @@ export function buildOnboardingReminderEmail(input: {
           Connect Goodnotes
         </a>
         <p style="margin:24px 0 0;font-size:13px;line-height:1.7;color:#64748b;">
-          Need to update your country, time zone, or delivery time first? You can do that from your Daily Sparks dashboard as well.
+          Need to update your country, time zone, or delivery time first? You can do that from your Daily Sparks dashboard as well. This email is meant to leave you with a single next step.
         </p>
-        <p style="margin:28px 0 0;font-size:14px;color:#334155;">Growth Education Limited</p>
+        <p style="margin:28px 0 0;font-size:14px;color:#334155;">With care,<br />Growth Education Limited</p>
       </div>
     </div>
   `.trim();
 
   const text = [
-    "Growth Education",
+    "Growth Education Limited",
     "",
-    "One last step to start Daily Sparks",
+    "Your setup is almost ready",
     "",
-    `Hello ${input.profile.parent.fullName}, your account is ready. Connect Goodnotes so Daily Sparks can begin placing reading briefs into ${input.profile.student.studentName}'s note-taking flow.`,
+    `Hello ${input.profile.parent.fullName}, your account is ready. Connect Goodnotes so Daily Sparks can begin placing each reading brief into ${input.profile.student.studentName}'s note-taking flow.`,
     "",
-    `Recommended setup: Connect Goodnotes first. It is the primary delivery path for Daily Sparks. Your current local delivery window is ${localWindow}.`,
+    "Recommended first step: Connect Goodnotes first. It is the primary delivery path for Daily Sparks, and it gives your family the simplest start.",
+    "",
+    `Delivery window: ${localWindow}.`,
     "",
     "Notion is optional if you would also like an archive workspace, but Goodnotes is the fastest way to start receiving briefs.",
     "",

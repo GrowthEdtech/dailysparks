@@ -150,12 +150,23 @@ afterEach(() => {
 describe("goodnotes delivery", () => {
   test("builds a Growth Education welcome note payload for Goodnotes setup", () => {
     const profile = createProfile();
+    const note = buildGoodnotesWelcomeNote(profile);
 
-    expect(buildGoodnotesWelcomeNote(profile)).toMatchObject({
-      eyebrow: "Growth Education onboarding",
+    expect(note).toMatchObject({
+      eyebrow: "Growth Education Limited",
       title: "Welcome to Daily Sparks",
+      confirmationTitle: "Goodnotes destination confirmed",
+      expectationsTitle: "What to expect",
+      weeklyRhythmTitle: "Reading rhythm",
+      nextStepsTitle: "Your next steps",
       signature: "Growth Education Limited",
     });
+    expect(note.intro).toContain("Goodnotes destination is confirmed");
+    expect(note.detailLines).toEqual([
+      "Programme: MYP Year 3",
+      "Goodnotes destination: katherine@goodnotes.email",
+      "Prepared for: Katherine",
+    ]);
   });
 
   test("reports when SMTP delivery is configured", () => {

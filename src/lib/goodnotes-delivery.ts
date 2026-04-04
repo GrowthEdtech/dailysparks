@@ -39,6 +39,15 @@ const PAGE_HEIGHT = 842;
 const PAGE_MARGIN = 48;
 const BODY_FONT_SIZE = 11;
 const LINE_HEIGHT = 17;
+const OUTBOUND_INK = rgb(0.06, 0.09, 0.16);
+const OUTBOUND_SECONDARY_TEXT = rgb(0.28, 0.35, 0.45);
+const OUTBOUND_MUTED_TEXT = rgb(0.4, 0.47, 0.56);
+const OUTBOUND_GOLD = rgb(0.71, 0.33, 0.04);
+const OUTBOUND_GOLD_SOFT = rgb(0.98, 0.95, 0.87);
+const OUTBOUND_PALE_BLUE = rgb(0.93, 0.96, 1);
+const OUTBOUND_BLUE_BORDER = rgb(0.82, 0.89, 0.97);
+const OUTBOUND_SOFT_BORDER = rgb(0.88, 0.91, 0.96);
+const OUTBOUND_PAPER = rgb(1, 0.99, 0.98);
 
 function normalizeEnv(value: string | undefined) {
   return value?.trim() || "";
@@ -205,26 +214,26 @@ export function buildGoodnotesWelcomeNote(
   );
 
   return {
-    eyebrow: "Growth Education onboarding",
+    eyebrow: "Growth Education Limited",
     title: "Welcome to Daily Sparks",
-    intro: `Hello ${profile.parent.fullName}, your Goodnotes delivery setup is ready. This welcome note confirms that Daily Sparks can place future reading briefs directly into ${profile.student.studentName}'s Goodnotes flow.`,
-    confirmationTitle: "Setup confirmed",
+    intro: `Hello ${profile.parent.fullName}, your Goodnotes destination is confirmed and ready for delivery. From your first Daily Sparks packet onward, each reading brief will arrive directly in ${profile.student.studentName}'s Goodnotes flow.`,
+    confirmationTitle: "Goodnotes destination confirmed",
     confirmationBody:
-      "Your Goodnotes destination has been verified and is now ready for regular Daily Sparks delivery.",
+      "Daily Sparks is now ready to place each reading brief into your family's Goodnotes rhythm with calm, dependable delivery.",
     detailLines: [
-      `Student: ${profile.student.studentName} (${profile.student.programme})`,
+      `Programme: ${profile.student.programme} Year ${profile.student.programmeYear}`,
       `Goodnotes destination: ${profile.student.goodnotesEmail}`,
-      `Family workspace: ${profile.parent.fullName}`,
+      `Prepared for: ${profile.student.studentName}`,
     ],
-    expectationsTitle: stageSummary.title,
+    expectationsTitle: "What to expect",
     expectationsBody: stageSummary.description,
-    weeklyRhythmTitle: weeklyPlan.title,
+    weeklyRhythmTitle: "Reading rhythm",
     weeklyRhythmBody: weeklyPlan.description,
-    nextStepsTitle: "What happens next",
+    nextStepsTitle: "Your next steps",
     nextSteps: [
-      "Daily Sparks will deliver age-appropriate reading briefs to this Goodnotes destination.",
-      "Each brief is designed to feel calm, readable, and ready for parent-child discussion.",
-      "You can update this destination anytime from your dashboard if your setup changes.",
+      "Watch for your first Daily Sparks brief to arrive in this Goodnotes destination.",
+      "Use each packet as a calm reading moment, with space for parent-child discussion after the story.",
+      "If your setup changes, you can update this destination from the dashboard at any time.",
     ],
     signature: "Growth Education Limited",
   };
@@ -233,7 +242,8 @@ export function buildGoodnotesWelcomeNote(
 export async function createGoodnotesTestBriefPdf(profile: ParentProfile) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  const titleFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const titleFont = await pdf.embedFont(StandardFonts.TimesRomanBold);
+  const labelFont = await pdf.embedFont(StandardFonts.HelveticaBold);
   const bodyFont = await pdf.embedFont(StandardFonts.Helvetica);
   const welcomeNote = buildGoodnotesWelcomeNote(profile);
   const generatedAt = new Intl.DateTimeFormat("en-US", {
@@ -244,92 +254,97 @@ export async function createGoodnotesTestBriefPdf(profile: ParentProfile) {
 
   let cursorY = PAGE_HEIGHT - PAGE_MARGIN;
 
-  drawFilledPanel(page, PAGE_MARGIN, cursorY + 8, PAGE_WIDTH - PAGE_MARGIN * 2, 188, {
-    fillColor: rgb(0.95, 0.98, 1),
-    borderColor: rgb(0.83, 0.9, 0.98),
+  drawFilledPanel(page, 0, PAGE_HEIGHT, PAGE_WIDTH, PAGE_HEIGHT, {
+    fillColor: OUTBOUND_PAPER,
+  });
+
+  drawFilledPanel(page, PAGE_MARGIN, cursorY + 6, PAGE_WIDTH - PAGE_MARGIN * 2, 206, {
+    fillColor: OUTBOUND_PALE_BLUE,
+    borderColor: OUTBOUND_BLUE_BORDER,
     borderWidth: 1,
   });
 
   page.drawText(welcomeNote.eyebrow.toUpperCase(), {
-    x: PAGE_MARGIN,
-    y: cursorY,
-    size: 11,
-    font: titleFont,
-    color: rgb(0.97, 0.73, 0.12),
+    x: PAGE_MARGIN + 16,
+    y: cursorY - 8,
+    size: 10,
+    font: labelFont,
+    color: OUTBOUND_GOLD,
   });
-  cursorY -= 30;
+  cursorY -= 42;
 
   page.drawText(welcomeNote.title, {
-    x: PAGE_MARGIN,
+    x: PAGE_MARGIN + 16,
     y: cursorY,
-    size: 24,
+    size: 29,
     font: titleFont,
-    color: rgb(0.06, 0.09, 0.16),
+    color: OUTBOUND_INK,
   });
-  cursorY -= 28;
+  cursorY -= 34;
 
   cursorY = drawParagraph(
     page,
     welcomeNote.intro,
-    PAGE_MARGIN,
+    PAGE_MARGIN + 16,
     cursorY,
-    PAGE_WIDTH - PAGE_MARGIN * 2,
+    PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
     bodyFont,
-    BODY_FONT_SIZE,
+    12,
+    OUTBOUND_SECONDARY_TEXT,
   );
   cursorY -= 18;
 
-  const metadataLines = [
-    `Generated: ${generatedAt} UTC`,
-    `Signed by: ${welcomeNote.signature}`,
-  ];
+  page.drawText(`Prepared for ${profile.student.studentName}`, {
+    x: PAGE_MARGIN + 16,
+    y: cursorY,
+    size: 11,
+    font: labelFont,
+    color: OUTBOUND_MUTED_TEXT,
+  });
 
-  for (const line of metadataLines) {
-    page.drawText(line, {
-      x: PAGE_MARGIN,
-      y: cursorY,
-      size: BODY_FONT_SIZE,
-      font: bodyFont,
-      color: rgb(0.2, 0.27, 0.38),
-    });
-    cursorY -= LINE_HEIGHT;
-  }
+  cursorY = PAGE_HEIGHT - PAGE_MARGIN - 230;
 
-  cursorY -= 8;
-  drawFilledPanel(page, PAGE_MARGIN, cursorY, PAGE_WIDTH - PAGE_MARGIN * 2, 120, {
+  drawFilledPanel(page, PAGE_MARGIN, cursorY, PAGE_WIDTH - PAGE_MARGIN * 2, 132, {
     fillColor: rgb(1, 1, 1),
-    borderColor: rgb(0.88, 0.91, 0.96),
+    borderColor: OUTBOUND_SOFT_BORDER,
     borderWidth: 1,
   });
 
-  cursorY -= 24;
   page.drawText(welcomeNote.confirmationTitle, {
-    x: PAGE_MARGIN,
-    y: cursorY,
-    size: 15,
+    x: PAGE_MARGIN + 18,
+    y: cursorY - 28,
+    size: 17,
     font: titleFont,
-    color: rgb(0.06, 0.09, 0.16),
+    color: OUTBOUND_INK,
   });
-  cursorY -= 24;
+  page.drawText("READY", {
+    x: PAGE_WIDTH - PAGE_MARGIN - 72,
+    y: cursorY - 24,
+    size: 9,
+    font: labelFont,
+    color: OUTBOUND_GOLD,
+  });
+  cursorY -= 56;
 
   cursorY = drawParagraph(
     page,
     welcomeNote.confirmationBody,
-    PAGE_MARGIN,
+    PAGE_MARGIN + 18,
     cursorY,
-    PAGE_WIDTH - PAGE_MARGIN * 2,
+    PAGE_WIDTH - PAGE_MARGIN * 2 - 36,
     bodyFont,
     BODY_FONT_SIZE,
+    OUTBOUND_SECONDARY_TEXT,
   );
-  cursorY -= 6;
+  cursorY -= 8;
 
   for (const line of welcomeNote.detailLines) {
     page.drawText(line, {
-      x: PAGE_MARGIN,
+      x: PAGE_MARGIN + 18,
       y: cursorY,
       size: BODY_FONT_SIZE,
       font: bodyFont,
-      color: rgb(0.2, 0.27, 0.38),
+      color: OUTBOUND_SECONDARY_TEXT,
     });
     cursorY -= LINE_HEIGHT;
   }
@@ -338,9 +353,9 @@ export async function createGoodnotesTestBriefPdf(profile: ParentProfile) {
   page.drawText(welcomeNote.expectationsTitle, {
     x: PAGE_MARGIN,
     y: cursorY,
-    size: 15,
+    size: 16,
     font: titleFont,
-    color: rgb(0.06, 0.09, 0.16),
+    color: OUTBOUND_INK,
   });
   cursorY -= 24;
 
@@ -352,35 +367,41 @@ export async function createGoodnotesTestBriefPdf(profile: ParentProfile) {
     PAGE_WIDTH - PAGE_MARGIN * 2,
     bodyFont,
     BODY_FONT_SIZE,
+    OUTBOUND_SECONDARY_TEXT,
   );
-  cursorY -= 8;
+  cursorY -= 10;
+
+  drawFilledPanel(page, PAGE_MARGIN, cursorY + 6, PAGE_WIDTH - PAGE_MARGIN * 2, 102, {
+    fillColor: OUTBOUND_GOLD_SOFT,
+    borderColor: rgb(0.95, 0.84, 0.57),
+    borderWidth: 1,
+  });
 
   page.drawText(welcomeNote.weeklyRhythmTitle, {
-    x: PAGE_MARGIN,
-    y: cursorY,
-    size: 15,
+    x: PAGE_MARGIN + 16,
+    y: cursorY - 22,
+    size: 16,
     font: titleFont,
-    color: rgb(0.06, 0.09, 0.16),
+    color: OUTBOUND_INK,
   });
-  cursorY -= 24;
-
   cursorY = drawParagraph(
     page,
     welcomeNote.weeklyRhythmBody,
-    PAGE_MARGIN,
-    cursorY,
-    PAGE_WIDTH - PAGE_MARGIN * 2,
+    PAGE_MARGIN + 16,
+    cursorY - 46,
+    PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
     bodyFont,
     BODY_FONT_SIZE,
+    OUTBOUND_SECONDARY_TEXT,
   );
-  cursorY -= 10;
+  cursorY -= 18;
 
   page.drawText(welcomeNote.nextStepsTitle, {
     x: PAGE_MARGIN,
     y: cursorY,
-    size: 15,
+    size: 16,
     font: titleFont,
-    color: rgb(0.06, 0.09, 0.16),
+    color: OUTBOUND_INK,
   });
   cursorY -= 24;
 
@@ -393,28 +414,45 @@ export async function createGoodnotesTestBriefPdf(profile: ParentProfile) {
       PAGE_WIDTH - PAGE_MARGIN * 2,
       bodyFont,
       BODY_FONT_SIZE,
+      OUTBOUND_SECONDARY_TEXT,
     );
-    cursorY -= 4;
+    cursorY -= 6;
   }
 
-  cursorY -= 12;
+  cursorY -= 18;
+  page.drawLine({
+    start: { x: PAGE_MARGIN, y: cursorY },
+    end: { x: PAGE_WIDTH - PAGE_MARGIN, y: cursorY },
+    thickness: 1,
+    color: OUTBOUND_SOFT_BORDER,
+  });
+  cursorY -= 22;
+
   cursorY = drawParagraph(
     page,
-    "Warmly,",
+    "With care,",
     PAGE_MARGIN,
     cursorY,
     PAGE_WIDTH - PAGE_MARGIN * 2,
     bodyFont,
     BODY_FONT_SIZE,
+    OUTBOUND_SECONDARY_TEXT,
   );
   cursorY -= 6;
 
   page.drawText(welcomeNote.signature, {
     x: PAGE_MARGIN,
     y: cursorY,
-    size: BODY_FONT_SIZE,
+    size: 12,
     font: titleFont,
-    color: rgb(0.06, 0.09, 0.16),
+    color: OUTBOUND_INK,
+  });
+  page.drawText(`Prepared ${generatedAt} UTC`, {
+    x: PAGE_MARGIN,
+    y: cursorY - 22,
+    size: 9,
+    font: bodyFont,
+    color: OUTBOUND_MUTED_TEXT,
   });
 
   return pdf.save();

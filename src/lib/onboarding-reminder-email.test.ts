@@ -130,6 +130,23 @@ describe("onboarding reminder email", () => {
     expect(email.text).toContain("https://dailysparks.geledtech.com/dashboard");
   });
 
+  test("uses the premium minimal outbound email structure and Growth Education signature", () => {
+    const email = buildOnboardingReminderEmail({
+      profile: buildProfile(),
+      stageIndex: 1,
+    });
+
+    expect(email.html).toContain("Growth Education Limited");
+    expect(email.html).toContain("Your setup is almost ready");
+    expect(email.html).toContain("Recommended first step");
+    expect(email.html).toContain("Delivery window");
+    expect(email.html).toContain("#fffdfa");
+    expect(email.html).toContain("#eef6ff");
+    expect(email.html).toContain("single next step");
+    expect(email.text).toContain("Your setup is almost ready");
+    expect(email.text).toContain("Delivery window:");
+  });
+
   test("reuses the transactional SMTP configuration to send reminder mail", async () => {
     const result = await sendOnboardingReminderEmail({
       profile: buildProfile(),
