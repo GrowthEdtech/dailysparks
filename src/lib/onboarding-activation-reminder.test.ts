@@ -114,6 +114,40 @@ describe("onboarding activation reminder policy", () => {
     expect(assessment.reason).toMatch(/not reached/i);
   });
 
+  test("uses first authenticated time instead of record creation time as the reminder anchor", () => {
+    const assessment = assessOnboardingActivationReminder({
+      profile: buildProfile({
+        parent: {
+          createdAt: "2026-03-20T00:00:00.000Z",
+          firstAuthenticatedAt: "2026-04-01T00:00:00.000Z",
+        },
+      }),
+      now: new Date("2026-04-01T12:00:00.000Z"),
+    });
+
+    expect(assessment.eligible).toBe(true);
+    expect(assessment.due).toBe(false);
+    expect(assessment.stage?.index).toBe(1);
+    expect(assessment.reason).toMatch(/elapsed-time gate/i);
+  });
+
+  test("allows a failed reminder to retry after a shorter failure cooldown", () => {
+    const assessment = assessOnboardingActivationReminder({
+      profile: buildProfile({
+        parent: {
+          onboardingReminderLastAttemptAt: "2026-04-02T01:00:00.000Z",
+          onboardingReminderLastStatus: "failed",
+          onboardingReminderLastError: "SMTP offline",
+        },
+      }),
+      now: new Date("2026-04-02T03:30:00.000Z"),
+    });
+
+    expect(assessment.eligible).toBe(true);
+    expect(assessment.due).toBe(true);
+    expect(assessment.stage?.index).toBe(1);
+  });
+
   test("excludes families that already have a healthy dispatchable channel", () => {
     const assessment = assessOnboardingActivationReminder({
       profile: buildProfile({

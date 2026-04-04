@@ -217,4 +217,24 @@ describe("onboarding reminder scheduler route", () => {
     );
     expect(sendOnboardingReminderEmailMock).toHaveBeenCalledTimes(1);
   });
+
+  test("retries a failed reminder once the shorter failure cooldown has elapsed", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-01T00:00:00.000Z"));
+    await seedReminderCandidate("retryable@example.com");
+    await updateParentOnboardingReminder("retryable@example.com", {
+      onboardingReminderLastAttemptAt: "2026-04-02T01:00:00.000Z",
+      onboardingReminderLastStage: 1,
+      onboardingReminderLastStatus: "failed",
+      onboardingReminderLastError: "SMTP offline",
+    });
+    vi.setSystemTime(new Date("2026-04-02T03:30:00.000Z"));
+
+    const response = await onboardingReminderRoute(buildRequest());
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.summary.sentCount).toBe(1);
+    expect(sendOnboardingReminderEmailMock).toHaveBeenCalledTimes(1);
+  });
 });

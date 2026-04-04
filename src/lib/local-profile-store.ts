@@ -101,6 +101,10 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
     typeof raw.trialStartedAt === "string" && raw.trialStartedAt
       ? raw.trialStartedAt
       : createdAt;
+  const firstAuthenticatedAt =
+    typeof raw.firstAuthenticatedAt === "string" && raw.firstAuthenticatedAt
+      ? raw.firstAuthenticatedAt
+      : null;
   const trialEndsAt =
     typeof raw.trialEndsAt === "string" && raw.trialEndsAt
       ? raw.trialEndsAt
@@ -163,6 +167,7 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
     countryCode: deliveryPreferences.countryCode,
     deliveryTimeZone: deliveryPreferences.deliveryTimeZone,
     preferredDeliveryLocalTime: deliveryPreferences.preferredDeliveryLocalTime,
+    firstAuthenticatedAt,
     onboardingReminderCount:
       typeof raw.onboardingReminderCount === "number" &&
       Number.isFinite(raw.onboardingReminderCount) &&
@@ -409,6 +414,7 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     countryCode: DEFAULT_COUNTRY_CODE,
     deliveryTimeZone: DEFAULT_DELIVERY_TIME_ZONE,
     preferredDeliveryLocalTime: DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
+    firstAuthenticatedAt: timestamp,
     onboardingReminderCount: 0,
     onboardingReminderLastAttemptAt: null,
     onboardingReminderLastSentAt: null,
@@ -597,10 +603,22 @@ export const localProfileStore: ProfileStore = {
     if (existingParent) {
       const maybeStudent = findStudentForParent(store, existingParent.id);
       const nextFullName = input.fullName?.trim() ?? existingParent.fullName;
+      const nowIso = new Date().toISOString();
+      let shouldPersistParent = false;
 
       if (nextFullName !== existingParent.fullName) {
         existingParent.fullName = nextFullName;
-        existingParent.updatedAt = new Date().toISOString();
+        existingParent.updatedAt = nowIso;
+        shouldPersistParent = true;
+      }
+
+      if (!existingParent.firstAuthenticatedAt) {
+        existingParent.firstAuthenticatedAt = nowIso;
+        existingParent.updatedAt = nowIso;
+        shouldPersistParent = true;
+      }
+
+      if (shouldPersistParent) {
         await writeStore(store);
       }
 

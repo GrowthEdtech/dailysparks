@@ -55,6 +55,7 @@ export type ParentRecord = {
   countryCode: string;
   deliveryTimeZone: string;
   preferredDeliveryLocalTime: string;
+  firstAuthenticatedAt?: string | null;
   onboardingReminderCount: number;
   onboardingReminderLastAttemptAt: string | null;
   onboardingReminderLastSentAt: string | null;

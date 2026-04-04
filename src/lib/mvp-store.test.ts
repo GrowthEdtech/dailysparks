@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -27,6 +27,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   delete process.env.DAILY_SPARKS_STORE_PATH;
 
   if (tempDirectory) {
@@ -52,6 +53,7 @@ describe("mvp store", () => {
     expect(profile.parent.countryCode).toBe("HK");
     expect(profile.parent.deliveryTimeZone).toBe("Asia/Hong_Kong");
     expect(profile.parent.preferredDeliveryLocalTime).toBe("09:00");
+    expect(profile.parent.firstAuthenticatedAt).toBeTruthy();
     expect(profile.parent.latestInvoiceId).toBeNull();
     expect(profile.parent.latestInvoiceHostedUrl).toBeNull();
     expect(profile.parent.onboardingReminderCount).toBe(0);
@@ -70,6 +72,42 @@ describe("mvp store", () => {
     expect(profile.student.goodnotesLastTestSentAt).toBeNull();
     expect(profile.student.goodnotesLastDeliveryStatus).toBeNull();
     expect(profile.student.goodnotesLastDeliveryMessage).toBeNull();
+  });
+
+  test("backfills first authenticated time when an existing parent logs in again", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-01T00:00:00.000Z"));
+
+    await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    const storePath = process.env.DAILY_SPARKS_STORE_PATH as string;
+    const store = JSON.parse(await readFile(storePath, "utf8")) as {
+      parents: Array<Record<string, unknown>>;
+      students: Array<Record<string, unknown>>;
+      notionConnections: Array<Record<string, unknown>>;
+    };
+
+    store.parents = store.parents.map((parent) =>
+      parent.email === "parent@example.com"
+        ? { ...parent, firstAuthenticatedAt: null }
+        : parent,
+    );
+
+    await writeFile(storePath, JSON.stringify(store, null, 2));
+
+    vi.setSystemTime(new Date("2026-04-03T10:00:00.000Z"));
+
+    const profile = await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    expect(profile.parent.firstAuthenticatedAt).toBe("2026-04-03T10:00:00.000Z");
   });
 
   test("returns the saved profile by email", async () => {

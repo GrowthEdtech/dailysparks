@@ -9,7 +9,8 @@ export const ONBOARDING_ACTIVATION_REMINDER_STAGES = [
   { index: 3, delayHours: 168, label: "Final activation reminder" },
 ] as const;
 
-const ONBOARDING_REMINDER_ATTEMPT_COOLDOWN_HOURS = 24;
+const ONBOARDING_REMINDER_SUCCESS_COOLDOWN_HOURS = 24;
+const ONBOARDING_REMINDER_FAILED_RETRY_COOLDOWN_HOURS = 2;
 
 export type OnboardingActivationReminderStage =
   (typeof ONBOARDING_ACTIVATION_REMINDER_STAGES)[number];
@@ -64,10 +65,24 @@ function hasRecentReminderAttempt(profile: ParentProfile, now: Date) {
     return false;
   }
 
-  return (
-    now.getTime() - lastAttemptTimestamp <
-    ONBOARDING_REMINDER_ATTEMPT_COOLDOWN_HOURS * 60 * 60 * 1000
+  const cooldownHours =
+    profile.parent.onboardingReminderLastStatus === "failed"
+      ? ONBOARDING_REMINDER_FAILED_RETRY_COOLDOWN_HOURS
+      : ONBOARDING_REMINDER_SUCCESS_COOLDOWN_HOURS;
+
+  return now.getTime() - lastAttemptTimestamp < cooldownHours * 60 * 60 * 1000;
+}
+
+function getReminderAnchorTimestamp(profile: ParentProfile) {
+  const firstAuthenticatedTimestamp = Date.parse(
+    profile.parent.firstAuthenticatedAt ?? "",
   );
+
+  if (!Number.isNaN(firstAuthenticatedTimestamp)) {
+    return firstAuthenticatedTimestamp;
+  }
+
+  return Date.parse(profile.parent.createdAt);
 }
 
 export function assessOnboardingActivationReminder(input: {
@@ -140,11 +155,14 @@ export function assessOnboardingActivationReminder(input: {
     };
   }
 
-  const createdAtTimestamp = Date.parse(profile.parent.createdAt);
+  const reminderAnchorTimestamp = getReminderAnchorTimestamp(profile);
   const stageDueAtTimestamp =
-    createdAtTimestamp + nextStage.delayHours * 60 * 60 * 1000;
+    reminderAnchorTimestamp + nextStage.delayHours * 60 * 60 * 1000;
 
-  if (Number.isNaN(createdAtTimestamp) || now.getTime() < stageDueAtTimestamp) {
+  if (
+    Number.isNaN(reminderAnchorTimestamp) ||
+    now.getTime() < stageDueAtTimestamp
+  ) {
     return {
       eligible: true,
       due: false,

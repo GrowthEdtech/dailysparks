@@ -147,4 +147,23 @@ describe("onboarding reminder email", () => {
       subject: expect.stringMatching(/connect goodnotes/i),
     });
   });
+
+  test("escapes profile names before interpolating them into HTML", () => {
+    const email = buildOnboardingReminderEmail({
+      profile: buildProfile({
+        parent: {
+          fullName: 'Parent <script>alert("x")</script>',
+        },
+        student: {
+          studentName: 'Kid & <b>bold</b>',
+        },
+      }),
+      stageIndex: 1,
+    });
+
+    expect(email.html).not.toContain("<script>");
+    expect(email.html).not.toContain("<b>bold</b>");
+    expect(email.html).toContain("Parent &lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
+    expect(email.html).toContain("Kid &amp; &lt;b&gt;bold&lt;/b&gt;");
+  });
 });

@@ -120,7 +120,9 @@ export function countProfilesNeedingActivationReminder(profiles: ParentProfile[]
   return profiles.reduce((count, profile) => {
     const assessment = assessOnboardingActivationReminder({ profile });
 
-    return assessment.due ? count + 1 : count;
+    return assessment.due || profile.parent.onboardingReminderLastStatus === "failed"
+      ? count + 1
+      : count;
   }, 0);
 }
 

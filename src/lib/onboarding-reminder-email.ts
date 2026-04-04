@@ -25,6 +25,15 @@ function normalizeEnv(value: string | undefined) {
   return value?.trim() || "";
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function getOnboardingReminderEmailConfig(): OnboardingReminderEmailConfig | null {
   const smtpUrl =
     normalizeEnv(process.env.DAILY_SPARKS_TRANSACTIONAL_SMTP_URL) ||
@@ -62,6 +71,8 @@ export function buildOnboardingReminderEmail(input: {
 }): OnboardingReminderEmailContent {
   const config = getOnboardingReminderEmailConfig();
   const dashboardUrl = `${config?.appBaseUrl ?? "https://dailysparks.geledtech.com"}/dashboard`;
+  const safeParentName = escapeHtml(input.profile.parent.fullName);
+  const safeStudentName = escapeHtml(input.profile.student.studentName);
   const subject =
     input.stageIndex >= 3
       ? "Final reminder: connect Goodnotes to start Daily Sparks"
@@ -76,7 +87,7 @@ export function buildOnboardingReminderEmail(input: {
         <p style="margin:0 0 16px;font-size:12px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#b45309;">Growth Education</p>
         <h1 style="margin:0 0 16px;font-size:32px;line-height:1.2;">One last step to start Daily Sparks</h1>
         <p style="margin:0 0 18px;font-size:16px;line-height:1.7;color:#475569;">
-          Hello ${input.profile.parent.fullName}, your account is ready. Connect Goodnotes so Daily Sparks can begin placing reading briefs into ${input.profile.student.studentName}'s note-taking flow.
+          Hello ${safeParentName}, your account is ready. Connect Goodnotes so Daily Sparks can begin placing reading briefs into ${safeStudentName}'s note-taking flow.
         </p>
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:20px;margin:24px 0;">
           <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#1d4ed8;">Recommended setup</p>
