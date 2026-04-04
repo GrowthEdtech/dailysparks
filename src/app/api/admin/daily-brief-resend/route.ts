@@ -1,3 +1,5 @@
+import { revalidatePath } from "next/cache";
+
 import {
   buildEditorialCohortEvaluationDate,
   getEditorialCohortForProfile,
@@ -83,6 +85,13 @@ function buildManualRetryTargets(
     channel,
     errorMessage: "Manual resend/backfill requested by editorial admin.",
   }));
+}
+
+function revalidateEditorialAdminPaths(briefId: string, parentId: string) {
+  revalidatePath("/admin/editorial/daily-briefs");
+  revalidatePath(`/admin/editorial/daily-briefs/${briefId}`);
+  revalidatePath("/admin/editorial/users");
+  revalidatePath(`/admin/editorial/users/${parentId}`);
 }
 
 export async function POST(request: Request) {
@@ -217,6 +226,8 @@ export async function POST(request: Request) {
       ? `${brief.adminNotes.trim()}\n${appendedNote}`
       : appendedNote,
   });
+
+  revalidateEditorialAdminPaths(brief.id, profile.parent.id);
 
   return Response.json({
     success: deliverySummary.deliveryFailureCount === 0,

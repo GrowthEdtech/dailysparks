@@ -6,10 +6,16 @@ import path from "node:path";
 const { deliverHistoryBriefToProfilesMock } = vi.hoisted(() => ({
   deliverHistoryBriefToProfilesMock: vi.fn(),
 }));
+const { revalidatePathMock } = vi.hoisted(() => ({
+  revalidatePathMock: vi.fn(),
+}));
 
 vi.mock("../../../../lib/daily-brief-stage-delivery", () => ({
   deliverHistoryBriefToProfiles: (...args: unknown[]) =>
     deliverHistoryBriefToProfilesMock(...args),
+}));
+vi.mock("next/cache", () => ({
+  revalidatePath: (...args: unknown[]) => revalidatePathMock(...args),
 }));
 
 import { POST as adminLogin } from "../login/route";
@@ -152,6 +158,7 @@ beforeEach(async () => {
     ),
   };
   deliverHistoryBriefToProfilesMock.mockReset();
+  revalidatePathMock.mockReset();
 });
 
 afterEach(async () => {
@@ -256,5 +263,16 @@ describe("admin daily brief resend route", () => {
     );
     expect(updatedBrief?.failedDeliveryTargets).toEqual([]);
     expect(updatedBrief?.adminNotes).toMatch(/Manual resend\/backfill requested/i);
+    expect(revalidatePathMock).toHaveBeenCalledTimes(4);
+    expect(revalidatePathMock).toHaveBeenCalledWith(
+      "/admin/editorial/daily-briefs",
+    );
+    expect(revalidatePathMock).toHaveBeenCalledWith(
+      `/admin/editorial/daily-briefs/${brief.id}`,
+    );
+    expect(revalidatePathMock).toHaveBeenCalledWith("/admin/editorial/users");
+    expect(revalidatePathMock).toHaveBeenCalledWith(
+      `/admin/editorial/users/${profile.parent.id}`,
+    );
   });
 });
