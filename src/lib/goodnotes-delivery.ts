@@ -34,6 +34,23 @@ type GoodnotesWelcomeNote = {
   signature: string;
 };
 
+type GoodnotesBriefPacket = {
+  eyebrow: string;
+  title: string;
+  metadataItems: string[];
+  summaryTitle: string;
+  summaryBody: string;
+  themesTitle: string | null;
+  themesBody: string | null;
+  readingTitle: string;
+  readingParagraphs: string[];
+  discussionTitle: string;
+  discussionPrompts: string[];
+  sourcesTitle: string;
+  sourceLines: string[];
+  footerSignature: string;
+};
+
 const PAGE_WIDTH = 595;
 const PAGE_HEIGHT = 842;
 const PAGE_MARGIN = 48;
@@ -106,6 +123,31 @@ function formatHongKongDate(date = new Date()) {
   const day = parts.find((part) => part.type === "day")?.value ?? "00";
 
   return `${year}-${month}-${day}`;
+}
+
+function formatScheduledDateLabel(scheduledFor: string) {
+  const date = new Date(`${scheduledFor}T00:00:00.000Z`);
+
+  if (Number.isNaN(date.getTime())) {
+    return scheduledFor;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function formatEditorialCohortEdition(
+  editorialCohort: GeneratedDailyBriefDraft["editorialCohort"] | undefined,
+) {
+  if (!editorialCohort) {
+    return "Global edition";
+  }
+
+  return `${editorialCohort} edition`;
 }
 
 function toTestAttachmentFileName(programme: string, generatedAt = new Date()) {
@@ -236,6 +278,38 @@ export function buildGoodnotesWelcomeNote(
       "If your setup changes, you can update this destination from the dashboard at any time.",
     ],
     signature: "Growth Education Limited",
+  };
+}
+
+export function buildGoodnotesBriefPacket(
+  profile: ParentProfile,
+  brief: GeneratedDailyBriefDraft,
+): GoodnotesBriefPacket {
+  return {
+    eyebrow: "Daily Sparks",
+    title: brief.headline,
+    metadataItems: [
+      formatScheduledDateLabel(brief.scheduledFor),
+      `${brief.programme} edition`,
+      formatEditorialCohortEdition(brief.editorialCohort),
+    ],
+    summaryTitle: "Summary deck",
+    summaryBody: brief.summary,
+    themesTitle: brief.topicTags.length > 0 ? "Theme focus" : null,
+    themesBody: brief.topicTags.length > 0 ? brief.topicTags.join(", ") : null,
+    readingTitle: "Reading brief",
+    readingParagraphs: extractParagraphsFromMarkdown(brief.briefMarkdown),
+    discussionTitle: "Discussion prompts",
+    discussionPrompts: [
+      "What feels most important in today's story?",
+      "Which detail would you like to understand more clearly?",
+      "How does this connect to your own world or experience?",
+    ],
+    sourcesTitle: "Source references",
+    sourceLines: brief.sourceReferences.map(
+      (reference) => `${reference.sourceName} - ${reference.articleTitle}`,
+    ),
+    footerSignature: "Growth Education Limited",
   };
 }
 
@@ -471,8 +545,10 @@ export async function createGoodnotesBriefPdf(
 ) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  const titleFont = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const titleFont = await pdf.embedFont(StandardFonts.TimesRomanBold);
+  const labelFont = await pdf.embedFont(StandardFonts.HelveticaBold);
   const bodyFont = await pdf.embedFont(StandardFonts.Helvetica);
+  const packet = buildGoodnotesBriefPacket(profile, brief);
   const generatedAt = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -481,96 +557,116 @@ export async function createGoodnotesBriefPdf(
 
   let cursorY = PAGE_HEIGHT - PAGE_MARGIN;
 
-  page.drawText("Daily Sparks", {
-    x: PAGE_MARGIN,
-    y: cursorY,
-    size: 14,
-    font: titleFont,
-    color: rgb(0.97, 0.73, 0.12),
+  drawFilledPanel(page, 0, PAGE_HEIGHT, PAGE_WIDTH, PAGE_HEIGHT, {
+    fillColor: OUTBOUND_PAPER,
   });
-  cursorY -= 34;
 
-  page.drawText(brief.headline, {
-    x: PAGE_MARGIN,
-    y: cursorY,
-    size: 22,
-    font: titleFont,
-    color: rgb(0.06, 0.09, 0.16),
-    maxWidth: PAGE_WIDTH - PAGE_MARGIN * 2,
+  drawFilledPanel(page, PAGE_MARGIN, cursorY + 6, PAGE_WIDTH - PAGE_MARGIN * 2, 164, {
+    fillColor: OUTBOUND_PALE_BLUE,
+    borderColor: OUTBOUND_BLUE_BORDER,
+    borderWidth: 1,
   });
-  cursorY -= 28;
 
-  const metadataLines = [
-    `Student: ${profile.student.studentName} (${brief.programme})`,
-    `Goodnotes destination: ${profile.student.goodnotesEmail}`,
-    `Scheduled for: ${brief.scheduledFor}`,
-    `Generated: ${generatedAt} UTC`,
-  ];
+  page.drawText(packet.eyebrow.toUpperCase(), {
+    x: PAGE_MARGIN + 16,
+    y: cursorY - 8,
+    size: 10,
+    font: labelFont,
+    color: OUTBOUND_GOLD,
+  });
+  cursorY -= 38;
 
-  for (const line of metadataLines) {
-    page.drawText(line, {
-      x: PAGE_MARGIN,
-      y: cursorY,
-      size: BODY_FONT_SIZE,
-      font: bodyFont,
-      color: rgb(0.2, 0.27, 0.38),
+  page.drawText(packet.title, {
+    x: PAGE_MARGIN + 16,
+    y: cursorY,
+    size: 28,
+    font: titleFont,
+    color: OUTBOUND_INK,
+    maxWidth: PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
+  });
+  cursorY -= 52;
+
+  let metadataX = PAGE_MARGIN + 16;
+  for (const item of packet.metadataItems) {
+    const itemWidth = bodyFont.widthOfTextAtSize(item, 10) + 22;
+    drawFilledPanel(page, metadataX, cursorY + 8, itemWidth, 24, {
+      fillColor: rgb(1, 1, 1),
+      borderColor: OUTBOUND_SOFT_BORDER,
+      borderWidth: 1,
     });
-    cursorY -= LINE_HEIGHT;
+    page.drawText(item, {
+      x: metadataX + 11,
+      y: cursorY - 7,
+      size: 10,
+      font: labelFont,
+      color: OUTBOUND_SECONDARY_TEXT,
+    });
+    metadataX += itemWidth + 10;
   }
 
-  cursorY -= 8;
-  page.drawText("Summary", {
-    x: PAGE_MARGIN,
-    y: cursorY,
-    size: 15,
-    font: titleFont,
-    color: rgb(0.06, 0.09, 0.16),
-  });
-  cursorY -= 24;
+  cursorY = PAGE_HEIGHT - PAGE_MARGIN - 198;
 
+  drawFilledPanel(page, PAGE_MARGIN, cursorY, PAGE_WIDTH - PAGE_MARGIN * 2, 114, {
+    fillColor: rgb(1, 1, 1),
+    borderColor: OUTBOUND_SOFT_BORDER,
+    borderWidth: 1,
+  });
+
+  page.drawText(packet.summaryTitle, {
+    x: PAGE_MARGIN + 18,
+    y: cursorY - 24,
+    size: 16,
+    font: titleFont,
+    color: OUTBOUND_INK,
+  });
   cursorY = drawParagraph(
     page,
-    brief.summary,
-    PAGE_MARGIN,
-    cursorY,
-    PAGE_WIDTH - PAGE_MARGIN * 2,
+    packet.summaryBody,
+    PAGE_MARGIN + 18,
+    cursorY - 50,
+    PAGE_WIDTH - PAGE_MARGIN * 2 - 36,
     bodyFont,
     BODY_FONT_SIZE,
+    OUTBOUND_SECONDARY_TEXT,
   );
-  cursorY -= 8;
+  cursorY -= 22;
 
-  if (brief.topicTags.length > 0) {
-    page.drawText("Themes", {
-      x: PAGE_MARGIN,
-      y: cursorY,
-      size: 15,
-      font: titleFont,
-      color: rgb(0.06, 0.09, 0.16),
+  if (packet.themesTitle && packet.themesBody) {
+    drawFilledPanel(page, PAGE_MARGIN, cursorY + 8, PAGE_WIDTH - PAGE_MARGIN * 2, 58, {
+      fillColor: OUTBOUND_GOLD_SOFT,
+      borderColor: rgb(0.95, 0.84, 0.57),
+      borderWidth: 1,
     });
-    cursorY -= 24;
-
+    page.drawText(packet.themesTitle, {
+      x: PAGE_MARGIN + 16,
+      y: cursorY - 12,
+      size: 14,
+      font: titleFont,
+      color: OUTBOUND_INK,
+    });
     cursorY = drawParagraph(
       page,
-      brief.topicTags.join(", "),
-      PAGE_MARGIN,
-      cursorY,
-      PAGE_WIDTH - PAGE_MARGIN * 2,
+      packet.themesBody,
+      PAGE_MARGIN + 16,
+      cursorY - 34,
+      PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
       bodyFont,
       BODY_FONT_SIZE,
+      OUTBOUND_SECONDARY_TEXT,
     );
-    cursorY -= 8;
+    cursorY -= 18;
   }
 
-  page.drawText("Brief", {
+  page.drawText(packet.readingTitle, {
     x: PAGE_MARGIN,
     y: cursorY,
-    size: 15,
+    size: 16,
     font: titleFont,
-    color: rgb(0.06, 0.09, 0.16),
+    color: OUTBOUND_INK,
   });
   cursorY -= 24;
 
-  for (const paragraph of extractParagraphsFromMarkdown(brief.briefMarkdown)) {
+  for (const paragraph of packet.readingParagraphs) {
     cursorY = drawParagraph(
       page,
       paragraph,
@@ -583,29 +679,81 @@ export async function createGoodnotesBriefPdf(
     cursorY -= 8;
   }
 
-  if (brief.sourceReferences.length > 0) {
-    page.drawText("Sources", {
+  drawFilledPanel(page, PAGE_MARGIN, cursorY + 8, PAGE_WIDTH - PAGE_MARGIN * 2, 92, {
+    fillColor: OUTBOUND_PALE_BLUE,
+    borderColor: OUTBOUND_BLUE_BORDER,
+    borderWidth: 1,
+  });
+  page.drawText(packet.discussionTitle, {
+    x: PAGE_MARGIN + 16,
+    y: cursorY - 14,
+    size: 15,
+    font: titleFont,
+    color: OUTBOUND_INK,
+  });
+  let promptY = cursorY - 38;
+  for (const prompt of packet.discussionPrompts) {
+    promptY = drawParagraph(
+      page,
+      `- ${prompt}`,
+      PAGE_MARGIN + 16,
+      promptY,
+      PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
+      bodyFont,
+      BODY_FONT_SIZE,
+      OUTBOUND_SECONDARY_TEXT,
+    );
+    promptY -= 4;
+  }
+  cursorY = promptY - 14;
+
+  if (packet.sourceLines.length > 0) {
+    page.drawText(packet.sourcesTitle, {
       x: PAGE_MARGIN,
       y: cursorY,
       size: 15,
       font: titleFont,
-      color: rgb(0.06, 0.09, 0.16),
+      color: OUTBOUND_INK,
     });
     cursorY -= 24;
 
-    for (const reference of brief.sourceReferences) {
+    for (const sourceLine of packet.sourceLines) {
       cursorY = drawParagraph(
         page,
-        `${reference.sourceName}: ${reference.articleTitle}`,
+        sourceLine,
         PAGE_MARGIN,
         cursorY,
         PAGE_WIDTH - PAGE_MARGIN * 2,
         bodyFont,
         BODY_FONT_SIZE,
+        OUTBOUND_SECONDARY_TEXT,
       );
       cursorY -= 6;
     }
   }
+
+  cursorY -= 12;
+  page.drawLine({
+    start: { x: PAGE_MARGIN, y: cursorY },
+    end: { x: PAGE_WIDTH - PAGE_MARGIN, y: cursorY },
+    thickness: 1,
+    color: OUTBOUND_SOFT_BORDER,
+  });
+  cursorY -= 20;
+  page.drawText(packet.footerSignature, {
+    x: PAGE_MARGIN,
+    y: cursorY,
+    size: 12,
+    font: titleFont,
+    color: OUTBOUND_INK,
+  });
+  page.drawText(`Prepared ${generatedAt} UTC`, {
+    x: PAGE_MARGIN,
+    y: cursorY - 18,
+    size: 9,
+    font: bodyFont,
+    color: OUTBOUND_MUTED_TEXT,
+  });
 
   return pdf.save();
 }

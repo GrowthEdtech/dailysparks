@@ -19,6 +19,7 @@ vi.mock("nodemailer", () => ({
 }));
 
 import {
+  buildGoodnotesBriefPacket,
   buildGoodnotesWelcomeNote,
   createGoodnotesBriefPdf,
   createGoodnotesTestBriefPdf,
@@ -97,6 +98,7 @@ function createGeneratedBrief(
     headline: "PYP ocean mapping brief",
     summary: "A generated summary about how students help scientists map sea turtles.",
     programme: "PYP",
+    editorialCohort: "APAC",
     status: "draft",
     topicTags: ["oceans", "science"],
     sourceReferences: [
@@ -216,6 +218,31 @@ describe("goodnotes delivery", () => {
 
     expect(pdf).toBeInstanceOf(Uint8Array);
     expect(Buffer.from(pdf).subarray(0, 4).toString()).toBe("%PDF");
+  });
+
+  test("builds a branded daily brief packet model for the editorial PDF layout", () => {
+    const packet = buildGoodnotesBriefPacket(createProfile(), createGeneratedBrief());
+
+    expect(packet).toMatchObject({
+      eyebrow: "Daily Sparks",
+      title: "PYP ocean mapping brief",
+      summaryTitle: "Summary deck",
+      readingTitle: "Reading brief",
+      discussionTitle: "Discussion prompts",
+      sourcesTitle: "Source references",
+      footerSignature: "Growth Education Limited",
+    });
+    expect(packet.metadataItems).toEqual([
+      "Apr 3, 2026",
+      "PYP edition",
+      "APAC edition",
+    ]);
+    expect(packet.discussionPrompts).toEqual([
+      "What feels most important in today's story?",
+      "Which detail would you like to understand more clearly?",
+      "How does this connect to your own world or experience?",
+    ]);
+    expect(packet.sourceLines).toEqual(["BBC - Students map sea turtles"]);
   });
 
   test("sends a generated daily brief to Goodnotes with brief-based metadata", async () => {
