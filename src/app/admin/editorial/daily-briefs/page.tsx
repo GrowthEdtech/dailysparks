@@ -13,6 +13,10 @@ import {
   type DailyBriefRecordKind,
   type DailyBriefStatus,
 } from "../../../../lib/daily-brief-history-schema";
+import {
+  getDailyBriefCanaryParentEmails,
+  getDailyBriefDispatchMode,
+} from "../../../../lib/daily-brief-delivery-policy";
 import { listParentProfiles } from "../../../../lib/mvp-store";
 import {
   IB_PROGRAMMES,
@@ -137,6 +141,8 @@ export default async function DailyBriefsAdminPage({
     history: productionHistoryForToday,
     runDate: getDailyBriefBusinessDate(),
   });
+  const dispatchMode = getDailyBriefDispatchMode();
+  const canaryParentEmails = getDailyBriefCanaryParentEmails();
   const hasOpsAlerts =
     opsSummary.briefsNeedingFollowUpCount > 0 ||
     opsSummary.skippedFamilyCount > 0 ||
@@ -331,6 +337,29 @@ export default async function DailyBriefsAdminPage({
           </div>
         </div>
       </div>
+
+      {recordKind === "production" && dispatchMode === "canary" ? (
+        <div className="mt-6 rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+            Production canary mode
+          </p>
+          <p className="mt-2 text-sm leading-6 text-slate-700">
+            Production delivery is currently limited to canary recipients.
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            {canaryParentEmails.length > 0 ? (
+              <>
+                Current canary recipients:{" "}
+                <span className="font-semibold text-slate-800">
+                  {canaryParentEmails.join(", ")}
+                </span>
+              </>
+            ) : (
+              "No canary recipient emails are currently configured."
+            )}
+          </p>
+        </div>
+      ) : null}
 
       <ManualTestRunPanel />
 

@@ -8,6 +8,7 @@ import {
   DAILY_BRIEF_REPETITION_RISKS,
   DAILY_BRIEF_STATUSES,
   type DailyBriefDeliveryChannel,
+  type DailyBriefDispatchAudienceProfile,
   type DailyBriefDeliveryReceipt,
   type DailyBriefFailedDeliveryTarget,
   type DailyBriefHistoryRecord,
@@ -146,6 +147,17 @@ function normalizeDeliveryReceipt(
   };
 }
 
+function normalizeDispatchAudienceProfile(
+  raw: Partial<DailyBriefDispatchAudienceProfile> | undefined,
+): DailyBriefDispatchAudienceProfile {
+  return {
+    parentId: normalizeString(raw?.parentId),
+    parentEmail: normalizeString(raw?.parentEmail),
+    localDeliveryWindow: normalizeString(raw?.localDeliveryWindow),
+    reason: normalizeString(raw?.reason),
+  };
+}
+
 function normalizeSourceReference(
   raw: Partial<DailyBriefSourceReference> | undefined,
 ): DailyBriefSourceReference {
@@ -182,6 +194,7 @@ function normalizeEntry(
   raw: Partial<DailyBriefHistoryRecord> | undefined,
 ): DailyBriefHistoryRecord {
   const timestamp = new Date().toISOString();
+  const normalizedDispatchMode = normalizeString(raw?.dispatchMode);
 
   return {
     id: normalizeString(raw?.id) || crypto.randomUUID(),
@@ -230,6 +243,33 @@ function normalizeEntry(
     deliveryAttemptCount: normalizeCount(raw?.deliveryAttemptCount),
     deliverySuccessCount: normalizeCount(raw?.deliverySuccessCount),
     deliveryFailureCount: normalizeCount(raw?.deliveryFailureCount),
+    dispatchMode:
+      normalizedDispatchMode === "canary" || normalizedDispatchMode === "all"
+        ? normalizedDispatchMode
+        : null,
+    dispatchCanaryParentEmails: normalizeStringArray(
+      raw?.dispatchCanaryParentEmails,
+    ),
+    targetedProfiles: Array.isArray(raw?.targetedProfiles)
+      ? raw.targetedProfiles.map((entry) =>
+          normalizeDispatchAudienceProfile(entry),
+        )
+      : [],
+    skippedProfiles: Array.isArray(raw?.skippedProfiles)
+      ? raw.skippedProfiles.map((entry) =>
+          normalizeDispatchAudienceProfile(entry),
+        )
+      : [],
+    pendingFutureProfiles: Array.isArray(raw?.pendingFutureProfiles)
+      ? raw.pendingFutureProfiles.map((entry) =>
+          normalizeDispatchAudienceProfile(entry),
+        )
+      : [],
+    heldProfiles: Array.isArray(raw?.heldProfiles)
+      ? raw.heldProfiles.map((entry) =>
+          normalizeDispatchAudienceProfile(entry),
+        )
+      : [],
     deliveryReceipts: Array.isArray(raw?.deliveryReceipts)
       ? raw.deliveryReceipts.map((receipt) =>
           normalizeDeliveryReceipt(receipt),

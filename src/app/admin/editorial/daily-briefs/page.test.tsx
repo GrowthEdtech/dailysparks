@@ -1,6 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
+const ORIGINAL_ENV = { ...process.env };
+
 const { listDailyBriefHistoryMock } = vi.hoisted(() => ({
   listDailyBriefHistoryMock: vi.fn(),
 }));
@@ -26,6 +28,7 @@ describe("DailyBriefsAdminPage", () => {
   beforeEach(() => {
     listDailyBriefHistoryMock.mockReset();
     listParentProfilesMock.mockReset();
+    process.env = { ...ORIGINAL_ENV };
   });
 
   test("renders an honest empty state when no daily briefs exist", async () => {
@@ -180,6 +183,26 @@ describe("DailyBriefsAdminPage", () => {
       scheduledFor: "2026-04-03",
       recordKind: "production",
     });
+  });
+
+  test("shows a production canary warning banner when dispatch mode is limited", async () => {
+    process.env.DAILY_BRIEF_DELIVERY_MODE = "canary";
+    process.env.DAILY_BRIEF_CANARY_PARENT_EMAILS =
+      "deploy-smoke@example.com,admin@geledtech.com";
+    listDailyBriefHistoryMock.mockResolvedValue([]);
+    listParentProfilesMock.mockResolvedValue([]);
+
+    const markup = renderToStaticMarkup(
+      await DailyBriefsAdminPage({
+        searchParams: Promise.resolve({
+          kind: "production",
+        }),
+      }),
+    );
+
+    expect(markup).toContain("Production delivery is currently limited to canary recipients.");
+    expect(markup).toContain("deploy-smoke@example.com");
+    expect(markup).toContain("admin@geledtech.com");
   });
 
   test("stacks programme and status filters vertically at every width", async () => {

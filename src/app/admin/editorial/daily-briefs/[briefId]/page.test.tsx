@@ -80,6 +80,43 @@ describe("DailyBriefDetailPage", () => {
       deliveryAttemptCount: 2,
       deliverySuccessCount: 3,
       deliveryFailureCount: 2,
+      dispatchMode: "canary",
+      dispatchCanaryParentEmails: [
+        "deploy-smoke@example.com",
+        "family@example.com",
+      ],
+      targetedProfiles: [
+        {
+          parentId: "parent-1",
+          parentEmail: "family@example.com",
+          localDeliveryWindow: "9:00 AM · Europe/London",
+          reason: "Selected for the current canary delivery wave.",
+        },
+      ],
+      skippedProfiles: [
+        {
+          parentId: "parent-2",
+          parentEmail: "skip@example.com",
+          localDeliveryWindow: "9:00 AM · Europe/London",
+          reason: "Skipped by canary mode for this delivery wave.",
+        },
+      ],
+      pendingFutureProfiles: [
+        {
+          parentId: "parent-3",
+          parentEmail: "future@example.com",
+          localDeliveryWindow: "9:00 AM · America/New York",
+          reason: "Pending future local delivery window.",
+        },
+      ],
+      heldProfiles: [
+        {
+          parentId: "parent-4",
+          parentEmail: "held@example.com",
+          localDeliveryWindow: "9:00 AM · Europe/London",
+          reason: "No healthy delivery channel was available for this wave.",
+        },
+      ],
       deliveryReceipts: [
         {
           parentId: "parent-1",
@@ -120,9 +157,15 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("## Today");
     expect(markup).toContain("Pipeline timeline");
     expect(markup).toContain("Delivery health");
+    expect(markup).toContain("Dispatch audience");
     expect(markup).toContain("Delivery receipts");
     expect(markup).toContain("Selection governance");
     expect(markup).toContain("Follow-up exception");
+    expect(markup).toContain("Skipped by canary mode for this delivery wave.");
+    expect(markup).toContain("Pending future local delivery window.");
+    expect(markup).toContain("No healthy delivery channel was available for this wave.");
+    expect(markup).toContain("Manual resend / backfill");
+    expect(markup).toContain("Send manual resend");
     expect(markup).toContain(
       "Follow-up exception approved because the cluster contains a newer development and a distinct headline.",
     );

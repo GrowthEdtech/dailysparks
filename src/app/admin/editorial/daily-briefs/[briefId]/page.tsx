@@ -14,6 +14,7 @@ import {
   getRecordKindBadgeClasses,
   getRetryWindowLabel,
 } from "../daily-brief-admin-helpers";
+import ManualResendPanel from "./manual-resend-panel";
 
 type DailyBriefDetailPageProps = {
   params: Promise<{
@@ -32,6 +33,18 @@ function formatDate(value: string) {
         year: "numeric",
         timeZone: "UTC",
       }).format(date);
+}
+
+function getDefaultManualResendEmail(
+  entry: NonNullable<Awaited<ReturnType<typeof getDailyBriefHistoryEntry>>>,
+) {
+  return (
+    entry.failedDeliveryTargets[0]?.parentEmail ??
+    entry.skippedProfiles?.[0]?.parentEmail ??
+    entry.heldProfiles?.[0]?.parentEmail ??
+    entry.pendingFutureProfiles?.[0]?.parentEmail ??
+    ""
+  );
 }
 
 export default async function DailyBriefDetailPage({
@@ -354,6 +367,83 @@ export default async function DailyBriefDetailPage({
 
           <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+              Dispatch audience
+            </h2>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+              <p>
+                <span className="font-semibold text-[#0f172a]">
+                  Dispatch mode:
+                </span>{" "}
+                {entry.dispatchMode ?? "Unavailable on this legacy record"}
+              </p>
+              {entry.dispatchMode === "canary" &&
+              (entry.dispatchCanaryParentEmails?.length ?? 0) > 0 ? (
+                <p>
+                  <span className="font-semibold text-[#0f172a]">
+                    Canary recipients:
+                  </span>{" "}
+                  {entry.dispatchCanaryParentEmails?.join(", ")}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="mt-4 space-y-4">
+              {[
+                {
+                  label: "Targeted families",
+                  entries: entry.targetedProfiles ?? [],
+                },
+                {
+                  label: "Skipped families",
+                  entries: entry.skippedProfiles ?? [],
+                },
+                {
+                  label: "Pending future windows",
+                  entries: entry.pendingFutureProfiles ?? [],
+                },
+                {
+                  label: "Held for channel recovery",
+                  entries: entry.heldProfiles ?? [],
+                },
+              ].map((group) => (
+                <div
+                  key={group.label}
+                  className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    {group.label}
+                  </p>
+                  {group.entries.length > 0 ? (
+                    <div className="mt-3 space-y-3">
+                      {group.entries.map((audienceEntry) => (
+                        <article
+                          key={`${group.label}-${audienceEntry.parentId}-${audienceEntry.reason}`}
+                          className="rounded-[20px] border border-slate-200 bg-white px-4 py-3"
+                        >
+                          <p className="text-sm font-semibold text-[#0f172a]">
+                            {audienceEntry.parentEmail}
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600">
+                            {audienceEntry.reason}
+                          </p>
+                          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                            {audienceEntry.localDeliveryWindow}
+                          </p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-slate-500">
+                      No audience entries recorded for this category.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
               Source references
             </h2>
             <div className="mt-4 space-y-4">
@@ -414,6 +504,11 @@ export default async function DailyBriefDetailPage({
           </section>
         </aside>
       </div>
+
+      <ManualResendPanel
+        briefId={entry.id}
+        defaultParentEmail={getDefaultManualResendEmail(entry)}
+      />
     </section>
   );
 }

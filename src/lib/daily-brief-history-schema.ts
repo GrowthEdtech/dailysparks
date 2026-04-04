@@ -1,4 +1,5 @@
 import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
+import type { DailyBriefDispatchMode } from "./daily-brief-delivery-policy";
 import type {
   DailyBriefBlockedTopic,
   DailyBriefSelectionDecision,
@@ -65,6 +66,13 @@ export type DailyBriefDeliveryReceipt = {
   externalUrl: string | null;
 };
 
+export type DailyBriefDispatchAudienceProfile = {
+  parentId: string;
+  parentEmail: string;
+  localDeliveryWindow: string;
+  reason: string;
+};
+
 export type DailyBriefHistoryRecord = {
   id: string;
   scheduledFor: string;
@@ -101,6 +109,12 @@ export type DailyBriefHistoryRecord = {
   deliveryAttemptCount: number;
   deliverySuccessCount: number;
   deliveryFailureCount: number;
+  dispatchMode?: DailyBriefDispatchMode | null;
+  dispatchCanaryParentEmails?: string[];
+  targetedProfiles?: DailyBriefDispatchAudienceProfile[];
+  skippedProfiles?: DailyBriefDispatchAudienceProfile[];
+  pendingFutureProfiles?: DailyBriefDispatchAudienceProfile[];
+  heldProfiles?: DailyBriefDispatchAudienceProfile[];
   deliveryReceipts: DailyBriefDeliveryReceipt[];
   failedDeliveryTargets: DailyBriefFailedDeliveryTarget[];
   failureReason: string;

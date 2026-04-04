@@ -13,6 +13,7 @@ import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alert
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
 import { hasAutomatedDeliverySubscription } from "../../../../../lib/delivery-eligibility";
 import { filterRetryableProfilesByProgramme } from "../../../../../lib/delivery-readiness";
+import { buildProfileLocalDeliveryWindowLabel } from "../../../../../lib/delivery-window";
 import {
   buildEditorialCohortEvaluationDate,
   filterProfilesByEditorialCohort,
@@ -90,6 +91,18 @@ function appendAdminNotes(existing: string, note: string) {
   }
 
   return `${trimmedExisting}\n${trimmedNote}`;
+}
+
+function buildDispatchAudienceProfiles(
+  profiles: ReturnType<typeof filterProfilesByEditorialCohort>,
+  reason: string,
+) {
+  return profiles.map((profile) => ({
+    parentId: profile.parent.id,
+    parentEmail: profile.parent.email,
+    localDeliveryWindow: buildProfileLocalDeliveryWindowLabel(profile),
+    reason,
+  }));
 }
 
 function normalizeRecordKind(value: unknown): DailyBriefRecordKind | undefined {
@@ -209,6 +222,28 @@ export async function POST(request: Request) {
     ).filter((profile) => failedParentIds.has(profile.parent.id));
     const dispatchPlan = planDailyBriefDispatch(eligibleProgrammeProfiles);
     const programmeProfiles = dispatchPlan.selectedProfiles;
+    const targetedProfiles = buildDispatchAudienceProfiles(
+      programmeProfiles,
+      dispatchPlan.mode === "canary"
+        ? "Selected for the current canary retry wave."
+        : "Selected for the current retry wave.",
+    );
+    const skippedProfiles = buildDispatchAudienceProfiles(
+      dispatchPlan.skippedProfiles,
+      "Skipped by canary mode for this retry wave.",
+    );
+    const heldProfiles = buildDispatchAudienceProfiles(
+      cohortProfiles
+        .filter((profile) => profile.student.programme === brief.programme)
+        .filter((profile) => failedParentIds.has(profile.parent.id))
+        .filter(
+          (profile) =>
+            !eligibleProgrammeProfiles.some(
+              (eligibleProfile) => eligibleProfile.parent.id === profile.parent.id,
+            ),
+        ),
+      "No verified delivery channel was available for retry.",
+    );
     const dispatchContext =
       dispatchPlan.mode === "canary"
         ? `Retry mode: canary. Targeted ${programmeProfiles.length} of ${eligibleProgrammeProfiles.length} failed profile(s).`
@@ -218,6 +253,14 @@ export async function POST(request: Request) {
     skippedProfileCount += dispatchPlan.skippedProfiles.length;
 
     if (programmeProfiles.length === 0) {
+      await updateDailyBriefHistoryEntry(brief.id, {
+        dispatchMode: dispatchPlan.mode,
+        dispatchCanaryParentEmails: dispatchPlan.canaryParentEmails,
+        targetedProfiles,
+        skippedProfiles,
+        pendingFutureProfiles: [],
+        heldProfiles,
+      });
       await emitDailyBriefOpsAlert({
         stage: "retry-delivery",
         severity: "warning",
@@ -294,6 +337,12 @@ export async function POST(request: Request) {
       deliveryAttemptCount: nextDeliveryAttemptCount,
       deliverySuccessCount: nextDeliverySuccessCount,
       deliveryFailureCount: nextDeliveryFailureCount,
+      dispatchMode: dispatchPlan.mode,
+      dispatchCanaryParentEmails: dispatchPlan.canaryParentEmails,
+      targetedProfiles,
+      skippedProfiles,
+      pendingFutureProfiles: [],
+      heldProfiles,
       deliveryReceipts: nextDeliveryReceipts,
       failedDeliveryTargets: remainingFailedTargets,
       retryEligibleUntil: hasRemainingFailures

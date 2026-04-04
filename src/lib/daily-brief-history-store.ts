@@ -1,6 +1,9 @@
 import { firestoreDailyBriefHistoryStore } from "./firestore-daily-brief-history-store";
 import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
-import type { DailyBriefHistoryRecord } from "./daily-brief-history-schema";
+import type {
+  DailyBriefDispatchAudienceProfile,
+  DailyBriefHistoryRecord,
+} from "./daily-brief-history-schema";
 import { normalizeHeadlineForComparison } from "./daily-brief-selection-types";
 import { localDailyBriefHistoryStore } from "./local-daily-brief-history-store";
 import type {
@@ -60,6 +63,19 @@ function defaultEditorialCohort(
   editorialCohort: DailyBriefEditorialCohort | undefined,
 ) {
   return editorialCohort ?? "APAC";
+}
+
+function normalizeDispatchAudienceProfiles(
+  entries: DailyBriefDispatchAudienceProfile[] | undefined,
+) {
+  return (
+    entries?.map((entry) => ({
+      parentId: entry.parentId.trim(),
+      parentEmail: entry.parentEmail.trim(),
+      localDeliveryWindow: entry.localDeliveryWindow.trim(),
+      reason: entry.reason.trim(),
+    })) ?? []
+  );
 }
 
 export async function listDailyBriefHistory(
@@ -155,6 +171,16 @@ export async function createDailyBriefHistoryEntry(
     deliveryAttemptCount: input.deliveryAttemptCount ?? 0,
     deliverySuccessCount: input.deliverySuccessCount ?? 0,
     deliveryFailureCount: input.deliveryFailureCount ?? 0,
+    dispatchMode: input.dispatchMode ?? null,
+    dispatchCanaryParentEmails:
+      input.dispatchCanaryParentEmails?.map((value) => value.trim()).filter(Boolean) ??
+      [],
+    targetedProfiles: normalizeDispatchAudienceProfiles(input.targetedProfiles),
+    skippedProfiles: normalizeDispatchAudienceProfiles(input.skippedProfiles),
+    pendingFutureProfiles: normalizeDispatchAudienceProfiles(
+      input.pendingFutureProfiles,
+    ),
+    heldProfiles: normalizeDispatchAudienceProfiles(input.heldProfiles),
     deliveryReceipts:
       input.deliveryReceipts?.map((receipt) => ({
         parentId: receipt.parentId.trim(),
@@ -334,6 +360,38 @@ export async function updateDailyBriefHistoryEntry(
 
   if ("deliveryFailureCount" in input) {
     nextInput.deliveryFailureCount = input.deliveryFailureCount;
+  }
+
+  if ("dispatchMode" in input) {
+    nextInput.dispatchMode = input.dispatchMode ?? null;
+  }
+
+  if ("dispatchCanaryParentEmails" in input) {
+    nextInput.dispatchCanaryParentEmails =
+      input.dispatchCanaryParentEmails?.map((value) => value.trim()).filter(Boolean) ??
+      [];
+  }
+
+  if ("targetedProfiles" in input) {
+    nextInput.targetedProfiles = normalizeDispatchAudienceProfiles(
+      input.targetedProfiles,
+    );
+  }
+
+  if ("skippedProfiles" in input) {
+    nextInput.skippedProfiles = normalizeDispatchAudienceProfiles(
+      input.skippedProfiles,
+    );
+  }
+
+  if ("pendingFutureProfiles" in input) {
+    nextInput.pendingFutureProfiles = normalizeDispatchAudienceProfiles(
+      input.pendingFutureProfiles,
+    );
+  }
+
+  if ("heldProfiles" in input) {
+    nextInput.heldProfiles = normalizeDispatchAudienceProfiles(input.heldProfiles);
   }
 
   if ("deliveryReceipts" in input) {

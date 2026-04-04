@@ -316,6 +316,19 @@ describe("daily brief deliver route", () => {
       attachmentMode: "canary",
     });
     expect(history[0]?.status).toBe("published");
+    expect(history[0]?.dispatchMode).toBe("canary");
+    expect(history[0]?.targetedProfiles).toEqual([
+      expect.objectContaining({
+        parentEmail: "canary-family@example.com",
+        reason: "Selected for the current canary delivery wave.",
+      }),
+    ]);
+    expect(history[0]?.skippedProfiles).toEqual([
+      expect.objectContaining({
+        parentEmail: "general-family@example.com",
+        reason: "Skipped by canary mode for this delivery wave.",
+      }),
+    ]);
   });
 
   test("honors request-level canary overrides without changing global env", async () => {
@@ -464,6 +477,12 @@ describe("daily brief deliver route", () => {
     expect(history[0]?.status).toBe("approved");
     expect(history[0]?.pipelineStage).toBe("delivering");
     expect(history[0]?.deliveryReceipts).toHaveLength(1);
+    expect(history[0]?.pendingFutureProfiles).toEqual([
+      expect.objectContaining({
+        parentEmail: "bangkok-family@example.com",
+        reason: "Pending future local delivery window.",
+      }),
+    ]);
 
     const secondWaveResponse = await deliverDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
@@ -487,6 +506,41 @@ describe("daily brief deliver route", () => {
     expect(history[0]?.status).toBe("published");
     expect(history[0]?.pipelineStage).toBe("published");
     expect(history[0]?.deliveryReceipts).toHaveLength(2);
+  });
+
+  test("stores held families when no healthy delivery channels are available", async () => {
+    await createEligibleProgrammeProfile(
+      "general-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await updateStudentGoodnotesDelivery("general-family@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "failed",
+      goodnotesLastDeliveryMessage: "Relay timeout.",
+    });
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.deliveredCount).toBe(0);
+    expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
+    expect(history[0]?.heldProfiles).toEqual([
+      expect.objectContaining({
+        parentEmail: "general-family@example.com",
+        reason: "No healthy delivery channel was available for this wave.",
+      }),
+    ]);
   });
 
   test("falls back to the previous business date when late local-time waves cross Hong Kong midnight", async () => {

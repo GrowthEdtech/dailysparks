@@ -237,6 +237,51 @@ describe("buildDailyBriefOpsSummary", () => {
     );
   });
 
+  test("prefers dispatch audit reasons over generic missing receipt fallbacks", () => {
+    const profile = buildProfile({
+      parent: {
+        id: "parent-canary",
+        email: "canary-skip@example.com",
+        deliveryTimeZone: "Asia/Hong_Kong",
+      },
+      student: {
+        id: "student-canary",
+        parentId: "parent-canary",
+      },
+    });
+    const history = [
+      buildHistoryRecord({
+        deliveryReceipts: [],
+        dispatchMode: "canary",
+        targetedProfiles: [],
+        skippedProfiles: [
+          {
+            parentId: "parent-canary",
+            parentEmail: "canary-skip@example.com",
+            localDeliveryWindow: "9:00 AM · Asia/Hong Kong",
+            reason: "Skipped by canary mode for this delivery wave.",
+          },
+        ],
+      }),
+    ];
+
+    const summary = buildDailyBriefOpsSummary({
+      profiles: [profile],
+      history,
+      runDate: "2026-04-03",
+    });
+
+    expect(summary.skippedFamilies).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          parentEmail: "canary-skip@example.com",
+          reason: "Skipped by canary mode for this delivery wave.",
+        }),
+      ]),
+    );
+    expect(summary.deliveredFamilyCount).toBe(0);
+  });
+
   test("ignores non-production records and inactive families in today summary", () => {
     const profiles = [
       buildProfile({

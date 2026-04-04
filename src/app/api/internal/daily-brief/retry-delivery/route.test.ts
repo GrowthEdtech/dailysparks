@@ -230,6 +230,13 @@ describe("daily brief retry-delivery route", () => {
     });
     expect(history[0]?.failedDeliveryTargets).toEqual([]);
     expect(history[0]?.status).toBe("published");
+    expect(history[0]?.dispatchMode).toBe("all");
+    expect(history[0]?.targetedProfiles).toEqual([
+      expect.objectContaining({
+        parentEmail: secondProfile.parent.email,
+        reason: "Selected for the current retry wave.",
+      }),
+    ]);
   });
 
   test("respects retryEligibleUntil and skips expired retry windows", async () => {
@@ -359,6 +366,13 @@ describe("daily brief retry-delivery route", () => {
     expect(history[0]?.failedDeliveryTargets).toEqual([
       expect.objectContaining({
         parentId: generalProfile.parent.id,
+      }),
+    ]);
+    expect(history[0]?.dispatchMode).toBe("canary");
+    expect(history[0]?.skippedProfiles).toEqual([
+      expect.objectContaining({
+        parentEmail: "general-family@example.com",
+        reason: "Skipped by canary mode for this retry wave.",
       }),
     ]);
   });

@@ -20,7 +20,10 @@ import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alert
 import { listPendingDeliveryTargets } from "../../../../../lib/daily-brief-delivery-progress";
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
 import { hasAutomatedDeliverySubscription } from "../../../../../lib/delivery-eligibility";
-import { splitProfilesByDeliveryWindow } from "../../../../../lib/delivery-window";
+import {
+  buildProfileLocalDeliveryWindowLabel,
+  splitProfilesByDeliveryWindow,
+} from "../../../../../lib/delivery-window";
 import {
   getDailyBriefSchedulerHeaderName,
   hasValidDailyBriefSchedulerSecret,
@@ -122,6 +125,18 @@ function appendAdminNotes(existing: string, note: string) {
   }
 
   return `${trimmedExisting}\n${trimmedNote}`;
+}
+
+function buildDispatchAudienceProfiles(
+  profiles: Awaited<ReturnType<typeof listParentProfiles>>,
+  reason: string,
+) {
+  return profiles.map((profile) => ({
+    parentId: profile.parent.id,
+    parentEmail: profile.parent.email,
+    localDeliveryWindow: buildProfileLocalDeliveryWindowLabel(profile),
+    reason,
+  }));
 }
 
 async function parseRequestBody(
@@ -263,6 +278,29 @@ export async function POST(request: Request) {
       dispatchOverrides,
     );
     const programmeProfiles = dispatchPlan.selectedProfiles;
+    const targetedProfiles = buildDispatchAudienceProfiles(
+      programmeProfiles,
+      dispatchPlan.mode === "canary"
+        ? "Selected for the current canary delivery wave."
+        : "Selected for the current delivery wave.",
+    );
+    const skippedProfiles = buildDispatchAudienceProfiles(
+      dispatchPlan.skippedProfiles,
+      "Skipped by canary mode for this delivery wave.",
+    );
+    const pendingFutureProfiles = buildDispatchAudienceProfiles(
+      deliveryWindowSplit.pendingProfiles,
+      "Pending future local delivery window.",
+    );
+    const heldProfiles = buildDispatchAudienceProfiles(
+      activeProgrammeProfiles.filter(
+        (profile) =>
+          !eligibleProgrammeProfiles.some(
+            (eligibleProfile) => eligibleProfile.parent.id === profile.parent.id,
+          ),
+      ),
+      "No healthy delivery channel was available for this wave.",
+    );
     const dispatchContext =
       dispatchPlan.mode === "canary"
         ? `Dispatch mode: canary. Targeted ${programmeProfiles.length} of ${eligibleProgrammeProfiles.length} eligible profile(s) in this local-time wave.`
@@ -280,6 +318,12 @@ export async function POST(request: Request) {
         status: "failed",
         pipelineStage: "failed",
         lastDeliveryAttemptAt: dispatchTimestamp,
+        dispatchMode: dispatchPlan.mode,
+        dispatchCanaryParentEmails: dispatchPlan.canaryParentEmails,
+        targetedProfiles,
+        skippedProfiles,
+        pendingFutureProfiles,
+        heldProfiles,
         failureReason,
         deliveryFailureCount: brief.deliveryFailureCount,
         failedDeliveryTargets: [],
@@ -306,6 +350,12 @@ export async function POST(request: Request) {
 
     if (eligibleProgrammeProfiles.length === 0) {
       await updateDailyBriefHistoryEntry(brief.id, {
+        dispatchMode: dispatchPlan.mode,
+        dispatchCanaryParentEmails: dispatchPlan.canaryParentEmails,
+        targetedProfiles,
+        skippedProfiles,
+        pendingFutureProfiles,
+        heldProfiles,
         adminNotes: appendAdminNotes(
           brief.adminNotes,
           "No dispatchable delivery channels were healthy for this programme in the current wave. The brief stayed ready for a later recovery dispatch.",
@@ -328,11 +378,25 @@ export async function POST(request: Request) {
     }
 
     if (deliveryWindowSplit.dueProfiles.length === 0) {
+      await updateDailyBriefHistoryEntry(brief.id, {
+        dispatchMode: dispatchPlan.mode,
+        dispatchCanaryParentEmails: dispatchPlan.canaryParentEmails,
+        targetedProfiles,
+        skippedProfiles,
+        pendingFutureProfiles,
+        heldProfiles,
+      });
       continue;
     }
 
     if (programmeProfiles.length === 0) {
       await updateDailyBriefHistoryEntry(brief.id, {
+        dispatchMode: dispatchPlan.mode,
+        dispatchCanaryParentEmails: dispatchPlan.canaryParentEmails,
+        targetedProfiles,
+        skippedProfiles,
+        pendingFutureProfiles,
+        heldProfiles,
         adminNotes: appendAdminNotes(
           brief.adminNotes,
           `${dispatchContext} No canary delivery profiles matched this programme, so the brief stayed ready for a later full dispatch.`,
@@ -416,6 +480,12 @@ export async function POST(request: Request) {
       deliveryAttemptCount: nextDeliveryAttemptCount,
       deliverySuccessCount: nextDeliverySuccessCount,
       deliveryFailureCount: nextDeliveryFailureCount,
+      dispatchMode: dispatchPlan.mode,
+      dispatchCanaryParentEmails: dispatchPlan.canaryParentEmails,
+      targetedProfiles,
+      skippedProfiles,
+      pendingFutureProfiles,
+      heldProfiles,
       deliveryReceipts: nextDeliveryReceipts,
       failedDeliveryTargets: nextFailedDeliveryTargets,
       retryEligibleUntil: hasFailures ? retryEligibleUntil : null,

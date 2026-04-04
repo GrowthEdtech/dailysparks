@@ -56,6 +56,29 @@ function buildSkippedReason(
   relevantBriefs: DailyBriefHistoryRecord[],
   overallLevel: ReturnType<typeof getFamilyDeliveryHealthRollup>["overall"],
 ) {
+  const auditReason =
+    relevantBriefs.flatMap((entry) => entry.skippedProfiles ?? []).find(
+      (entry) => entry.parentId === profile.parent.id,
+    )?.reason ??
+    relevantBriefs.flatMap((entry) => entry.pendingFutureProfiles ?? []).find(
+      (entry) => entry.parentId === profile.parent.id,
+    )?.reason ??
+    relevantBriefs.flatMap((entry) => entry.heldProfiles ?? []).find(
+      (entry) => entry.parentId === profile.parent.id,
+    )?.reason;
+
+  if (auditReason) {
+    return auditReason;
+  }
+
+  if (
+    relevantBriefs.flatMap((entry) => entry.targetedProfiles ?? []).some(
+      (entry) => entry.parentId === profile.parent.id,
+    )
+  ) {
+    return "Dispatch attempted but no delivery receipt persisted";
+  }
+
   if (relevantBriefs.length === 0) {
     return `No ${profile.student.programme} brief generated today`;
   }
