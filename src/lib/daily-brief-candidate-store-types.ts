@@ -7,7 +7,9 @@ export type CreateDailyBriefCandidateSnapshotInput = Omit<
   | "candidateCount"
   | "createdAt"
   | "updatedAt"
->;
+  | "blockedTopics"
+> &
+  Partial<Pick<DailyBriefCandidateSnapshotRecord, "blockedTopics">>;
 
 export type DailyBriefCandidateSnapshotStore = {
   listSnapshots(): Promise<DailyBriefCandidateSnapshotRecord[]>;

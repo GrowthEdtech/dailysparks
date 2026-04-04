@@ -151,6 +151,78 @@ export default async function DailyBriefDetailPage({
 
           <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+              Selection governance
+            </h2>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+              <p>
+                <span className="font-semibold text-[#0f172a]">
+                  Selection decision:
+                </span>{" "}
+                {entry.selectionDecision === "follow_up"
+                  ? "Follow-up exception"
+                  : "New topic"}
+              </p>
+              <p>
+                <span className="font-semibold text-[#0f172a]">
+                  Topic cluster key:
+                </span>{" "}
+                {entry.topicClusterKey}
+              </p>
+              <p>
+                <span className="font-semibold text-[#0f172a]">
+                  Normalized headline:
+                </span>{" "}
+                {entry.normalizedHeadline}
+              </p>
+              {entry.topicLatestPublishedAt ? (
+                <p>
+                  <span className="font-semibold text-[#0f172a]">
+                    Latest topic source:
+                  </span>{" "}
+                  {formatAdminDateTime(entry.topicLatestPublishedAt)}
+                </p>
+              ) : null}
+              {entry.selectionOverrideNote ? (
+                <p className="rounded-[20px] border border-sky-200 bg-sky-50 px-4 py-3 text-sky-900">
+                  <span className="font-semibold text-sky-950">
+                    Override note:
+                  </span>{" "}
+                  {entry.selectionOverrideNote}
+                </p>
+              ) : null}
+            </div>
+
+            {entry.blockedTopics.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Blocked alternatives
+                </h3>
+                {entry.blockedTopics.map((topic) => (
+                  <article
+                    key={`${topic.clusterKey}-${topic.existingScheduledFor}-${topic.policy}`}
+                    className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {topic.policy.replaceAll("_", " ")}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                      {topic.headline}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {topic.reason}
+                    </p>
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                      Existing published brief · {topic.existingEditorialCohort} ·{" "}
+                      {formatDate(topic.existingScheduledFor)}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+          </section>
+
+          <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
               Delivery health
             </h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">

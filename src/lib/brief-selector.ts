@@ -1,6 +1,10 @@
 import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
 import type { DailyBriefSelectedTopicRecord } from "./daily-brief-candidate-schema";
 import type { DailyBriefSourceReference } from "./daily-brief-history-schema";
+import {
+  normalizeHeadlineForComparison,
+  type DailyBriefSelectionDecision,
+} from "./daily-brief-selection-types";
 import type { Programme } from "./mvp-types";
 import type { EditorialSourceCandidate } from "./source-ingestion";
 
@@ -8,6 +12,7 @@ export type SelectedDailyTopic = {
   clusterKey: string;
   headline: string;
   summary: string;
+  latestPublishedAt: string | null;
   topicCandidates: EditorialSourceCandidate[];
   sourceReferences: DailyBriefSourceReference[];
   eligibleProgrammes: Programme[];
@@ -63,12 +68,12 @@ function buildSourceReferences(
   });
 }
 
-export function selectDailyTopicCluster(
+export function rankDailyTopicClusters(
   candidates: EditorialSourceCandidate[],
   eligibleProgrammes: Programme[],
-): SelectedDailyTopic | null {
+) {
   if (candidates.length === 0 || eligibleProgrammes.length === 0) {
-    return null;
+    return [] as SelectedDailyTopic[];
   }
 
   const clusters = new Map<string, EditorialSourceCandidate[]>();
@@ -81,7 +86,7 @@ export function selectDailyTopicCluster(
     clusters.set(clusterKey, current);
   }
 
-  const selectedCluster = Array.from(clusters.entries())
+  return Array.from(clusters.entries())
     .map(([clusterKey, clusterCandidates]) => {
       const sortedCandidates = sortClusterCandidates(clusterCandidates);
       const uniqueSources = new Set(
@@ -105,37 +110,46 @@ export function selectDailyTopicCluster(
       }
 
       return left.candidates[0]!.title.localeCompare(right.candidates[0]!.title);
-    })[0];
+    })
+    .map((selectedCluster) => ({
+      clusterKey: selectedCluster.clusterKey,
+      headline: selectedCluster.candidates[0]?.title ?? "",
+      summary: selectedCluster.candidates[0]?.summary ?? "",
+      latestPublishedAt: selectedCluster.candidates[0]?.publishedAt ?? null,
+      topicCandidates: selectedCluster.candidates,
+      sourceReferences: buildSourceReferences(selectedCluster.candidates),
+      eligibleProgrammes: [...eligibleProgrammes],
+    }));
+}
 
-  if (!selectedCluster) {
-    return null;
-  }
-
-  return {
-    clusterKey: selectedCluster.clusterKey,
-    headline: selectedCluster.candidates[0]?.title ?? "",
-    summary: selectedCluster.candidates[0]?.summary ?? "",
-    topicCandidates: selectedCluster.candidates,
-    sourceReferences: buildSourceReferences(selectedCluster.candidates),
-    eligibleProgrammes: [...eligibleProgrammes],
-  };
+export function selectDailyTopicCluster(
+  candidates: EditorialSourceCandidate[],
+  eligibleProgrammes: Programme[],
+): SelectedDailyTopic | null {
+  return rankDailyTopicClusters(candidates, eligibleProgrammes)[0] ?? null;
 }
 
 export function buildSelectedTopicRecord(input: {
   selectedTopic: SelectedDailyTopic;
   selectedAt: string;
   selectedByCohort: DailyBriefEditorialCohort;
+  selectionDecision?: DailyBriefSelectionDecision;
+  selectionOverrideNote?: string;
 }): DailyBriefSelectedTopicRecord {
   return {
     clusterKey: input.selectedTopic.clusterKey,
     headline: input.selectedTopic.headline,
+    normalizedHeadline: normalizeHeadlineForComparison(input.selectedTopic.headline),
     summary: input.selectedTopic.summary,
     sourceReferences: input.selectedTopic.sourceReferences.map((reference) => ({
       ...reference,
     })),
     candidateCount: input.selectedTopic.topicCandidates.length,
+    latestPublishedAt: input.selectedTopic.latestPublishedAt,
     selectedAt: input.selectedAt,
     selectedByCohort: input.selectedByCohort,
+    selectionDecision: input.selectionDecision ?? "new",
+    selectionOverrideNote: input.selectionOverrideNote ?? "",
   };
 }
 
@@ -151,6 +165,7 @@ export function hydrateSelectedTopicFromRecord(input: {
   return {
     clusterKey: input.record.clusterKey,
     headline: input.record.headline,
+    latestPublishedAt: input.record.latestPublishedAt,
     summary: input.record.summary,
     topicCandidates: matchingCandidates,
     sourceReferences: input.record.sourceReferences.map((reference) => ({

@@ -15,6 +15,7 @@ import type {
   DailyBriefHistoryRecord,
   DailyBriefRepetitionRisk,
 } from "./daily-brief-history-schema";
+import { selectTopicWithPolicy } from "./daily-brief-selection-policy";
 import { listEligibleDeliveryProfiles } from "./mvp-store";
 import type { Programme } from "./mvp-types";
 import {
@@ -23,9 +24,9 @@ import {
 import type { PromptPolicyRecord } from "./prompt-policy-schema";
 import {
   hydrateSelectedTopicFromRecord,
-  selectDailyTopicCluster,
   type SelectedDailyTopic,
 } from "./brief-selector";
+import { normalizeHeadlineForComparison } from "./daily-brief-selection-types";
 import {
   ingestEditorialSourceCandidates,
   type EditorialSourceCandidate,
@@ -52,13 +53,22 @@ export type GeneratedDailyBriefDraft = Omit<
   | "failureReason"
   | "retryEligibleUntil"
 > & {
+  topicClusterKey: string;
+  topicLatestPublishedAt: string | null;
+  selectionDecision: DailyBriefHistoryRecord["selectionDecision"];
+  selectionOverrideNote: string;
+  blockedTopics: DailyBriefHistoryRecord["blockedTopics"];
   resolvedPrompt: string;
-  sourceClusterKey: string;
   candidateCount: number;
 };
 
 export type DailyBriefGenerationResult = {
   selectedTopic: SelectedDailyTopic | null;
+  selectionAudit: {
+    decision: DailyBriefHistoryRecord["selectionDecision"] | null;
+    overrideNote: string;
+    blockedTopics: DailyBriefHistoryRecord["blockedTopics"];
+  };
   generatedBriefs: GeneratedDailyBriefDraft[];
   skippedProgrammes: Programme[];
 };
@@ -268,6 +278,11 @@ export async function generateDailyBriefDrafts(
   if (eligibleProgrammes.length === 0) {
     return {
       selectedTopic: null,
+      selectionAudit: {
+        decision: null,
+        overrideNote: "",
+        blockedTopics: [],
+      },
       generatedBriefs: [],
       skippedProgrammes: [],
     };
@@ -285,25 +300,45 @@ export async function generateDailyBriefDrafts(
     throw new Error("No default AI connection is configured.");
   }
 
+  const historyEntries = options.historyEntries ?? (await listDailyBriefHistory());
   const candidates =
     options.candidates ?? (await ingestEditorialSourceCandidates({ now: options.now }));
-  const selectedTopic = options.selectedTopicRecord
-    ? hydrateSelectedTopicFromRecord({
-        record: options.selectedTopicRecord,
+  const selectionDecision = options.selectedTopicRecord
+    ? {
+        topic: hydrateSelectedTopicFromRecord({
+          record: options.selectedTopicRecord,
+          candidates,
+          eligibleProgrammes,
+        }),
+        topicClusterKey: options.selectedTopicRecord.clusterKey,
+        normalizedHeadline: options.selectedTopicRecord.normalizedHeadline,
+        latestPublishedAt: options.selectedTopicRecord.latestPublishedAt,
+        selectionAudit: {
+          decision: options.selectedTopicRecord.selectionDecision,
+          overrideNote: options.selectedTopicRecord.selectionOverrideNote,
+          blockedTopics: [],
+        },
+      }
+    : selectTopicWithPolicy({
         candidates,
         eligibleProgrammes,
-      })
-    : selectDailyTopicCluster(candidates, eligibleProgrammes);
+        historyEntries,
+        scheduledFor: options.scheduledFor,
+        editorialCohort,
+        recordKind: options.recordKind ?? "production",
+        topicReuseWindowDays: DAILY_SPARKS_REPETITION_POLICY.topicReuse.windowDays,
+      });
+  const selectedTopic = selectionDecision.topic;
 
   if (!selectedTopic) {
     return {
       selectedTopic: null,
+      selectionAudit: selectionDecision.selectionAudit,
       generatedBriefs: [],
       skippedProgrammes: [],
     };
   }
 
-  const historyEntries = options.historyEntries ?? (await listDailyBriefHistory());
   const existingProgrammes = getExistingProgrammeSet(
     historyEntries,
     options.scheduledFor,
@@ -343,10 +378,19 @@ export async function generateDailyBriefDrafts(
       scheduledFor: options.scheduledFor,
       recordKind: options.recordKind ?? "production",
       headline: generatedPayload.headline,
+      normalizedHeadline:
+        selectionDecision.normalizedHeadline ??
+        normalizeHeadlineForComparison(generatedPayload.headline),
       summary: generatedPayload.summary,
       programme,
       editorialCohort,
       status: "draft",
+      topicClusterKey: selectionDecision.topicClusterKey ?? selectedTopic.clusterKey,
+      topicLatestPublishedAt: selectionDecision.latestPublishedAt,
+      selectionDecision:
+        selectionDecision.selectionAudit.decision ?? "new",
+      selectionOverrideNote: selectionDecision.selectionAudit.overrideNote,
+      blockedTopics: selectionDecision.selectionAudit.blockedTopics,
       topicTags: generatedPayload.topicTags,
       sourceReferences: selectedTopic.sourceReferences,
       aiConnectionId: aiConnection.id,
@@ -360,13 +404,13 @@ export async function generateDailyBriefDrafts(
       adminNotes: "",
       briefMarkdown: generatedPayload.briefMarkdown,
       resolvedPrompt,
-      sourceClusterKey: selectedTopic.clusterKey,
       candidateCount: selectedTopic.topicCandidates.length,
     });
   }
 
   return {
     selectedTopic,
+    selectionAudit: selectionDecision.selectionAudit,
     generatedBriefs,
     skippedProgrammes,
   };

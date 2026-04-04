@@ -3,6 +3,7 @@ import type {
   DailyBriefCandidateSnapshotRecord,
   DailyBriefSelectedTopicRecord,
 } from "./daily-brief-candidate-schema";
+import type { DailyBriefBlockedTopic } from "./daily-brief-selection-types";
 import type {
   CreateDailyBriefCandidateSnapshotInput,
   DailyBriefCandidateSnapshotStore,
@@ -61,6 +62,10 @@ function cloneSelectedTopic(
   } satisfies DailyBriefSelectedTopicRecord;
 }
 
+function cloneBlockedTopics(value: DailyBriefBlockedTopic[] | undefined) {
+  return value?.map((topic) => ({ ...topic })) ?? [];
+}
+
 export async function listDailyBriefCandidateSnapshots() {
   const snapshots = await getDailyBriefCandidateSnapshotStore().listSnapshots();
 
@@ -90,6 +95,9 @@ export async function upsertDailyBriefCandidateSnapshot(
     selectionFrozenAt: input.selectionFrozenAt ?? null,
     selectedTopic: cloneSelectedTopic(
       input.selectedTopic ?? existingSnapshot?.selectedTopic,
+    ),
+    blockedTopics: cloneBlockedTopics(
+      input.blockedTopics ?? existingSnapshot?.blockedTopics,
     ),
     createdAt: existingSnapshot?.createdAt ?? timestamp,
     updatedAt: timestamp,

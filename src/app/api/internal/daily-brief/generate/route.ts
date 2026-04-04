@@ -141,7 +141,6 @@ export async function POST(request: Request) {
     );
   }
   const historyEntries = await listDailyBriefHistory({
-    scheduledFor: runDate,
     recordKind,
   });
 
@@ -163,18 +162,27 @@ export async function POST(request: Request) {
             selectedTopic: generation.selectedTopic,
             selectedAt: generationCompletedAt,
             selectedByCohort: editorialCohort,
+            selectionDecision: generation.selectionAudit.decision ?? "new",
+            selectionOverrideNote: generation.selectionAudit.overrideNote,
           })
         : null);
     const shouldFreezeSnapshot =
       generation.generatedBriefs.length > 0 &&
       candidateSnapshot.selectionStatus !== "frozen";
-    const frozenSnapshot = shouldFreezeSnapshot
+    const shouldPersistSelectionAudit =
+      shouldFreezeSnapshot || generation.selectionAudit.blockedTopics.length > 0;
+    const frozenSnapshot = shouldPersistSelectionAudit
       ? await upsertDailyBriefCandidateSnapshot({
           scheduledFor: candidateSnapshot.scheduledFor,
           candidates: candidateSnapshot.candidates,
-          selectionStatus: "frozen",
-          selectionFrozenAt: generationCompletedAt,
+          selectionStatus: shouldFreezeSnapshot
+            ? "frozen"
+            : candidateSnapshot.selectionStatus,
+          selectionFrozenAt: shouldFreezeSnapshot
+            ? generationCompletedAt
+            : candidateSnapshot.selectionFrozenAt,
           selectedTopic: selectedTopicRecord,
+          blockedTopics: generation.selectionAudit.blockedTopics,
         })
       : candidateSnapshot;
     const deliveryWindowAt = buildDeliveryWindowTimestamp(runDate);
@@ -185,10 +193,16 @@ export async function POST(request: Request) {
         scheduledFor: brief.scheduledFor,
         recordKind,
         headline: brief.headline,
+        normalizedHeadline: brief.normalizedHeadline,
         summary: brief.summary,
         programme: brief.programme,
         editorialCohort: brief.editorialCohort,
         status: "draft",
+        topicClusterKey: brief.topicClusterKey,
+        topicLatestPublishedAt: brief.topicLatestPublishedAt,
+        selectionDecision: brief.selectionDecision,
+        selectionOverrideNote: brief.selectionOverrideNote,
+        blockedTopics: brief.blockedTopics,
         topicTags: brief.topicTags,
         sourceReferences: brief.sourceReferences,
         aiConnectionId: brief.aiConnectionId,
@@ -235,6 +249,8 @@ export async function POST(request: Request) {
         skippedProgrammes: generation.skippedProgrammes,
         historyCreatedCount: createdHistoryEntries.length,
         candidateSnapshotId: frozenSnapshot.id,
+        selectionDecision: generation.selectionAudit.decision,
+        blockedTopicCount: generation.selectionAudit.blockedTopics.length,
       },
     });
   } catch (error) {

@@ -61,9 +61,15 @@ function toGeneratedBriefDraft(
     editorialCohort: brief.editorialCohort,
     recordKind: brief.recordKind,
     headline: brief.headline,
+    normalizedHeadline: brief.normalizedHeadline,
     summary: brief.summary,
     programme: brief.programme,
     status: brief.status,
+    topicClusterKey: brief.topicClusterKey,
+    topicLatestPublishedAt: brief.topicLatestPublishedAt,
+    selectionDecision: brief.selectionDecision,
+    selectionOverrideNote: brief.selectionOverrideNote,
+    blockedTopics: brief.blockedTopics,
     topicTags: brief.topicTags,
     sourceReferences: brief.sourceReferences,
     aiConnectionId: brief.aiConnectionId,
@@ -77,7 +83,6 @@ function toGeneratedBriefDraft(
     adminNotes: brief.adminNotes,
     briefMarkdown: brief.briefMarkdown,
     resolvedPrompt: "",
-    sourceClusterKey: "",
     candidateCount: brief.sourceReferences.length,
   };
 }

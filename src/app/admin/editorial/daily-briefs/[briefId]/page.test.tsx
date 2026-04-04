@@ -32,7 +32,25 @@ describe("DailyBriefDetailPage", () => {
       headline: "Students debate how cities should respond to rising heat.",
       summary: "A climate brief.",
       programme: "MYP",
+      editorialCohort: "EMEA",
       status: "failed",
+      topicClusterKey: "cities rising heat schools",
+      normalizedHeadline:
+        "students debate how cities should respond to rising heat",
+      topicLatestPublishedAt: "2026-04-02T04:00:00.000Z",
+      selectionDecision: "follow_up",
+      selectionOverrideNote:
+        "Follow-up exception approved because the cluster contains a newer development and a distinct headline.",
+      blockedTopics: [
+        {
+          clusterKey: "trump justice department bondi",
+          headline: "Trump removes US Attorney General Pam Bondi",
+          policy: "exact_headline",
+          reason: "An identical published headline already exists in the editorial archive.",
+          existingScheduledFor: "2026-04-01",
+          existingEditorialCohort: "APAC",
+        },
+      ],
       topicTags: ["climate", "cities"],
       sourceReferences: [
         {
@@ -103,6 +121,14 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("Pipeline timeline");
     expect(markup).toContain("Delivery health");
     expect(markup).toContain("Delivery receipts");
+    expect(markup).toContain("Selection governance");
+    expect(markup).toContain("Follow-up exception");
+    expect(markup).toContain(
+      "Follow-up exception approved because the cluster contains a newer development and a distinct headline.",
+    );
+    expect(markup).toContain(
+      "An identical published headline already exists in the editorial archive.",
+    );
     expect(markup).toContain("Test run");
     expect(markup).toContain(
       "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",

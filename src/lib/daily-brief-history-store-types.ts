@@ -17,9 +17,29 @@ type DailyBriefLifecycleField =
 
 export type CreateDailyBriefHistoryEntryInput = Omit<
   DailyBriefHistoryRecord,
-  "id" | "createdAt" | "updatedAt" | DailyBriefLifecycleField
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | DailyBriefLifecycleField
+  | "normalizedHeadline"
+  | "topicClusterKey"
+  | "topicLatestPublishedAt"
+  | "selectionDecision"
+  | "selectionOverrideNote"
+  | "blockedTopics"
 > &
-  Partial<Pick<DailyBriefHistoryRecord, DailyBriefLifecycleField>>;
+  Partial<
+    Pick<
+      DailyBriefHistoryRecord,
+      | DailyBriefLifecycleField
+      | "normalizedHeadline"
+      | "topicClusterKey"
+      | "topicLatestPublishedAt"
+      | "selectionDecision"
+      | "selectionOverrideNote"
+      | "blockedTopics"
+    >
+  >;
 
 export type UpdateDailyBriefHistoryEntryInput = Partial<
   Omit<DailyBriefHistoryRecord, "id" | "createdAt" | "updatedAt">

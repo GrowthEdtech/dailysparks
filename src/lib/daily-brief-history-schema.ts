@@ -1,4 +1,8 @@
 import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
+import type {
+  DailyBriefBlockedTopic,
+  DailyBriefSelectionDecision,
+} from "./daily-brief-selection-types";
 import type { Programme } from "./mvp-types";
 
 export const DAILY_BRIEF_STATUSES = [
@@ -66,10 +70,16 @@ export type DailyBriefHistoryRecord = {
   scheduledFor: string;
   recordKind: DailyBriefRecordKind;
   headline: string;
+  normalizedHeadline: string;
   summary: string;
   programme: Programme;
   editorialCohort: DailyBriefEditorialCohort;
   status: DailyBriefStatus;
+  topicClusterKey: string;
+  topicLatestPublishedAt: string | null;
+  selectionDecision: DailyBriefSelectionDecision;
+  selectionOverrideNote: string;
+  blockedTopics: DailyBriefBlockedTopic[];
   topicTags: string[];
   sourceReferences: DailyBriefSourceReference[];
   aiConnectionId: string;

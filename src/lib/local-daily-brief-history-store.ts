@@ -18,6 +18,11 @@ import {
   type DailyBriefStatus,
 } from "./daily-brief-history-schema";
 import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
+import {
+  normalizeHeadlineForComparison,
+  type DailyBriefBlockedTopic,
+  type DailyBriefSelectionDecision,
+} from "./daily-brief-selection-types";
 import type { DailyBriefHistoryStore } from "./daily-brief-history-store-types";
 import { IB_PROGRAMMES, type Programme } from "./mvp-types";
 
@@ -61,6 +66,10 @@ function normalizeEditorialCohort(value: unknown): DailyBriefEditorialCohort {
   return normalized === "APAC" || normalized === "EMEA" || normalized === "AMER"
     ? normalized
     : "APAC";
+}
+
+function normalizeSelectionDecision(value: unknown): DailyBriefSelectionDecision {
+  return value === "follow_up" ? "follow_up" : "new";
 }
 
 function normalizeStatus(value: unknown): DailyBriefStatus {
@@ -149,6 +158,26 @@ function normalizeSourceReference(
   };
 }
 
+function normalizeBlockedTopic(
+  raw: Partial<DailyBriefBlockedTopic> | undefined,
+): DailyBriefBlockedTopic {
+  return {
+    clusterKey: normalizeString(raw?.clusterKey),
+    headline: normalizeString(raw?.headline),
+    policy:
+      raw?.policy === "exact_headline" ||
+      raw?.policy === "normalized_headline" ||
+      raw?.policy === "topic_cluster_cooldown"
+        ? raw.policy
+        : "topic_cluster_cooldown",
+    reason: normalizeString(raw?.reason),
+    existingScheduledFor: normalizeString(raw?.existingScheduledFor),
+    existingEditorialCohort: normalizeEditorialCohort(
+      raw?.existingEditorialCohort,
+    ),
+  };
+}
+
 function normalizeEntry(
   raw: Partial<DailyBriefHistoryRecord> | undefined,
 ): DailyBriefHistoryRecord {
@@ -159,10 +188,23 @@ function normalizeEntry(
     scheduledFor: normalizeString(raw?.scheduledFor),
     recordKind: normalizeRecordKind(raw?.recordKind),
     headline: normalizeString(raw?.headline),
+    normalizedHeadline:
+      normalizeString(raw?.normalizedHeadline) ||
+      normalizeHeadlineForComparison(normalizeString(raw?.headline)),
     summary: normalizeString(raw?.summary),
     programme: normalizeProgramme(raw?.programme),
     editorialCohort: normalizeEditorialCohort(raw?.editorialCohort),
     status: normalizeStatus(raw?.status),
+    topicClusterKey:
+      normalizeString(raw?.topicClusterKey) ||
+      normalizeString(raw?.normalizedHeadline) ||
+      normalizeHeadlineForComparison(normalizeString(raw?.headline)),
+    topicLatestPublishedAt: normalizeNullableString(raw?.topicLatestPublishedAt),
+    selectionDecision: normalizeSelectionDecision(raw?.selectionDecision),
+    selectionOverrideNote: normalizeString(raw?.selectionOverrideNote),
+    blockedTopics: Array.isArray(raw?.blockedTopics)
+      ? raw.blockedTopics.map((topic) => normalizeBlockedTopic(topic))
+      : [],
     topicTags: normalizeStringArray(raw?.topicTags),
     sourceReferences: Array.isArray(raw?.sourceReferences)
       ? raw.sourceReferences.map((reference) =>

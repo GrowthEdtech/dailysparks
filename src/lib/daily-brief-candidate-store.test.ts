@@ -172,6 +172,7 @@ describe("daily brief candidate store", () => {
     expect(updatedSnapshot.selectedTopic).toEqual({
       clusterKey: "headline alpha",
       headline: "Headline alpha",
+      normalizedHeadline: "",
       summary: "Summary alpha",
       sourceReferences: [
         {
@@ -183,8 +184,11 @@ describe("daily brief candidate store", () => {
         },
       ],
       candidateCount: 2,
+      latestPublishedAt: null,
       selectedAt: "2026-04-03T02:00:00.000Z",
       selectedByCohort: "APAC",
+      selectionDecision: "new",
+      selectionOverrideNote: "",
     });
   });
 

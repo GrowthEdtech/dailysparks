@@ -427,6 +427,194 @@ describe("daily brief orchestrator", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  test("blocks an exact published headline from being reused and reports the block reason", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+
+    const connection = await createAiConnection({
+      name: "NF Relay",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: TEST_AI_CONNECTION_TOKEN,
+      active: true,
+      isDefault: true,
+      notes: "Primary runtime connection.",
+    });
+
+    const promptPolicy = await createPromptPolicy({
+      name: "Family Daily Sparks Core",
+      versionLabel: "v1.0.0",
+      sharedInstructions: "Use clear, family-facing language.",
+      antiRepetitionInstructions: "Avoid repeating recent editorial angles.",
+      outputContractInstructions:
+        "Return JSON with headline, summary, briefMarkdown, and topicTags.",
+      pypInstructions: "Use short sentences and concrete examples.",
+      mypInstructions: "Add comparisons and causes.",
+      dpInstructions: "Add evidence limits and nuance.",
+      notes: "Primary policy",
+    });
+
+    await createDailyBriefHistoryEntry({
+      scheduledFor: "2026-04-03",
+      headline: "Students map sea turtles",
+      summary: "Already published headline.",
+      programme: "PYP",
+      editorialCohort: "EMEA",
+      status: "published",
+      topicClusterKey: "students map sea turtles",
+      normalizedHeadline: "students map sea turtles",
+      topicLatestPublishedAt: "2026-04-03T06:00:00.000Z",
+      selectionDecision: "new",
+      selectionOverrideNote: "",
+      blockedTopics: [],
+      topicTags: ["oceans"],
+      sourceReferences: [
+        {
+          sourceId: "bbc",
+          sourceName: "BBC",
+          sourceDomain: "bbc.com",
+          articleTitle: "Students map sea turtles",
+          articleUrl: "https://www.bbc.com/news/world-123",
+        },
+      ],
+      aiConnectionId: connection.id,
+      aiConnectionName: connection.name,
+      aiModel: connection.defaultModel,
+      promptPolicyId: promptPolicy.id,
+      promptVersionLabel: promptPolicy.versionLabel,
+      promptVersion: promptPolicy.versionLabel,
+      repetitionRisk: "low",
+      repetitionNotes: "Already shipped.",
+      adminNotes: "",
+      briefMarkdown: "## PYP\nExisting brief",
+    });
+
+    const result = await generateDailyBriefDrafts({
+      scheduledFor: "2026-04-07",
+      editorialCohort: "APAC",
+      candidates: [buildCandidate({})],
+      fetchImpl: fetchMock,
+      now: new Date("2026-04-07T08:00:00.000Z"),
+    });
+
+    expect(result.selectedTopic).toBeNull();
+    expect(result.generatedBriefs).toEqual([]);
+    expect(result.selectionAudit.blockedTopics).toEqual([
+      expect.objectContaining({
+        policy: "exact_headline",
+        headline: "Students map sea turtles",
+      }),
+    ]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test("allows a follow-up exception for a newer same-topic APAC story and records the override note", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+
+    const connection = await createAiConnection({
+      name: "NF Relay",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: TEST_AI_CONNECTION_TOKEN,
+      active: true,
+      isDefault: true,
+      notes: "Primary runtime connection.",
+    });
+
+    const promptPolicy = await createPromptPolicy({
+      name: "Family Daily Sparks Core",
+      versionLabel: "v1.0.0",
+      sharedInstructions: "Use clear, family-facing language.",
+      antiRepetitionInstructions: "Avoid repeating recent editorial angles.",
+      outputContractInstructions:
+        "Return JSON with headline, summary, briefMarkdown, and topicTags.",
+      pypInstructions: "Use short sentences and concrete examples.",
+      mypInstructions: "Add comparisons and causes.",
+      dpInstructions: "Add evidence limits and nuance.",
+      notes: "Primary policy",
+    });
+
+    await createDailyBriefHistoryEntry({
+      scheduledFor: "2026-04-04",
+      headline: "Trump removes US Attorney General Pam Bondi",
+      summary: "Earlier APAC edition.",
+      programme: "PYP",
+      editorialCohort: "APAC",
+      status: "published",
+      topicClusterKey: "pam bondi justice department trump",
+      normalizedHeadline: "trump removes us attorney general pam bondi",
+      topicLatestPublishedAt: "2026-04-04T06:00:00.000Z",
+      selectionDecision: "new",
+      selectionOverrideNote: "",
+      blockedTopics: [],
+      topicTags: ["us-politics", "justice-department"],
+      sourceReferences: [
+        {
+          sourceId: "bbc",
+          sourceName: "BBC",
+          sourceDomain: "bbc.com",
+          articleTitle: "Trump removes US Attorney General Pam Bondi",
+          articleUrl: "https://www.bbc.com/news/world-123",
+        },
+      ],
+      aiConnectionId: connection.id,
+      aiConnectionName: connection.name,
+      aiModel: connection.defaultModel,
+      promptPolicyId: promptPolicy.id,
+      promptVersionLabel: promptPolicy.versionLabel,
+      promptVersion: promptPolicy.versionLabel,
+      repetitionRisk: "low",
+      repetitionNotes: "Already shipped.",
+      adminNotes: "",
+      briefMarkdown: "## PYP\nExisting brief",
+    });
+
+    fetchMock.mockResolvedValueOnce(
+      createChatCompletionResponse({
+        headline: "Pam Bondi ouster reshapes Justice Department oversight",
+        summary: "A follow-up summary for younger learners.",
+        briefMarkdown: "## PYP\nFamilies discuss what changed after the ouster.",
+        topicTags: ["us-politics", "justice-department"],
+      }),
+    );
+
+    const result = await generateDailyBriefDrafts({
+      scheduledFor: "2026-04-07",
+      editorialCohort: "APAC",
+      candidates: [
+        buildCandidate({
+          title: "Pam Bondi ouster reshapes Justice Department oversight",
+          summary: "A newer development on the same topic.",
+          normalizedTitle: "pam bondi ouster reshapes justice department oversight",
+          publishedAt: "2026-04-07T06:00:00.000Z",
+          url: "https://www.bbc.com/news/world-789",
+          normalizedUrl: "https://www.bbc.com/news/world-789",
+        }),
+      ],
+      fetchImpl: fetchMock,
+      now: new Date("2026-04-07T08:00:00.000Z"),
+    });
+
+    expect(result.generatedBriefs).toHaveLength(1);
+    expect(result.generatedBriefs[0]).toMatchObject({
+      selectionDecision: "follow_up",
+      selectionOverrideNote: expect.stringMatching(/follow-up/i),
+      topicClusterKey: "pam bondi justice department trump",
+    });
+    expect(result.selectionAudit.decision).toBe("follow_up");
+    expect(result.selectionAudit.overrideNote).toMatch(/follow-up/i);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   test("rejects AI payloads that omit required non-empty output fields", async () => {
     await createEligibleProgrammeProfile(
       "pyp-family@example.com",

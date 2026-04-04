@@ -1,6 +1,7 @@
 import { firestoreDailyBriefHistoryStore } from "./firestore-daily-brief-history-store";
 import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
 import type { DailyBriefHistoryRecord } from "./daily-brief-history-schema";
+import { normalizeHeadlineForComparison } from "./daily-brief-selection-types";
 import { localDailyBriefHistoryStore } from "./local-daily-brief-history-store";
 import type {
   CreateDailyBriefHistoryEntryInput,
@@ -102,15 +103,30 @@ export async function createDailyBriefHistoryEntry(
   input: CreateDailyBriefHistoryEntryInput,
 ) {
   const timestamp = new Date().toISOString();
+  const normalizedHeadline = normalizeHeadlineForComparison(input.headline);
   const record: DailyBriefHistoryRecord = {
     id: crypto.randomUUID(),
     scheduledFor: input.scheduledFor,
     recordKind: defaultRecordKind(input.recordKind),
     headline: input.headline.trim(),
+    normalizedHeadline,
     summary: input.summary.trim(),
     programme: input.programme,
     editorialCohort: defaultEditorialCohort(input.editorialCohort),
     status: input.status,
+    topicClusterKey: input.topicClusterKey?.trim() || normalizedHeadline,
+    topicLatestPublishedAt: input.topicLatestPublishedAt?.trim() || null,
+    selectionDecision: input.selectionDecision ?? "new",
+    selectionOverrideNote: input.selectionOverrideNote?.trim() || "",
+    blockedTopics:
+      input.blockedTopics?.map((topic) => ({
+        clusterKey: topic.clusterKey.trim(),
+        headline: topic.headline.trim(),
+        policy: topic.policy,
+        reason: topic.reason.trim(),
+        existingScheduledFor: topic.existingScheduledFor.trim(),
+        existingEditorialCohort: topic.existingEditorialCohort,
+      })) ?? [],
     topicTags: input.topicTags.map((tag) => tag.trim()).filter(Boolean),
     sourceReferences: input.sourceReferences.map((reference) => ({
       sourceId: reference.sourceId.trim(),
@@ -176,6 +192,9 @@ export async function updateDailyBriefHistoryEntry(
 
   if ("headline" in input) {
     nextInput.headline = input.headline?.trim() ?? "";
+    nextInput.normalizedHeadline = normalizeHeadlineForComparison(
+      input.headline?.trim() ?? "",
+    );
   }
 
   if ("recordKind" in input) {
@@ -196,6 +215,34 @@ export async function updateDailyBriefHistoryEntry(
 
   if ("status" in input) {
     nextInput.status = input.status;
+  }
+
+  if ("topicClusterKey" in input) {
+    nextInput.topicClusterKey = input.topicClusterKey?.trim() ?? "";
+  }
+
+  if ("topicLatestPublishedAt" in input) {
+    nextInput.topicLatestPublishedAt = input.topicLatestPublishedAt?.trim() ?? null;
+  }
+
+  if ("selectionDecision" in input) {
+    nextInput.selectionDecision = input.selectionDecision;
+  }
+
+  if ("selectionOverrideNote" in input) {
+    nextInput.selectionOverrideNote = input.selectionOverrideNote?.trim() ?? "";
+  }
+
+  if ("blockedTopics" in input) {
+    nextInput.blockedTopics =
+      input.blockedTopics?.map((topic) => ({
+        clusterKey: topic.clusterKey.trim(),
+        headline: topic.headline.trim(),
+        policy: topic.policy,
+        reason: topic.reason.trim(),
+        existingScheduledFor: topic.existingScheduledFor.trim(),
+        existingEditorialCohort: topic.existingEditorialCohort,
+      })) ?? [];
   }
 
   if ("topicTags" in input) {

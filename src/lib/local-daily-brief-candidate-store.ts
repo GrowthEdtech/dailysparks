@@ -8,6 +8,10 @@ import {
   type DailyBriefSelectedTopicRecord,
 } from "./daily-brief-candidate-schema";
 import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
+import type {
+  DailyBriefBlockedTopic,
+  DailyBriefSelectionDecision,
+} from "./daily-brief-selection-types";
 import type { DailyBriefCandidateSnapshotStore } from "./daily-brief-candidate-store-types";
 import type { EditorialSourceCandidate } from "./source-ingestion";
 
@@ -58,6 +62,10 @@ function normalizeEditorialCohort(
     : "APAC";
 }
 
+function normalizeSelectionDecision(value: unknown): DailyBriefSelectionDecision {
+  return value === "follow_up" ? "follow_up" : "new";
+}
+
 function normalizeCandidate(
   raw: Partial<EditorialSourceCandidate> | undefined,
 ): EditorialSourceCandidate {
@@ -98,6 +106,9 @@ function normalizeSnapshot(
     selectionStatus: normalizeSelectionStatus(raw?.selectionStatus),
     selectionFrozenAt: normalizeString(raw?.selectionFrozenAt) || null,
     selectedTopic: normalizeSelectedTopic(raw?.selectedTopic),
+    blockedTopics: Array.isArray(raw?.blockedTopics)
+      ? raw.blockedTopics.map((topic) => normalizeBlockedTopic(topic))
+      : [],
     createdAt: normalizeString(raw?.createdAt) || timestamp,
     updatedAt: normalizeString(raw?.updatedAt) || timestamp,
   };
@@ -123,15 +134,39 @@ function normalizeSelectedTopic(
   return {
     clusterKey: normalizeString(raw.clusterKey),
     headline: normalizeString(raw.headline),
+    normalizedHeadline: normalizeString(raw.normalizedHeadline),
     summary: normalizeString(raw.summary),
     sourceReferences,
     candidateCount:
       typeof raw.candidateCount === "number"
         ? raw.candidateCount
         : sourceReferences.length,
+    latestPublishedAt: normalizeString(raw.latestPublishedAt) || null,
     selectedAt: normalizeString(raw.selectedAt),
     selectedByCohort: normalizeEditorialCohort(raw.selectedByCohort),
+    selectionDecision: normalizeSelectionDecision(raw.selectionDecision),
+    selectionOverrideNote: normalizeString(raw.selectionOverrideNote),
   } satisfies DailyBriefSelectedTopicRecord;
+}
+
+function normalizeBlockedTopic(
+  raw: Partial<DailyBriefBlockedTopic> | undefined,
+): DailyBriefBlockedTopic {
+  return {
+    clusterKey: normalizeString(raw?.clusterKey),
+    headline: normalizeString(raw?.headline),
+    policy:
+      raw?.policy === "exact_headline" ||
+      raw?.policy === "normalized_headline" ||
+      raw?.policy === "topic_cluster_cooldown"
+        ? raw.policy
+        : "topic_cluster_cooldown",
+    reason: normalizeString(raw?.reason),
+    existingScheduledFor: normalizeString(raw?.existingScheduledFor),
+    existingEditorialCohort: normalizeEditorialCohort(
+      raw?.existingEditorialCohort,
+    ),
+  };
 }
 
 async function readStore(): Promise<LocalDailyBriefCandidateStoreData> {

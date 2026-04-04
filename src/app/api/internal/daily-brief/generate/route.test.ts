@@ -575,4 +575,93 @@ describe("daily brief generate route", () => {
       "EMEA",
     ]);
   });
+
+  test("writes selection audit metadata into generated history records", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+    await configureRuntime();
+
+    await createDailyBriefHistoryEntry({
+      scheduledFor: "2026-04-04",
+      recordKind: "production",
+      headline: "Trump removes US Attorney General Pam Bondi",
+      summary: "An earlier APAC edition.",
+      programme: "PYP",
+      editorialCohort: "APAC",
+      status: "published",
+      topicClusterKey: "pam bondi justice department trump",
+      normalizedHeadline: "trump removes us attorney general pam bondi",
+      topicLatestPublishedAt: "2026-04-04T06:00:00.000Z",
+      selectionDecision: "new",
+      selectionOverrideNote: "",
+      blockedTopics: [],
+      topicTags: ["us-politics", "justice-department"],
+      sourceReferences: [
+        {
+          sourceId: "bbc",
+          sourceName: "BBC",
+          sourceDomain: "bbc.com",
+          articleTitle: "Trump removes US Attorney General Pam Bondi",
+          articleUrl: "https://www.bbc.com/news/world-123",
+        },
+      ],
+      aiConnectionId: "existing-connection",
+      aiConnectionName: "NF Relay",
+      aiModel: "gpt-5.4",
+      promptPolicyId: "existing-policy",
+      promptVersionLabel: "v1.1.1",
+      promptVersion: "v1.1.1",
+      repetitionRisk: "low",
+      repetitionNotes: "Already shipped.",
+      adminNotes: "",
+      briefMarkdown: "## PYP\nExisting APAC brief",
+      pipelineStage: "published",
+      candidateSnapshotAt: "2026-04-04T05:00:00.000Z",
+      generationCompletedAt: "2026-04-04T06:00:00.000Z",
+      pdfBuiltAt: "2026-04-04T06:05:00.000Z",
+      deliveryWindowAt: "2026-04-04T09:00:00.000Z",
+      lastDeliveryAttemptAt: "2026-04-04T09:10:00.000Z",
+      deliveryAttemptCount: 1,
+      deliverySuccessCount: 1,
+      deliveryFailureCount: 0,
+      failureReason: "",
+      retryEligibleUntil: null,
+    });
+
+    await upsertDailyBriefCandidateSnapshot({
+      scheduledFor: "2026-04-07",
+      candidates: [
+        buildCandidate({
+          title: "Pam Bondi ouster reshapes Justice Department oversight",
+          summary: "A newer development on the same topic.",
+          normalizedTitle:
+            "pam bondi ouster reshapes justice department oversight",
+          publishedAt: "2026-04-07T06:00:00.000Z",
+          url: "https://www.bbc.com/news/world-789",
+          normalizedUrl: "https://www.bbc.com/news/world-789",
+        }),
+      ],
+    });
+
+    const response = await generateDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-07",
+        editorialCohort: "APAC",
+      }),
+    );
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-07",
+      editorialCohort: "APAC",
+    });
+
+    expect(response.status).toBe(200);
+    expect(history[0]).toMatchObject({
+      selectionDecision: "follow_up",
+      selectionOverrideNote: expect.stringMatching(/follow-up/i),
+      topicClusterKey: "pam bondi justice department trump",
+    });
+  });
 });
