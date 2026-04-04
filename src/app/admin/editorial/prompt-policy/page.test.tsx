@@ -52,7 +52,8 @@ describe("PromptPolicyAdminPage", () => {
     expect(markup).toContain("v1.0.0");
     expect(markup).toContain("/admin/editorial/prompt-policy/policy-1");
     expect(markup).toContain("Open active policy");
-    expect(markup).toContain("text-slate-700");
+    expect(markup).toContain("text-[#0f172a]");
+    expect(markup).toContain("style=\"color:#0f172a\"");
     expect(markup).toContain("border-slate-300");
   });
 });
