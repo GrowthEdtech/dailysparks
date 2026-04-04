@@ -223,7 +223,7 @@ describe("DailyBriefsAdminPage", () => {
       }),
     );
 
-    expect(markup).toContain("bg-white text-slate-900 shadow-sm");
+    expect(markup).toContain("bg-white text-[#0f172a] shadow-sm");
     expect(markup).toContain("hover:border-slate-400");
     expect(markup).toContain("hover:bg-slate-100");
     expect(markup).not.toContain("bg-slate-50 text-slate-600");
