@@ -9,11 +9,21 @@ vi.mock("../../../../lib/mvp-store", () => ({
   listParentProfiles: listParentProfilesMock,
 }));
 
+const { listOnboardingReminderRunHistoryMock } = vi.hoisted(() => ({
+  listOnboardingReminderRunHistoryMock: vi.fn(),
+}));
+
+vi.mock("../../../../lib/onboarding-reminder-history-store", () => ({
+  listOnboardingReminderRunHistory: listOnboardingReminderRunHistoryMock,
+}));
+
 import UsersAdminPage from "./page";
 
 describe("UsersAdminPage", () => {
   beforeEach(() => {
     listParentProfilesMock.mockReset();
+    listOnboardingReminderRunHistoryMock.mockReset();
+    listOnboardingReminderRunHistoryMock.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -358,5 +368,339 @@ describe("UsersAdminPage", () => {
 
     expect(markup).toContain("Reminder due");
     expect(markup).toContain("Needs activation reminder");
+  });
+
+  test("renders activation funnel dashboard and high-signal attention callouts", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-04T02:00:00.000Z"));
+
+    listParentProfilesMock.mockResolvedValue([
+      {
+        parent: {
+          id: "parent-stuck",
+          email: "stuck@example.com",
+          fullName: "Stuck Parent",
+          countryCode: "HK",
+          deliveryTimeZone: "Asia/Hong_Kong",
+          preferredDeliveryLocalTime: "09:00",
+          firstAuthenticatedAt: "2026-04-01T00:00:00.000Z",
+          childProfileCompletedAt: "2026-04-01T01:00:00.000Z",
+          firstDispatchableChannelAt: null,
+          firstBriefDeliveredAt: null,
+          firstPaidAt: null,
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
+          subscriptionStatus: "trial",
+          subscriptionPlan: null,
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          trialStartedAt: "2026-04-01T00:00:00.000Z",
+          trialEndsAt: "2026-04-08T00:00:00.000Z",
+          subscriptionActivatedAt: null,
+          subscriptionRenewalAt: null,
+          latestInvoiceId: null,
+          latestInvoiceNumber: null,
+          latestInvoiceStatus: null,
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: null,
+          latestInvoiceCurrency: null,
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: null,
+          latestInvoicePeriodEnd: null,
+          notionWorkspaceId: null,
+          notionWorkspaceName: null,
+          notionBotId: null,
+          notionDatabaseId: null,
+          notionDatabaseName: null,
+          notionDataSourceId: null,
+          notionAuthorizedAt: null,
+          notionLastSyncedAt: null,
+          notionLastSyncStatus: null,
+          notionLastSyncMessage: null,
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-01T01:00:00.000Z",
+        },
+        student: {
+          id: "student-stuck",
+          parentId: "parent-stuck",
+          studentName: "Mia",
+          programme: "PYP",
+          programmeYear: 5,
+          goodnotesEmail: "",
+          goodnotesConnected: false,
+          goodnotesVerifiedAt: null,
+          goodnotesLastTestSentAt: null,
+          goodnotesLastDeliveryStatus: null,
+          goodnotesLastDeliveryMessage: null,
+          notionConnected: false,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-01T01:00:00.000Z",
+        },
+      },
+      {
+        parent: {
+          id: "parent-paid",
+          email: "paid@example.com",
+          fullName: "Paid Parent",
+          countryCode: "HK",
+          deliveryTimeZone: "Asia/Hong_Kong",
+          preferredDeliveryLocalTime: "09:00",
+          firstAuthenticatedAt: "2026-04-01T00:00:00.000Z",
+          childProfileCompletedAt: "2026-04-01T01:00:00.000Z",
+          firstDispatchableChannelAt: "2026-04-01T02:00:00.000Z",
+          firstBriefDeliveredAt: null,
+          firstPaidAt: "2026-04-03T00:00:00.000Z",
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
+          subscriptionStatus: "active",
+          subscriptionPlan: "monthly",
+          stripeCustomerId: "cus_123",
+          stripeSubscriptionId: "sub_123",
+          trialStartedAt: "2026-04-01T00:00:00.000Z",
+          trialEndsAt: "2026-04-08T00:00:00.000Z",
+          subscriptionActivatedAt: "2026-04-03T00:00:00.000Z",
+          subscriptionRenewalAt: "2026-05-03T00:00:00.000Z",
+          latestInvoiceId: null,
+          latestInvoiceNumber: null,
+          latestInvoiceStatus: null,
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: null,
+          latestInvoiceCurrency: null,
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: null,
+          latestInvoicePeriodEnd: null,
+          notionWorkspaceId: null,
+          notionWorkspaceName: null,
+          notionBotId: null,
+          notionDatabaseId: null,
+          notionDatabaseName: null,
+          notionDataSourceId: null,
+          notionAuthorizedAt: null,
+          notionLastSyncedAt: null,
+          notionLastSyncStatus: null,
+          notionLastSyncMessage: null,
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-03T00:00:00.000Z",
+        },
+        student: {
+          id: "student-paid",
+          parentId: "parent-paid",
+          studentName: "Leo",
+          programme: "PYP",
+          programmeYear: 5,
+          goodnotesEmail: "leo@goodnotes.email",
+          goodnotesConnected: true,
+          goodnotesVerifiedAt: "2026-04-01T02:00:00.000Z",
+          goodnotesLastTestSentAt: null,
+          goodnotesLastDeliveryStatus: null,
+          goodnotesLastDeliveryMessage: null,
+          notionConnected: false,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-03T00:00:00.000Z",
+        },
+      },
+    ]);
+    listOnboardingReminderRunHistoryMock.mockResolvedValue([
+      {
+        id: "run-1",
+        runAt: "2026-04-04T01:00:00.000Z",
+        runDate: "2026-04-04",
+        parentId: "parent-stuck",
+        parentEmail: "stuck@example.com",
+        stageIndex: 1,
+        stageLabel: "First activation reminder",
+        status: "failed",
+        messageId: null,
+        errorMessage: "SMTP offline",
+        createdAt: "2026-04-04T01:00:00.000Z",
+      },
+    ]);
+
+    const markup = renderToStaticMarkup(
+      await UsersAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("Activation funnel");
+    expect(markup).toContain("Signed in");
+    expect(markup).toContain("Paid activated");
+    expect(markup).toContain("Paid but first brief not delivered");
+    expect(markup).toContain("Channel setup stalled");
+    expect(markup).toContain("Recent reminder evidence");
+  });
+
+  test("renders a compact growth reconciliation card for daily revenue and delivery risk", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-04T02:00:00.000Z"));
+
+    listParentProfilesMock.mockResolvedValue([
+      {
+        parent: {
+          id: "trial-expiring",
+          email: "trial-expiring@example.com",
+          fullName: "Trial Expiring Parent",
+          countryCode: "HK",
+          deliveryTimeZone: "Asia/Hong_Kong",
+          preferredDeliveryLocalTime: "09:00",
+          firstAuthenticatedAt: "2026-04-01T00:00:00.000Z",
+          childProfileCompletedAt: "2026-04-01T01:00:00.000Z",
+          firstDispatchableChannelAt: null,
+          firstBriefDeliveredAt: null,
+          firstPaidAt: null,
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
+          subscriptionStatus: "trial",
+          subscriptionPlan: null,
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          trialStartedAt: "2026-04-01T00:00:00.000Z",
+          trialEndsAt: "2026-04-05T00:00:00.000Z",
+          subscriptionActivatedAt: null,
+          subscriptionRenewalAt: null,
+          latestInvoiceId: null,
+          latestInvoiceNumber: null,
+          latestInvoiceStatus: null,
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: null,
+          latestInvoiceCurrency: null,
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: null,
+          latestInvoicePeriodEnd: null,
+          notionWorkspaceId: null,
+          notionWorkspaceName: null,
+          notionBotId: null,
+          notionDatabaseId: null,
+          notionDatabaseName: null,
+          notionDataSourceId: null,
+          notionAuthorizedAt: null,
+          notionLastSyncedAt: null,
+          notionLastSyncStatus: null,
+          notionLastSyncMessage: null,
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-01T01:00:00.000Z",
+        },
+        student: {
+          id: "student-trial-expiring",
+          parentId: "trial-expiring",
+          studentName: "Mia",
+          programme: "PYP",
+          programmeYear: 5,
+          goodnotesEmail: "",
+          goodnotesConnected: false,
+          goodnotesVerifiedAt: null,
+          goodnotesLastTestSentAt: null,
+          goodnotesLastDeliveryStatus: null,
+          goodnotesLastDeliveryMessage: null,
+          notionConnected: false,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-01T01:00:00.000Z",
+        },
+      },
+      {
+        parent: {
+          id: "active-no-channel",
+          email: "active-no-channel@example.com",
+          fullName: "Active No Channel",
+          countryCode: "HK",
+          deliveryTimeZone: "Asia/Hong_Kong",
+          preferredDeliveryLocalTime: "09:00",
+          firstAuthenticatedAt: "2026-04-01T00:00:00.000Z",
+          childProfileCompletedAt: "2026-04-01T01:00:00.000Z",
+          firstDispatchableChannelAt: null,
+          firstBriefDeliveredAt: null,
+          firstPaidAt: "2026-04-02T00:00:00.000Z",
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
+          subscriptionStatus: "active",
+          subscriptionPlan: "monthly",
+          stripeCustomerId: "cus_123",
+          stripeSubscriptionId: "sub_123",
+          trialStartedAt: "2026-04-01T00:00:00.000Z",
+          trialEndsAt: "2026-04-08T00:00:00.000Z",
+          subscriptionActivatedAt: "2026-04-02T00:00:00.000Z",
+          subscriptionRenewalAt: "2026-05-02T00:00:00.000Z",
+          latestInvoiceId: null,
+          latestInvoiceNumber: null,
+          latestInvoiceStatus: null,
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: null,
+          latestInvoiceCurrency: null,
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: null,
+          latestInvoicePeriodEnd: null,
+          notionWorkspaceId: null,
+          notionWorkspaceName: null,
+          notionBotId: null,
+          notionDatabaseId: null,
+          notionDatabaseName: null,
+          notionDataSourceId: null,
+          notionAuthorizedAt: null,
+          notionLastSyncedAt: null,
+          notionLastSyncStatus: null,
+          notionLastSyncMessage: null,
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-02T00:00:00.000Z",
+        },
+        student: {
+          id: "student-active-no-channel",
+          parentId: "active-no-channel",
+          studentName: "Leo",
+          programme: "PYP",
+          programmeYear: 5,
+          goodnotesEmail: "",
+          goodnotesConnected: false,
+          goodnotesVerifiedAt: null,
+          goodnotesLastTestSentAt: null,
+          goodnotesLastDeliveryStatus: null,
+          goodnotesLastDeliveryMessage: null,
+          notionConnected: false,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-02T00:00:00.000Z",
+        },
+      },
+    ]);
+
+    const markup = renderToStaticMarkup(
+      await UsersAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("Growth reconciliation");
+    expect(markup).toContain("Trials expiring soon");
+    expect(markup).toContain("Active without dispatchable channel");
   });
 });

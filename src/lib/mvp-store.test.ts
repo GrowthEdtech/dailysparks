@@ -54,6 +54,10 @@ describe("mvp store", () => {
     expect(profile.parent.deliveryTimeZone).toBe("Asia/Hong_Kong");
     expect(profile.parent.preferredDeliveryLocalTime).toBe("09:00");
     expect(profile.parent.firstAuthenticatedAt).toBeTruthy();
+    expect(profile.parent.childProfileCompletedAt).toBe(profile.parent.createdAt);
+    expect(profile.parent.firstDispatchableChannelAt).toBeNull();
+    expect(profile.parent.firstBriefDeliveredAt).toBeNull();
+    expect(profile.parent.firstPaidAt).toBeNull();
     expect(profile.parent.latestInvoiceId).toBeNull();
     expect(profile.parent.latestInvoiceHostedUrl).toBeNull();
     expect(profile.parent.onboardingReminderCount).toBe(0);
@@ -110,6 +114,51 @@ describe("mvp store", () => {
     expect(profile.parent.firstAuthenticatedAt).toBe("2026-04-03T10:00:00.000Z");
   });
 
+  test("normalizes missing growth milestone fields on legacy parents", async () => {
+    await getOrCreateParentProfile({
+      email: "legacy@example.com",
+      fullName: "Legacy Parent",
+      studentName: "Katherine",
+    });
+
+    const storePath = process.env.DAILY_SPARKS_STORE_PATH as string;
+    const store = JSON.parse(await readFile(storePath, "utf8")) as {
+      parents: Array<Record<string, unknown>>;
+      students: Array<Record<string, unknown>>;
+      notionConnections: Array<Record<string, unknown>>;
+    };
+
+    store.parents = store.parents.map((parent) => {
+      if (parent.email !== "legacy@example.com") {
+        return parent;
+      }
+
+      const {
+        childProfileCompletedAt,
+        firstDispatchableChannelAt,
+        firstBriefDeliveredAt,
+        firstPaidAt,
+        ...legacyParent
+      } = parent;
+
+      void childProfileCompletedAt;
+      void firstDispatchableChannelAt;
+      void firstBriefDeliveredAt;
+      void firstPaidAt;
+
+      return legacyParent;
+    });
+
+    await writeFile(storePath, JSON.stringify(store, null, 2));
+
+    const profile = await getProfileByEmail("legacy@example.com");
+
+    expect(profile?.parent.childProfileCompletedAt).toBeNull();
+    expect(profile?.parent.firstDispatchableChannelAt).toBeNull();
+    expect(profile?.parent.firstBriefDeliveredAt).toBeNull();
+    expect(profile?.parent.firstPaidAt).toBeNull();
+  });
+
   test("returns the saved profile by email", async () => {
     await getOrCreateParentProfile({
       email: "parent@example.com",
@@ -126,6 +175,9 @@ describe("mvp store", () => {
   });
 
   test("updates student preferences and persists them", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-01T00:15:00.000Z"));
+
     await getOrCreateParentProfile({
       email: "parent@example.com",
       fullName: "Parent Example",
@@ -148,6 +200,9 @@ describe("mvp store", () => {
     expect(updated?.student.goodnotesLastDeliveryMessage).toMatch(/saved/i);
     expect(updated?.student.programme).toBe("MYP");
     expect(updated?.student.programmeYear).toBe(3);
+    expect(updated?.parent.childProfileCompletedAt).toBe(
+      "2026-04-01T00:15:00.000Z",
+    );
 
     const reloaded = await getProfileByEmail("parent@example.com");
 
@@ -160,6 +215,9 @@ describe("mvp store", () => {
     expect(reloaded?.student.goodnotesLastDeliveryMessage).toMatch(/saved/i);
     expect(reloaded?.student.programme).toBe("MYP");
     expect(reloaded?.student.programmeYear).toBe(3);
+    expect(reloaded?.parent.childProfileCompletedAt).toBe(
+      "2026-04-01T00:15:00.000Z",
+    );
   });
 
   test("updates parent delivery locale preferences and persists them", async () => {
@@ -253,6 +311,9 @@ describe("mvp store", () => {
   });
 
   test("updates Goodnotes delivery status and resets it when the destination changes", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-01T00:00:00.000Z"));
+
     await getOrCreateParentProfile({
       email: "parent@example.com",
       fullName: "Parent Example",
@@ -265,6 +326,8 @@ describe("mvp store", () => {
       programme: "PYP",
       programmeYear: 5,
     });
+
+    vi.setSystemTime(new Date("2026-04-01T00:20:00.000Z"));
 
     const connected = await updateStudentGoodnotesDelivery("parent@example.com", {
       goodnotesConnected: true,
@@ -283,6 +346,9 @@ describe("mvp store", () => {
     expect(connected?.student.goodnotesLastDeliveryMessage).toBe(
       "Goodnotes delivery is ready.",
     );
+    expect(connected?.parent.firstDispatchableChannelAt).toBe(
+      "2026-04-01T00:20:00.000Z",
+    );
 
     const reset = await updateStudentPreferences("parent@example.com", {
       studentName: "Katherine",
@@ -297,9 +363,15 @@ describe("mvp store", () => {
     expect(reset?.student.goodnotesLastTestSentAt).toBeNull();
     expect(reset?.student.goodnotesLastDeliveryStatus).toBe("idle");
     expect(reset?.student.goodnotesLastDeliveryMessage).toMatch(/saved/i);
+    expect(reset?.parent.firstDispatchableChannelAt).toBe(
+      "2026-04-01T00:20:00.000Z",
+    );
   });
 
   test("updates parent billing selection and persists it", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-01T02:00:00.000Z"));
+
     await getOrCreateParentProfile({
       email: "parent@example.com",
       fullName: "Parent Example",
@@ -355,6 +427,7 @@ describe("mvp store", () => {
     expect(updated?.parent.latestInvoicePeriodEnd).toBe(
       "2026-04-30T00:00:00.000Z",
     );
+    expect(updated?.parent.firstPaidAt).toBe("2026-03-31T00:00:00.000Z");
 
     const reloaded = await getProfileByEmail("parent@example.com");
 
@@ -388,6 +461,7 @@ describe("mvp store", () => {
     expect(reloaded?.parent.latestInvoicePeriodEnd).toBe(
       "2026-04-30T00:00:00.000Z",
     );
+    expect(reloaded?.parent.firstPaidAt).toBe("2026-03-31T00:00:00.000Z");
   });
 
   test("lists only subscribed profiles with at least one ready delivery channel", async () => {

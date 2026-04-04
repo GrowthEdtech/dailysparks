@@ -9,8 +9,16 @@ const { getProfileByParentIdMock, notFoundMock } = vi.hoisted(() => ({
   }),
 }));
 
+const { listOnboardingReminderRunHistoryMock } = vi.hoisted(() => ({
+  listOnboardingReminderRunHistoryMock: vi.fn(),
+}));
+
 vi.mock("../../../../../lib/mvp-store", () => ({
   getProfileByParentId: getProfileByParentIdMock,
+}));
+
+vi.mock("../../../../../lib/onboarding-reminder-history-store", () => ({
+  listOnboardingReminderRunHistory: listOnboardingReminderRunHistoryMock,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -35,6 +43,8 @@ describe("UserDetailAdminPage", () => {
   beforeEach(() => {
     getProfileByParentIdMock.mockReset();
     notFoundMock.mockClear();
+    listOnboardingReminderRunHistoryMock.mockReset();
+    listOnboardingReminderRunHistoryMock.mockResolvedValue([]);
   });
 
   test("renders overview, billing, and delivery sections", async () => {
@@ -297,5 +307,120 @@ describe("UserDetailAdminPage", () => {
     expect(markup).toContain("1 reminder sent");
     expect(markup).toContain("Last reminder sent");
     expect(markup).toContain("message-1");
+  });
+
+  test("renders activation funnel milestones, attention callouts, and recent reminder evidence", async () => {
+    getProfileByParentIdMock.mockResolvedValue({
+      parent: {
+        id: "parent-4",
+        email: "paid@example.com",
+        fullName: "Paid Parent",
+        countryCode: "HK",
+        deliveryTimeZone: "Asia/Hong_Kong",
+        preferredDeliveryLocalTime: "09:00",
+        firstAuthenticatedAt: "2026-04-01T00:00:00.000Z",
+        childProfileCompletedAt: "2026-04-01T01:00:00.000Z",
+        firstDispatchableChannelAt: "2026-04-01T02:00:00.000Z",
+        firstBriefDeliveredAt: null,
+        firstPaidAt: "2026-04-03T00:00:00.000Z",
+        onboardingReminderCount: 1,
+        onboardingReminderLastAttemptAt: "2026-04-03T01:00:00.000Z",
+        onboardingReminderLastSentAt: null,
+        onboardingReminderLastStage: 1,
+        onboardingReminderLastStatus: "failed",
+        onboardingReminderLastMessageId: null,
+        onboardingReminderLastError: "SMTP offline",
+        subscriptionStatus: "active",
+        subscriptionPlan: "monthly",
+        stripeCustomerId: "cus_123",
+        stripeSubscriptionId: "sub_123",
+        trialStartedAt: "2026-04-01T00:00:00.000Z",
+        trialEndsAt: "2026-04-08T00:00:00.000Z",
+        subscriptionActivatedAt: "2026-04-03T00:00:00.000Z",
+        subscriptionRenewalAt: "2026-05-03T00:00:00.000Z",
+        latestInvoiceId: "in_123",
+        latestInvoiceNumber: "DS-2026-0001",
+        latestInvoiceStatus: "paid",
+        latestInvoiceHostedUrl: "https://example.com/invoice",
+        latestInvoicePdfUrl: "https://example.com/invoice.pdf",
+        latestInvoiceAmountPaid: 29999,
+        latestInvoiceCurrency: "hkd",
+        latestInvoicePaidAt: "2026-04-03T00:00:00.000Z",
+        latestInvoicePeriodStart: "2026-04-03T00:00:00.000Z",
+        latestInvoicePeriodEnd: "2026-05-03T00:00:00.000Z",
+        notionWorkspaceId: null,
+        notionWorkspaceName: null,
+        notionBotId: null,
+        notionDatabaseId: null,
+        notionDatabaseName: null,
+        notionDataSourceId: null,
+        notionAuthorizedAt: null,
+        notionLastSyncedAt: null,
+        notionLastSyncStatus: null,
+        notionLastSyncMessage: null,
+        notionLastSyncPageId: null,
+        notionLastSyncPageUrl: null,
+        createdAt: "2026-04-01T00:00:00.000Z",
+        updatedAt: "2026-04-03T01:00:00.000Z",
+      },
+      student: {
+        id: "student-4",
+        parentId: "parent-4",
+        studentName: "Mia",
+        programme: "PYP",
+        programmeYear: 5,
+        goodnotesEmail: "mia@goodnotes.email",
+        goodnotesConnected: true,
+        goodnotesVerifiedAt: "2026-04-01T02:00:00.000Z",
+        goodnotesLastTestSentAt: "2026-04-01T02:30:00.000Z",
+        goodnotesLastDeliveryStatus: null,
+        goodnotesLastDeliveryMessage: null,
+        notionConnected: false,
+        createdAt: "2026-04-01T00:00:00.000Z",
+        updatedAt: "2026-04-03T01:00:00.000Z",
+      },
+    });
+    listOnboardingReminderRunHistoryMock.mockResolvedValue([
+      {
+        id: "run-1",
+        runAt: "2026-04-03T01:00:00.000Z",
+        runDate: "2026-04-03",
+        parentId: "parent-4",
+        parentEmail: "paid@example.com",
+        stageIndex: 1,
+        stageLabel: "First activation reminder",
+        status: "failed",
+        messageId: null,
+        errorMessage: "SMTP offline",
+        createdAt: "2026-04-03T01:00:00.000Z",
+      },
+      {
+        id: "run-2",
+        runAt: "2026-04-03T03:00:00.000Z",
+        runDate: "2026-04-03",
+        parentId: "parent-4",
+        parentEmail: "paid@example.com",
+        stageIndex: 1,
+        stageLabel: "First activation reminder",
+        status: "sent",
+        messageId: "message-2",
+        errorMessage: null,
+        createdAt: "2026-04-03T03:00:00.000Z",
+      },
+    ]);
+
+    const markup = renderToStaticMarkup(
+      await UserDetailAdminPage({
+        params: Promise.resolve({ parentId: "parent-4" }),
+      }),
+    );
+
+    expect(markup).toContain("Activation funnel");
+    expect(markup).toContain("Current stage");
+    expect(markup).toContain("Paid but first brief not delivered");
+    expect(markup).toContain("Recent reminder runs");
+    expect(markup).toContain("First activation reminder");
+    expect(markup).toContain("message-2");
+    expect(markup).toContain("SMTP offline");
   });
 });

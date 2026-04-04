@@ -5,6 +5,7 @@ import {
 } from "../../../../../lib/daily-brief-run-auth";
 import { listParentProfiles, updateParentOnboardingReminder } from "../../../../../lib/mvp-store";
 import { assessOnboardingActivationReminder } from "../../../../../lib/onboarding-activation-reminder";
+import { createOnboardingReminderRunEntry } from "../../../../../lib/onboarding-reminder-history-store";
 import { sendOnboardingReminderEmail } from "../../../../../lib/onboarding-reminder-email";
 
 function serviceUnavailable(message: string) {
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
   }> = [];
   let eligibleProfileCount = 0;
   let dueProfileCount = 0;
+  let historyEntryCount = 0;
 
   for (const profile of profiles) {
     const assessment = assessOnboardingActivationReminder({
@@ -89,6 +91,17 @@ export async function POST(request: Request) {
         onboardingReminderLastMessageId: result.messageId,
         onboardingReminderLastError: null,
       });
+      await createOnboardingReminderRunEntry({
+        runAt: nowIso,
+        parentId: profile.parent.id,
+        parentEmail: profile.parent.email,
+        stageIndex: assessment.stage.index,
+        stageLabel: assessment.stage.label,
+        status: "sent",
+        messageId: result.messageId,
+        errorMessage: null,
+      });
+      historyEntryCount += 1;
 
       sent.push({
         parentEmail: profile.parent.email,
@@ -104,6 +117,17 @@ export async function POST(request: Request) {
         onboardingReminderLastStatus: "failed",
         onboardingReminderLastError: errorMessage,
       });
+      await createOnboardingReminderRunEntry({
+        runAt: nowIso,
+        parentId: profile.parent.id,
+        parentEmail: profile.parent.email,
+        stageIndex: assessment.stage.index,
+        stageLabel: assessment.stage.label,
+        status: "failed",
+        messageId: null,
+        errorMessage,
+      });
+      historyEntryCount += 1;
 
       failed.push({
         parentEmail: profile.parent.email,
@@ -119,6 +143,7 @@ export async function POST(request: Request) {
       checkedProfileCount: profiles.length,
       eligibleProfileCount,
       dueProfileCount,
+      historyEntryCount,
       sentCount: sent.length,
       failedCount: failed.length,
       skippedCount: skipped.length,

@@ -1,5 +1,6 @@
 import { sendBriefToGoodnotes } from "./goodnotes-delivery";
 import {
+  updateParentGrowthMilestones,
   updateParentNotionConnection,
   updateStudentGoodnotesDelivery,
 } from "./mvp-store";
@@ -158,6 +159,7 @@ export async function deliverHistoryBriefToProfiles(
         const result = await sendBriefToGoodnotes(profile, deliveryBrief, {
           attachmentMode: options.attachmentMode ?? "production",
         });
+        const deliveryTimestamp = new Date().toISOString();
         await updateStudentGoodnotesDelivery(profile.parent.email, {
           goodnotesConnected: true,
           goodnotesLastDeliveryStatus: "success",
@@ -165,6 +167,9 @@ export async function deliverHistoryBriefToProfiles(
             brief.scheduledFor,
             "success",
           ),
+        });
+        await updateParentGrowthMilestones(profile.parent.email, {
+          firstBriefDeliveredAt: deliveryTimestamp,
         });
         deliverySuccessCount += 1;
         deliveryReceipts.push({
@@ -201,6 +206,7 @@ export async function deliverHistoryBriefToProfiles(
 
       try {
         const result = await createNotionBriefPage(profile, deliveryBrief);
+        const deliveryTimestamp = new Date().toISOString();
         await updateParentNotionConnection(profile.parent.email, {
           notionConnected: true,
           notionLastSyncedAt: new Date().toISOString(),
@@ -211,6 +217,9 @@ export async function deliverHistoryBriefToProfiles(
           ),
           notionLastSyncPageId: result.pageId,
           notionLastSyncPageUrl: result.pageUrl,
+        });
+        await updateParentGrowthMilestones(profile.parent.email, {
+          firstBriefDeliveredAt: deliveryTimestamp,
         });
         deliverySuccessCount += 1;
         deliveryReceipts.push({

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { listParentProfiles } from "../../../../lib/mvp-store";
+import { listOnboardingReminderRunHistory } from "../../../../lib/onboarding-reminder-history-store";
 import {
   getDerivedAccessState,
   type DerivedAccessState,
@@ -21,6 +22,8 @@ import {
   isSubscriptionStatus,
   USER_STATUS_FILTERS,
 } from "./users-admin-helpers";
+import { getActivationDashboardSummary } from "./activation-funnel-summary";
+import { getGrowthReconciliationSummary } from "../../../../lib/growth-reconciliation";
 
 type UsersAdminPageProps = {
   searchParams: Promise<{
@@ -47,8 +50,14 @@ export default async function UsersAdminPage({
   const visibleProfiles = status
     ? allProfiles.filter((profile) => getDerivedAccessState(profile.parent) === status)
     : allProfiles;
+  const reminderHistory = await listOnboardingReminderRunHistory();
   const statusCounts = countProfilesByStatus(allProfiles);
   const reminderDueCount = countProfilesNeedingActivationReminder(allProfiles);
+  const activationSummary = getActivationDashboardSummary(
+    visibleProfiles,
+    reminderHistory,
+  );
+  const reconciliationSummary = getGrowthReconciliationSummary(allProfiles);
 
   return (
     <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -138,6 +147,194 @@ export default async function UsersAdminPage({
           </div>
         </div>
       </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+        <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                Activation funnel
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                These counts show how many visible families have truly crossed
+                each milestone, not just signed in.
+              </p>
+            </div>
+            <div className="text-right text-sm text-slate-500">
+              <p>
+                <span className="font-semibold text-[#0f172a]">
+                  {activationSummary.stuckCount}
+                </span>{" "}
+                stuck in activation
+              </p>
+              <p>
+                <span className="font-semibold text-[#0f172a]">
+                  {activationSummary.paidButNotDeliveredCount}
+                </span>{" "}
+                paid without first brief
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {[
+              {
+                key: "signed_in",
+                label: "Signed in",
+                count: activationSummary.counts.signed_in,
+              },
+              {
+                key: "child_profile_completed",
+                label: "Child profile completed",
+                count: activationSummary.counts.child_profile_completed,
+              },
+              {
+                key: "dispatchable_channel_ready",
+                label: "Dispatchable channel ready",
+                count: activationSummary.counts.dispatchable_channel_ready,
+              },
+              {
+                key: "first_brief_delivered",
+                label: "First brief delivered",
+                count: activationSummary.counts.first_brief_delivered,
+              },
+              {
+                key: "paid_activated",
+                label: "Paid activated",
+                count: activationSummary.counts.paid_activated,
+              },
+            ].map((card) => (
+              <div
+                key={card.key}
+                className="rounded-[24px] border border-slate-200 bg-white px-4 py-4"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  {card.label}
+                </p>
+                <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+                  {card.count}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Recent reminder evidence
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Reminder runs
+              </p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+                {activationSummary.reminderEvidence.totalRuns}
+              </p>
+            </div>
+            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Sent
+              </p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+                {activationSummary.reminderEvidence.sentRuns}
+              </p>
+            </div>
+            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Failed
+              </p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+                {activationSummary.reminderEvidence.failedRuns}
+              </p>
+            </div>
+          </div>
+
+          {activationSummary.attentionProfiles.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              {activationSummary.attentionProfiles.slice(0, 4).map((item) => (
+                <div
+                  key={item.profile.parent.id}
+                  className={`rounded-[20px] border px-4 py-3 ${
+                    item.attention.severity === "danger"
+                      ? "border-rose-200 bg-rose-50"
+                      : "border-amber-200 bg-amber-50"
+                  }`}
+                >
+                  <p className="text-sm font-semibold text-[#0f172a]">
+                    {item.attention.title}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {item.profile.parent.email}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {item.attention.detail}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-slate-500">
+              No families in the current view are stuck between activation milestones.
+            </p>
+          )}
+        </section>
+      </div>
+
+      <section className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Growth reconciliation
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              A once-daily ops view of revenue and first-delivery gaps that still
+              need intervention.
+            </p>
+          </div>
+          <div className="text-sm text-slate-500">
+            <span className="font-semibold text-[#0f172a]">
+              {reconciliationSummary.checkedProfileCount}
+            </span>{" "}
+            families checked
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Trials expiring soon
+            </p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+              {reconciliationSummary.trialsExpiringSoonWithoutFirstBrief.count}
+            </p>
+          </div>
+          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Active without dispatchable channel
+            </p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+              {reconciliationSummary.activeWithoutDispatchableChannel.count}
+            </p>
+          </div>
+          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Active without first brief
+            </p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+              {reconciliationSummary.activeWithoutFirstSuccessfulDelivery.count}
+            </p>
+          </div>
+          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Reminder failures blocking activation
+            </p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+              {reconciliationSummary.reminderFailuresBlockingActivation.count}
+            </p>
+          </div>
+        </div>
+      </section>
 
       {visibleProfiles.length === 0 ? (
         <div className="mt-8 rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-10">

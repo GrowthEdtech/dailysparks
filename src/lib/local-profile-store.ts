@@ -18,6 +18,7 @@ import type {
   StudentRecord,
   SubscriptionPlan,
   UpdateParentDeliveryPreferencesInput,
+  UpdateParentGrowthMilestonesInput,
   UpdateParentOnboardingReminderInput,
   UpdateParentNotionInput,
   UpdateStudentGoodnotesInput,
@@ -32,6 +33,10 @@ import {
 import type { ProfileStore } from "./profile-store";
 import { hasAutomatedDeliverySubscription } from "./delivery-eligibility";
 import { hasDispatchableDeliveryChannel } from "./delivery-readiness";
+import {
+  applyAutomaticGrowthMilestones,
+  applySetOnceGrowthMilestones,
+} from "./profile-growth-milestones";
 
 function getStoreFilePath() {
   return (
@@ -105,6 +110,23 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
     typeof raw.firstAuthenticatedAt === "string" && raw.firstAuthenticatedAt
       ? raw.firstAuthenticatedAt
       : null;
+  const childProfileCompletedAt =
+    typeof raw.childProfileCompletedAt === "string" && raw.childProfileCompletedAt
+      ? raw.childProfileCompletedAt
+      : null;
+  const firstDispatchableChannelAt =
+    typeof raw.firstDispatchableChannelAt === "string" &&
+    raw.firstDispatchableChannelAt
+      ? raw.firstDispatchableChannelAt
+      : null;
+  const firstBriefDeliveredAt =
+    typeof raw.firstBriefDeliveredAt === "string" && raw.firstBriefDeliveredAt
+      ? raw.firstBriefDeliveredAt
+      : null;
+  const firstPaidAt =
+    typeof raw.firstPaidAt === "string" && raw.firstPaidAt
+      ? raw.firstPaidAt
+      : null;
   const trialEndsAt =
     typeof raw.trialEndsAt === "string" && raw.trialEndsAt
       ? raw.trialEndsAt
@@ -168,6 +190,10 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
     deliveryTimeZone: deliveryPreferences.deliveryTimeZone,
     preferredDeliveryLocalTime: deliveryPreferences.preferredDeliveryLocalTime,
     firstAuthenticatedAt,
+    childProfileCompletedAt,
+    firstDispatchableChannelAt,
+    firstBriefDeliveredAt,
+    firstPaidAt,
     onboardingReminderCount:
       typeof raw.onboardingReminderCount === "number" &&
       Number.isFinite(raw.onboardingReminderCount) &&
@@ -415,6 +441,10 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     deliveryTimeZone: DEFAULT_DELIVERY_TIME_ZONE,
     preferredDeliveryLocalTime: DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
     firstAuthenticatedAt: timestamp,
+    childProfileCompletedAt: null,
+    firstDispatchableChannelAt: null,
+    firstBriefDeliveredAt: null,
+    firstPaidAt: null,
     onboardingReminderCount: 0,
     onboardingReminderLastAttemptAt: null,
     onboardingReminderLastSentAt: null,
@@ -623,6 +653,18 @@ export const localProfileStore: ProfileStore = {
       }
 
       if (maybeStudent) {
+        const automaticMilestones = applyAutomaticGrowthMilestones({
+          parent: existingParent,
+          student: maybeStudent,
+          now: nowIso,
+        });
+
+        if (automaticMilestones.changed) {
+          Object.assign(existingParent, automaticMilestones.parent);
+          existingParent.updatedAt = nowIso;
+          await writeStore(store);
+        }
+
         return toProfile(existingParent, maybeStudent);
       }
 
@@ -645,13 +687,18 @@ export const localProfileStore: ProfileStore = {
       createdParent.id,
       input.studentName?.trim() || "Student",
     );
+    const createdParentWithMilestones = applyAutomaticGrowthMilestones({
+      parent: createdParent,
+      student: createdStudent,
+      now: createdParent.createdAt,
+    }).parent;
 
-    store.parents.push(createdParent);
+    store.parents.push(createdParentWithMilestones);
     store.students.push(createdStudent);
 
     await writeStore(store);
 
-    return toProfile(createdParent, createdStudent);
+    return toProfile(createdParentWithMilestones, createdStudent);
   },
 
   async updateStudentPreferences(email, input) {
@@ -686,8 +733,19 @@ export const localProfileStore: ProfileStore = {
         : null;
     }
 
-    student.updatedAt = new Date().toISOString();
-    parent.updatedAt = student.updatedAt;
+    const now = new Date().toISOString();
+    const automaticMilestones = applyAutomaticGrowthMilestones({
+      parent,
+      student,
+      now,
+    });
+
+    if (automaticMilestones.changed) {
+      Object.assign(parent, automaticMilestones.parent);
+    }
+
+    student.updatedAt = now;
+    parent.updatedAt = now;
 
     await writeStore(store);
 
@@ -745,8 +803,19 @@ export const localProfileStore: ProfileStore = {
           : null;
     }
 
-    student.updatedAt = new Date().toISOString();
-    parent.updatedAt = student.updatedAt;
+    const now = new Date().toISOString();
+    const automaticMilestones = applyAutomaticGrowthMilestones({
+      parent,
+      student,
+      now,
+    });
+
+    if (automaticMilestones.changed) {
+      Object.assign(parent, automaticMilestones.parent);
+    }
+
+    student.updatedAt = now;
+    parent.updatedAt = now;
 
     await writeStore(store);
 
@@ -894,7 +963,18 @@ export const localProfileStore: ProfileStore = {
           : null;
     }
 
-    parent.updatedAt = new Date().toISOString();
+    const now = new Date().toISOString();
+    const automaticMilestones = applyAutomaticGrowthMilestones({
+      parent,
+      student,
+      now,
+    });
+
+    if (automaticMilestones.changed) {
+      Object.assign(parent, automaticMilestones.parent);
+    }
+
+    parent.updatedAt = now;
 
     await writeStore(store);
 
@@ -974,6 +1054,17 @@ export const localProfileStore: ProfileStore = {
     }
 
     const now = new Date().toISOString();
+
+    const automaticMilestones = applyAutomaticGrowthMilestones({
+      parent,
+      student,
+      now,
+    });
+
+    if (automaticMilestones.changed) {
+      Object.assign(parent, automaticMilestones.parent);
+    }
+
     parent.updatedAt = now;
     student.updatedAt = now;
 
@@ -1011,6 +1102,35 @@ export const localProfileStore: ProfileStore = {
     student.updatedAt = now;
 
     await writeStore(store);
+
+    return toProfile(parent, student);
+  },
+
+  async updateParentGrowthMilestones(
+    email,
+    input: UpdateParentGrowthMilestonesInput,
+  ) {
+    const normalizedEmail = normalizeEmail(email);
+    const store = await readStore();
+    const parent = store.parents.find((record) => record.email === normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = findStudentForParent(store, parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    const explicitMilestones = applySetOnceGrowthMilestones(parent, input);
+
+    if (explicitMilestones.changed) {
+      Object.assign(parent, explicitMilestones.parent);
+      parent.updatedAt = new Date().toISOString();
+      await writeStore(store);
+    }
 
     return toProfile(parent, student);
   },

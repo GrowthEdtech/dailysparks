@@ -21,6 +21,7 @@ import {
   updateStudentGoodnotesDelivery,
   updateStudentPreferences,
 } from "../../../../../lib/mvp-store";
+import { listOnboardingReminderRunHistory } from "../../../../../lib/onboarding-reminder-history-store";
 
 const ORIGINAL_ENV = { ...process.env };
 const SCHEDULER_HEADER_FIXTURE = "scheduler-header-fixture";
@@ -54,6 +55,10 @@ beforeEach(async () => {
     NODE_ENV: "test",
     DAILY_SPARKS_STORE_BACKEND: "local",
     DAILY_SPARKS_STORE_PATH: path.join(tempDirectory, "mvp-store.json"),
+    DAILY_SPARKS_ONBOARDING_REMINDER_HISTORY_PATH: path.join(
+      tempDirectory,
+      "onboarding-reminder-history.json",
+    ),
     DAILY_SPARKS_SCHEDULER_SECRET: SCHEDULER_HEADER_FIXTURE,
   };
 
@@ -109,6 +114,7 @@ describe("onboarding reminder scheduler route", () => {
     const response = await onboardingReminderRoute(buildRequest());
     const body = await response.json();
     const updated = await getProfileByEmail("parent@example.com");
+    const history = await listOnboardingReminderRunHistory();
 
     expect(response.status).toBe(200);
     expect(body.mode).toBe("onboarding-reminder");
@@ -130,6 +136,15 @@ describe("onboarding reminder scheduler route", () => {
     expect(updated?.parent.onboardingReminderLastMessageId).toBe(
       "onboarding-message-id",
     );
+    expect(body.summary.historyEntryCount).toBe(1);
+    expect(history).toEqual([
+      expect.objectContaining({
+        parentEmail: "parent@example.com",
+        stageIndex: 1,
+        status: "sent",
+        messageId: "onboarding-message-id",
+      }),
+    ]);
   });
 
   test("skips non-due families with structured reasons", async () => {
@@ -190,12 +205,22 @@ describe("onboarding reminder scheduler route", () => {
     const firstResponse = await onboardingReminderRoute(buildRequest());
     const firstBody = await firstResponse.json();
     const afterFailure = await getProfileByEmail("failed@example.com");
+    const firstHistory = await listOnboardingReminderRunHistory();
 
     expect(firstResponse.status).toBe(200);
     expect(firstBody.summary.failedCount).toBe(1);
     expect(afterFailure?.parent.onboardingReminderCount).toBe(0);
     expect(afterFailure?.parent.onboardingReminderLastStatus).toBe("failed");
     expect(afterFailure?.parent.onboardingReminderLastError).toMatch(/SMTP offline/i);
+    expect(firstBody.summary.historyEntryCount).toBe(1);
+    expect(firstHistory).toEqual([
+      expect.objectContaining({
+        parentEmail: "failed@example.com",
+        stageIndex: 1,
+        status: "failed",
+        errorMessage: "SMTP offline.",
+      }),
+    ]);
 
     sendOnboardingReminderEmailMock.mockResolvedValue({
       messageId: "retry-message-id",

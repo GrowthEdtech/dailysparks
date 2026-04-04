@@ -6,6 +6,7 @@ import type {
   StudentRecord,
   SubscriptionPlan,
   UpdateParentDeliveryPreferencesInput,
+  UpdateParentGrowthMilestonesInput,
   UpdateParentOnboardingReminderInput,
   UpdateParentNotionInput,
   UpdateStudentGoodnotesInput,
@@ -25,6 +26,10 @@ import { getFirebaseAdminDb } from "./firebase-admin";
 import type { ProfileStore } from "./profile-store";
 import { hasAutomatedDeliverySubscription } from "./delivery-eligibility";
 import { hasDispatchableDeliveryChannel } from "./delivery-readiness";
+import {
+  applyAutomaticGrowthMilestones,
+  applySetOnceGrowthMilestones,
+} from "./profile-growth-milestones";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -81,6 +86,23 @@ function normalizeParentRecord(
   const firstAuthenticatedAt =
     typeof raw?.firstAuthenticatedAt === "string" && raw.firstAuthenticatedAt
       ? raw.firstAuthenticatedAt
+      : null;
+  const childProfileCompletedAt =
+    typeof raw?.childProfileCompletedAt === "string" && raw.childProfileCompletedAt
+      ? raw.childProfileCompletedAt
+      : null;
+  const firstDispatchableChannelAt =
+    typeof raw?.firstDispatchableChannelAt === "string" &&
+    raw.firstDispatchableChannelAt
+      ? raw.firstDispatchableChannelAt
+      : null;
+  const firstBriefDeliveredAt =
+    typeof raw?.firstBriefDeliveredAt === "string" && raw.firstBriefDeliveredAt
+      ? raw.firstBriefDeliveredAt
+      : null;
+  const firstPaidAt =
+    typeof raw?.firstPaidAt === "string" && raw.firstPaidAt
+      ? raw.firstPaidAt
       : null;
   const trialEndsAt =
     typeof raw?.trialEndsAt === "string" && raw.trialEndsAt
@@ -142,6 +164,10 @@ function normalizeParentRecord(
     deliveryTimeZone: deliveryPreferences.deliveryTimeZone,
     preferredDeliveryLocalTime: deliveryPreferences.preferredDeliveryLocalTime,
     firstAuthenticatedAt,
+    childProfileCompletedAt,
+    firstDispatchableChannelAt,
+    firstBriefDeliveredAt,
+    firstPaidAt,
     onboardingReminderCount:
       typeof raw?.onboardingReminderCount === "number" &&
       Number.isFinite(raw.onboardingReminderCount) &&
@@ -379,6 +405,10 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     deliveryTimeZone: DEFAULT_DELIVERY_TIME_ZONE,
     preferredDeliveryLocalTime: DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME,
     firstAuthenticatedAt: timestamp,
+    childProfileCompletedAt: null,
+    firstDispatchableChannelAt: null,
+    firstBriefDeliveredAt: null,
+    firstPaidAt: null,
     onboardingReminderCount: 0,
     onboardingReminderLastAttemptAt: null,
     onboardingReminderLastSentAt: null,
@@ -529,6 +559,18 @@ export const firestoreProfileStore: ProfileStore = {
       }
 
       if (maybeStudent) {
+        const automaticMilestones = applyAutomaticGrowthMilestones({
+          parent: existingParent,
+          student: maybeStudent,
+          now: nowIso,
+        });
+
+        if (automaticMilestones.changed) {
+          Object.assign(existingParent, automaticMilestones.parent);
+          existingParent.updatedAt = nowIso;
+          await db.collection("parents").doc(existingParent.id).set(existingParent);
+        }
+
         return toProfile(existingParent, maybeStudent);
       }
 
@@ -550,11 +592,16 @@ export const firestoreProfileStore: ProfileStore = {
       createdParent.id,
       input.studentName?.trim() || "Student",
     );
+    const createdParentWithMilestones = applyAutomaticGrowthMilestones({
+      parent: createdParent,
+      student: createdStudent,
+      now: createdParent.createdAt,
+    }).parent;
 
-    await db.collection("parents").doc(createdParent.id).set(createdParent);
+    await db.collection("parents").doc(createdParent.id).set(createdParentWithMilestones);
     await db.collection("students").doc(createdStudent.id).set(createdStudent);
 
-    return toProfile(createdParent, createdStudent);
+    return toProfile(createdParentWithMilestones, createdStudent);
   },
 
   async updateStudentPreferences(email, input) {
@@ -589,8 +636,19 @@ export const firestoreProfileStore: ProfileStore = {
         : null;
     }
 
-    student.updatedAt = new Date().toISOString();
-    parent.updatedAt = student.updatedAt;
+    const now = new Date().toISOString();
+    const automaticMilestones = applyAutomaticGrowthMilestones({
+      parent,
+      student,
+      now,
+    });
+
+    if (automaticMilestones.changed) {
+      Object.assign(parent, automaticMilestones.parent);
+    }
+
+    student.updatedAt = now;
+    parent.updatedAt = now;
 
     await db.collection("students").doc(student.id).set(student);
     await db.collection("parents").doc(parent.id).set(parent);
@@ -649,8 +707,19 @@ export const firestoreProfileStore: ProfileStore = {
           : null;
     }
 
-    student.updatedAt = new Date().toISOString();
-    parent.updatedAt = student.updatedAt;
+    const now = new Date().toISOString();
+    const automaticMilestones = applyAutomaticGrowthMilestones({
+      parent,
+      student,
+      now,
+    });
+
+    if (automaticMilestones.changed) {
+      Object.assign(parent, automaticMilestones.parent);
+    }
+
+    student.updatedAt = now;
+    parent.updatedAt = now;
 
     await db.collection("students").doc(student.id).set(student);
     await db.collection("parents").doc(parent.id).set(parent);
@@ -799,7 +868,18 @@ export const firestoreProfileStore: ProfileStore = {
           : null;
     }
 
-    parent.updatedAt = new Date().toISOString();
+    const now = new Date().toISOString();
+    const automaticMilestones = applyAutomaticGrowthMilestones({
+      parent,
+      student,
+      now,
+    });
+
+    if (automaticMilestones.changed) {
+      Object.assign(parent, automaticMilestones.parent);
+    }
+
+    parent.updatedAt = now;
 
     await db.collection("parents").doc(parent.id).set(parent);
 
@@ -879,6 +959,17 @@ export const firestoreProfileStore: ProfileStore = {
     }
 
     const now = new Date().toISOString();
+
+    const automaticMilestones = applyAutomaticGrowthMilestones({
+      parent,
+      student,
+      now,
+    });
+
+    if (automaticMilestones.changed) {
+      Object.assign(parent, automaticMilestones.parent);
+    }
+
     parent.updatedAt = now;
     student.updatedAt = now;
 
@@ -918,6 +1009,35 @@ export const firestoreProfileStore: ProfileStore = {
 
     await db.collection("parents").doc(parent.id).set(parent);
     await db.collection("students").doc(student.id).set(student);
+
+    return toProfile(parent, student);
+  },
+
+  async updateParentGrowthMilestones(
+    email,
+    input: UpdateParentGrowthMilestonesInput,
+  ) {
+    const db = getFirebaseAdminDb();
+    const normalizedEmail = normalizeEmail(email);
+    const parent = await findParentByEmail(normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = await findStudentByParentId(parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    const explicitMilestones = applySetOnceGrowthMilestones(parent, input);
+
+    if (explicitMilestones.changed) {
+      Object.assign(parent, explicitMilestones.parent);
+      parent.updatedAt = new Date().toISOString();
+      await db.collection("parents").doc(parent.id).set(parent);
+    }
 
     return toProfile(parent, student);
   },

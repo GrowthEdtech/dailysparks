@@ -59,6 +59,21 @@ export function formatAdminDate(value: string) {
       }).format(date);
 }
 
+export function formatAdminDateTime(value: string) {
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("en", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        timeZone: "UTC",
+      }).format(date);
+}
+
 function formatInvoiceStatus(value: string | null) {
   if (!value) {
     return "No invoice yet";

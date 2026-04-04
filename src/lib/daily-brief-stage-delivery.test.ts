@@ -168,6 +168,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   process.env = { ...ORIGINAL_ENV };
 
   if (tempDirectory) {
@@ -177,6 +178,9 @@ afterEach(async () => {
 
 describe("daily brief stage delivery", () => {
   test("writes Goodnotes delivery success back to the family profile", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-04T09:00:00.000Z"));
+
     const profile = await createGoodnotesProfile();
     sendBriefToGoodnotesMock.mockResolvedValue({
       attachmentFileName:
@@ -191,6 +195,9 @@ describe("daily brief stage delivery", () => {
     expect(updatedProfile?.student.goodnotesLastDeliveryStatus).toBe("success");
     expect(updatedProfile?.student.goodnotesLastDeliveryMessage).toMatch(
       /delivered successfully/i,
+    );
+    expect(updatedProfile?.parent.firstBriefDeliveredAt).toBe(
+      "2026-04-04T09:00:00.000Z",
     );
   });
 

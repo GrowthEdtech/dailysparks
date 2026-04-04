@@ -56,6 +56,10 @@ export type ParentRecord = {
   deliveryTimeZone: string;
   preferredDeliveryLocalTime: string;
   firstAuthenticatedAt?: string | null;
+  childProfileCompletedAt?: string | null;
+  firstDispatchableChannelAt?: string | null;
+  firstBriefDeliveredAt?: string | null;
+  firstPaidAt?: string | null;
   onboardingReminderCount: number;
   onboardingReminderLastAttemptAt: string | null;
   onboardingReminderLastSentAt: string | null;
@@ -198,6 +202,13 @@ export type UpdateParentOnboardingReminderInput = {
   onboardingReminderLastStatus?: OnboardingReminderStatus | null;
   onboardingReminderLastMessageId?: string | null;
   onboardingReminderLastError?: string | null;
+};
+
+export type UpdateParentGrowthMilestonesInput = {
+  childProfileCompletedAt?: string | null;
+  firstDispatchableChannelAt?: string | null;
+  firstBriefDeliveredAt?: string | null;
+  firstPaidAt?: string | null;
 };
 
 export type NotionConnectionSecretRecord = {

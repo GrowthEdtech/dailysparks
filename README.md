@@ -243,6 +243,7 @@ The scheduler helper now creates or updates these jobs by default:
 - `dailysparks-brief-deliver-half-hourly` -> `/api/internal/daily-brief/deliver` -> `0,30 * * * *`
 - `dailysparks-brief-retry-half-hourly` -> `/api/internal/daily-brief/retry-delivery` -> `10,40 * * * *`
 - `dailysparks-brief-onboarding-reminder-half-hourly` -> `/api/internal/onboarding-reminder/run` -> `20,50 * * * *`
+- `dailysparks-brief-growth-reconciliation-daily` -> `/api/internal/growth-reconciliation/run` -> `0 7 * * *`
 
 All default schedules run in `Asia/Hong_Kong`, and all jobs reuse the same
 header-secret authentication. The helper also deletes the legacy single job
@@ -272,6 +273,7 @@ DAILY_BRIEF_SCHEDULER_PREFLIGHT_AMER_0615_SCHEDULE="15 6 * * *"
 DAILY_BRIEF_SCHEDULER_DELIVER_HALF_HOURLY_SCHEDULE="0,30 * * * *"
 DAILY_BRIEF_SCHEDULER_RETRY_HALF_HOURLY_SCHEDULE="10,40 * * * *"
 DAILY_BRIEF_SCHEDULER_ONBOARDING_REMINDER_HALF_HOURLY_SCHEDULE="20,50 * * * *"
+DAILY_BRIEF_SCHEDULER_GROWTH_RECONCILIATION_DAILY_SCHEDULE="0 7 * * *"
 DAILY_BRIEF_SCHEDULER_LEGACY_JOB_NAME=dailysparks-daily-brief
 DAILY_BRIEF_SCHEDULER_CLEANUP_LEGACY_JOB=true
 ```
@@ -301,6 +303,9 @@ The staged model is designed around a fixed editorial business day in
 - every `30` minutes offset by `20` minutes: send onboarding activation
   reminders to logged-in families who still do not have a dispatchable
   Goodnotes or Notion channel
+- `07:00`: summarize trials at risk, active families missing channels, active
+  families still missing a first successful brief, and reminder failures that
+  are still blocking activation
 
 The key business rule is:
 

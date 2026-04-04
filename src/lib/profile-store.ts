@@ -1,6 +1,7 @@
 import type {
   CreateParentProfileInput,
   ParentProfile,
+  UpdateParentGrowthMilestonesInput,
   UpdateParentDeliveryPreferencesInput,
   UpdateParentOnboardingReminderInput,
   UpdateParentNotionInput,
@@ -41,5 +42,9 @@ export type ProfileStore = {
   updateParentOnboardingReminder(
     email: string,
     input: UpdateParentOnboardingReminderInput,
+  ): Promise<ParentProfile | null>;
+  updateParentGrowthMilestones(
+    email: string,
+    input: UpdateParentGrowthMilestonesInput,
   ): Promise<ParentProfile | null>;
 };

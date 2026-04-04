@@ -2,8 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getProfileByParentId } from "../../../../../lib/mvp-store";
+import { getActivationFunnelState } from "../../../../../lib/activation-funnel";
+import { listOnboardingReminderRunHistory } from "../../../../../lib/onboarding-reminder-history-store";
 import {
   formatAdminDate,
+  formatAdminDateTime,
   getCountryRegionLabel,
   getDeliveryLabels,
   getDerivedUserTypeLabel,
@@ -13,6 +16,10 @@ import {
   getPlanLabel,
 } from "../users-admin-helpers";
 import { getFamilyDeliveryHealthRollup } from "../../../../../lib/delivery-health-rollup";
+import {
+  getActivationAttentionState,
+  getRecentReminderRunsForParent,
+} from "../activation-funnel-summary";
 
 type UserDetailAdminPageProps = {
   params: Promise<{
@@ -32,6 +39,12 @@ export default async function UserDetailAdminPage({
 
   const deliveryHealth = getFamilyDeliveryHealthRollup(profile);
   const reminderStatus = getOnboardingReminderStatus(profile);
+  const funnelState = getActivationFunnelState(profile);
+  const attentionState = getActivationAttentionState(profile);
+  const reminderRuns = getRecentReminderRunsForParent(
+    await listOnboardingReminderRunHistory(),
+    profile.parent.id,
+  );
 
   return (
     <section className="space-y-6">
@@ -259,6 +272,106 @@ export default async function UserDetailAdminPage({
               </dd>
             </div>
           </dl>
+        </section>
+
+        <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+            Activation funnel
+          </h2>
+
+          <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Current stage
+            </p>
+            <p className="mt-2 text-lg font-semibold text-[#0f172a]">
+              {funnelState.steps[funnelState.currentStage].label}
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              {funnelState.completedStepCount} of 5 milestones completed
+            </p>
+          </div>
+
+          {attentionState ? (
+            <div
+              className={`mt-4 rounded-[24px] border px-4 py-4 ${
+                attentionState.severity === "danger"
+                  ? "border-rose-200 bg-rose-50"
+                  : "border-amber-200 bg-amber-50"
+              }`}
+            >
+              <p className="text-sm font-semibold text-[#0f172a]">
+                {attentionState.title}
+              </p>
+              <p className="mt-2 text-sm text-slate-600">{attentionState.detail}</p>
+            </div>
+          ) : null}
+
+          <dl className="mt-4 grid gap-3 text-sm leading-6 text-slate-600">
+            {Object.values(funnelState.steps).map((step) => (
+              <div
+                key={step.key}
+                className="flex items-start justify-between gap-4 rounded-[20px] border border-slate-200 bg-white px-4 py-3"
+              >
+                <dt className="font-semibold text-[#0f172a]">{step.label}</dt>
+                <dd className="text-right">
+                  {step.completedAt ? (
+                    <>
+                      <span>{formatAdminDate(step.completedAt)}</span>
+                      {step.derived ? (
+                        <span className="mt-1 block text-xs uppercase tracking-[0.18em] text-slate-400">
+                          Derived
+                        </span>
+                      ) : null}
+                    </>
+                  ) : (
+                    "Not reached"
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
+          <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+            Recent reminder runs
+          </h2>
+
+          {reminderRuns.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500">
+              No immutable reminder run evidence has been recorded for this family yet.
+            </p>
+          ) : (
+            <div className="mt-4 grid gap-3">
+              {reminderRuns.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-[#0f172a]">
+                        {entry.stageLabel}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {formatAdminDateTime(entry.runAt)}
+                      </p>
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      <p className="font-semibold capitalize text-[#0f172a]">
+                        {entry.status}
+                      </p>
+                      <p>
+                        {entry.messageId
+                          ? `Message id: ${entry.messageId}`
+                          : entry.errorMessage || "No message id recorded"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </section>
