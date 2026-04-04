@@ -45,6 +45,7 @@ const ACTIVE_FILTER_CHIP_CLASSES =
   "border-[#0f172a] bg-[#0f172a] text-white";
 const INACTIVE_FILTER_CHIP_CLASSES =
   "border-slate-300 bg-white text-[#0f172a] shadow-sm hover:border-slate-400 hover:bg-slate-100";
+const INACTIVE_FILTER_CHIP_STYLE = { color: "#0f172a" } as const;
 
 function parseProgramme(value: string | undefined): Programme | undefined {
   return value && isProgramme(value) ? value : undefined;
@@ -179,6 +180,11 @@ export default async function DailyBriefsAdminPage({
                       ? ACTIVE_FILTER_CHIP_CLASSES
                       : INACTIVE_FILTER_CHIP_CLASSES
                   }`}
+                  style={
+                    recordKind === kindOption
+                      ? undefined
+                      : INACTIVE_FILTER_CHIP_STYLE
+                  }
                 >
                   {formatRecordKindLabel(kindOption)}
                 </Link>
@@ -202,6 +208,7 @@ export default async function DailyBriefsAdminPage({
                     ? ACTIVE_FILTER_CHIP_CLASSES
                     : INACTIVE_FILTER_CHIP_CLASSES
                 }`}
+                style={!programme ? undefined : INACTIVE_FILTER_CHIP_STYLE}
               >
                 All
               </Link>
@@ -219,6 +226,11 @@ export default async function DailyBriefsAdminPage({
                       ? ACTIVE_FILTER_CHIP_CLASSES
                       : INACTIVE_FILTER_CHIP_CLASSES
                   }`}
+                  style={
+                    programme === programmeOption
+                      ? undefined
+                      : INACTIVE_FILTER_CHIP_STYLE
+                  }
                 >
                   {programmeOption}
                 </Link>
@@ -242,6 +254,7 @@ export default async function DailyBriefsAdminPage({
                     ? ACTIVE_FILTER_CHIP_CLASSES
                     : INACTIVE_FILTER_CHIP_CLASSES
                 }`}
+                style={!status ? undefined : INACTIVE_FILTER_CHIP_STYLE}
               >
                 All
               </Link>
@@ -259,6 +272,11 @@ export default async function DailyBriefsAdminPage({
                       ? ACTIVE_FILTER_CHIP_CLASSES
                       : INACTIVE_FILTER_CHIP_CLASSES
                   }`}
+                  style={
+                    status === statusOption
+                      ? undefined
+                      : INACTIVE_FILTER_CHIP_STYLE
+                  }
                 >
                   {statusOption}
                 </Link>
@@ -282,6 +300,7 @@ export default async function DailyBriefsAdminPage({
                     ? ACTIVE_FILTER_CHIP_CLASSES
                     : INACTIVE_FILTER_CHIP_CLASSES
                 }`}
+                style={!editorialCohort ? undefined : INACTIVE_FILTER_CHIP_STYLE}
               >
                 All
               </Link>
@@ -299,6 +318,11 @@ export default async function DailyBriefsAdminPage({
                       ? ACTIVE_FILTER_CHIP_CLASSES
                       : INACTIVE_FILTER_CHIP_CLASSES
                   }`}
+                  style={
+                    editorialCohort === cohortOption
+                      ? undefined
+                      : INACTIVE_FILTER_CHIP_STYLE
+                  }
                 >
                   {formatEditorialCohortLabel(cohortOption)}
                 </Link>
