@@ -8,12 +8,20 @@ const { updateParentNotificationEmailStateMock } = vi.hoisted(() => ({
   updateParentNotificationEmailStateMock: vi.fn(),
 }));
 
+const { recordPlannedNotificationRunMock } = vi.hoisted(() => ({
+  recordPlannedNotificationRunMock: vi.fn(),
+}));
+
 vi.mock("./planned-notification-emails", () => ({
   sendBillingStatusUpdateNotification: sendBillingStatusUpdateNotificationMock,
 }));
 
 vi.mock("./mvp-store", () => ({
   updateParentNotificationEmailState: updateParentNotificationEmailStateMock,
+}));
+
+vi.mock("./planned-notification-history-store", () => ({
+  recordPlannedNotificationRun: recordPlannedNotificationRunMock,
 }));
 
 import type { ParentProfile } from "./mvp-types";
@@ -101,14 +109,17 @@ describe("billing status notification", () => {
   beforeEach(() => {
     sendBillingStatusUpdateNotificationMock.mockReset();
     updateParentNotificationEmailStateMock.mockReset();
+    recordPlannedNotificationRunMock.mockReset();
   });
 
   test("sends a billing status email once per invoice id and status", async () => {
     updateParentNotificationEmailStateMock.mockResolvedValue(null);
+    recordPlannedNotificationRunMock.mockResolvedValue(null);
     sendBillingStatusUpdateNotificationMock.mockResolvedValue({
       sent: true,
       skipped: false,
       reason: null,
+      messageId: "billing-message-1",
     });
 
     const result = await maybeSendBillingStatusNotification({
@@ -120,10 +131,21 @@ describe("billing status notification", () => {
 
     expect(sendBillingStatusUpdateNotificationMock).toHaveBeenCalledTimes(1);
     expect(updateParentNotificationEmailStateMock).toHaveBeenCalledTimes(1);
+    expect(recordPlannedNotificationRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notificationFamily: "billing-status-update",
+        source: "stripe-webhook",
+        status: "sent",
+        invoiceId: "in_123",
+        invoiceStatus: "paid",
+      }),
+    );
     expect(result.sent).toBe(true);
   });
 
   test("skips duplicate invoice notifications that were already sent", async () => {
+    recordPlannedNotificationRunMock.mockResolvedValue(null);
+
     const result = await maybeSendBillingStatusNotification({
       profile: buildProfile({
         parent: {
@@ -138,6 +160,14 @@ describe("billing status notification", () => {
 
     expect(sendBillingStatusUpdateNotificationMock).not.toHaveBeenCalled();
     expect(updateParentNotificationEmailStateMock).not.toHaveBeenCalled();
+    expect(recordPlannedNotificationRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notificationFamily: "billing-status-update",
+        source: "stripe-webhook",
+        status: "skipped",
+        deduped: true,
+      }),
+    );
     expect(result.skipped).toBe(true);
   });
 });

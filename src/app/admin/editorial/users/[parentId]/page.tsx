@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getProfileByParentId } from "../../../../../lib/mvp-store";
 import { getActivationFunnelState } from "../../../../../lib/activation-funnel";
 import { listOnboardingReminderRunHistory } from "../../../../../lib/onboarding-reminder-history-store";
+import { listPlannedNotificationRunHistory } from "../../../../../lib/planned-notification-history-store";
+import type { PlannedNotificationRunRecord } from "../../../../../lib/planned-notification-history-schema";
 import {
   formatAdminDate,
   formatAdminDateTime,
@@ -21,12 +23,40 @@ import {
   getActivationAttentionState,
   getRecentReminderRunsForParent,
 } from "../activation-funnel-summary";
+import PlannedNotificationActionsPanel from "./planned-notification-actions-panel";
 
 type UserDetailAdminPageProps = {
   params: Promise<{
     parentId: string;
   }>;
 };
+
+function getRecentPlannedNotificationRunsForParent(
+  entries: PlannedNotificationRunRecord[],
+  parentId: string,
+) {
+  return entries.filter((entry) => entry.parentId === parentId).slice(0, 6);
+}
+
+function formatPlannedNotificationFamilyLabel(
+  family: PlannedNotificationRunRecord["notificationFamily"],
+) {
+  if (family === "trial-ending-reminder") {
+    return "Trial ending reminder";
+  }
+
+  if (family === "billing-status-update") {
+    return "Billing status update";
+  }
+
+  return "Delivery support alert";
+}
+
+function formatPlannedNotificationSourceLabel(
+  source: PlannedNotificationRunRecord["source"],
+) {
+  return source.replaceAll("-", " ");
+}
 
 export default async function UserDetailAdminPage({
   params,
@@ -45,6 +75,10 @@ export default async function UserDetailAdminPage({
   const attentionState = getActivationAttentionState(profile);
   const reminderRuns = getRecentReminderRunsForParent(
     await listOnboardingReminderRunHistory(),
+    profile.parent.id,
+  );
+  const plannedNotificationRuns = getRecentPlannedNotificationRunsForParent(
+    await listPlannedNotificationRunHistory(),
     profile.parent.id,
   );
 
@@ -335,11 +369,21 @@ export default async function UserDetailAdminPage({
                     <dt className="font-semibold text-[#0f172a]">Deduped</dt>
                     <dd>{item.status.deduped ? "Yes" : "No"}</dd>
                   </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="font-semibold text-[#0f172a]">Last resolved</dt>
+                    <dd>
+                      {item.status.lastResolvedAt
+                        ? formatAdminDateTime(item.status.lastResolvedAt)
+                        : "Not resolved"}
+                    </dd>
+                  </div>
                 </dl>
               </div>
             ))}
           </div>
         </section>
+
+        <PlannedNotificationActionsPanel parentEmail={profile.parent.email} />
 
         <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
@@ -432,6 +476,48 @@ export default async function UserDetailAdminPage({
                         {entry.messageId
                           ? `Message id: ${entry.messageId}`
                           : entry.errorMessage || "No message id recorded"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
+          <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+            Recent notification runs
+          </h2>
+
+          {plannedNotificationRuns.length === 0 ? (
+            <p className="mt-4 text-sm text-slate-500">
+              No immutable planned-notification evidence has been recorded for this family yet.
+            </p>
+          ) : (
+            <div className="mt-4 grid gap-3">
+              {plannedNotificationRuns.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-[#0f172a]">
+                        {formatPlannedNotificationFamilyLabel(entry.notificationFamily)}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        {formatAdminDateTime(entry.runAt)} · {formatPlannedNotificationSourceLabel(entry.source)}
+                      </p>
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      <p className="font-semibold capitalize text-[#0f172a]">
+                        {entry.status}
+                      </p>
+                      <p>
+                        {entry.messageId
+                          ? `Message id: ${entry.messageId}`
+                          : entry.errorMessage || entry.reason || "No additional evidence recorded"}
                       </p>
                     </div>
                   </div>

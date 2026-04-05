@@ -1,14 +1,19 @@
 import { updateParentNotificationEmailState } from "./mvp-store";
 import type { ParentProfile } from "./mvp-types";
 import {
-  getDeliverySupportAlertReason,
-  getTrialEndingReminderReason,
-} from "./growth-reconciliation";
-import {
   sendDeliverySupportAlertNotification,
   sendTrialEndingReminderNotification,
   type PlannedNotificationSendResult,
 } from "./planned-notification-emails";
+import {
+  recordPlannedNotificationRun,
+} from "./planned-notification-history-store";
+import {
+  getDeliverySupportNotificationCurrentState,
+  getDeliverySupportNotificationStatus,
+  getTrialEndingNotificationCurrentState,
+  getTrialEndingNotificationStatus,
+} from "./planned-notification-state";
 
 export type GrowthNotificationRunBucket = {
   checkedCount: number;
@@ -33,17 +38,6 @@ function countResult(
   accumulator.skippedCount += 1;
 }
 
-function hasAlreadySentTrialEndingReminder(profile: ParentProfile) {
-  return (
-    profile.parent.trialEndingReminderLastTrialEndsAt ===
-    profile.parent.trialEndsAt
-  );
-}
-
-function buildDeliverySupportReasonKey(reason: string) {
-  return reason.trim().toLowerCase();
-}
-
 export async function runGrowthNotificationEmails(input: {
   profiles: ParentProfile[];
   now?: Date;
@@ -63,47 +57,140 @@ export async function runGrowthNotificationEmails(input: {
   };
 
   for (const profile of input.profiles) {
-    const trialEndingReason = getTrialEndingReminderReason(profile, now);
+    const trialEndingState = getTrialEndingNotificationCurrentState(profile, now);
+    const trialEndingStatus = getTrialEndingNotificationStatus(profile, now);
 
-    if (trialEndingReason) {
+    if (trialEndingState) {
       result.trialEnding.checkedCount += 1;
 
-      if (!hasAlreadySentTrialEndingReminder(profile)) {
-        const sent = await sendTrialEndingReminderNotification({ profile });
-        countResult(result.trialEnding, sent);
+      if (trialEndingStatus.actionable && !trialEndingStatus.deduped) {
+        try {
+          const sent = await sendTrialEndingReminderNotification({ profile });
+          countResult(result.trialEnding, sent);
 
-        if (sent.sent) {
-          await updateParentNotificationEmailState(profile.parent.email, {
-            trialEndingReminderLastNotifiedAt: now.toISOString(),
-            trialEndingReminderLastTrialEndsAt: profile.parent.trialEndsAt,
+          await recordPlannedNotificationRun({
+            runAt: now.toISOString(),
+            parentId: profile.parent.id,
+            parentEmail: profile.parent.email,
+            notificationFamily: "trial-ending-reminder",
+            source: "growth-reconciliation",
+            status: sent.sent ? "sent" : "skipped",
+            reason: sent.reason ?? trialEndingState.reason,
+            deduped: sent.skipped,
+            messageId: sent.messageId ?? null,
+            errorMessage: null,
+            trialEndsAt: trialEndingState.trialEndsAt,
+          });
+
+          if (sent.sent) {
+            await updateParentNotificationEmailState(profile.parent.email, {
+              trialEndingReminderLastNotifiedAt: now.toISOString(),
+              trialEndingReminderLastTrialEndsAt: trialEndingState.trialEndsAt,
+              trialEndingReminderLastResolvedAt: null,
+              trialEndingReminderLastResolvedTrialEndsAt: null,
+            });
+          }
+        } catch (error) {
+          result.trialEnding.skippedCount += 1;
+          await recordPlannedNotificationRun({
+            runAt: now.toISOString(),
+            parentId: profile.parent.id,
+            parentEmail: profile.parent.email,
+            notificationFamily: "trial-ending-reminder",
+            source: "growth-reconciliation",
+            status: "failed",
+            reason: trialEndingState.reason,
+            deduped: false,
+            messageId: null,
+            errorMessage: error instanceof Error ? error.message : "Notification send failed.",
+            trialEndsAt: trialEndingState.trialEndsAt,
           });
         }
       } else {
         result.trialEnding.skippedCount += 1;
+        await recordPlannedNotificationRun({
+          runAt: now.toISOString(),
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          notificationFamily: "trial-ending-reminder",
+          source: "growth-reconciliation",
+          status: trialEndingStatus.label === "Resolved" ? "resolved" : "skipped",
+          reason: trialEndingStatus.detail,
+          deduped: trialEndingStatus.deduped,
+          messageId: null,
+          errorMessage: null,
+          trialEndsAt: trialEndingState.trialEndsAt,
+        });
       }
     }
 
-    const deliverySupportReason = getDeliverySupportAlertReason(profile, now);
+    const deliverySupportState = getDeliverySupportNotificationCurrentState(profile, now);
+    const deliverySupportStatus = getDeliverySupportNotificationStatus(profile, now);
 
-    if (deliverySupportReason) {
+    if (deliverySupportState) {
       result.deliverySupport.checkedCount += 1;
-      const reasonKey = buildDeliverySupportReasonKey(deliverySupportReason);
 
-      if (profile.parent.deliverySupportAlertLastReasonKey !== reasonKey) {
-        const sent = await sendDeliverySupportAlertNotification({
-          profile,
-          reason: deliverySupportReason,
-        });
-        countResult(result.deliverySupport, sent);
+      if (deliverySupportStatus.actionable && !deliverySupportStatus.deduped) {
+        try {
+          const sent = await sendDeliverySupportAlertNotification({
+            profile,
+            reason: deliverySupportState.reason,
+          });
+          countResult(result.deliverySupport, sent);
 
-        if (sent.sent) {
-          await updateParentNotificationEmailState(profile.parent.email, {
-            deliverySupportAlertLastNotifiedAt: now.toISOString(),
-            deliverySupportAlertLastReasonKey: reasonKey,
+          await recordPlannedNotificationRun({
+            runAt: now.toISOString(),
+            parentId: profile.parent.id,
+            parentEmail: profile.parent.email,
+            notificationFamily: "delivery-support-alert",
+            source: "growth-reconciliation",
+            status: sent.sent ? "sent" : "skipped",
+            reason: sent.reason ?? deliverySupportState.reason,
+            deduped: sent.skipped,
+            messageId: sent.messageId ?? null,
+            errorMessage: null,
+            reasonKey: deliverySupportState.reasonKey,
+          });
+
+          if (sent.sent) {
+            await updateParentNotificationEmailState(profile.parent.email, {
+              deliverySupportAlertLastNotifiedAt: now.toISOString(),
+              deliverySupportAlertLastReasonKey: deliverySupportState.reasonKey,
+              deliverySupportAlertLastResolvedAt: null,
+              deliverySupportAlertLastResolvedReasonKey: null,
+            });
+          }
+        } catch (error) {
+          result.deliverySupport.skippedCount += 1;
+          await recordPlannedNotificationRun({
+            runAt: now.toISOString(),
+            parentId: profile.parent.id,
+            parentEmail: profile.parent.email,
+            notificationFamily: "delivery-support-alert",
+            source: "growth-reconciliation",
+            status: "failed",
+            reason: deliverySupportState.reason,
+            deduped: false,
+            messageId: null,
+            errorMessage: error instanceof Error ? error.message : "Notification send failed.",
+            reasonKey: deliverySupportState.reasonKey,
           });
         }
       } else {
         result.deliverySupport.skippedCount += 1;
+        await recordPlannedNotificationRun({
+          runAt: now.toISOString(),
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          notificationFamily: "delivery-support-alert",
+          source: "growth-reconciliation",
+          status: deliverySupportStatus.label === "Resolved" ? "resolved" : "skipped",
+          reason: deliverySupportStatus.detail,
+          deduped: deliverySupportStatus.deduped,
+          messageId: null,
+          errorMessage: null,
+          reasonKey: deliverySupportState.reasonKey,
+        });
       }
     }
   }

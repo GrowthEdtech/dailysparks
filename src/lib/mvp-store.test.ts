@@ -303,20 +303,37 @@ describe("mvp store", () => {
     const updated = await updateParentNotificationEmailState("parent@example.com", {
       trialEndingReminderLastNotifiedAt: "2026-04-05T02:00:00.000Z",
       trialEndingReminderLastTrialEndsAt: "2026-04-08T00:00:00.000Z",
+      trialEndingReminderLastResolvedAt: "2026-04-05T02:30:00.000Z",
+      trialEndingReminderLastResolvedTrialEndsAt: "2026-04-08T00:00:00.000Z",
       billingStatusNotificationLastSentAt: "2026-04-05T03:00:00.000Z",
       billingStatusNotificationLastInvoiceId: "in_123",
       billingStatusNotificationLastInvoiceStatus: "paid",
+      billingStatusNotificationLastResolvedAt: "2026-04-05T03:30:00.000Z",
+      billingStatusNotificationLastResolvedInvoiceId: "in_123",
+      billingStatusNotificationLastResolvedInvoiceStatus: "paid",
       deliverySupportAlertLastNotifiedAt: "2026-04-05T04:00:00.000Z",
       deliverySupportAlertLastReasonKey:
+        "active access is live, but no dispatchable goodnotes or notion channel is ready yet.",
+      deliverySupportAlertLastResolvedAt: "2026-04-05T04:30:00.000Z",
+      deliverySupportAlertLastResolvedReasonKey:
         "active access is live, but no dispatchable goodnotes or notion channel is ready yet.",
     });
 
     expect(updated?.parent.trialEndingReminderLastNotifiedAt).toBe(
       "2026-04-05T02:00:00.000Z",
     );
+    expect(updated?.parent.trialEndingReminderLastResolvedAt).toBe(
+      "2026-04-05T02:30:00.000Z",
+    );
     expect(updated?.parent.billingStatusNotificationLastInvoiceId).toBe("in_123");
+    expect(updated?.parent.billingStatusNotificationLastResolvedInvoiceId).toBe(
+      "in_123",
+    );
     expect(updated?.parent.deliverySupportAlertLastReasonKey).toMatch(
       /dispatchable goodnotes/i,
+    );
+    expect(updated?.parent.deliverySupportAlertLastResolvedAt).toBe(
+      "2026-04-05T04:30:00.000Z",
     );
 
     const reloaded = await getProfileByEmail("parent@example.com");
@@ -324,11 +341,20 @@ describe("mvp store", () => {
     expect(reloaded?.parent.trialEndingReminderLastTrialEndsAt).toBe(
       "2026-04-08T00:00:00.000Z",
     );
+    expect(reloaded?.parent.trialEndingReminderLastResolvedTrialEndsAt).toBe(
+      "2026-04-08T00:00:00.000Z",
+    );
     expect(reloaded?.parent.billingStatusNotificationLastInvoiceStatus).toBe(
+      "paid",
+    );
+    expect(reloaded?.parent.billingStatusNotificationLastResolvedInvoiceStatus).toBe(
       "paid",
     );
     expect(reloaded?.parent.deliverySupportAlertLastNotifiedAt).toBe(
       "2026-04-05T04:00:00.000Z",
+    );
+    expect(reloaded?.parent.deliverySupportAlertLastResolvedReasonKey).toMatch(
+      /dispatchable goodnotes/i,
     );
   });
 

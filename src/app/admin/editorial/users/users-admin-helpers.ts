@@ -16,11 +16,13 @@ import {
   getCountryLabel,
 } from "../../../../lib/delivery-locale";
 import { getFamilyDeliveryHealthRollup } from "../../../../lib/delivery-health-rollup";
-import {
-  getDeliverySupportAlertReason,
-  getTrialEndingReminderReason,
-} from "../../../../lib/growth-reconciliation";
 import { assessOnboardingActivationReminder } from "../../../../lib/onboarding-activation-reminder";
+import {
+  getBillingStatusNotificationStatus,
+  getDeliverySupportNotificationStatus,
+  getTrialEndingNotificationStatus,
+  type PlannedNotificationStatus,
+} from "../../../../lib/planned-notification-state";
 
 export const USER_STATUS_FILTERS = DERIVED_ACCESS_STATES;
 
@@ -185,14 +187,6 @@ export function getOnboardingReminderStatus(profile: ParentProfile) {
   };
 }
 
-export type PlannedNotificationStatus = {
-  label: "Pending" | "Deduped" | "Sent" | "Resolved" | "Not needed";
-  detail: string;
-  lastSentAt: string | null;
-  deduped: boolean;
-  actionable: boolean;
-};
-
 export type PlannedNotificationStatuses = {
   trialEnding: PlannedNotificationStatus;
   billingStatus: PlannedNotificationStatus;
@@ -210,143 +204,14 @@ export type PlannedNotificationOpsSummary = {
   deliverySupport: PlannedNotificationOpsBucket;
 };
 
-function buildDeliverySupportReasonKey(reason: string) {
-  return reason.trim().toLowerCase();
-}
-
-function describeInvoiceStatus(invoiceStatus: string) {
-  return invoiceStatus.replaceAll("_", " ").toLowerCase();
-}
-
 export function getPlannedNotificationStatuses(
   profile: ParentProfile,
   now = new Date(),
 ): PlannedNotificationStatuses {
-  const trialEndingReason = getTrialEndingReminderReason(profile, now);
-  const trialEndingWasSentForCurrentWindow =
-    Boolean(profile.parent.trialEndingReminderLastNotifiedAt) &&
-    profile.parent.trialEndingReminderLastTrialEndsAt === profile.parent.trialEndsAt;
-
-  const trialEnding: PlannedNotificationStatus = trialEndingReason
-    ? trialEndingWasSentForCurrentWindow
-      ? {
-          label: "Deduped",
-          detail: `Latest trial ending reminder already covers this trial window. ${trialEndingReason}`,
-          lastSentAt: profile.parent.trialEndingReminderLastNotifiedAt ?? null,
-          deduped: true,
-          actionable: true,
-        }
-      : {
-          label: "Pending",
-          detail: trialEndingReason,
-          lastSentAt: profile.parent.trialEndingReminderLastNotifiedAt ?? null,
-          deduped: false,
-          actionable: true,
-        }
-    : profile.parent.trialEndingReminderLastNotifiedAt
-      ? {
-          label: "Sent",
-          detail:
-            "No current trial-ending notification is due. The latest reminder was already sent for an earlier trial window.",
-          lastSentAt: profile.parent.trialEndingReminderLastNotifiedAt,
-          deduped: false,
-          actionable: false,
-        }
-      : {
-          label: "Not needed",
-          detail: "No trial-ending notification is needed right now.",
-          lastSentAt: null,
-          deduped: false,
-          actionable: false,
-        };
-
-  const invoiceId = profile.parent.latestInvoiceId?.trim() || null;
-  const invoiceStatus = profile.parent.latestInvoiceStatus?.trim() || null;
-  const invoiceStatusLabel = invoiceStatus
-    ? describeInvoiceStatus(invoiceStatus)
-    : null;
-  const currentBillingStateAlreadySent =
-    Boolean(profile.parent.billingStatusNotificationLastSentAt) &&
-    profile.parent.billingStatusNotificationLastInvoiceId === invoiceId &&
-    profile.parent.billingStatusNotificationLastInvoiceStatus === invoiceStatus;
-
-  const billingStatusState: PlannedNotificationStatus =
-    invoiceId && invoiceStatus && invoiceStatusLabel
-      ? currentBillingStateAlreadySent
-        ? {
-            label: "Deduped",
-            detail: `The current invoice ${invoiceStatusLabel} update was already emailed to the parent inbox.`,
-            lastSentAt: profile.parent.billingStatusNotificationLastSentAt ?? null,
-            deduped: true,
-            actionable: true,
-          }
-        : {
-            label: "Pending",
-            detail: `The latest invoice ${invoiceStatusLabel} update has not been emailed yet.`,
-            lastSentAt: profile.parent.billingStatusNotificationLastSentAt ?? null,
-            deduped: false,
-            actionable: true,
-          }
-      : profile.parent.billingStatusNotificationLastSentAt
-        ? {
-            label: "Sent",
-            detail:
-              "No newer invoice status needs a billing notification right now.",
-            lastSentAt: profile.parent.billingStatusNotificationLastSentAt,
-            deduped: false,
-            actionable: false,
-          }
-        : {
-            label: "Not needed",
-            detail: "No invoice id or status is available for notification.",
-            lastSentAt: null,
-            deduped: false,
-            actionable: false,
-          };
-
-  const deliverySupportReason = getDeliverySupportAlertReason(profile, now);
-  const currentSupportReasonAlreadySent =
-    Boolean(profile.parent.deliverySupportAlertLastNotifiedAt) &&
-    deliverySupportReason !== null &&
-    profile.parent.deliverySupportAlertLastReasonKey ===
-      buildDeliverySupportReasonKey(deliverySupportReason);
-
-  const deliverySupport: PlannedNotificationStatus = deliverySupportReason
-    ? currentSupportReasonAlreadySent
-      ? {
-          label: "Deduped",
-          detail: `The current delivery support reason already matches the latest alert. ${deliverySupportReason}`,
-          lastSentAt: profile.parent.deliverySupportAlertLastNotifiedAt ?? null,
-          deduped: true,
-          actionable: true,
-        }
-      : {
-          label: "Pending",
-          detail: deliverySupportReason,
-          lastSentAt: profile.parent.deliverySupportAlertLastNotifiedAt ?? null,
-          deduped: false,
-          actionable: true,
-        }
-    : profile.parent.deliverySupportAlertLastNotifiedAt
-      ? {
-          label: "Resolved",
-          detail: "The latest delivery-support issue has cleared since the last alert.",
-          lastSentAt: profile.parent.deliverySupportAlertLastNotifiedAt,
-          deduped: false,
-          actionable: false,
-        }
-      : {
-          label: "Not needed",
-          detail: "No delivery support alert is needed right now.",
-          lastSentAt: null,
-          deduped: false,
-          actionable: false,
-        };
-
   return {
-    trialEnding,
-    billingStatus: billingStatusState,
-    deliverySupport,
+    trialEnding: getTrialEndingNotificationStatus(profile, now),
+    billingStatus: getBillingStatusNotificationStatus(profile),
+    deliverySupport: getDeliverySupportNotificationStatus(profile, now),
   };
 }
 

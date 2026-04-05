@@ -10,6 +10,10 @@ const { updateParentNotificationEmailStateMock } = vi.hoisted(() => ({
   updateParentNotificationEmailStateMock: vi.fn(),
 }));
 
+const { recordPlannedNotificationRunMock } = vi.hoisted(() => ({
+  recordPlannedNotificationRunMock: vi.fn(),
+}));
+
 vi.mock("./planned-notification-emails", () => ({
   sendTrialEndingReminderNotification: sendTrialEndingReminderNotificationMock,
   sendDeliverySupportAlertNotification: sendDeliverySupportAlertNotificationMock,
@@ -17,6 +21,10 @@ vi.mock("./planned-notification-emails", () => ({
 
 vi.mock("./mvp-store", () => ({
   updateParentNotificationEmailState: updateParentNotificationEmailStateMock,
+}));
+
+vi.mock("./planned-notification-history-store", () => ({
+  recordPlannedNotificationRun: recordPlannedNotificationRunMock,
 }));
 
 import type { ParentProfile } from "./mvp-types";
@@ -101,15 +109,18 @@ function buildProfile(
 describe("growth notification runner", () => {
   test("sends trial-ending and delivery-support notifications only when due", async () => {
     updateParentNotificationEmailStateMock.mockResolvedValue(null);
+    recordPlannedNotificationRunMock.mockResolvedValue(null);
     sendTrialEndingReminderNotificationMock.mockResolvedValue({
       sent: true,
       skipped: false,
       reason: null,
+      messageId: "trial-message-1",
     });
     sendDeliverySupportAlertNotificationMock.mockResolvedValue({
       sent: true,
       skipped: false,
       reason: null,
+      messageId: "support-message-1",
     });
 
     const result = await runGrowthNotificationEmails({
@@ -132,6 +143,21 @@ describe("growth notification runner", () => {
     expect(sendTrialEndingReminderNotificationMock).toHaveBeenCalledTimes(1);
     expect(sendDeliverySupportAlertNotificationMock).toHaveBeenCalledTimes(1);
     expect(updateParentNotificationEmailStateMock).toHaveBeenCalledTimes(2);
+    expect(recordPlannedNotificationRunMock).toHaveBeenCalledTimes(2);
+    expect(recordPlannedNotificationRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notificationFamily: "trial-ending-reminder",
+        source: "growth-reconciliation",
+        status: "sent",
+      }),
+    );
+    expect(recordPlannedNotificationRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notificationFamily: "delivery-support-alert",
+        source: "growth-reconciliation",
+        status: "sent",
+      }),
+    );
     expect(result.trialEnding.sentCount).toBe(1);
     expect(result.deliverySupport.sentCount).toBe(1);
   });

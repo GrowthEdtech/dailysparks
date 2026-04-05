@@ -156,6 +156,12 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
   const trialEndingReminderLastTrialEndsAt = normalizeNullableString(
     raw.trialEndingReminderLastTrialEndsAt,
   );
+  const trialEndingReminderLastResolvedAt = normalizeNullableString(
+    raw.trialEndingReminderLastResolvedAt,
+  );
+  const trialEndingReminderLastResolvedTrialEndsAt = normalizeNullableString(
+    raw.trialEndingReminderLastResolvedTrialEndsAt,
+  );
   const billingStatusNotificationLastSentAt = normalizeNullableString(
     raw.billingStatusNotificationLastSentAt,
   );
@@ -165,11 +171,26 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
   const billingStatusNotificationLastInvoiceStatus = normalizeNullableString(
     raw.billingStatusNotificationLastInvoiceStatus,
   );
+  const billingStatusNotificationLastResolvedAt = normalizeNullableString(
+    raw.billingStatusNotificationLastResolvedAt,
+  );
+  const billingStatusNotificationLastResolvedInvoiceId = normalizeNullableString(
+    raw.billingStatusNotificationLastResolvedInvoiceId,
+  );
+  const billingStatusNotificationLastResolvedInvoiceStatus = normalizeNullableString(
+    raw.billingStatusNotificationLastResolvedInvoiceStatus,
+  );
   const deliverySupportAlertLastNotifiedAt = normalizeNullableString(
     raw.deliverySupportAlertLastNotifiedAt,
   );
   const deliverySupportAlertLastReasonKey = normalizeNullableString(
     raw.deliverySupportAlertLastReasonKey,
+  );
+  const deliverySupportAlertLastResolvedAt = normalizeNullableString(
+    raw.deliverySupportAlertLastResolvedAt,
+  );
+  const deliverySupportAlertLastResolvedReasonKey = normalizeNullableString(
+    raw.deliverySupportAlertLastResolvedReasonKey,
   );
   const notionWorkspaceId = normalizeNullableString(raw.notionWorkspaceId);
   const notionWorkspaceName = normalizeNullableString(raw.notionWorkspaceName);
@@ -269,11 +290,18 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
     latestInvoicePeriodEnd,
     trialEndingReminderLastNotifiedAt,
     trialEndingReminderLastTrialEndsAt,
+    trialEndingReminderLastResolvedAt,
+    trialEndingReminderLastResolvedTrialEndsAt,
     billingStatusNotificationLastSentAt,
     billingStatusNotificationLastInvoiceId,
     billingStatusNotificationLastInvoiceStatus,
+    billingStatusNotificationLastResolvedAt,
+    billingStatusNotificationLastResolvedInvoiceId,
+    billingStatusNotificationLastResolvedInvoiceStatus,
     deliverySupportAlertLastNotifiedAt,
     deliverySupportAlertLastReasonKey,
+    deliverySupportAlertLastResolvedAt,
+    deliverySupportAlertLastResolvedReasonKey,
     notionWorkspaceId,
     notionWorkspaceName,
     notionBotId,
@@ -499,6 +527,20 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     latestInvoicePaidAt: null,
     latestInvoicePeriodStart: null,
     latestInvoicePeriodEnd: null,
+    trialEndingReminderLastNotifiedAt: null,
+    trialEndingReminderLastTrialEndsAt: null,
+    trialEndingReminderLastResolvedAt: null,
+    trialEndingReminderLastResolvedTrialEndsAt: null,
+    billingStatusNotificationLastSentAt: null,
+    billingStatusNotificationLastInvoiceId: null,
+    billingStatusNotificationLastInvoiceStatus: null,
+    billingStatusNotificationLastResolvedAt: null,
+    billingStatusNotificationLastResolvedInvoiceId: null,
+    billingStatusNotificationLastResolvedInvoiceStatus: null,
+    deliverySupportAlertLastNotifiedAt: null,
+    deliverySupportAlertLastReasonKey: null,
+    deliverySupportAlertLastResolvedAt: null,
+    deliverySupportAlertLastResolvedReasonKey: null,
     notionWorkspaceId: null,
     notionWorkspaceName: null,
     notionBotId: null,
@@ -1198,6 +1240,22 @@ export const localProfileStore: ProfileStore = {
           : null;
     }
 
+    if (input.trialEndingReminderLastResolvedAt !== undefined) {
+      parent.trialEndingReminderLastResolvedAt =
+        typeof input.trialEndingReminderLastResolvedAt === "string" &&
+        input.trialEndingReminderLastResolvedAt.trim()
+          ? input.trialEndingReminderLastResolvedAt
+          : null;
+    }
+
+    if (input.trialEndingReminderLastResolvedTrialEndsAt !== undefined) {
+      parent.trialEndingReminderLastResolvedTrialEndsAt =
+        typeof input.trialEndingReminderLastResolvedTrialEndsAt === "string" &&
+        input.trialEndingReminderLastResolvedTrialEndsAt.trim()
+          ? input.trialEndingReminderLastResolvedTrialEndsAt
+          : null;
+    }
+
     if (input.billingStatusNotificationLastSentAt !== undefined) {
       parent.billingStatusNotificationLastSentAt =
         typeof input.billingStatusNotificationLastSentAt === "string" &&
@@ -1222,6 +1280,30 @@ export const localProfileStore: ProfileStore = {
           : null;
     }
 
+    if (input.billingStatusNotificationLastResolvedAt !== undefined) {
+      parent.billingStatusNotificationLastResolvedAt =
+        typeof input.billingStatusNotificationLastResolvedAt === "string" &&
+        input.billingStatusNotificationLastResolvedAt.trim()
+          ? input.billingStatusNotificationLastResolvedAt
+          : null;
+    }
+
+    if (input.billingStatusNotificationLastResolvedInvoiceId !== undefined) {
+      parent.billingStatusNotificationLastResolvedInvoiceId =
+        typeof input.billingStatusNotificationLastResolvedInvoiceId === "string" &&
+        input.billingStatusNotificationLastResolvedInvoiceId.trim()
+          ? input.billingStatusNotificationLastResolvedInvoiceId
+          : null;
+    }
+
+    if (input.billingStatusNotificationLastResolvedInvoiceStatus !== undefined) {
+      parent.billingStatusNotificationLastResolvedInvoiceStatus =
+        typeof input.billingStatusNotificationLastResolvedInvoiceStatus === "string" &&
+        input.billingStatusNotificationLastResolvedInvoiceStatus.trim()
+          ? input.billingStatusNotificationLastResolvedInvoiceStatus
+          : null;
+    }
+
     if (input.deliverySupportAlertLastNotifiedAt !== undefined) {
       parent.deliverySupportAlertLastNotifiedAt =
         typeof input.deliverySupportAlertLastNotifiedAt === "string" &&
@@ -1235,6 +1317,22 @@ export const localProfileStore: ProfileStore = {
         typeof input.deliverySupportAlertLastReasonKey === "string" &&
         input.deliverySupportAlertLastReasonKey.trim()
           ? input.deliverySupportAlertLastReasonKey
+          : null;
+    }
+
+    if (input.deliverySupportAlertLastResolvedAt !== undefined) {
+      parent.deliverySupportAlertLastResolvedAt =
+        typeof input.deliverySupportAlertLastResolvedAt === "string" &&
+        input.deliverySupportAlertLastResolvedAt.trim()
+          ? input.deliverySupportAlertLastResolvedAt
+          : null;
+    }
+
+    if (input.deliverySupportAlertLastResolvedReasonKey !== undefined) {
+      parent.deliverySupportAlertLastResolvedReasonKey =
+        typeof input.deliverySupportAlertLastResolvedReasonKey === "string" &&
+        input.deliverySupportAlertLastResolvedReasonKey.trim()
+          ? input.deliverySupportAlertLastResolvedReasonKey
           : null;
     }
 

@@ -13,12 +13,20 @@ const { listOnboardingReminderRunHistoryMock } = vi.hoisted(() => ({
   listOnboardingReminderRunHistoryMock: vi.fn(),
 }));
 
+const { listPlannedNotificationRunHistoryMock } = vi.hoisted(() => ({
+  listPlannedNotificationRunHistoryMock: vi.fn(),
+}));
+
 vi.mock("../../../../../lib/mvp-store", () => ({
   getProfileByParentId: getProfileByParentIdMock,
 }));
 
 vi.mock("../../../../../lib/onboarding-reminder-history-store", () => ({
   listOnboardingReminderRunHistory: listOnboardingReminderRunHistoryMock,
+}));
+
+vi.mock("../../../../../lib/planned-notification-history-store", () => ({
+  listPlannedNotificationRunHistory: listPlannedNotificationRunHistoryMock,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -45,6 +53,8 @@ describe("UserDetailAdminPage", () => {
     notFoundMock.mockClear();
     listOnboardingReminderRunHistoryMock.mockReset();
     listOnboardingReminderRunHistoryMock.mockResolvedValue([]);
+    listPlannedNotificationRunHistoryMock.mockReset();
+    listPlannedNotificationRunHistoryMock.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -449,11 +459,18 @@ describe("UserDetailAdminPage", () => {
         onboardingReminderLastError: "SMTP offline",
         trialEndingReminderLastNotifiedAt: "2026-04-05T01:00:00.000Z",
         trialEndingReminderLastTrialEndsAt: "2026-04-08T00:00:00.000Z",
+        trialEndingReminderLastResolvedAt: null,
+        trialEndingReminderLastResolvedTrialEndsAt: null,
         billingStatusNotificationLastSentAt: null,
         billingStatusNotificationLastInvoiceId: null,
         billingStatusNotificationLastInvoiceStatus: null,
+        billingStatusNotificationLastResolvedAt: null,
+        billingStatusNotificationLastResolvedInvoiceId: null,
+        billingStatusNotificationLastResolvedInvoiceStatus: null,
         deliverySupportAlertLastNotifiedAt: null,
         deliverySupportAlertLastReasonKey: null,
+        deliverySupportAlertLastResolvedAt: null,
+        deliverySupportAlertLastResolvedReasonKey: null,
         subscriptionStatus: "trial",
         subscriptionPlan: "monthly",
         stripeCustomerId: "cus_ops",
@@ -504,6 +521,46 @@ describe("UserDetailAdminPage", () => {
         updatedAt: "2026-04-05T01:00:00.000Z",
       },
     });
+    listPlannedNotificationRunHistoryMock.mockResolvedValue([
+      {
+        id: "planned-run-1",
+        runAt: "2026-04-05T01:00:00.000Z",
+        runDate: "2026-04-05",
+        parentId: "parent-5",
+        parentEmail: "ops@example.com",
+        notificationFamily: "trial-ending-reminder",
+        source: "growth-reconciliation",
+        status: "sent",
+        reason: "Trial ending reminder is due within 48 hours.",
+        deduped: false,
+        messageId: "trial-message-1",
+        errorMessage: null,
+        invoiceId: null,
+        invoiceStatus: null,
+        trialEndsAt: "2026-04-08T00:00:00.000Z",
+        reasonKey: null,
+        createdAt: "2026-04-05T01:00:00.000Z",
+      },
+      {
+        id: "planned-run-2",
+        runAt: "2026-04-05T01:30:00.000Z",
+        runDate: "2026-04-05",
+        parentId: "parent-5",
+        parentEmail: "ops@example.com",
+        notificationFamily: "billing-status-update",
+        source: "manual-resolve",
+        status: "resolved",
+        reason: "Ops confirmed the invoice follow-up outside of email.",
+        deduped: false,
+        messageId: null,
+        errorMessage: null,
+        invoiceId: "in_ops",
+        invoiceStatus: "open",
+        trialEndsAt: null,
+        reasonKey: null,
+        createdAt: "2026-04-05T01:30:00.000Z",
+      },
+    ]);
 
     const markup = renderToStaticMarkup(
       await UserDetailAdminPage({
@@ -522,5 +579,11 @@ describe("UserDetailAdminPage", () => {
     expect(markup).toContain("already covers this trial window");
     expect(markup).toContain("invoice open");
     expect(markup).toContain("SMTP offline");
+    expect(markup).toContain("Recent notification runs");
+    expect(markup).toContain("Trial ending reminder");
+    expect(markup).toContain("Ops confirmed the invoice follow-up outside of email.");
+    expect(markup).toContain("Manual resend / resolve");
+    expect(markup).toContain("Send manual resend");
+    expect(markup).toContain("Mark current state resolved");
   });
 });

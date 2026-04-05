@@ -31,11 +31,18 @@ function buildProfile(
       onboardingReminderLastError: null,
       trialEndingReminderLastNotifiedAt: null,
       trialEndingReminderLastTrialEndsAt: null,
+      trialEndingReminderLastResolvedAt: null,
+      trialEndingReminderLastResolvedTrialEndsAt: null,
       billingStatusNotificationLastSentAt: null,
       billingStatusNotificationLastInvoiceId: null,
       billingStatusNotificationLastInvoiceStatus: null,
+      billingStatusNotificationLastResolvedAt: null,
+      billingStatusNotificationLastResolvedInvoiceId: null,
+      billingStatusNotificationLastResolvedInvoiceStatus: null,
       deliverySupportAlertLastNotifiedAt: null,
       deliverySupportAlertLastReasonKey: null,
+      deliverySupportAlertLastResolvedAt: null,
+      deliverySupportAlertLastResolvedReasonKey: null,
       subscriptionStatus: "trial",
       subscriptionPlan: null,
       stripeCustomerId: null,
@@ -154,6 +161,23 @@ describe("users admin reminder helpers", () => {
 
     expect(statuses.billingStatus.label).toBe("Pending");
     expect(statuses.billingStatus.detail).toMatch(/invoice open/i);
+  });
+
+  test("marks trial ending notifications as resolved when ops resolves the current trial window", () => {
+    const statuses = getPlannedNotificationStatuses(
+      buildProfile({
+        parent: {
+          trialEndsAt: "2026-04-08T00:00:00.000Z",
+          trialEndingReminderLastResolvedAt: "2026-04-05T01:30:00.000Z",
+          trialEndingReminderLastResolvedTrialEndsAt: "2026-04-08T00:00:00.000Z",
+        },
+      }),
+      new Date("2026-04-05T02:00:00.000Z"),
+    );
+
+    expect(statuses.trialEnding.label).toBe("Resolved");
+    expect(statuses.trialEnding.actionable).toBe(false);
+    expect(statuses.trialEnding.detail).toMatch(/manually resolved/i);
   });
 
   test("summarizes pending and deduped planned notifications for ops", () => {
