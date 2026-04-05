@@ -25,6 +25,11 @@ const ADMIN_TABS = [
     description: "Generation history, sources, model trace",
   },
   {
+    href: "/admin/editorial/geo-copilot",
+    label: "GEO Copilot",
+    description: "AI visibility, prompts, audit, readability",
+  },
+  {
     href: "/admin/editorial/users",
     label: "Users",
     description: "Registration, billing, programme, delivery status",
