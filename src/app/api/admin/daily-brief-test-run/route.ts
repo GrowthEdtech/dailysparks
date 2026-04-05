@@ -10,6 +10,8 @@ import {
   DAILY_BRIEF_PDF_RENDERERS,
   type DailyBriefPdfRenderer,
 } from "../../../../lib/goodnotes-delivery";
+import { listDailyBriefHistory } from "../../../../lib/daily-brief-history-store";
+import { deliverBriefToSingleProfile } from "../../../../lib/daily-brief-manual-delivery";
 import {
   getDailyBriefSchedulerHeaderName,
   getDailyBriefSchedulerSecret,
@@ -26,6 +28,12 @@ type DailyBriefTestRunRequestBody = {
   runDate?: unknown;
   parentEmail?: unknown;
   renderer?: unknown;
+};
+
+type DailyBriefStageResponse = {
+  ok: boolean;
+  status: number;
+  body: Record<string, unknown>;
 };
 
 const DEFAULT_DAILY_BRIEF_TEST_TARGET_PARENT_EMAIL = "admin@geledtech.com";
@@ -138,7 +146,9 @@ function buildSchedulerRequest(pathname: string, body: Record<string, unknown>) 
   });
 }
 
-async function readStageResponse(response: Response) {
+async function readStageResponse(
+  response: Response,
+): Promise<DailyBriefStageResponse> {
   const body = await response.json().catch(async () => ({
     message: await response.text().catch(() => "Unable to read stage response."),
   }));
@@ -289,6 +299,70 @@ export async function POST(request: Request) {
       },
       { status: deliver.status },
     );
+  }
+
+  const deliverSummary =
+    typeof deliver.body.summary === "object" && deliver.body.summary !== null
+      ? (deliver.body.summary as Record<string, unknown>)
+      : null;
+  const targetedProfileCount =
+    typeof deliverSummary?.targetedProfileCount === "number"
+      ? deliverSummary.targetedProfileCount
+      : 0;
+
+  if (targetedProfileCount === 0) {
+    const matchingTargetBrief = (
+      await listDailyBriefHistory({
+        scheduledFor: runDate,
+        recordKind: "test",
+        editorialCohort,
+        programme: targetProfile.student.programme,
+      })
+    ).find((brief) => brief.programme === targetProfile.student.programme);
+
+    if (
+      matchingTargetBrief &&
+      !matchingTargetBrief.deliveryReceipts.some(
+        (receipt) => receipt.parentEmail === targetParentEmail,
+      )
+    ) {
+      try {
+        const manualBackfill = await deliverBriefToSingleProfile({
+          brief: matchingTargetBrief,
+          profile: targetProfile,
+          renderer,
+          notePrefix: `Manual staged test fallback requested for ${targetParentEmail}.`,
+        });
+
+        deliver.body = {
+          ...deliver.body,
+          manualBackfill: {
+            briefId: matchingTargetBrief.id,
+            parentEmail: targetParentEmail,
+            renderer,
+            deliveryAttemptCount:
+              manualBackfill.deliverySummary.deliveryAttemptCount,
+            deliverySuccessCount:
+              manualBackfill.deliverySummary.deliverySuccessCount,
+            deliveryFailureCount:
+              manualBackfill.deliverySummary.deliveryFailureCount,
+          },
+        };
+      } catch (error) {
+        deliver.body = {
+          ...deliver.body,
+          manualBackfill: {
+            briefId: matchingTargetBrief.id,
+            parentEmail: targetParentEmail,
+            renderer,
+            errorMessage:
+              error instanceof Error
+                ? error.message
+                : "Manual staged test fallback failed.",
+          },
+        };
+      }
+    }
   }
 
   return Response.json({

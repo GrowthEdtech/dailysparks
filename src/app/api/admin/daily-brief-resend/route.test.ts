@@ -3,16 +3,16 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-const { deliverHistoryBriefToProfilesMock } = vi.hoisted(() => ({
-  deliverHistoryBriefToProfilesMock: vi.fn(),
+const { deliverBriefToSingleProfileMock } = vi.hoisted(() => ({
+  deliverBriefToSingleProfileMock: vi.fn(),
 }));
 const { revalidatePathMock } = vi.hoisted(() => ({
   revalidatePathMock: vi.fn(),
 }));
 
-vi.mock("../../../../lib/daily-brief-stage-delivery", () => ({
-  deliverHistoryBriefToProfiles: (...args: unknown[]) =>
-    deliverHistoryBriefToProfilesMock(...args),
+vi.mock("../../../../lib/daily-brief-manual-delivery", () => ({
+  deliverBriefToSingleProfile: (...args: unknown[]) =>
+    deliverBriefToSingleProfileMock(...args),
 }));
 vi.mock("next/cache", () => ({
   revalidatePath: (...args: unknown[]) => revalidatePathMock(...args),
@@ -157,7 +157,7 @@ beforeEach(async () => {
       "daily-brief-history.json",
     ),
   };
-  deliverHistoryBriefToProfilesMock.mockReset();
+  deliverBriefToSingleProfileMock.mockReset();
   revalidatePathMock.mockReset();
 });
 
@@ -197,23 +197,46 @@ describe("admin daily brief resend route", () => {
         ],
       }),
     );
-    deliverHistoryBriefToProfilesMock.mockResolvedValue({
-      deliveryAttemptCount: 1,
-      deliverySuccessCount: 1,
-      deliveryFailureCount: 0,
-      deliveryReceipts: [
-        {
-          parentId: profile.parent.id,
-          parentEmail: profile.parent.email,
-          channel: "goodnotes",
-          renderer: "typst",
-          attachmentFileName:
-            "2026-04-03_DailySparks_DailyBrief_PYP_students-map-sea-turtles.pdf",
-          externalId: "smtp-message-id",
-          externalUrl: null,
-        },
-      ],
-      failedDeliveryTargets: [],
+    deliverBriefToSingleProfileMock.mockResolvedValue({
+      deliverySummary: {
+        deliveryAttemptCount: 1,
+        deliverySuccessCount: 1,
+        deliveryFailureCount: 0,
+        deliveryReceipts: [
+          {
+            parentId: profile.parent.id,
+            parentEmail: profile.parent.email,
+            channel: "goodnotes",
+            renderer: "typst",
+            attachmentFileName:
+              "2026-04-03_DailySparks_DailyBrief_PYP_students-map-sea-turtles.pdf",
+            externalId: "smtp-message-id",
+            externalUrl: null,
+          },
+        ],
+        failedDeliveryTargets: [],
+      },
+      updatedBrief: {
+        ...(await getDailyBriefHistoryEntry(brief.id)),
+        deliveryAttemptCount: 2,
+        deliverySuccessCount: 1,
+        deliveryFailureCount: 1,
+        deliveryReceipts: [
+          {
+            parentId: profile.parent.id,
+            parentEmail: profile.parent.email,
+            channel: "goodnotes",
+            renderer: "typst",
+            attachmentFileName:
+              "2026-04-03_DailySparks_DailyBrief_PYP_students-map-sea-turtles.pdf",
+            externalId: "smtp-message-id",
+            externalUrl: null,
+          },
+        ],
+        failedDeliveryTargets: [],
+        adminNotes:
+          "Manual resend/backfill requested for family@example.com. Attempts: 1. Successes: 1. Failures: 0.",
+      },
     });
 
     const response = await dailyBriefResendRoute(
@@ -231,21 +254,16 @@ describe("admin daily brief resend route", () => {
       }),
     );
     const body = await response.json();
-    const updatedBrief = await getDailyBriefHistoryEntry(brief.id);
 
     expect(response.status).toBe(200);
-    expect(deliverHistoryBriefToProfilesMock).toHaveBeenCalledWith(
-      [expect.objectContaining({ parent: expect.objectContaining({ email: "family@example.com" }) })],
-      expect.objectContaining({ id: brief.id }),
+    expect(deliverBriefToSingleProfileMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        attachmentMode: "production",
+        brief: expect.objectContaining({ id: brief.id }),
+        profile: expect.objectContaining({
+          parent: expect.objectContaining({ email: "family@example.com" }),
+        }),
         renderer: "typst",
-        retryTargets: [
-          expect.objectContaining({
-            parentEmail: "family@example.com",
-            channel: "goodnotes",
-          }),
-        ],
+        notePrefix: "Manual resend/backfill requested for family@example.com.",
       }),
     );
     expect(body.parentEmail).toBe("family@example.com");
@@ -254,9 +272,9 @@ describe("admin daily brief resend route", () => {
       deliverySuccessCount: 1,
       deliveryFailureCount: 0,
     });
-    expect(updatedBrief?.deliverySuccessCount).toBe(1);
-    expect(updatedBrief?.deliveryFailureCount).toBe(1);
-    expect(updatedBrief?.deliveryReceipts).toEqual(
+    expect(body.brief?.deliverySuccessCount).toBe(1);
+    expect(body.brief?.deliveryFailureCount).toBe(1);
+    expect(body.brief?.deliveryReceipts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           parentEmail: "family@example.com",
@@ -266,8 +284,8 @@ describe("admin daily brief resend route", () => {
         }),
       ]),
     );
-    expect(updatedBrief?.failedDeliveryTargets).toEqual([]);
-    expect(updatedBrief?.adminNotes).toMatch(/Manual resend\/backfill requested/i);
+    expect(body.brief?.failedDeliveryTargets).toEqual([]);
+    expect(body.brief?.adminNotes).toMatch(/Manual resend\/backfill requested/i);
     expect(revalidatePathMock).toHaveBeenCalledTimes(4);
     expect(revalidatePathMock).toHaveBeenCalledWith(
       "/admin/editorial/daily-briefs",
