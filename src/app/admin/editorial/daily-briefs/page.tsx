@@ -6,6 +6,10 @@ import {
   type DailyBriefEditorialCohort,
 } from "../../../../lib/daily-brief-cohorts";
 import { listDailyBriefHistory } from "../../../../lib/daily-brief-history-store";
+import {
+  buildDailyBriefProgrammeCoverage,
+  type DailyBriefProgrammeCoverageStatus,
+} from "../../../../lib/daily-brief-programme-coverage";
 import { getDailyBriefBusinessDate } from "../../../../lib/daily-brief-run-date";
 import {
   DAILY_BRIEF_RECORD_KINDS,
@@ -120,9 +124,23 @@ function buildFilterHref(filters: {
     : "/admin/editorial/daily-briefs";
 }
 
+function getCoverageStatusClasses(status: DailyBriefProgrammeCoverageStatus) {
+  switch (status) {
+    case "generated":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    case "no_active_families":
+      return "border-slate-200 bg-slate-100 text-slate-600";
+    case "no_healthy_delivery_channel":
+      return "border-amber-200 bg-amber-50 text-amber-700";
+    case "awaiting_generation":
+      return "border-sky-200 bg-sky-50 text-sky-700";
+  }
+}
+
 export default async function DailyBriefsAdminPage({
   searchParams,
 }: DailyBriefsAdminPageProps) {
+  const runDate = getDailyBriefBusinessDate();
   const resolvedSearchParams = await searchParams;
   const recordKind = parseRecordKind(resolvedSearchParams.kind) ?? "production";
   const programme = parseProgramme(resolvedSearchParams.programme);
@@ -131,7 +149,7 @@ export default async function DailyBriefsAdminPage({
   const [history, productionHistoryForToday, profiles] = await Promise.all([
     listDailyBriefHistory({ programme, editorialCohort, recordKind, status }),
     listDailyBriefHistory({
-      scheduledFor: getDailyBriefBusinessDate(),
+      scheduledFor: runDate,
       recordKind: "production",
     }),
     listParentProfiles(),
@@ -139,7 +157,13 @@ export default async function DailyBriefsAdminPage({
   const opsSummary = buildDailyBriefOpsSummary({
     profiles,
     history: productionHistoryForToday,
-    runDate: getDailyBriefBusinessDate(),
+    runDate,
+  });
+  const programmeCoverage = buildDailyBriefProgrammeCoverage({
+    profiles,
+    history: productionHistoryForToday,
+    scheduledFor: runDate,
+    editorialCohort,
   });
   const dispatchMode = getDailyBriefDispatchMode();
   const canaryParentEmails = getDailyBriefCanaryParentEmails();
@@ -362,6 +386,119 @@ export default async function DailyBriefsAdminPage({
       ) : null}
 
       <ManualTestRunPanel />
+
+      <section className="mt-8 rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">
+              Programme coverage
+            </p>
+            <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
+              Today&apos;s editorial coverage by cohort and programme
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              This view separates active audience coverage from healthy delivery
+              channels, so missing programmes stay explainable instead of
+              silently disappearing from the list.
+            </p>
+          </div>
+
+          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm text-slate-500 lg:min-w-[14rem]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Coverage date
+            </p>
+            <p className="mt-2 font-semibold text-[#0f172a]">
+              {formatDate(runDate)}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-3">
+          {(editorialCohort
+            ? DAILY_BRIEF_EDITORIAL_COHORTS.filter(
+                (cohort) => cohort === editorialCohort,
+              )
+            : DAILY_BRIEF_EDITORIAL_COHORTS
+          ).map((cohort) => {
+            const cohortRows = programmeCoverage.filter(
+              (row) => row.editorialCohort === cohort,
+            );
+
+            return (
+              <article
+                key={cohort}
+                className="rounded-[24px] border border-slate-200 bg-white p-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    {formatEditorialCohortLabel(cohort)}
+                  </h4>
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getEditorialCohortBadgeClasses(cohort)}`}
+                  >
+                    {formatEditorialCohortLabel(cohort)}
+                  </span>
+                </div>
+
+                <div className="mt-3 space-y-3">
+                  {cohortRows.map((row) => (
+                    <div
+                      key={`${row.editorialCohort}-${row.programme}`}
+                      className="rounded-[20px] border border-slate-200 bg-slate-50 p-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-semibold text-[#0f172a]">
+                          {row.programme}
+                        </p>
+                        <span
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getCoverageStatusClasses(row.status)}`}
+                        >
+                          {row.statusLabel}
+                        </span>
+                      </div>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                            Active families
+                          </p>
+                          <p className="mt-1 text-lg font-bold text-[#0f172a]">
+                            {row.activeFamilyCount}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                            Healthy channels
+                          </p>
+                          <p className="mt-1 text-lg font-bold text-[#0f172a]">
+                            {row.dispatchableFamilyCount}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                            Briefs today
+                          </p>
+                          <p className="mt-1 text-lg font-bold text-[#0f172a]">
+                            {row.generatedBriefCount}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="mt-3 text-sm leading-6 text-slate-600">
+                        {row.status === "generated"
+                          ? `Recorded in history${row.latestGeneratedStatus ? ` · latest ${row.latestGeneratedStatus}` : ""}.`
+                          : row.status === "no_active_families"
+                            ? "No active or in-trial families currently map to this programme in the cohort."
+                            : row.status === "no_healthy_delivery_channel"
+                              ? "The programme has active families, but none of them currently have a healthy delivery channel."
+                              : "Active and dispatchable audience exists, but no brief has been generated yet for today."}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="mt-8 rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

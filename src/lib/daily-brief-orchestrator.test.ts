@@ -47,7 +47,7 @@ const TEST_AI_CONNECTION_TOKEN = ["fixture", "runtime", "credential"].join("-");
 async function createEligibleProgrammeProfile(
   email: string,
   programme: "PYP" | "MYP" | "DP",
-  channel: "goodnotes" | "notion",
+  channel: "goodnotes" | "notion" | "none",
 ) {
   await getOrCreateParentProfile({
     email,
@@ -73,7 +73,7 @@ async function createEligibleProgrammeProfile(
       goodnotesLastDeliveryStatus: "success",
       goodnotesLastDeliveryMessage: "Ready",
     });
-  } else {
+  } else if (channel === "notion") {
     await updateParentNotionConnection(email, {
       notionConnected: true,
       notionWorkspaceId: `${programme.toLowerCase()}-workspace`,
@@ -256,6 +256,59 @@ describe("daily brief orchestrator", () => {
       "Add comparisons and causes.",
     );
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("generates for active programmes even when their delivery channels are not yet healthy", async () => {
+    await createEligibleProgrammeProfile(
+      "myp-family@example.com",
+      "MYP",
+      "none",
+    );
+
+    await createAiConnection({
+      name: "NF Relay",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: TEST_AI_CONNECTION_TOKEN,
+      active: true,
+      isDefault: true,
+      notes: "Primary runtime connection.",
+    });
+
+    await createPromptPolicy({
+      name: "Family Daily Sparks Core",
+      versionLabel: "v1.0.0",
+      sharedInstructions: "Use clear, family-facing language.",
+      antiRepetitionInstructions: "Avoid repeating recent editorial angles.",
+      outputContractInstructions:
+        "Return JSON with headline, summary, briefMarkdown, and topicTags.",
+      pypInstructions: "Use short sentences and concrete examples.",
+      mypInstructions: "Add comparisons and causes.",
+      dpInstructions: "Add evidence limits and nuance.",
+      notes: "Primary policy",
+    });
+
+    fetchMock.mockResolvedValueOnce(
+      createChatCompletionResponse({
+        headline: "MYP ocean mapping brief",
+        summary: "A middle-years analytical summary.",
+        briefMarkdown: "## MYP\nStudents compare why ocean data matters.",
+        topicTags: ["oceans", "migration"],
+      }),
+    );
+
+    const result = await generateDailyBriefDrafts({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate()],
+      fetchImpl: fetchMock,
+      now: new Date("2026-04-03T08:00:00.000Z"),
+    });
+
+    expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
+      "MYP",
+    ]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   test("skips programmes that already have a published brief for the scheduled date", async () => {

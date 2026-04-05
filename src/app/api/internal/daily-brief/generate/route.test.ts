@@ -96,7 +96,7 @@ function createAiResponse(programme: string) {
 async function createEligibleProgrammeProfile(
   email: string,
   programme: "PYP" | "MYP" | "DP",
-  channel: "goodnotes" | "notion",
+  channel: "goodnotes" | "notion" | "none",
   deliveryPreferences?: {
     countryCode: string;
     deliveryTimeZone: string;
@@ -129,7 +129,7 @@ async function createEligibleProgrammeProfile(
       goodnotesLastDeliveryStatus: "success",
       goodnotesLastDeliveryMessage: "Ready.",
     });
-  } else {
+  } else if (channel === "notion") {
     await updateParentNotionConnection(email, {
       notionConnected: true,
       notionWorkspaceId: `${programme.toLowerCase()}-workspace`,
@@ -271,6 +271,35 @@ describe("daily brief generate route", () => {
     expect(frozenSnapshot?.selectionStatus).toBe("frozen");
     expect(Date.parse(String(frozenSnapshot?.selectionFrozenAt))).not.toBeNaN();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("generates a brief for an active programme even when no delivery channel is healthy yet", async () => {
+    await createEligibleProgrammeProfile(
+      "myp-family@example.com",
+      "MYP",
+      "none",
+    );
+    await configureRuntime();
+
+    await upsertDailyBriefCandidateSnapshot({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate()],
+    });
+
+    const response = await generateDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.generatedCount).toBe(1);
+    expect(history).toHaveLength(1);
+    expect(history[0]?.programme).toBe("MYP");
   });
 
   test("skips programmes that already have a published brief for the same run date", async () => {

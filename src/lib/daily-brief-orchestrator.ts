@@ -5,18 +5,17 @@ import {
 import { getDefaultAiConnectionWithSecret } from "./ai-connection-store";
 import { generateOpenAiCompatibleText } from "./ai-runtime";
 import {
-  buildEditorialCohortEvaluationDate,
-  filterProfilesByEditorialCohort,
   type DailyBriefEditorialCohort,
 } from "./daily-brief-cohorts";
 import { listDailyBriefHistory } from "./daily-brief-history-store";
+import { getProgrammesWithActiveAudience } from "./daily-brief-programme-coverage";
 import type { DailyBriefSelectedTopicRecord } from "./daily-brief-candidate-schema";
 import type {
   DailyBriefHistoryRecord,
   DailyBriefRepetitionRisk,
 } from "./daily-brief-history-schema";
 import { selectTopicWithPolicy } from "./daily-brief-selection-policy";
-import { listEligibleDeliveryProfiles } from "./mvp-store";
+import { listParentProfiles } from "./mvp-store";
 import type { Programme } from "./mvp-types";
 import {
   buildResolvedPromptPreview, getActivePromptPolicy,
@@ -31,8 +30,6 @@ import {
   ingestEditorialSourceCandidates,
   type EditorialSourceCandidate,
 } from "./source-ingestion";
-
-const PROGRAMME_ORDER: Programme[] = ["PYP", "MYP", "DP"];
 
 export type GeneratedDailyBriefDraft = Omit<
   DailyBriefHistoryRecord,
@@ -91,13 +88,6 @@ type GeneratedBriefPayload = {
   briefMarkdown: string;
   topicTags: string[];
 };
-
-function extractEligibleProgrammes(profiles: Awaited<ReturnType<typeof listEligibleDeliveryProfiles>>) {
-  return PROGRAMME_ORDER.filter((programme, index, array) =>
-    profiles.some((profile) => profile.student.programme === programme) &&
-    array.indexOf(programme) === index,
-  );
-}
 
 function normalizeTag(value: string) {
   return value.trim().toLowerCase();
@@ -266,14 +256,12 @@ export async function generateDailyBriefDrafts(
   options: GenerateDailyBriefDraftsOptions,
 ): Promise<DailyBriefGenerationResult> {
   const editorialCohort = options.editorialCohort ?? "APAC";
-  const evaluationDate = buildEditorialCohortEvaluationDate(options.scheduledFor);
-  const profiles = await listEligibleDeliveryProfiles();
-  const cohortProfiles = filterProfilesByEditorialCohort(
+  const profiles = await listParentProfiles();
+  const eligibleProgrammes = getProgrammesWithActiveAudience({
     profiles,
     editorialCohort,
-    evaluationDate,
-  );
-  const eligibleProgrammes = extractEligibleProgrammes(cohortProfiles);
+    scheduledFor: options.scheduledFor,
+  });
 
   if (eligibleProgrammes.length === 0) {
     return {
