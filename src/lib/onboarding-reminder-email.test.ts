@@ -22,6 +22,7 @@ import type { ParentProfile } from "./mvp-types";
 import {
   buildOnboardingReminderEmail,
   isOnboardingReminderEmailConfigured,
+  ONBOARDING_REMINDER_EMAIL_POLICY,
   sendOnboardingReminderEmail,
 } from "./onboarding-reminder-email";
 
@@ -137,14 +138,20 @@ describe("onboarding reminder email", () => {
     });
 
     expect(email.html).toContain("Growth Education Limited");
+    expect(email.html).toContain("<table role=\"presentation\"");
     expect(email.html).toContain("Your setup is almost ready");
     expect(email.html).toContain("Recommended first step");
     expect(email.html).toContain("Delivery window");
     expect(email.html).toContain("#fffdfa");
     expect(email.html).toContain("#eef6ff");
+    expect(email.html).toContain("Connect Goodnotes to start receiving Daily Sparks");
     expect(email.html).toContain("single next step");
+    expect(email.html).toContain(
+      `${ONBOARDING_REMINDER_EMAIL_POLICY.label} · ${ONBOARDING_REMINDER_EMAIL_POLICY.renderMode}`,
+    );
     expect(email.text).toContain("Your setup is almost ready");
-    expect(email.text).toContain("Delivery window:");
+    expect(email.text).toContain("Delivery window");
+    expect(email.text).toContain("9:00 AM · Asia/Hong Kong.");
   });
 
   test("reuses the transactional SMTP configuration to send reminder mail", async () => {

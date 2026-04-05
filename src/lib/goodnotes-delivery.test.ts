@@ -19,7 +19,9 @@ vi.mock("nodemailer", () => ({
 }));
 
 import {
+  DAILY_BRIEF_DELIVERY_EMAIL_POLICY,
   DAILY_BRIEF_PDF_RENDERERS,
+  GOODNOTES_WELCOME_NOTE_EMAIL_POLICY,
   buildGoodnotesBriefPacket,
   buildGoodnotesWelcomeNote,
   createGoodnotesBriefPdf,
@@ -151,6 +153,19 @@ afterEach(() => {
 });
 
 describe("goodnotes delivery", () => {
+  test("keeps live Goodnotes delivery flows explicitly classified as PDF attachment transports", () => {
+    expect(GOODNOTES_WELCOME_NOTE_EMAIL_POLICY).toMatchObject({
+      renderMode: "pdf-attachment-transport",
+      assetMode: "pdf-attachment",
+      audience: "goodnotes-destination",
+    });
+    expect(DAILY_BRIEF_DELIVERY_EMAIL_POLICY).toMatchObject({
+      renderMode: "pdf-attachment-transport",
+      assetMode: "pdf-attachment",
+      audience: "goodnotes-destination",
+    });
+  });
+
   test("only exposes Typst as the active daily brief renderer", () => {
     expect(DAILY_BRIEF_PDF_RENDERERS).toEqual(["typst"]);
   });

@@ -14,6 +14,7 @@ import {
 } from "./outbound-daily-brief-packet";
 import { renderGoodnotesWelcomeNoteTypst } from "./outbound-goodnotes-welcome-note-typst";
 import { renderOutboundDailyBriefTypstPrototype } from "./outbound-daily-brief-typst";
+import { getNotificationEmailPolicy } from "./notification-email-policy";
 
 type GoodnotesDeliveryConfig = {
   smtpUrl: string;
@@ -31,6 +32,12 @@ export const DAILY_BRIEF_PDF_RENDERERS = ["typst"] as const;
 export type DailyBriefPdfRenderer =
   (typeof DAILY_BRIEF_PDF_RENDERERS)[number];
 export type GoodnotesAttachmentMode = "production" | "canary" | "test";
+export const GOODNOTES_WELCOME_NOTE_EMAIL_POLICY = getNotificationEmailPolicy(
+  "goodnotes-welcome-note-delivery",
+);
+export const DAILY_BRIEF_DELIVERY_EMAIL_POLICY = getNotificationEmailPolicy(
+  "daily-brief-delivery",
+);
 
 function normalizeEnv(value: string | undefined) {
   return value?.trim() || "";
