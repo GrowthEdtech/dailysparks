@@ -47,7 +47,7 @@ function createDefaultCompiler(): TypstCompilerLike {
 
 export function getTypstHeadlineSize(
   headline: string,
-  layoutVariant: "standard" | "pyp-one-page" = "standard",
+  layoutVariant: "standard" | "pyp-one-page" | "myp-compare" = "standard",
 ) {
   const length = headline.trim().length;
 
@@ -58,6 +58,18 @@ export function getTypstHeadlineSize(
 
     if (length >= 64) {
       return 18;
+    }
+
+    return 20;
+  }
+
+  if (layoutVariant === "myp-compare") {
+    if (length >= 96) {
+      return 18;
+    }
+
+    if (length >= 64) {
+      return 19;
     }
 
     return 20;
@@ -97,6 +109,7 @@ export function buildOutboundDailyBriefTypstSource(
   const packet = buildOutboundDailyBriefPacket(brief);
   const headline = preventTypstHeadlineWidows(packet.title);
   const isPypOnePage = packet.layoutVariant === "pyp-one-page";
+  const isMypCompare = packet.layoutVariant === "myp-compare";
   const headlineSize = getTypstHeadlineSize(headline, packet.layoutVariant);
   const metadataItems = packet.metadataItems
     .map((item) => `#pill(${escapeTypstString(item)})`)
@@ -135,12 +148,22 @@ export function buildOutboundDailyBriefTypstSource(
 `
       : "";
   const standardThemeBlock =
-    !isPypOnePage && packet.themesTitle && packet.themesBody
+    !isPypOnePage && !isMypCompare && packet.themesTitle && packet.themesBody
       ? `
 #v(12pt)
 #section-card(${escapeTypstString(packet.themesTitle)}, ${escapeTypstString(packet.themesBody)}, fill-color: pale-gold, border-color: gold-border, label-color: gold)
 `
       : "";
+  const mypThemeBlock =
+    isMypCompare && packet.themesTitle && packet.themesBody
+      ? `#section-card(${escapeTypstString(packet.themesTitle)}, ${escapeTypstString(packet.themesBody)}, fill-color: pale-gold, border-color: gold-border, label-color: gold)`
+      : "";
+  const mypVocabularyBody = packet.vocabularyItems
+    .map((item) => `${item.term}: ${item.definition}`)
+    .join(" / ");
+  const mypDiscussionBody = packet.discussionPrompts
+    .map((prompt) => `- ${prompt}`)
+    .join(" ");
   const pypTeachingBlocks =
     isPypOnePage
       ? `
@@ -176,7 +199,7 @@ ${compactSourceLine}
 `
       : "";
   const standardTeachingBlocks =
-    !isPypOnePage
+    !isPypOnePage && !isMypCompare
       ? `
 ${
   packet.vocabularyTitle && packet.vocabularyItems.length > 0
@@ -220,6 +243,33 @@ ${
 ]
 `
       : "";
+  const mypCompareBlocks =
+    isMypCompare
+      ? `
+#grid(
+  columns: (1.15fr, 0.85fr),
+  gutter: 16pt,
+  [
+    ${mypThemeBlock || '#box(width: 100%)[ ]'}
+    #v(12pt)
+    ${
+      packet.vocabularyTitle && mypVocabularyBody
+        ? `#section-card(${escapeTypstString(packet.vocabularyTitle)}, ${escapeTypstString(mypVocabularyBody)}, fill-color: pale-gold, border-color: gold-border, label-color: gold)`
+        : '#box(width: 100%)[ ]'
+    }
+  ],
+  [
+    #section-card(${escapeTypstString(packet.discussionTitle)}, ${escapeTypstString(mypDiscussionBody)}, fill-color: pale-blue)
+    ${
+      packet.bigIdeaTitle && packet.bigIdeaBody
+        ? `#v(12pt)
+    #section-card(${escapeTypstString(packet.bigIdeaTitle)}, ${escapeTypstString(packet.bigIdeaBody)}, fill-color: white)`
+        : ""
+    }
+  ],
+)
+`
+      : "";
 
   return `
 #set page(width: 595pt, height: 842pt, margin: ${isPypOnePage ? "36pt" : "48pt"}, fill: rgb("#fffdfa"))
@@ -259,23 +309,23 @@ ${
   width: 100%,
   fill: rgb("#fcfeff"),
   stroke: (paint: soft-border, thickness: 1pt),
-  inset: ${isPypOnePage ? "18pt" : "22pt"},
+  inset: ${isPypOnePage ? "18pt" : isMypCompare ? "20pt" : "22pt"},
   radius: 18pt,
 )[
   #text(size: ${isPypOnePage ? "8.5pt" : "9pt"}, weight: "semibold", fill: gold)[#label]
   #v(${isPypOnePage ? "6pt" : "8pt"})
   #set par(leading: ${isPypOnePage ? "1.16em" : "1.2em"})
-  #text(size: ${isPypOnePage ? "12.4pt" : "13.2pt"}, fill: ink)[#body]
+  #text(size: ${isPypOnePage ? "12.4pt" : isMypCompare ? "12.6pt" : "13.2pt"}, fill: ink)[#body]
 ]
 
 #let reading-block(title, body) = [
   #if title != "" [
-    #text(size: ${isPypOnePage ? "11.4pt" : "12.5pt"}, weight: "semibold", fill: ink)[#title]
+    #text(size: ${isPypOnePage ? "11.4pt" : isMypCompare ? "11.8pt" : "12.5pt"}, weight: "semibold", fill: ink)[#title]
     #v(3pt)
   ]
-  #set par(leading: ${isPypOnePage ? "1.1em" : "1.18em"})
-  #text(size: ${isPypOnePage ? "10.3pt" : "11.35pt"}, fill: secondary)[#body]
-  #v(${isPypOnePage ? "8pt" : "14pt"})
+  #set par(leading: ${isPypOnePage ? "1.1em" : isMypCompare ? "1.14em" : "1.18em"})
+  #text(size: ${isPypOnePage ? "10.3pt" : isMypCompare ? "10.8pt" : "11.35pt"}, fill: secondary)[#body]
+  #v(${isPypOnePage ? "8pt" : isMypCompare ? "12pt" : "14pt"})
 ]
 
 #let vocab-item(term, definition) = [
@@ -318,25 +368,26 @@ ${
   #text(size: ${isPypOnePage ? "7pt" : "8.5pt"}, weight: "semibold", fill: gold)[#${escapeTypstString(packet.eyebrow)}]
   #v(${isPypOnePage ? "2pt" : "4pt"})
   #text(size: ${headlineSize}pt, weight: "bold", fill: ink)[#${escapeTypstString(headline)}]
-  #v(${isPypOnePage ? "5pt" : "10pt"})
+  #v(${isPypOnePage ? "5pt" : isMypCompare ? "8pt" : "10pt"})
   #grid(columns: (auto, auto, auto), gutter: 8pt,[
         ${metadataItems}
   ])
 ]
 
-#v(${isPypOnePage ? "7pt" : "12pt"})
+#v(${isPypOnePage ? "7pt" : isMypCompare ? "10pt" : "12pt"})
 #standfirst-card(${escapeTypstString(packet.summaryTitle)}, ${escapeTypstString(packet.summaryBody)})
 ${compactThemeBlock}
 ${standardThemeBlock}
 
-#v(${isPypOnePage ? "10pt" : "16pt"})
-#text(size: ${isPypOnePage ? "17pt" : "22pt"}, weight: "bold", fill: ink)[#${escapeTypstString(packet.readingTitle)}]
-#v(${isPypOnePage ? "6pt" : "12pt"})
+#v(${isPypOnePage ? "10pt" : isMypCompare ? "14pt" : "16pt"})
+#text(size: ${isPypOnePage ? "17pt" : isMypCompare ? "20pt" : "22pt"}, weight: "bold", fill: ink)[#${escapeTypstString(packet.readingTitle)}]
+#v(${isPypOnePage ? "6pt" : isMypCompare ? "10pt" : "12pt"})
 ${readingBlocks}
 ${pypTeachingBlocks}
 ${standardTeachingBlocks}
+${mypCompareBlocks}
 
-${!isPypOnePage
+${!isPypOnePage && !isMypCompare
   ? `#v(12pt)
 #rect(
   width: 100%,
@@ -354,7 +405,25 @@ ${!isPypOnePage
 #line(length: 100%, stroke: (paint: soft-border, thickness: 1pt))
 #v(8pt)
 #text(size: 11pt, weight: "semibold", fill: ink)[#${escapeTypstString(packet.footerSignature)}]`
-  : pypFooterBlock}
+  : isMypCompare
+    ? `#v(12pt)
+#rect(
+  width: 100%,
+  fill: white,
+  stroke: (paint: soft-border, thickness: 1pt),
+  inset: 18pt,
+  radius: 18pt,
+)[
+  #text(size: 10pt, weight: "semibold", fill: muted)[#${escapeTypstString(packet.sourcesTitle)}]
+  #v(8pt)
+  ${sourceBlocks}
+]
+
+#v(14pt)
+#line(length: 100%, stroke: (paint: soft-border, thickness: 1pt))
+#v(8pt)
+#text(size: 11pt, weight: "semibold", fill: ink)[#${escapeTypstString(packet.footerSignature)}]`
+    : pypFooterBlock}
 `.trim();
 }
 

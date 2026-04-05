@@ -187,13 +187,23 @@ describe("buildDailyBriefOpsSummary", () => {
         id: "brief-2",
         headline: "Schools reopen after transit delays.",
         programme: "MYP",
-        status: "failed",
-        pipelineStage: "failed",
+        status: "approved",
+        pipelineStage: "preflight_passed",
         deliverySuccessCount: 0,
         deliveryFailureCount: 0,
         deliveryReceipts: [],
         failedDeliveryTargets: [],
-        failureReason: "Source validation failed.",
+        failureReason: "",
+        renderAudit: {
+          renderer: "typst",
+          layoutVariant: "myp-compare",
+          pageCount: 2,
+          onePageCompliant: null,
+          pagePolicyLabel: "MYP compare-only",
+          pagePolicyPageCountLimit: 2,
+          pagePolicyCompliant: true,
+          auditedAt: "2026-04-03T09:05:00.000Z",
+        },
       }),
     ];
 
@@ -216,7 +226,7 @@ describe("buildDailyBriefOpsSummary", () => {
         }),
         expect.objectContaining({
           parentEmail: "verification@example.com",
-          reason: "Brief blocked before dispatch",
+          reason: "Awaiting dispatch window",
           localDeliveryWindow: "9:00 AM · Europe/London",
         }),
       ]),
@@ -239,15 +249,19 @@ describe("buildDailyBriefOpsSummary", () => {
       expect.arrayContaining([
         expect.objectContaining({
           headline: "Schools reopen after transit delays.",
-          reason: "Source validation failed.",
+          reason: "Ready to dispatch",
         }),
       ]),
     );
+    expect(summary.pypAuditedBriefCount).toBe(1);
     expect(summary.typstDeliveredBriefCount).toBe(1);
     expect(summary.pypTypstAuditedBriefCount).toBe(1);
     expect(summary.pypOnePageCompliantBriefCount).toBe(1);
     expect(summary.pypPdfLibFallbackBriefCount).toBe(0);
     expect(summary.mypCompareOnlyBriefCount).toBe(1);
+    expect(summary.mypTypstAuditedBriefCount).toBe(1);
+    expect(summary.mypPagePolicyAuditedBriefCount).toBe(1);
+    expect(summary.mypPagePolicyCompliantBriefCount).toBe(1);
   });
 
   test("prefers dispatch audit reasons over generic missing receipt fallbacks", () => {

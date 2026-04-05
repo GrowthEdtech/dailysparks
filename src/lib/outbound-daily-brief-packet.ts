@@ -12,7 +12,7 @@ export type OutboundDailyBriefVocabularyItem = {
 };
 
 export type OutboundDailyBriefPacket = {
-  layoutVariant: "standard" | "pyp-one-page";
+  layoutVariant: "standard" | "pyp-one-page" | "myp-compare";
   eyebrow: string;
   title: string;
   metadataItems: string[];
@@ -272,6 +272,18 @@ function applyPypOnePagePolicyToReadingSections(
   }));
 }
 
+function applyMypComparePolicyToReadingSections(
+  sections: OutboundDailyBriefReadingSection[],
+) {
+  return sections.map((section) => ({
+    ...section,
+    body: truncateSentenceBudget(section.body, {
+      maxSentences: 2,
+      maxCharacters: 320,
+    }),
+  }));
+}
+
 export function extractOutboundParagraphsFromMarkdown(markdown: string) {
   return markdown
     .split(/\n{2,}/)
@@ -282,8 +294,13 @@ export function extractOutboundParagraphsFromMarkdown(markdown: string) {
 export function buildOutboundDailyBriefPacket(
   brief: OutboundDailyBriefPacketInput,
 ): OutboundDailyBriefPacket {
+  const normalizedProgramme = brief.programme.toUpperCase();
   const layoutVariant =
-    brief.programme.toUpperCase() === "PYP" ? "pyp-one-page" : "standard";
+    normalizedProgramme === "PYP"
+      ? "pyp-one-page"
+      : normalizedProgramme === "MYP"
+        ? "myp-compare"
+        : "standard";
   const structuredSections = extractStructuredSections(brief.briefMarkdown);
   const readingSections = (
     [
@@ -311,6 +328,8 @@ export function buildOutboundDailyBriefPacket(
   const readingSectionsForLayout =
     layoutVariant === "pyp-one-page"
       ? applyPypOnePagePolicyToReadingSections(baseReadingSections)
+      : layoutVariant === "myp-compare"
+        ? applyMypComparePolicyToReadingSections(baseReadingSections)
       : baseReadingSections;
   const vocabularyItems = wordsToKnow ? parseVocabularyItems(wordsToKnow.body) : [];
   const discussionPrompts = talkAtHome
@@ -321,13 +340,22 @@ export function buildOutboundDailyBriefPacket(
         "How does this connect to your own world or experience?",
       ];
   const topicTagsForLayout =
-    layoutVariant === "pyp-one-page" ? brief.topicTags.slice(0, 4) : brief.topicTags;
+    layoutVariant === "pyp-one-page"
+      ? brief.topicTags.slice(0, 4)
+      : layoutVariant === "myp-compare"
+        ? brief.topicTags.slice(0, 5)
+        : brief.topicTags;
   const summaryBodyForLayout =
     layoutVariant === "pyp-one-page"
       ? truncateSentenceBudget(brief.summary, {
           maxSentences: 2,
           maxCharacters: 180,
         })
+      : layoutVariant === "myp-compare"
+        ? truncateSentenceBudget(brief.summary, {
+            maxSentences: 2,
+            maxCharacters: 240,
+          })
       : brief.summary;
   const vocabularyItemsForLayout =
     layoutVariant === "pyp-one-page"
@@ -338,6 +366,14 @@ export function buildOutboundDailyBriefPacket(
             maxCharacters: 92,
           }),
         }))
+      : layoutVariant === "myp-compare"
+        ? vocabularyItems.slice(0, 3).map((item) => ({
+            ...item,
+            definition: truncateSentenceBudget(item.definition, {
+              maxSentences: 1,
+              maxCharacters: 120,
+            }),
+          }))
       : vocabularyItems;
   const discussionPromptsForLayout =
     layoutVariant === "pyp-one-page"
@@ -347,12 +383,24 @@ export function buildOutboundDailyBriefPacket(
             maxCharacters: 92,
           }),
         )
+      : layoutVariant === "myp-compare"
+        ? discussionPrompts.slice(0, 3).map((prompt) =>
+            truncateSentenceBudget(prompt, {
+              maxSentences: 1,
+              maxCharacters: 110,
+            }),
+          )
       : discussionPrompts;
   const bigIdeaBodyForLayout = bigIdea?.body
     ? layoutVariant === "pyp-one-page"
       ? truncateSentenceBudget(bigIdea.body, {
           maxSentences: 1,
         })
+      : layoutVariant === "myp-compare"
+        ? truncateSentenceBudget(bigIdea.body, {
+            maxSentences: 2,
+            maxCharacters: 180,
+          })
       : bigIdea.body
     : null;
 

@@ -29,6 +29,7 @@ import {
 } from "../../../../lib/editorial-admin-auth";
 import {
   getOrCreateParentProfile,
+  updateParentDeliveryPreferences,
   updateParentSubscription,
   updateStudentGoodnotesDelivery,
   updateStudentPreferences,
@@ -134,6 +135,38 @@ async function createProfile(email: string) {
     goodnotesVerifiedAt: "2026-04-02T00:00:00.000Z",
     goodnotesLastDeliveryStatus: "success",
     goodnotesLastDeliveryMessage: "Ready.",
+  });
+
+  return profile;
+}
+
+async function createMypProfile(email: string) {
+  const profile = await getOrCreateParentProfile({
+    email,
+    fullName: "Family Example",
+    studentName: "Harper",
+    countryCode: "GB",
+  });
+  await updateParentSubscription(email, {
+    subscriptionStatus: "active",
+  });
+  await updateStudentPreferences(email, {
+    studentName: "Harper",
+    programme: "MYP",
+    programmeYear: 2,
+    goodnotesEmail: "family@goodnotes.email",
+  });
+  await updateStudentGoodnotesDelivery(email, {
+    goodnotesConnected: true,
+    goodnotesVerifiedAt: "2026-04-02T00:00:00.000Z",
+    goodnotesLastDeliveryStatus: "success",
+    goodnotesLastDeliveryMessage: "Ready.",
+  });
+
+  await updateParentDeliveryPreferences(email, {
+    countryCode: "GB",
+    deliveryTimeZone: "Europe/London",
+    preferredDeliveryLocalTime: "09:00",
   });
 
   return profile;
@@ -393,5 +426,56 @@ describe("admin daily brief resend route", () => {
     expect(body.rendererMode).toBe("auto");
     expect(body.renderer).toBe("typst");
     expect(body.rendererPolicyLabel).toMatch(/PYP production/i);
+  });
+
+  test("keeps MYP production resend on pdf-lib when auto mode is used", async () => {
+    const cookie = await signIn();
+    await createMypProfile("family@example.com");
+    const brief = await createDailyBriefHistoryEntry(
+      buildHistoryInput({
+        recordKind: "production",
+        programme: "MYP",
+        status: "published",
+        editorialCohort: "EMEA",
+      }),
+    );
+
+    deliverBriefToSingleProfileMock.mockResolvedValue({
+      deliverySummary: {
+        deliveryAttemptCount: 1,
+        deliverySuccessCount: 1,
+        deliveryFailureCount: 0,
+        deliveryReceipts: [],
+        failedDeliveryTargets: [],
+      },
+      updatedBrief: await getDailyBriefHistoryEntry(brief.id),
+    });
+
+    const response = await dailyBriefResendRoute(
+      new Request("http://localhost:3000/api/admin/daily-brief-resend", {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          briefId: brief.id,
+          parentEmail: "family@example.com",
+          renderer: "auto",
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(deliverBriefToSingleProfileMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        renderer: "pdf-lib",
+      }),
+    );
+    expect(body.rendererMode).toBe("auto");
+    expect(body.renderer).toBe("pdf-lib");
+    expect(body.rendererPolicyLabel).toMatch(/MYP/i);
+    expect(body.rendererPolicyLabel).toMatch(/pdf-lib/i);
   });
 });

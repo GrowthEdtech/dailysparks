@@ -894,7 +894,16 @@ describe("DailyBriefsAdminPage", () => {
           deliverySuccessCount: 0,
           deliveryFailureCount: 0,
           deliveryReceipts: [],
-          renderAudit: null,
+          renderAudit: {
+            renderer: "typst",
+            layoutVariant: "myp-compare",
+            pageCount: 2,
+            onePageCompliant: null,
+            pagePolicyLabel: "MYP compare-only",
+            pagePolicyPageCountLimit: 2,
+            pagePolicyCompliant: true,
+            auditedAt: "2026-04-03T09:05:00.000Z",
+          },
           failedDeliveryTargets: [],
           failureReason: "",
           retryEligibleUntil: null,
@@ -915,7 +924,10 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("PYP one-page compliance");
     expect(markup).toContain("PYP pdf-lib fallback");
     expect(markup).toContain("MYP compare-only");
+    expect(markup).toContain("MYP page-policy compliance");
     expect(markup).toContain("1 / 2");
+    expect(markup).toContain("1 / 1");
     expect(markup).toContain("Still on pdf-lib production for side-by-side validation");
+    expect(markup).toContain("Typst-audited MYP compare briefs that stayed within the two-page target.");
   });
 });

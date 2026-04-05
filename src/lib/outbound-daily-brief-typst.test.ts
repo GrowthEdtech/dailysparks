@@ -43,6 +43,30 @@ describe("outbound daily brief typst", () => {
       },
     ],
   };
+  const mypSampleBrief = {
+    headline: "Students compare coastal cleanup plans across cities",
+    scheduledFor: "2026-04-05",
+    programme: "MYP",
+    editorialCohort: "EMEA" as const,
+    summary:
+      "Students compare how different cities organise shoreline cleanup efforts and what trade-offs each plan makes. They also discuss how leaders balance cost, speed, fairness, and community trust when a crisis requires quick decisions.",
+    topicTags: [
+      "Oceans",
+      "Civic planning",
+      "Sustainability",
+      "Communities",
+      "Evidence",
+    ],
+    briefMarkdown: [
+      "What’s happening? Students are comparing several coastal cleanup plans from different cities. Each plan uses different volunteers, budgets, and rules about which areas should be cleaned first.",
+      "Why does this matter? Each plan solves one problem well, but creates trade-offs in cost, speed, and fairness. A plan that looks efficient might leave some neighbourhoods waiting longer for help.",
+      "Picture it Imagine three teams trying to clean the same beach, each with different tools and budgets. One team finishes quickly, another costs less, and another listens more carefully to local residents.",
+      "Words to know - Trade-off: Giving up one advantage to gain another - Evidence: Information used to support a decision - Civic planning: Organising how a community solves shared problems",
+      "Talk about it at home - Which plan would feel fairest? - What information would help you decide? - When is a fast solution not the best solution?",
+      "Big idea Good decisions often depend on comparing trade-offs, not just choosing the first idea that sounds appealing. Leaders often need to explain why one benefit matters more than another.",
+    ].join("\n"),
+    sourceReferences: [],
+  };
 
   test("builds typst source from the shared outbound packet without markdown artifacts", () => {
     const source = buildOutboundDailyBriefTypstSource(sampleBrief);
@@ -100,5 +124,16 @@ describe("outbound daily brief typst", () => {
     expect(result.pdf).toBeInstanceOf(Uint8Array);
     expect(Buffer.from(result.pdf).subarray(0, 4).toString()).toBe("%PDF");
     expect(document.getPageCount()).toBe(1);
+  });
+
+  test("uses a dedicated MYP compare-only layout tuned for a two-page validation budget", async () => {
+    const source = buildOutboundDailyBriefTypstSource(mypSampleBrief);
+    const result = await renderOutboundDailyBriefTypstPrototype(mypSampleBrief);
+    const document = await PDFDocument.load(Buffer.from(result.pdf));
+
+    expect(source).toContain('columns: (1.15fr, 0.85fr)');
+    expect(source).toContain('#text(size: 20pt, weight: "bold", fill: ink)');
+    expect(source).toContain('#section-card("Words to know"');
+    expect(document.getPageCount()).toBeLessThanOrEqual(2);
   });
 });

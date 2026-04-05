@@ -156,8 +156,8 @@ export default function ManualTestRunPanel() {
               </option>
             ))}
           </select>
-          <p className="text-xs leading-5 text-slate-500">
-            Auto uses Typst for PYP canary runs and pdf-lib live elsewhere.
+        <p className="text-xs leading-5 text-slate-500">
+            Auto uses Typst for PYP and MYP canary/test runs, while production stays on the current rollout default.
           </p>
           <button
             type="submit"

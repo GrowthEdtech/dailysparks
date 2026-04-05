@@ -21,12 +21,29 @@ export async function buildDailyBriefRenderAudit({
   const pageCount = pdfDocument.getPageCount();
   const onePageCompliant =
     packet.layoutVariant === "pyp-one-page" ? pageCount === 1 : null;
+  const pagePolicyLabel =
+    packet.layoutVariant === "pyp-one-page"
+      ? "PYP one-page"
+      : packet.layoutVariant === "myp-compare"
+        ? "MYP compare-only"
+        : null;
+  const pagePolicyPageCountLimit =
+    packet.layoutVariant === "pyp-one-page"
+      ? 1
+      : packet.layoutVariant === "myp-compare"
+        ? 2
+        : null;
+  const pagePolicyCompliant =
+    pagePolicyPageCountLimit === null ? null : pageCount <= pagePolicyPageCountLimit;
 
   return {
     renderer,
     layoutVariant: packet.layoutVariant,
     pageCount,
     onePageCompliant,
+    pagePolicyLabel,
+    pagePolicyPageCountLimit,
+    pagePolicyCompliant,
     auditedAt,
   };
 }

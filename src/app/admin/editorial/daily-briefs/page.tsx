@@ -862,12 +862,12 @@ export default async function DailyBriefsAdminPage({
               Renderer rollout
             </p>
             <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
-              PYP Typst stabilization
+              PYP Typst stabilization and MYP compare-only
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-500">
               Track real Typst delivery coverage, one-page compliance, rollback
-              visibility, and the compare-only boundary before we expand Typst
-              beyond PYP production.
+              visibility, and the MYP compare-only boundary before we expand
+              Typst beyond PYP production.
             </p>
           </div>
 
@@ -885,7 +885,7 @@ export default async function DailyBriefsAdminPage({
           </div>
         </div>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {[
             {
               label: "Typst delivered briefs",
@@ -910,6 +910,15 @@ export default async function DailyBriefsAdminPage({
               label: "MYP compare-only",
               value: opsSummary.mypCompareOnlyBriefCount,
               detail: "Still on pdf-lib production for side-by-side validation.",
+            },
+            {
+              label: "MYP page-policy compliance",
+              value: `${opsSummary.mypPagePolicyCompliantBriefCount} / ${Math.max(
+                opsSummary.mypPagePolicyAuditedBriefCount,
+                1,
+              )}`,
+              detail:
+                "Typst-audited MYP compare briefs that stayed within the two-page target.",
             },
           ].map((card) => (
             <div

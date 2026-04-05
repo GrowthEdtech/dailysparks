@@ -75,13 +75,19 @@ export type DailyBriefDispatchAudienceProfile = {
   reason: string;
 };
 
-export type DailyBriefRenderLayoutVariant = "standard" | "pyp-one-page";
+export type DailyBriefRenderLayoutVariant =
+  | "standard"
+  | "pyp-one-page"
+  | "myp-compare";
 
 export type DailyBriefRenderAudit = {
   renderer: DailyBriefPdfRenderer;
   layoutVariant: DailyBriefRenderLayoutVariant;
   pageCount: number;
   onePageCompliant: boolean | null;
+  pagePolicyLabel?: string | null;
+  pagePolicyPageCountLimit?: number | null;
+  pagePolicyCompliant?: boolean | null;
   auditedAt: string;
 };
 

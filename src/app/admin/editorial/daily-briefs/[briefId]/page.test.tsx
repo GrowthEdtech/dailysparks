@@ -310,9 +310,10 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("Renderer rollout");
     expect(markup).toContain("PYP canary default");
     expect(markup).toContain("PYP production default");
-    expect(markup).toContain("MYP / DP production fallback");
+    expect(markup).toContain("MYP canary / test default");
+    expect(markup).toContain("MYP production compare-only");
     expect(markup).toContain("Typst prototype");
-    expect(markup).toContain("One-page compliance");
+    expect(markup).toContain("Page policy");
     expect(markup).toContain("Compliant");
   });
 
@@ -394,5 +395,84 @@ describe("DailyBriefDetailPage", () => {
       "PYP production is currently using pdf-lib instead of the Typst default",
     );
     expect(markup).toContain("Fallback visible in admin until the rollout is fully stable.");
+  });
+
+  test("surfaces MYP compare-only rollout guidance and page-policy compliance", async () => {
+    getDailyBriefHistoryEntryMock.mockResolvedValue({
+      id: "brief-myp-compare-1",
+      scheduledFor: "2026-04-05",
+      recordKind: "production",
+      headline: "Students compare coastal cleanup plans across cities.",
+      summary: "A MYP compare-only brief.",
+      programme: "MYP",
+      editorialCohort: "EMEA",
+      status: "approved",
+      topicClusterKey: "coastal cleanup",
+      normalizedHeadline: "students compare coastal cleanup plans across cities",
+      topicLatestPublishedAt: null,
+      selectionDecision: "new",
+      selectionOverrideNote: "",
+      blockedTopics: [],
+      topicTags: ["civic planning"],
+      sourceReferences: [],
+      aiConnectionId: "nf-relay",
+      aiConnectionName: "NF Relay",
+      aiModel: "gpt-5.4",
+      promptPolicyId: "policy-1",
+      promptVersionLabel: "v1.1.1",
+      promptVersion: "v1.1.1",
+      repetitionRisk: "low",
+      repetitionNotes: "No overlap.",
+      adminNotes: "",
+      briefMarkdown: "What’s happening? A MYP compare brief.",
+      pipelineStage: "preflight_passed",
+      candidateSnapshotAt: "2026-04-05T00:00:00.000Z",
+      generationCompletedAt: "2026-04-05T00:10:00.000Z",
+      pdfBuiltAt: "2026-04-05T00:12:00.000Z",
+      deliveryWindowAt: null,
+      lastDeliveryAttemptAt: null,
+      deliveryAttemptCount: 0,
+      deliverySuccessCount: 0,
+      deliveryFailureCount: 0,
+      dispatchMode: "all",
+      dispatchCanaryParentEmails: [],
+      targetedProfiles: [],
+      skippedProfiles: [],
+      pendingFutureProfiles: [],
+      heldProfiles: [],
+      deliveryReceipts: [],
+      renderAudit: {
+        renderer: "typst",
+        layoutVariant: "myp-compare",
+        pageCount: 2,
+        onePageCompliant: null,
+        pagePolicyLabel: "MYP compare-only",
+        pagePolicyPageCountLimit: 2,
+        pagePolicyCompliant: true,
+        auditedAt: "2026-04-05T01:03:00.000Z",
+      },
+      failedDeliveryTargets: [],
+      failureReason: "",
+      retryEligibleUntil: null,
+      createdAt: "2026-04-05T00:00:00.000Z",
+      updatedAt: "2026-04-05T00:00:00.000Z",
+    });
+
+    const markup = renderToStaticMarkup(
+      await DailyBriefDetailPage({
+        params: Promise.resolve({ briefId: "brief-myp-compare-1" }),
+      }),
+    );
+
+    expect(markup).toContain("Renderer rollout");
+    expect(markup).toContain("MYP canary / test default");
+    expect(markup).toContain("MYP production compare-only");
+    expect(markup).toContain("Page policy");
+    expect(markup).toContain("MYP compare-only");
+    expect(markup).toContain("2 pages max");
+    expect(markup).toContain("Compliant");
+    expect(markup).toContain(
+      "Use Typst prototype in manual resend to validate compare-only MYP output while production stays on pdf-lib.",
+    );
   });
 });

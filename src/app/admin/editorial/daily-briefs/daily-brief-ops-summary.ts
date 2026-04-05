@@ -41,6 +41,9 @@ export type DailyBriefOpsSummary = {
   pypOnePageCompliantBriefCount: number;
   pypPdfLibFallbackBriefCount: number;
   mypCompareOnlyBriefCount: number;
+  mypTypstAuditedBriefCount: number;
+  mypPagePolicyAuditedBriefCount: number;
+  mypPagePolicyCompliantBriefCount: number;
   skippedFamilyCount: number;
   channelIssueCount: number;
   healthyFamilyCount: number;
@@ -210,8 +213,20 @@ export function buildDailyBriefOpsSummary({
   const pypPdfLibFallbackBriefCount = pypProductionBriefs.filter(
     (entry) => entry.renderAudit?.renderer === "pdf-lib",
   ).length;
-  const mypCompareOnlyBriefCount = productionHistory.filter(
+  const mypProductionBriefs = productionHistory.filter(
     (entry) => entry.programme === "MYP",
+  );
+  const mypCompareOnlyBriefCount = mypProductionBriefs.length;
+  const mypTypstAuditedBriefCount = mypProductionBriefs.filter(
+    (entry) => entry.renderAudit?.renderer === "typst",
+  ).length;
+  const mypPagePolicyAuditedBriefCount = mypProductionBriefs.filter(
+    (entry) =>
+      entry.renderAudit?.pagePolicyLabel === "MYP compare-only" &&
+      entry.renderAudit?.pagePolicyPageCountLimit === 2,
+  ).length;
+  const mypPagePolicyCompliantBriefCount = mypProductionBriefs.filter(
+    (entry) => entry.renderAudit?.pagePolicyCompliant === true,
   ).length;
 
   productionHistory.forEach((entry) => {
@@ -310,6 +325,9 @@ export function buildDailyBriefOpsSummary({
     pypOnePageCompliantBriefCount,
     pypPdfLibFallbackBriefCount,
     mypCompareOnlyBriefCount,
+    mypTypstAuditedBriefCount,
+    mypPagePolicyAuditedBriefCount,
+    mypPagePolicyCompliantBriefCount,
     skippedFamilyCount: skippedFamilies.length,
     channelIssueCount: channelWatchlist.length,
     healthyFamilyCount,

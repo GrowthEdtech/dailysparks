@@ -81,7 +81,12 @@ export default async function DailyBriefDetailPage({
     programme: "PYP",
     attachmentMode: "production",
   });
-  const nonPypProductionRendererPolicy = resolveDailyBriefRendererPolicy({
+  const mypCanaryRendererPolicy = resolveDailyBriefRendererPolicy({
+    selectedMode: "auto",
+    programme: "MYP",
+    attachmentMode: "canary",
+  });
+  const mypProductionRendererPolicy = resolveDailyBriefRendererPolicy({
     selectedMode: "auto",
     programme: "MYP",
     attachmentMode: "production",
@@ -92,8 +97,11 @@ export default async function DailyBriefDetailPage({
   const pypProductionRendererLabel = getDailyBriefRendererPolicyLabel(
     pypProductionRendererPolicy,
   );
-  const nonPypProductionRendererLabel = getDailyBriefRendererPolicyLabel(
-    nonPypProductionRendererPolicy,
+  const mypCanaryRendererLabel = getDailyBriefRendererPolicyLabel(
+    mypCanaryRendererPolicy,
+  );
+  const mypProductionRendererLabel = getDailyBriefRendererPolicyLabel(
+    mypProductionRendererPolicy,
   );
   const isPypProductionFallback =
     entry.programme === "PYP" &&
@@ -399,13 +407,24 @@ export default async function DailyBriefDetailPage({
               </div>
               <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  MYP / DP production fallback
+                  MYP canary / test default
                 </p>
                 <p className="mt-2 text-sm font-semibold text-[#0f172a]">
-                  {formatDailyBriefRendererLabel(nonPypProductionRendererPolicy.renderer)}
+                  {formatDailyBriefRendererLabel(mypCanaryRendererPolicy.renderer)}
                 </p>
                 <p className="mt-2 text-sm text-slate-600">
-                  {nonPypProductionRendererLabel}
+                  {mypCanaryRendererLabel}
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  MYP production compare-only
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                  {formatDailyBriefRendererLabel(mypProductionRendererPolicy.renderer)}
+                </p>
+                <p className="mt-2 text-sm text-slate-600">
+                  {mypProductionRendererLabel}
                 </p>
               </div>
             </div>
@@ -445,15 +464,27 @@ export default async function DailyBriefDetailPage({
                 </div>
                 <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    One-page compliance
+                    Page policy
                   </p>
                   <p className="mt-2 text-sm font-semibold text-[#0f172a]">
-                    {entry.renderAudit.onePageCompliant === null
-                      ? "Not applicable"
-                      : entry.renderAudit.onePageCompliant
+                    {entry.renderAudit.pagePolicyCompliant == null
+                      ? entry.renderAudit.onePageCompliant == null
+                        ? "Not applicable"
+                        : entry.renderAudit.onePageCompliant
+                          ? "Compliant"
+                          : "Needs review"
+                      : entry.renderAudit.pagePolicyCompliant
                         ? "Compliant"
                         : "Needs review"}
                   </p>
+                  {entry.renderAudit.pagePolicyLabel ? (
+                    <p className="mt-2 text-sm text-slate-600">
+                      {entry.renderAudit.pagePolicyLabel}
+                      {entry.renderAudit.pagePolicyPageCountLimit
+                        ? ` · ${entry.renderAudit.pagePolicyPageCountLimit} pages max`
+                        : ""}
+                    </p>
+                  ) : null}
                   <p className="mt-2 text-sm text-slate-600">
                     Audited {formatAdminDateTime(entry.renderAudit.auditedAt)}
                   </p>
@@ -465,6 +496,13 @@ export default async function DailyBriefDetailPage({
                     </p>
                     <p className="mt-2 text-sm leading-6">
                       Fallback visible in admin until the rollout is fully stable.
+                    </p>
+                  </div>
+                ) : null}
+                {entry.programme === "MYP" ? (
+                  <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sky-950">
+                    <p className="font-semibold">
+                      Use Typst prototype in manual resend to validate compare-only MYP output while production stays on pdf-lib.
                     </p>
                   </div>
                 ) : null}
@@ -868,6 +906,7 @@ export default async function DailyBriefDetailPage({
       <ManualResendPanel
         briefId={entry.id}
         defaultParentEmail={getDefaultManualResendEmail(entry)}
+        programme={entry.programme}
       />
     </section>
   );

@@ -164,10 +164,24 @@ function normalizeRenderAudit(
 
   return {
     renderer: normalizeReceiptRenderer(raw.renderer) ?? "pdf-lib",
-    layoutVariant: raw.layoutVariant === "pyp-one-page" ? "pyp-one-page" : "standard",
+    layoutVariant:
+      raw.layoutVariant === "pyp-one-page" ||
+        raw.layoutVariant === "myp-compare"
+        ? raw.layoutVariant
+        : "standard",
     pageCount: normalizeCount(raw.pageCount),
     onePageCompliant:
       typeof raw.onePageCompliant === "boolean" ? raw.onePageCompliant : null,
+    pagePolicyLabel: normalizeNullableString(raw.pagePolicyLabel),
+    pagePolicyPageCountLimit:
+      typeof raw.pagePolicyPageCountLimit === "number" &&
+        Number.isFinite(raw.pagePolicyPageCountLimit)
+        ? raw.pagePolicyPageCountLimit
+        : null,
+    pagePolicyCompliant:
+      typeof raw.pagePolicyCompliant === "boolean"
+        ? raw.pagePolicyCompliant
+        : null,
     auditedAt: normalizeString(raw.auditedAt),
   };
 }

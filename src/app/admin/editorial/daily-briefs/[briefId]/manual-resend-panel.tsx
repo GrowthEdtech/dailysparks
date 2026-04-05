@@ -12,6 +12,7 @@ import {
 type ManualResendPanelProps = {
   briefId: string;
   defaultParentEmail: string;
+  programme: string;
 };
 
 type ManualResendResult = {
@@ -31,6 +32,7 @@ type ManualResendResult = {
 export default function ManualResendPanel({
   briefId,
   defaultParentEmail,
+  programme,
 }: ManualResendPanelProps) {
   const [parentEmail, setParentEmail] = useState(defaultParentEmail);
   const [renderer, setRenderer] = useState<AdminDailyBriefRenderer>("auto");
@@ -134,7 +136,9 @@ export default function ManualResendPanel({
           ))}
         </select>
         <p className="text-xs leading-5 text-slate-500">
-          Auto follows the rollout policy for this brief and keeps pdf-lib live as the rollback path.
+          {programme === "MYP"
+            ? "Use Typst prototype in manual resend to validate compare-only MYP output while production stays on pdf-lib."
+            : "Auto follows the rollout policy for this brief and keeps pdf-lib live as the rollback path."}
         </p>
         <button
           type="submit"

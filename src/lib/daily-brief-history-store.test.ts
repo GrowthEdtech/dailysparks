@@ -239,6 +239,9 @@ describe("daily brief history store", () => {
       layoutVariant: "standard",
       pageCount: 2,
       onePageCompliant: null,
+      pagePolicyLabel: null,
+      pagePolicyPageCountLimit: null,
+      pagePolicyCompliant: null,
       auditedAt: "2026-04-02T06:05:30.000Z",
     });
     expect(fetchedEntry?.failureReason).toBe("One destination timed out.");

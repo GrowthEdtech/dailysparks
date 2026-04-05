@@ -113,14 +113,14 @@ describe("buildOutboundDailyBriefPacket", () => {
     expect(packet.bigIdeaBody).toBeNull();
   });
 
-  test("keeps the fuller packet shape for non-PYP programmes", () => {
+  test("applies the MYP compare-only packet policy without collapsing it to a PYP one-page brief", () => {
     const packet = buildOutboundDailyBriefPacket({
       headline: "Students compare coastal cleanup plans across cities",
       scheduledFor: "2026-04-03",
       programme: "MYP",
       editorialCohort: "APAC",
       summary:
-        "Students compare how different cities organise shoreline cleanup efforts and what trade-offs each plan makes.",
+        "Students compare how different cities organise shoreline cleanup efforts and what trade-offs each plan makes. They also discuss how leaders balance cost, speed, fairness, and community trust when a crisis requires quick decisions.",
       topicTags: [
         "Oceans",
         "Civic planning",
@@ -129,21 +129,36 @@ describe("buildOutboundDailyBriefPacket", () => {
         "Evidence",
       ],
       briefMarkdown: [
-        "What’s happening? Students are comparing several coastal cleanup plans from different cities.",
-        "Why does this matter? Each plan solves one problem well, but creates trade-offs in cost, speed, and fairness.",
-        "Picture it Imagine three teams trying to clean the same beach, each with different tools and budgets.",
+        "What’s happening? Students are comparing several coastal cleanup plans from different cities. Each plan uses different volunteers, budgets, and rules about which areas should be cleaned first.",
+        "Why does this matter? Each plan solves one problem well, but creates trade-offs in cost, speed, and fairness. A plan that looks efficient might leave some neighbourhoods waiting longer for help.",
+        "Picture it Imagine three teams trying to clean the same beach, each with different tools and budgets. One team finishes quickly, another costs less, and another listens more carefully to local residents.",
         "Words to know - Trade-off: Giving up one advantage to gain another - Evidence: Information used to support a decision - Civic planning: Organising how a community solves shared problems",
         "Talk about it at home - Which plan would feel fairest? - What information would help you decide? - When is a fast solution not the best solution?",
-        "Big idea Good decisions often depend on comparing trade-offs, not just choosing the first idea that sounds appealing.",
+        "Big idea Good decisions often depend on comparing trade-offs, not just choosing the first idea that sounds appealing. Leaders often need to explain why one benefit matters more than another.",
       ].join("\n"),
       sourceReferences: [],
     });
 
-    expect(packet.layoutVariant).toBe("standard");
+    expect(packet.layoutVariant).toBe("myp-compare");
+    expect(packet.summaryBody.length).toBeLessThanOrEqual(240);
     expect(packet.themesBody).toBe(
       "Oceans, Civic planning, Sustainability, Communities, Evidence",
     );
     expect(packet.vocabularyItems).toHaveLength(3);
     expect(packet.discussionPrompts).toHaveLength(3);
+    expect(packet.readingSections).toEqual([
+      expect.objectContaining({
+        title: "What's happening?",
+      }),
+      expect.objectContaining({
+        title: "Why does this matter?",
+      }),
+      expect.objectContaining({
+        title: "Picture it",
+      }),
+    ]);
+    expect(packet.readingSections[0]?.body.length).toBeLessThanOrEqual(320);
+    expect(packet.readingSections[1]?.body.length).toBeLessThanOrEqual(320);
+    expect(packet.bigIdeaBody?.length ?? 0).toBeLessThanOrEqual(180);
   });
 });

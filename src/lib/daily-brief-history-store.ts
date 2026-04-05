@@ -100,13 +100,29 @@ function normalizeRenderAudit(
   return {
     renderer: normalizeReceiptRenderer(value.renderer) ?? "pdf-lib",
     layoutVariant:
-      value.layoutVariant === "pyp-one-page" ? "pyp-one-page" : "standard",
+      value.layoutVariant === "pyp-one-page" ||
+        value.layoutVariant === "myp-compare"
+        ? value.layoutVariant
+        : "standard",
     pageCount:
       typeof value.pageCount === "number" && Number.isFinite(value.pageCount)
         ? value.pageCount
         : 0,
     onePageCompliant:
       typeof value.onePageCompliant === "boolean" ? value.onePageCompliant : null,
+    pagePolicyLabel:
+      typeof value.pagePolicyLabel === "string"
+        ? value.pagePolicyLabel.trim() || null
+        : null,
+    pagePolicyPageCountLimit:
+      typeof value.pagePolicyPageCountLimit === "number" &&
+        Number.isFinite(value.pagePolicyPageCountLimit)
+        ? value.pagePolicyPageCountLimit
+        : null,
+    pagePolicyCompliant:
+      typeof value.pagePolicyCompliant === "boolean"
+        ? value.pagePolicyCompliant
+        : null,
     auditedAt: value.auditedAt.trim(),
   };
 }
