@@ -7,11 +7,14 @@ import {
   getEditorialAdminSessionFromRequest,
 } from "../../../../lib/editorial-admin-auth";
 import {
-  DAILY_BRIEF_PDF_RENDERERS,
-  type DailyBriefPdfRenderer,
 } from "../../../../lib/goodnotes-delivery";
 import { listDailyBriefHistory } from "../../../../lib/daily-brief-history-store";
 import { deliverBriefToSingleProfile } from "../../../../lib/daily-brief-manual-delivery";
+import {
+  getDailyBriefRendererPolicyLabel,
+  normalizeDailyBriefRendererMode,
+  resolveDailyBriefRendererPolicy,
+} from "../../../../lib/daily-brief-renderer-policy";
 import {
   getDailyBriefSchedulerHeaderName,
   getDailyBriefSchedulerSecret,
@@ -65,13 +68,6 @@ function isValidRunDate(value: string) {
 
 function normalizeEmail(value: unknown) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
-}
-
-function normalizeRenderer(value: unknown): DailyBriefPdfRenderer | undefined {
-  return typeof value === "string" &&
-      (DAILY_BRIEF_PDF_RENDERERS as readonly string[]).includes(value)
-    ? (value as DailyBriefPdfRenderer)
-    : undefined;
 }
 
 function isManualFallbackEligibleBrief(
@@ -136,9 +132,9 @@ async function parseRequestBody(
 
     if (
       payload.renderer !== undefined &&
-      normalizeRenderer(payload.renderer) === undefined
+      normalizeDailyBriefRendererMode(payload.renderer) === null
     ) {
-      return badRequest("renderer must be pdf-lib or typst when provided.");
+      return badRequest("renderer must be auto, pdf-lib, or typst when provided.");
     }
 
     return payload;
@@ -198,7 +194,6 @@ export async function POST(request: Request) {
   const targetParentEmail =
     normalizeEmail(parsedBody.parentEmail) ||
     DEFAULT_DAILY_BRIEF_TEST_TARGET_PARENT_EMAIL;
-  const renderer = normalizeRenderer(parsedBody.renderer) ?? "pdf-lib";
   const targetParentEmails = [targetParentEmail];
   const targetProfile = await getProfileByEmail(targetParentEmail);
 
@@ -217,6 +212,13 @@ export async function POST(request: Request) {
         buildEditorialCohortEvaluationDate(runDate),
       )
     : "APAC";
+  const rendererPolicy = resolveDailyBriefRendererPolicy({
+    selectedMode: normalizeDailyBriefRendererMode(parsedBody.renderer) ?? "auto",
+    programme: targetProfile.student.programme,
+    attachmentMode: "canary",
+  });
+  const renderer = rendererPolicy.renderer;
+  const rendererPolicyLabel = getDailyBriefRendererPolicyLabel(rendererPolicy);
 
   const ingest = await readStageResponse(
     await ingestDailyBriefRoute(
@@ -351,6 +353,8 @@ export async function POST(request: Request) {
             briefId: matchingTargetBrief.id,
             parentEmail: targetParentEmail,
             renderer,
+            rendererMode: rendererPolicy.selectedMode,
+            rendererPolicyLabel,
             deliveryAttemptCount:
               manualBackfill.deliverySummary.deliveryAttemptCount,
             deliverySuccessCount:
@@ -366,6 +370,8 @@ export async function POST(request: Request) {
             briefId: matchingTargetBrief.id,
             parentEmail: targetParentEmail,
             renderer,
+            rendererMode: rendererPolicy.selectedMode,
+            rendererPolicyLabel,
             errorMessage:
               error instanceof Error
                 ? error.message
@@ -379,6 +385,8 @@ export async function POST(request: Request) {
         manualBackfill: {
           parentEmail: targetParentEmail,
           renderer,
+          rendererMode: rendererPolicy.selectedMode,
+          rendererPolicyLabel,
           skippedReason:
             "No approved or published same-day test brief was available for fallback delivery.",
         },
@@ -391,7 +399,9 @@ export async function POST(request: Request) {
     runDate,
     editorialCohort,
     targetParentEmails,
+    rendererMode: rendererPolicy.selectedMode,
     renderer,
+    rendererPolicyLabel,
     stages: {
       ingest,
       generate,

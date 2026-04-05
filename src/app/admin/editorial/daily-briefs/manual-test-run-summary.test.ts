@@ -37,6 +37,9 @@ function buildResult(
 describe("manual test run summary", () => {
   test("reports manual fallback success as the final delivery outcome", () => {
     const result = buildResult({
+      rendererMode: "auto",
+      rendererPolicyLabel: "Auto default: Typst for PYP canary briefs.",
+      renderer: "typst",
       stages: {
         ingest: {
           status: 200,
@@ -67,6 +70,15 @@ describe("manual test run summary", () => {
     );
     expect(formatManualTestRunStageSummary(result)).toContain(
       "Final outcome: 1 delivery sent via manual fallback.",
+    );
+    expect(formatManualTestRunStageSummary(result)).toContain(
+      "Renderer mode: Auto (policy)",
+    );
+    expect(formatManualTestRunStageSummary(result)).toContain(
+      "Resolved renderer: Typst prototype",
+    );
+    expect(formatManualTestRunStageSummary(result)).toContain(
+      "Auto default: Typst for PYP canary briefs.",
     );
   });
 

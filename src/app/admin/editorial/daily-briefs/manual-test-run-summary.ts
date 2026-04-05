@@ -1,3 +1,8 @@
+import {
+  formatDailyBriefRendererLabel,
+  formatDailyBriefRendererModeLabel,
+} from "./renderer-options";
+
 type TestRunStageResult = {
   status: number;
   body: unknown;
@@ -7,7 +12,9 @@ export type ManualTestRunResult = {
   success: boolean;
   runDate: string;
   targetParentEmails: string[];
+  rendererMode?: string;
   renderer?: string;
+  rendererPolicyLabel?: string;
   failedStage?: string;
   stages?: Record<string, TestRunStageResult>;
   message?: string;
@@ -16,7 +23,9 @@ export type ManualTestRunResult = {
 type ManualBackfillSummary = {
   briefId?: string;
   parentEmail?: string;
+  rendererMode?: string;
   renderer?: string;
+  rendererPolicyLabel?: string;
   deliveryAttemptCount?: number;
   deliverySuccessCount?: number;
   deliveryFailureCount?: number;
@@ -97,8 +106,19 @@ export function formatManualTestRunStageSummary(
   }
 
   const outcomeLabel = buildManualTestRunOutcomeLabel(result);
+  const metadataLines = [
+    result.rendererMode
+      ? `Renderer mode: ${formatDailyBriefRendererModeLabel(result.rendererMode)}`
+      : null,
+    result.renderer
+      ? `Resolved renderer: ${formatDailyBriefRendererLabel(result.renderer)}`
+      : null,
+    result.rendererPolicyLabel ?? null,
+  ].filter(Boolean);
 
-  return Object.entries(result.stages)
+  return [
+    ...metadataLines,
+    ...Object.entries(result.stages)
     .map(([stageName, stageResult]) => {
       const summary =
         typeof stageResult.body === "object" && stageResult.body !== null
@@ -110,6 +130,6 @@ export function formatManualTestRunStageSummary(
       }
 
       return `${stageName.toUpperCase()} (${stageResult.status})\n${summary}`;
-    })
-    .join("\n\n");
+    }),
+  ].join("\n\n");
 }

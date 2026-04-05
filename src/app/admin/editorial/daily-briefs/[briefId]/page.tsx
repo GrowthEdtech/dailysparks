@@ -3,6 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getDailyBriefHistoryEntry } from "../../../../../lib/daily-brief-history-store";
+import {
+  getDailyBriefRendererPolicyLabel,
+  resolveDailyBriefRendererPolicy,
+} from "../../../../../lib/daily-brief-renderer-policy";
 import { buildOutboundDailyBriefPacket } from "../../../../../lib/outbound-daily-brief-packet";
 import {
   buildPipelineTimeline,
@@ -67,6 +71,14 @@ export default async function DailyBriefDetailPage({
   }
 
   const preview = buildOutboundDailyBriefPacket(entry);
+  const rendererRolloutPolicy = resolveDailyBriefRendererPolicy({
+    selectedMode: "auto",
+    programme: entry.programme,
+    attachmentMode: entry.recordKind === "test" ? "canary" : "production",
+  });
+  const rendererRolloutLabel = getDailyBriefRendererPolicyLabel(
+    rendererRolloutPolicy,
+  );
 
   return (
     <section className="space-y-6">
@@ -338,6 +350,39 @@ export default async function DailyBriefDetailPage({
         </article>
 
         <aside className="space-y-6">
+          <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+              Renderer rollout
+            </h2>
+            <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  PYP canary default
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                  {rendererRolloutPolicy.programme === "PYP" &&
+                  rendererRolloutPolicy.attachmentMode === "canary"
+                    ? formatDailyBriefRendererLabel(rendererRolloutPolicy.renderer)
+                    : "pdf-lib live"}
+                </p>
+                <p className="mt-2 text-sm text-slate-600">
+                  {rendererRolloutLabel}
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Production fallback
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                  pdf-lib live
+                </p>
+                <p className="mt-2 text-sm text-slate-600">
+                  Production delivery stays on pdf-lib until the Typst rollout exits canary.
+                </p>
+              </div>
+            </div>
+          </section>
+
           <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
               Pipeline timeline

@@ -222,4 +222,76 @@ describe("DailyBriefDetailPage", () => {
       }),
     ).rejects.toThrow("NOT_FOUND");
   });
+
+  test("surfaces typst rollout guidance for PYP canary briefs", async () => {
+    getDailyBriefHistoryEntryMock.mockResolvedValue({
+      id: "brief-pyp-1",
+      scheduledFor: "2026-04-05",
+      recordKind: "test",
+      headline: "UN watchdog voices deep concern as Iran reports new attacks on nuclear plant.",
+      summary: "A PYP canary brief.",
+      programme: "PYP",
+      editorialCohort: "APAC",
+      status: "published",
+      topicClusterKey: "nuclear safety",
+      normalizedHeadline: "un watchdog voices deep concern as iran reports new attacks on nuclear plant",
+      topicLatestPublishedAt: null,
+      selectionDecision: "new",
+      selectionOverrideNote: "",
+      blockedTopics: [],
+      topicTags: ["nuclear safety"],
+      sourceReferences: [],
+      aiConnectionId: "nf-relay",
+      aiConnectionName: "NF Relay",
+      aiModel: "gpt-5.4",
+      promptPolicyId: "policy-1",
+      promptVersionLabel: "v1.1.1",
+      promptVersion: "v1.1.1",
+      repetitionRisk: "low",
+      repetitionNotes: "No overlap.",
+      adminNotes: "",
+      briefMarkdown: "What’s happening? A brief.",
+      pipelineStage: "published",
+      candidateSnapshotAt: "2026-04-05T00:00:00.000Z",
+      generationCompletedAt: "2026-04-05T00:10:00.000Z",
+      pdfBuiltAt: "2026-04-05T00:12:00.000Z",
+      deliveryWindowAt: "2026-04-05T01:00:00.000Z",
+      lastDeliveryAttemptAt: "2026-04-05T01:03:00.000Z",
+      deliveryAttemptCount: 1,
+      deliverySuccessCount: 1,
+      deliveryFailureCount: 0,
+      dispatchMode: "canary",
+      dispatchCanaryParentEmails: ["family@example.com"],
+      targetedProfiles: [],
+      skippedProfiles: [],
+      pendingFutureProfiles: [],
+      heldProfiles: [],
+      deliveryReceipts: [
+        {
+          parentId: "parent-1",
+          parentEmail: "family@example.com",
+          channel: "goodnotes",
+          renderer: "typst",
+          attachmentFileName: "pyp-typst.pdf",
+          externalId: "smtp-1",
+          externalUrl: null,
+        },
+      ],
+      failedDeliveryTargets: [],
+      failureReason: "",
+      retryEligibleUntil: null,
+      createdAt: "2026-04-05T00:00:00.000Z",
+      updatedAt: "2026-04-05T00:00:00.000Z",
+    });
+
+    const markup = renderToStaticMarkup(
+      await DailyBriefDetailPage({
+        params: Promise.resolve({ briefId: "brief-pyp-1" }),
+      }),
+    );
+
+    expect(markup).toContain("Renderer rollout");
+    expect(markup).toContain("PYP canary default");
+    expect(markup).toContain("Typst prototype");
+  });
 });

@@ -1,5 +1,10 @@
 export const DAILY_BRIEF_RENDERER_OPTIONS = [
   {
+    value: "auto",
+    label: "Auto (policy)",
+    description: "Uses the rollout default for this brief",
+  },
+  {
     value: "pdf-lib",
     label: "pdf-lib live",
     description: "Current production renderer",
@@ -13,6 +18,16 @@ export const DAILY_BRIEF_RENDERER_OPTIONS = [
 
 export type AdminDailyBriefRenderer =
   (typeof DAILY_BRIEF_RENDERER_OPTIONS)[number]["value"];
+
+export function formatDailyBriefRendererModeLabel(
+  rendererMode: string | null | undefined,
+) {
+  if (rendererMode === "auto") {
+    return "Auto (policy)";
+  }
+
+  return formatDailyBriefRendererLabel(rendererMode);
+}
 
 export function formatDailyBriefRendererLabel(
   renderer: string | null | undefined,

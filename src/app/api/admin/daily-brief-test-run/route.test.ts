@@ -295,6 +295,75 @@ describe("daily brief test run admin route", () => {
     });
   });
 
+  test("uses the auto renderer policy for PYP staged tests and resolves to typst", async () => {
+    const cookie = await signIn();
+    const pypProfile = createProfile({
+      parent: {
+        email: "family@example.com",
+        countryCode: "HK",
+        deliveryTimeZone: "Asia/Hong_Kong",
+        preferredDeliveryLocalTime: "09:00",
+      },
+      student: {
+        parentId: "parent-1",
+        programme: "PYP",
+      },
+    });
+    let deliverRequestBody: Record<string, unknown> | null = null;
+
+    getProfileByEmailMock.mockResolvedValue(pypProfile);
+    ingestRouteMock.mockResolvedValue(
+      Response.json({ mode: "ingest", summary: { candidateCount: 2 } }),
+    );
+    generateRouteMock.mockResolvedValue(
+      Response.json({ mode: "generate", summary: { generatedCount: 1 } }),
+    );
+    preflightRouteMock.mockResolvedValue(
+      Response.json({
+        mode: "preflight",
+        ready: true,
+        summary: { approvedCount: 1 },
+      }),
+    );
+    deliverRouteMock.mockImplementation(async (request: Request) => {
+      deliverRequestBody = (await request.json()) as Record<string, unknown>;
+
+      return Response.json({
+        mode: "deliver",
+        summary: {
+          deliveredCount: 1,
+          dispatchMode: "canary",
+          targetedProfileCount: 1,
+          skippedProfileCount: 0,
+        },
+      });
+    });
+
+    const response = await dailyBriefTestRunRoute(
+      new Request("http://localhost:3000/api/admin/daily-brief-test-run", {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          runDate: "2026-04-04",
+          parentEmail: "family@example.com",
+          renderer: "auto",
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.rendererMode).toBe("auto");
+    expect(body.renderer).toBe("typst");
+    expect(body.rendererPolicyLabel).toMatch(/PYP canary/i);
+    expect(deliverRequestBody).toMatchObject({
+      renderer: "typst",
+    });
+  });
+
   test("defaults to the next Hong Kong business date when runDate is omitted", async () => {
     const cookie = await signIn();
     let ingestRequestBody: Record<string, unknown> | null = null;

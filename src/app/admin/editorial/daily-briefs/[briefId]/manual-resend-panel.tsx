@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import {
   DAILY_BRIEF_RENDERER_OPTIONS,
   formatDailyBriefRendererLabel,
+  formatDailyBriefRendererModeLabel,
   type AdminDailyBriefRenderer,
 } from "../renderer-options";
 
@@ -16,7 +17,9 @@ type ManualResendPanelProps = {
 type ManualResendResult = {
   success: boolean;
   parentEmail: string;
-  renderer?: AdminDailyBriefRenderer;
+  rendererMode?: AdminDailyBriefRenderer;
+  renderer?: string;
+  rendererPolicyLabel?: string;
   message?: string;
   deliverySummary?: {
     deliveryAttemptCount: number;
@@ -30,12 +33,15 @@ export default function ManualResendPanel({
   defaultParentEmail,
 }: ManualResendPanelProps) {
   const [parentEmail, setParentEmail] = useState(defaultParentEmail);
-  const [renderer, setRenderer] = useState<AdminDailyBriefRenderer>("pdf-lib");
+  const [renderer, setRenderer] = useState<AdminDailyBriefRenderer>("auto");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<ManualResendResult | null>(null);
   const summaryRenderer = formatDailyBriefRendererLabel(
     result?.renderer ?? renderer,
+  );
+  const summaryRendererMode = formatDailyBriefRendererModeLabel(
+    result?.rendererMode ?? renderer,
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -127,6 +133,9 @@ export default function ManualResendPanel({
             </option>
           ))}
         </select>
+        <p className="text-xs leading-5 text-slate-500">
+          Auto follows the rollout policy for this brief and keeps pdf-lib live as the rollback path.
+        </p>
         <button
           type="submit"
           disabled={isSubmitting}
@@ -146,7 +155,11 @@ export default function ManualResendPanel({
         <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Manual resend processed for{" "}
           <span className="font-semibold">{result.parentEmail}</span>.
-          {" "}Renderer: <span className="font-semibold">{summaryRenderer}</span>.
+          {" "}Renderer mode:{" "}
+          <span className="font-semibold">{summaryRendererMode}</span>.
+          {" "}Resolved renderer:{" "}
+          <span className="font-semibold">{summaryRenderer}</span>.
+          {result.rendererPolicyLabel ? ` ${result.rendererPolicyLabel}` : ""}
           {result.deliverySummary ? (
             <>
               {" "}

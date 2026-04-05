@@ -13,9 +13,10 @@ import {
 } from "../../../../lib/editorial-admin-auth";
 import { deliverBriefToSingleProfile } from "../../../../lib/daily-brief-manual-delivery";
 import {
-  DAILY_BRIEF_PDF_RENDERERS,
-  type DailyBriefPdfRenderer,
-} from "../../../../lib/goodnotes-delivery";
+  getDailyBriefRendererPolicyLabel,
+  normalizeDailyBriefRendererMode,
+  resolveDailyBriefRendererPolicy,
+} from "../../../../lib/daily-brief-renderer-policy";
 import { getProfileByEmail } from "../../../../lib/mvp-store";
 
 type DailyBriefResendRequestBody = {
@@ -54,13 +55,6 @@ function normalizeId(value: unknown) {
 
 function normalizeEmail(value: unknown) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
-}
-
-function normalizeRenderer(value: unknown): DailyBriefPdfRenderer | undefined {
-  return typeof value === "string" &&
-      (DAILY_BRIEF_PDF_RENDERERS as readonly string[]).includes(value)
-    ? (value as DailyBriefPdfRenderer)
-    : undefined;
 }
 
 async function parseRequestBody(request: Request) {
@@ -105,7 +99,7 @@ export async function POST(request: Request) {
 
   const briefId = normalizeId(parsedBody.briefId);
   const parentEmail = normalizeEmail(parsedBody.parentEmail);
-  const renderer = normalizeRenderer(parsedBody.renderer) ?? "pdf-lib";
+  const rendererMode = normalizeDailyBriefRendererMode(parsedBody.renderer);
 
   if (!briefId) {
     return badRequest("briefId is required.");
@@ -117,9 +111,9 @@ export async function POST(request: Request) {
 
   if (
     parsedBody.renderer !== undefined &&
-    normalizeRenderer(parsedBody.renderer) === undefined
+    rendererMode === null
   ) {
-    return badRequest("renderer must be pdf-lib or typst when provided.");
+    return badRequest("renderer must be auto, pdf-lib, or typst when provided.");
   }
 
   const [brief, profile] = await Promise.all([
@@ -152,6 +146,13 @@ export async function POST(request: Request) {
     );
   }
 
+  const rendererPolicy = resolveDailyBriefRendererPolicy({
+    selectedMode: rendererMode ?? "auto",
+    programme: brief.programme,
+    attachmentMode: brief.recordKind === "test" ? "canary" : "production",
+  });
+  const renderer = rendererPolicy.renderer;
+
   let manualDelivery;
 
   try {
@@ -175,7 +176,9 @@ export async function POST(request: Request) {
     success: manualDelivery.deliverySummary.deliveryFailureCount === 0,
     briefId,
     parentEmail,
+    rendererMode: rendererPolicy.selectedMode,
     renderer,
+    rendererPolicyLabel: getDailyBriefRendererPolicyLabel(rendererPolicy),
     deliverySummary: manualDelivery.deliverySummary,
     brief: manualDelivery.updatedBrief ?? brief,
   });

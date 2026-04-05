@@ -5,6 +5,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import {
   DAILY_BRIEF_RENDERER_OPTIONS,
   formatDailyBriefRendererLabel,
+  formatDailyBriefRendererModeLabel,
   type AdminDailyBriefRenderer,
 } from "./renderer-options";
 import {
@@ -27,7 +28,7 @@ export default function ManualTestRunPanel() {
   const [targetParentEmail, setTargetParentEmail] = useState(
     DEFAULT_TEST_RECIPIENT,
   );
-  const [renderer, setRenderer] = useState<AdminDailyBriefRenderer>("pdf-lib");
+  const [renderer, setRenderer] = useState<AdminDailyBriefRenderer>("auto");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<ManualTestRunResult | null>(null);
@@ -43,6 +44,9 @@ export default function ManualTestRunPanel() {
     result?.targetParentEmails?.[0] ?? targetParentEmail;
   const summaryRenderer = formatDailyBriefRendererLabel(
     result?.renderer ?? renderer,
+  );
+  const summaryRendererMode = formatDailyBriefRendererModeLabel(
+    result?.rendererMode ?? renderer,
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -152,6 +156,9 @@ export default function ManualTestRunPanel() {
               </option>
             ))}
           </select>
+          <p className="text-xs leading-5 text-slate-500">
+            Auto uses Typst for PYP canary runs and pdf-lib live elsewhere.
+          </p>
           <button
             type="submit"
             disabled={isSubmitting}
@@ -182,9 +189,18 @@ export default function ManualTestRunPanel() {
           </p>
         ) : null}
         <p className="mt-1 text-sm text-slate-500">
-          Renderer:{" "}
+          Renderer mode:{" "}
+          <span className="font-semibold text-slate-700">
+            {summaryRendererMode}
+          </span>
+        </p>
+        <p className="mt-1 text-sm text-slate-500">
+          Resolved renderer:{" "}
           <span className="font-semibold text-slate-700">{summaryRenderer}</span>
         </p>
+        {result?.rendererPolicyLabel ? (
+          <p className="mt-1 text-sm text-slate-500">{result.rendererPolicyLabel}</p>
+        ) : null}
         <p className="mt-1 text-sm text-slate-500">
           Final delivery outcome:{" "}
           <span className="font-semibold text-slate-700">{outcomeLabel}</span>
