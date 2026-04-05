@@ -2,6 +2,8 @@ import { describe, expect, test } from "vitest";
 
 import {
   buildOutboundDailyBriefTypstSource,
+  getTypstHeadlineSize,
+  preventTypstHeadlineWidows,
   renderOutboundDailyBriefTypstPrototype,
 } from "./outbound-daily-brief-typst";
 
@@ -54,6 +56,29 @@ describe("outbound daily brief typst", () => {
     expect(source).toContain("Big idea");
     expect(source).toContain("Growth Education Limited");
     expect(source).not.toContain("**");
+  });
+
+  test("scales long headlines down and keeps the trailing words together", () => {
+    const source = buildOutboundDailyBriefTypstSource(sampleBrief);
+
+    expect(getTypstHeadlineSize(sampleBrief.headline)).toBe(22);
+    expect(preventTypstHeadlineWidows(sampleBrief.headline)).toContain(
+      "nuclear\u00a0plant",
+    );
+    expect(source).toContain('#text(size: 22pt, weight: "bold", fill: ink)');
+    expect(source).toContain("nuclear\u00a0plant");
+  });
+
+  test("uses a content-first hierarchy with a standfirst and stronger reading section emphasis", () => {
+    const source = buildOutboundDailyBriefTypstSource(sampleBrief);
+
+    expect(source).toContain('#v(6pt)\n  #text(size: 22pt, weight: "bold", fill: ink)');
+    expect(source).toContain('#v(12pt)\n  #grid');
+    expect(source).toContain('#standfirst-card("Summary deck"');
+    expect(source).toContain('label-color: gold');
+    expect(source).toContain('#text(size: 10pt, weight: "semibold", fill: gold)[#"Words to know"]');
+    expect(source).toContain('#text(size: 20pt, weight: "bold", fill: ink)[#"Reading brief"]');
+    expect(source).toContain('#text(size: 12pt, weight: "semibold", fill: ink)[#title]');
   });
 
   test("renders a typst prototype pdf for the same daily brief packet", async () => {

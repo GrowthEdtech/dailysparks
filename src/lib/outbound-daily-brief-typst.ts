@@ -45,10 +45,43 @@ function createDefaultCompiler(): TypstCompilerLike {
   return NodeCompiler.create();
 }
 
+export function getTypstHeadlineSize(headline: string) {
+  const length = headline.trim().length;
+
+  if (length >= 96) {
+    return 20;
+  }
+
+  if (length >= 64) {
+    return 22;
+  }
+
+  return 24;
+}
+
+export function preventTypstHeadlineWidows(headline: string) {
+  const words = headline.trim().split(/\s+/).filter(Boolean);
+
+  if (words.length < 4) {
+    return headline.trim();
+  }
+
+  const trailingWord = words.pop();
+  const trailingPairLead = words.pop();
+
+  if (!trailingWord || !trailingPairLead) {
+    return headline.trim();
+  }
+
+  return [...words, `${trailingPairLead}\u00a0${trailingWord}`].join(" ");
+}
+
 export function buildOutboundDailyBriefTypstSource(
   brief: OutboundDailyBriefPacketInput,
 ) {
   const packet = buildOutboundDailyBriefPacket(brief);
+  const headline = preventTypstHeadlineWidows(packet.title);
+  const headlineSize = getTypstHeadlineSize(headline);
   const metadataItems = packet.metadataItems
     .map((item) => `#pill(${escapeTypstString(item)})`)
     .join("\n        ");
@@ -101,18 +134,31 @@ export function buildOutboundDailyBriefTypstSource(
   inset: 18pt,
   radius: 18pt,
 )[
-  #text(size: 9pt, weight: "semibold", fill: label-color)[#label]
+  #text(size: 10pt, weight: "semibold", fill: label-color)[#label]
   #v(8pt)
   #text(size: 11pt, fill: secondary)[#body]
 ]
 
+#let standfirst-card(label, body) = rect(
+  width: 100%,
+  fill: white,
+  stroke: (paint: soft-border, thickness: 1pt),
+  inset: 20pt,
+  radius: 18pt,
+)[
+  #text(size: 10pt, weight: "semibold", fill: muted)[#label]
+  #v(8pt)
+  #set par(leading: 1.15em)
+  #text(size: 13pt, fill: ink)[#body]
+]
+
 #let reading-block(title, body) = [
   #if title != "" [
-    #text(size: 11pt, weight: "semibold", fill: ink)[#title]
+    #text(size: 12pt, weight: "semibold", fill: ink)[#title]
     #v(4pt)
   ]
-  #text(size: 11pt, fill: secondary)[#body]
-  #v(10pt)
+  #text(size: 11.2pt, fill: secondary)[#body]
+  #v(12pt)
 ]
 
 #let vocab-item(term, definition) = [
@@ -142,16 +188,16 @@ export function buildOutboundDailyBriefTypstSource(
   radius: 22pt,
 )[
   #text(size: 9pt, weight: "semibold", fill: gold)[#${escapeTypstString(packet.eyebrow)}]
-  #v(10pt)
-  #text(size: 26pt, weight: "bold", fill: ink)[#${escapeTypstString(packet.title)}]
-  #v(14pt)
+  #v(6pt)
+  #text(size: ${headlineSize}pt, weight: "bold", fill: ink)[#${escapeTypstString(headline)}]
+  #v(12pt)
   #grid(columns: (auto, auto, auto), gutter: 8pt,[
         ${metadataItems}
   ])
 ]
 
 #v(16pt)
-#section-card(${escapeTypstString(packet.summaryTitle)}, ${escapeTypstString(packet.summaryBody)})
+#standfirst-card(${escapeTypstString(packet.summaryTitle)}, ${escapeTypstString(packet.summaryBody)})
 
 ${
   packet.themesTitle && packet.themesBody
@@ -163,7 +209,7 @@ ${
 }
 
 #v(14pt)
-#text(size: 16pt, weight: "bold", fill: ink)[#${escapeTypstString(packet.readingTitle)}]
+#text(size: 20pt, weight: "bold", fill: ink)[#${escapeTypstString(packet.readingTitle)}]
 #v(10pt)
 ${readingBlocks}
 
@@ -178,7 +224,7 @@ ${
   inset: 18pt,
   radius: 18pt,
 )[
-  #text(size: 9pt, weight: "semibold", fill: gold)[#${escapeTypstString(packet.vocabularyTitle)}]
+  #text(size: 10pt, weight: "semibold", fill: gold)[#${escapeTypstString(packet.vocabularyTitle)}]
   #v(10pt)
   ${vocabularyBlocks}
 ]
@@ -203,7 +249,7 @@ ${
   inset: 18pt,
   radius: 18pt,
 )[
-  #text(size: 9pt, weight: "semibold", fill: muted)[#${escapeTypstString(packet.discussionTitle)}]
+  #text(size: 10pt, weight: "semibold", fill: muted)[#${escapeTypstString(packet.discussionTitle)}]
   #v(10pt)
   ${discussionBlocks}
 ]
@@ -216,7 +262,7 @@ ${
   inset: 18pt,
   radius: 18pt,
 )[
-  #text(size: 9pt, weight: "semibold", fill: muted)[#${escapeTypstString(packet.sourcesTitle)}]
+  #text(size: 10pt, weight: "semibold", fill: muted)[#${escapeTypstString(packet.sourcesTitle)}]
   #v(8pt)
   ${sourceBlocks}
 ]
