@@ -18,6 +18,8 @@ import {
   getInvoiceStatusLabel,
   getLocalDeliveryScheduleLabel,
   getOnboardingReminderStatus,
+  getPlannedNotificationOpsSummary,
+  getPlannedNotificationStatuses,
   getPlanLabel,
   isSubscriptionStatus,
   USER_STATUS_FILTERS,
@@ -58,6 +60,7 @@ export default async function UsersAdminPage({
     reminderHistory,
   );
   const reconciliationSummary = getGrowthReconciliationSummary(allProfiles);
+  const plannedNotificationSummary = getPlannedNotificationOpsSummary(visibleProfiles);
 
   return (
     <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -336,6 +339,63 @@ export default async function UsersAdminPage({
         </div>
       </section>
 
+      <section className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Notification operations
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              A live view of planned parent-inbox notifications, including
+              which families still need an email and which cases are already
+              deduped against the latest state.
+            </p>
+          </div>
+          <div className="text-sm text-slate-500">
+            <span className="font-semibold text-[#0f172a]">
+              {visibleProfiles.length}
+            </span>{" "}
+            families in current view
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Trial ending active
+            </p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+              {plannedNotificationSummary.trialEnding.actionableCount}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              {plannedNotificationSummary.trialEnding.dedupedCount} deduped
+            </p>
+          </div>
+          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Billing updates pending
+            </p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+              {plannedNotificationSummary.billingStatus.actionableCount}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              {plannedNotificationSummary.billingStatus.dedupedCount} deduped
+            </p>
+          </div>
+          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Delivery support active
+            </p>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+              {plannedNotificationSummary.deliverySupport.actionableCount}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              {plannedNotificationSummary.deliverySupport.dedupedCount} deduped
+            </p>
+          </div>
+        </div>
+      </section>
+
       {visibleProfiles.length === 0 ? (
         <div className="mt-8 rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-10">
           <h3 className="text-xl font-bold tracking-tight text-[#0f172a]">
@@ -351,6 +411,8 @@ export default async function UsersAdminPage({
         <div className="mt-8 grid gap-4">
           {visibleProfiles.map((profile) => {
             const reminderStatus = getOnboardingReminderStatus(profile);
+            const plannedNotificationStatuses =
+              getPlannedNotificationStatuses(profile);
 
             return (
               <article
@@ -420,6 +482,42 @@ export default async function UsersAdminPage({
                         <p className="mt-1 text-sm text-slate-500">
                           {getLocalDeliveryScheduleLabel(profile)}
                         </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        Planned notifications
+                      </p>
+                      <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                        {[
+                          {
+                            label: "Trial ending",
+                            status: plannedNotificationStatuses.trialEnding,
+                          },
+                          {
+                            label: "Billing status",
+                            status: plannedNotificationStatuses.billingStatus,
+                          },
+                          {
+                            label: "Delivery support",
+                            status: plannedNotificationStatuses.deliverySupport,
+                          },
+                        ].map((item) => (
+                          <div
+                            key={item.label}
+                            className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3"
+                          >
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                              {item.label}
+                            </p>
+                            <p className="mt-2 text-base font-semibold text-[#0f172a]">
+                              {item.status.label}
+                            </p>
+                            <p className="mt-1 text-sm text-slate-500">
+                              {item.status.detail}
+                            </p>
+                          </div>
+                        ))}
                       </div>
                     </div>
                     <p className="mt-4 text-sm text-slate-500">

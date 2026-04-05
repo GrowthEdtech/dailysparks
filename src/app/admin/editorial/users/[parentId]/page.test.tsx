@@ -1,6 +1,6 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const { getProfileByParentIdMock, notFoundMock } = vi.hoisted(() => ({
   getProfileByParentIdMock: vi.fn(),
@@ -45,6 +45,10 @@ describe("UserDetailAdminPage", () => {
     notFoundMock.mockClear();
     listOnboardingReminderRunHistoryMock.mockReset();
     listOnboardingReminderRunHistoryMock.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   test("renders overview, billing, and delivery sections", async () => {
@@ -421,6 +425,102 @@ describe("UserDetailAdminPage", () => {
     expect(markup).toContain("Recent reminder runs");
     expect(markup).toContain("First activation reminder");
     expect(markup).toContain("message-2");
+    expect(markup).toContain("SMTP offline");
+  });
+
+  test("renders planned notification evidence with reasons and dedupe state", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-05T02:00:00.000Z"));
+
+    getProfileByParentIdMock.mockResolvedValue({
+      parent: {
+        id: "parent-5",
+        email: "ops@example.com",
+        fullName: "Ops Parent",
+        countryCode: "HK",
+        deliveryTimeZone: "Asia/Hong_Kong",
+        preferredDeliveryLocalTime: "09:00",
+        onboardingReminderCount: 0,
+        onboardingReminderLastAttemptAt: null,
+        onboardingReminderLastSentAt: null,
+        onboardingReminderLastStage: null,
+        onboardingReminderLastStatus: "failed",
+        onboardingReminderLastMessageId: null,
+        onboardingReminderLastError: "SMTP offline",
+        trialEndingReminderLastNotifiedAt: "2026-04-05T01:00:00.000Z",
+        trialEndingReminderLastTrialEndsAt: "2026-04-08T00:00:00.000Z",
+        billingStatusNotificationLastSentAt: null,
+        billingStatusNotificationLastInvoiceId: null,
+        billingStatusNotificationLastInvoiceStatus: null,
+        deliverySupportAlertLastNotifiedAt: null,
+        deliverySupportAlertLastReasonKey: null,
+        subscriptionStatus: "trial",
+        subscriptionPlan: "monthly",
+        stripeCustomerId: "cus_ops",
+        stripeSubscriptionId: "sub_ops",
+        trialStartedAt: "2026-04-01T00:00:00.000Z",
+        trialEndsAt: "2026-04-08T00:00:00.000Z",
+        subscriptionActivatedAt: "2026-04-02T00:00:00.000Z",
+        subscriptionRenewalAt: "2026-05-02T00:00:00.000Z",
+        latestInvoiceId: "in_ops",
+        latestInvoiceNumber: "DS-2026-0043",
+        latestInvoiceStatus: "open",
+        latestInvoiceHostedUrl: null,
+        latestInvoicePdfUrl: null,
+        latestInvoiceAmountPaid: 0,
+        latestInvoiceCurrency: "hkd",
+        latestInvoicePaidAt: null,
+        latestInvoicePeriodStart: "2026-04-02T00:00:00.000Z",
+        latestInvoicePeriodEnd: "2026-05-02T00:00:00.000Z",
+        notionWorkspaceId: null,
+        notionWorkspaceName: null,
+        notionBotId: null,
+        notionDatabaseId: null,
+        notionDatabaseName: null,
+        notionDataSourceId: null,
+        notionAuthorizedAt: null,
+        notionLastSyncedAt: null,
+        notionLastSyncStatus: null,
+        notionLastSyncMessage: null,
+        notionLastSyncPageId: null,
+        notionLastSyncPageUrl: null,
+        createdAt: "2026-04-01T00:00:00.000Z",
+        updatedAt: "2026-04-05T01:00:00.000Z",
+      },
+      student: {
+        id: "student-5",
+        parentId: "parent-5",
+        studentName: "Mia",
+        programme: "PYP",
+        programmeYear: 5,
+        goodnotesEmail: "",
+        goodnotesConnected: false,
+        goodnotesVerifiedAt: null,
+        goodnotesLastTestSentAt: null,
+        goodnotesLastDeliveryStatus: null,
+        goodnotesLastDeliveryMessage: null,
+        notionConnected: false,
+        createdAt: "2026-04-01T00:00:00.000Z",
+        updatedAt: "2026-04-05T01:00:00.000Z",
+      },
+    });
+
+    const markup = renderToStaticMarkup(
+      await UserDetailAdminPage({
+        params: Promise.resolve({ parentId: "parent-5" }),
+      }),
+    );
+
+    expect(markup).toContain("Notification evidence");
+    expect(markup).toContain("Trial ending");
+    expect(markup).toContain("Billing status");
+    expect(markup).toContain("Delivery support");
+    expect(markup).toContain("Current notification state");
+    expect(markup).toContain("Last sent");
+    expect(markup).toContain("Deduped");
+    expect(markup).toContain("Pending");
+    expect(markup).toContain("already covers this trial window");
+    expect(markup).toContain("invoice open");
     expect(markup).toContain("SMTP offline");
   });
 });

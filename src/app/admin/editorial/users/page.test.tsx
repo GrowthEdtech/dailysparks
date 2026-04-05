@@ -703,4 +703,102 @@ describe("UsersAdminPage", () => {
     expect(markup).toContain("Trials expiring soon");
     expect(markup).toContain("Active without dispatchable channel");
   });
+
+  test("renders planned notification ops visibility and per-family evidence", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-05T02:00:00.000Z"));
+
+    listParentProfilesMock.mockResolvedValue([
+      {
+        parent: {
+          id: "parent-notify",
+          email: "notify@example.com",
+          fullName: "Notify Parent",
+          countryCode: "HK",
+          deliveryTimeZone: "Asia/Hong_Kong",
+          preferredDeliveryLocalTime: "09:00",
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: "failed",
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: "SMTP offline",
+          trialEndingReminderLastNotifiedAt: "2026-04-05T01:00:00.000Z",
+          trialEndingReminderLastTrialEndsAt: "2026-04-08T00:00:00.000Z",
+          billingStatusNotificationLastSentAt: null,
+          billingStatusNotificationLastInvoiceId: null,
+          billingStatusNotificationLastInvoiceStatus: null,
+          deliverySupportAlertLastNotifiedAt: null,
+          deliverySupportAlertLastReasonKey: null,
+          subscriptionStatus: "trial",
+          subscriptionPlan: "monthly",
+          stripeCustomerId: "cus_notify",
+          stripeSubscriptionId: "sub_notify",
+          trialStartedAt: "2026-04-01T00:00:00.000Z",
+          trialEndsAt: "2026-04-08T00:00:00.000Z",
+          subscriptionActivatedAt: "2026-04-02T00:00:00.000Z",
+          subscriptionRenewalAt: "2026-05-02T00:00:00.000Z",
+          latestInvoiceId: "in_notify",
+          latestInvoiceNumber: "DS-2026-0042",
+          latestInvoiceStatus: "open",
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: 0,
+          latestInvoiceCurrency: "hkd",
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: "2026-04-02T00:00:00.000Z",
+          latestInvoicePeriodEnd: "2026-05-02T00:00:00.000Z",
+          notionWorkspaceId: null,
+          notionWorkspaceName: null,
+          notionBotId: null,
+          notionDatabaseId: null,
+          notionDatabaseName: null,
+          notionDataSourceId: null,
+          notionAuthorizedAt: null,
+          notionLastSyncedAt: null,
+          notionLastSyncStatus: null,
+          notionLastSyncMessage: null,
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-05T01:00:00.000Z",
+        },
+        student: {
+          id: "student-notify",
+          parentId: "parent-notify",
+          studentName: "Katherine",
+          programme: "PYP",
+          programmeYear: 5,
+          goodnotesEmail: "",
+          goodnotesConnected: false,
+          goodnotesVerifiedAt: null,
+          goodnotesLastTestSentAt: null,
+          goodnotesLastDeliveryStatus: null,
+          goodnotesLastDeliveryMessage: null,
+          notionConnected: false,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-05T01:00:00.000Z",
+        },
+      },
+    ]);
+
+    const markup = renderToStaticMarkup(
+      await UsersAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("Notification operations");
+    expect(markup).toContain("Trial ending active");
+    expect(markup).toContain("Billing updates pending");
+    expect(markup).toContain("Delivery support active");
+    expect(markup).toContain("Planned notifications");
+    expect(markup).toContain("Trial ending");
+    expect(markup).toContain("Billing status");
+    expect(markup).toContain("Delivery support");
+    expect(markup).toContain("Deduped");
+    expect(markup).toContain("Pending");
+    expect(markup).toContain("SMTP offline");
+  });
 });

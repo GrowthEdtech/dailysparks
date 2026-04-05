@@ -13,6 +13,7 @@ import {
   getInvoiceStatusLabel,
   getLocalDeliveryScheduleLabel,
   getOnboardingReminderStatus,
+  getPlannedNotificationStatuses,
   getPlanLabel,
 } from "../users-admin-helpers";
 import { getFamilyDeliveryHealthRollup } from "../../../../../lib/delivery-health-rollup";
@@ -39,6 +40,7 @@ export default async function UserDetailAdminPage({
 
   const deliveryHealth = getFamilyDeliveryHealthRollup(profile);
   const reminderStatus = getOnboardingReminderStatus(profile);
+  const plannedNotificationStatuses = getPlannedNotificationStatuses(profile);
   const funnelState = getActivationFunnelState(profile);
   const attentionState = getActivationAttentionState(profile);
   const reminderRuns = getRecentReminderRunsForParent(
@@ -272,6 +274,71 @@ export default async function UserDetailAdminPage({
               </dd>
             </div>
           </dl>
+        </section>
+
+        <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+            Notification evidence
+          </h2>
+
+          <div className="mt-4 grid gap-4">
+            {[
+              {
+                label: "Trial ending",
+                status: plannedNotificationStatuses.trialEnding,
+              },
+              {
+                label: "Billing status",
+                status: plannedNotificationStatuses.billingStatus,
+              },
+              {
+                label: "Delivery support",
+                status: plannedNotificationStatuses.deliverySupport,
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
+              >
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {item.label}
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-[#0f172a]">
+                      {item.status.label}
+                    </p>
+                  </div>
+                  <div className="text-right text-sm text-slate-500">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Last sent
+                    </p>
+                    <p className="mt-2">
+                      {item.status.lastSentAt
+                        ? formatAdminDateTime(item.status.lastSentAt)
+                        : "Not sent yet"}
+                    </p>
+                  </div>
+                </div>
+                <dl className="mt-4 grid gap-2 text-sm leading-6 text-slate-600">
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="font-semibold text-[#0f172a]">
+                      Current notification state
+                    </dt>
+                    <dd>{item.status.label}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="font-semibold text-[#0f172a]">Why</dt>
+                    <dd className="max-w-[22rem] text-right">{item.status.detail}</dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="font-semibold text-[#0f172a]">Deduped</dt>
+                    <dd>{item.status.deduped ? "Yes" : "No"}</dd>
+                  </div>
+                </dl>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
