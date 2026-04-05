@@ -205,7 +205,7 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("admin@geledtech.com");
   });
 
-  test("stacks programme and status filters vertically at every width", async () => {
+  test("uses a desktop filter grid to avoid oversized whitespace beside the header", async () => {
     listDailyBriefHistoryMock.mockResolvedValue([]);
     listParentProfilesMock.mockResolvedValue([]);
 
@@ -215,8 +215,9 @@ describe("DailyBriefsAdminPage", () => {
       }),
     );
 
-    expect(markup).toContain("flex flex-col gap-4");
-    expect(markup).not.toContain("md:grid-cols-2");
+    expect(markup).toContain("xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)]");
+    expect(markup).toContain("sm:grid-cols-2");
+    expect(markup).toContain("xl:max-w-[34rem]");
   });
 
   test("renders the manual canary test panel copy", async () => {

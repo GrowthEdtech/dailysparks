@@ -174,8 +174,8 @@ export default async function DailyBriefsAdminPage({
 
   return (
     <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="max-w-3xl">
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(28rem,34rem)] xl:items-start">
+        <div className="max-w-4xl xl:pr-8">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b45309]">
             Daily briefs
           </p>
@@ -190,7 +190,7 @@ export default async function DailyBriefsAdminPage({
           </p>
         </div>
 
-        <div className="flex flex-col gap-4 md:w-full md:max-w-[19rem]">
+        <div className="grid gap-4 sm:grid-cols-2 xl:w-full xl:max-w-[34rem]">
           <div className="rounded-[24px] border border-slate-200 bg-slate-50/70 px-4 py-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
               Record type
