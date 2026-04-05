@@ -16,6 +16,8 @@ import {
 
 export const PLANNED_NOTIFICATION_RETRY_COOLDOWN_MINUTES = 30;
 export const PLANNED_NOTIFICATION_ESCALATE_AFTER_FAILURES = 2;
+const PLANNED_NOTIFICATION_SLA_WARNING_HOURS = 24;
+const PLANNED_NOTIFICATION_SLA_BREACH_HOURS = 72;
 
 type PlannedNotificationCurrentState =
   | TrialEndingNotificationCurrentState
@@ -52,6 +54,9 @@ export type PlannedNotificationOpsQueueItem = {
   retryAvailableAt: string | null;
   failureCount: number;
   deduped: boolean;
+  ageStartedAt: string | null;
+  ageHours: number;
+  agingLabel: "Under 24h" | "24-72h" | "Older than 72h";
 };
 
 export type PlannedNotificationOpsQueueSummary = {
@@ -61,6 +66,9 @@ export type PlannedNotificationOpsQueueSummary = {
   coolingDownCount: number;
   escalatedCount: number;
   dedupedCount: number;
+  under24hCount: number;
+  between24hAnd72hCount: number;
+  over72hCount: number;
 };
 
 export type PlannedNotificationOpsQueue = {
@@ -150,6 +158,141 @@ function getCurrentStateHistory(
         matchesCurrentState(entry, currentState),
     )
     .sort((left, right) => right.runAt.localeCompare(left.runAt));
+}
+
+function getCurrentStateHistoryAndCurrentState(
+  profile: ParentProfile,
+  notificationFamily: PlannedNotificationFamily,
+  history: PlannedNotificationRunRecord[],
+  now = new Date(),
+) {
+  const currentState = getCurrentState(profile, notificationFamily, now);
+
+  return {
+    currentState,
+    currentStateHistory: currentState
+      ? history
+          .filter(
+            (entry) =>
+              entry.parentId === profile.parent.id &&
+              entry.notificationFamily === notificationFamily &&
+              matchesCurrentState(entry, currentState),
+          )
+          .sort((left, right) => right.runAt.localeCompare(left.runAt))
+      : ([] as PlannedNotificationRunRecord[]),
+  };
+}
+
+function getFirstNonEmptyTimestamp(
+  ...values: Array<string | null | undefined>
+): string | null {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      const timestamp = Date.parse(value);
+
+      if (!Number.isNaN(timestamp)) {
+        return new Date(timestamp).toISOString();
+      }
+    }
+  }
+
+  return null;
+}
+
+function inferAgeStartedAt(input: {
+  profile: ParentProfile;
+  status: PlannedNotificationStatus;
+  currentState: PlannedNotificationCurrentState | null;
+  currentStateHistory: PlannedNotificationRunRecord[];
+}): string | null {
+  const oldestCurrentStateEntry = input.currentStateHistory.at(-1);
+
+  if (oldestCurrentStateEntry?.runAt) {
+    return oldestCurrentStateEntry.runAt;
+  }
+
+  if (input.status.deduped && input.status.lastSentAt) {
+    return input.status.lastSentAt;
+  }
+
+  if (!input.currentState) {
+    return getFirstNonEmptyTimestamp(input.profile.parent.updatedAt);
+  }
+
+  if (input.currentState.family === "trial-ending-reminder") {
+    const trialEndsAt = Date.parse(input.currentState.trialEndsAt);
+
+    if (!Number.isNaN(trialEndsAt)) {
+      return new Date(
+        trialEndsAt - PLANNED_NOTIFICATION_SLA_BREACH_HOURS * 60 * 60 * 1000,
+      ).toISOString();
+    }
+  }
+
+  if (input.currentState.family === "billing-status-update") {
+    return getFirstNonEmptyTimestamp(
+      input.profile.parent.latestInvoicePaidAt,
+      input.profile.parent.latestInvoicePeriodStart,
+      input.profile.parent.latestInvoicePeriodEnd,
+      input.profile.parent.updatedAt,
+      input.profile.parent.createdAt,
+    );
+  }
+
+  const normalizedReason = input.currentState.reason.toLowerCase();
+
+  if (normalizedReason.includes("first brief has not been recorded as delivered")) {
+    return getFirstNonEmptyTimestamp(
+      input.profile.parent.firstDispatchableChannelAt,
+      input.profile.parent.subscriptionActivatedAt,
+      input.profile.parent.firstPaidAt,
+      input.profile.parent.trialStartedAt,
+      input.profile.parent.createdAt,
+    );
+  }
+
+  if (normalizedReason.includes("latest onboarding reminder failed")) {
+    return getFirstNonEmptyTimestamp(
+      input.profile.parent.onboardingReminderLastAttemptAt,
+      input.profile.parent.subscriptionActivatedAt,
+      input.profile.parent.firstPaidAt,
+      input.profile.parent.trialStartedAt,
+      input.profile.parent.createdAt,
+    );
+  }
+
+  return getFirstNonEmptyTimestamp(
+    input.profile.parent.subscriptionActivatedAt,
+    input.profile.parent.firstPaidAt,
+    input.profile.parent.trialStartedAt,
+    input.profile.parent.createdAt,
+  );
+}
+
+function getAgeHours(ageStartedAt: string | null, now: Date) {
+  if (!ageStartedAt) {
+    return 0;
+  }
+
+  const timestamp = Date.parse(ageStartedAt);
+
+  if (Number.isNaN(timestamp)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor((now.getTime() - timestamp) / (60 * 60 * 1000)));
+}
+
+function getAgingLabel(ageHours: number): PlannedNotificationOpsQueueItem["agingLabel"] {
+  if (ageHours >= PLANNED_NOTIFICATION_SLA_BREACH_HOURS) {
+    return "Older than 72h";
+  }
+
+  if (ageHours >= PLANNED_NOTIFICATION_SLA_WARNING_HOURS) {
+    return "24-72h";
+  }
+
+  return "Under 24h";
 }
 
 export function getPlannedNotificationRetryDecision(input: {
@@ -242,36 +385,41 @@ function createEmptySummary(): PlannedNotificationOpsQueueSummary {
     coolingDownCount: 0,
     escalatedCount: 0,
     dedupedCount: 0,
+    under24hCount: 0,
+    between24hAnd72hCount: 0,
+    over72hCount: 0,
   };
 }
 
 function pushSummaryCount(
   summary: PlannedNotificationOpsQueueSummary,
-  label: PlannedNotificationOpsQueueItem["queueLabel"],
+  item: PlannedNotificationOpsQueueItem,
 ) {
   summary.totalCount += 1;
 
-  if (label === "Pending") {
+  if (item.queueLabel === "Pending") {
     summary.pendingCount += 1;
-    return;
-  }
-
-  if (label === "Retry due") {
+  } else if (item.queueLabel === "Retry due") {
     summary.retryDueCount += 1;
-    return;
-  }
-
-  if (label === "Cooling down") {
+  } else if (item.queueLabel === "Cooling down") {
     summary.coolingDownCount += 1;
-    return;
-  }
-
-  if (label === "Manual intervention required") {
+  } else if (item.queueLabel === "Manual intervention required") {
     summary.escalatedCount += 1;
+  } else {
+    summary.dedupedCount += 1;
+  }
+
+  if (item.agingLabel === "Older than 72h") {
+    summary.over72hCount += 1;
     return;
   }
 
-  summary.dedupedCount += 1;
+  if (item.agingLabel === "24-72h") {
+    summary.between24hAnd72hCount += 1;
+    return;
+  }
+
+  summary.under24hCount += 1;
 }
 
 function buildQueueItem(input: {
@@ -279,8 +427,19 @@ function buildQueueItem(input: {
   notificationFamily: PlannedNotificationFamily;
   status: PlannedNotificationStatus;
   retryDecision: PlannedNotificationRetryDecision;
+  currentState: PlannedNotificationCurrentState | null;
+  currentStateHistory: PlannedNotificationRunRecord[];
+  now: Date;
 }): PlannedNotificationOpsQueueItem | null {
-  const { profile, notificationFamily, status, retryDecision } = input;
+  const {
+    profile,
+    notificationFamily,
+    status,
+    retryDecision,
+    currentState,
+    currentStateHistory,
+    now,
+  } = input;
 
   if (!status.actionable) {
     return null;
@@ -308,6 +467,15 @@ function buildQueueItem(input: {
       : `The current state has failed ${retryDecision.failureCount} times and now needs manual intervention.`;
   }
 
+  const ageStartedAt = inferAgeStartedAt({
+    profile,
+    status,
+    currentState,
+    currentStateHistory,
+  });
+  const ageHours = getAgeHours(ageStartedAt, now);
+  const agingLabel = getAgingLabel(ageHours);
+
   return {
     id: `${profile.parent.id}:${notificationFamily}`,
     parentId: profile.parent.id,
@@ -325,6 +493,9 @@ function buildQueueItem(input: {
     retryAvailableAt: retryDecision.retryAvailableAt,
     failureCount: retryDecision.failureCount,
     deduped: status.deduped,
+    ageStartedAt,
+    ageHours,
+    agingLabel,
   };
 }
 
@@ -341,8 +512,15 @@ export function buildPlannedNotificationOpsQueue(input: {
       "billing-status-update",
       "delivery-support-alert",
     ] as const)
-      .map((notificationFamily) =>
-        buildQueueItem({
+      .map((notificationFamily) => {
+        const { currentState, currentStateHistory } = getCurrentStateHistoryAndCurrentState(
+          profile,
+          notificationFamily,
+          input.history,
+          now,
+        );
+
+        return buildQueueItem({
           profile,
           notificationFamily,
           status: getNotificationStatus(profile, notificationFamily, now),
@@ -352,15 +530,18 @@ export function buildPlannedNotificationOpsQueue(input: {
             history: input.history,
             now,
           }),
-        }),
-      )
+          currentState,
+          currentStateHistory,
+          now,
+        });
+      })
       .filter((item): item is PlannedNotificationOpsQueueItem => item !== null);
 
     return queueItems;
   });
 
   for (const item of items) {
-    pushSummaryCount(summary, item.queueLabel);
+    pushSummaryCount(summary, item);
   }
 
   items.sort((left, right) => {
@@ -374,6 +555,7 @@ export function buildPlannedNotificationOpsQueue(input: {
 
     return (
       severityRank[left.queueLabel] - severityRank[right.queueLabel] ||
+      right.ageHours - left.ageHours ||
       left.parentEmail.localeCompare(right.parentEmail)
     );
   });

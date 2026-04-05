@@ -238,4 +238,50 @@ describe("planned notification ops queue", () => {
     expect(queue.summary.dedupedCount).toBe(1);
     expect(queue.items[0]?.queueLabel).toBe("Deduped unresolved");
   });
+
+  test("tracks aging buckets and sorts oldest unresolved work first within the same severity", () => {
+    const olderPendingProfile = buildProfile({
+      parent: {
+        id: "parent-4",
+        email: "older@example.com",
+        fullName: "Older Pending Parent",
+        subscriptionStatus: "active",
+        trialStartedAt: "2026-03-25T00:00:00.000Z",
+        subscriptionActivatedAt: "2026-03-31T00:00:00.000Z",
+      },
+      student: {
+        id: "student-4",
+        parentId: "parent-4",
+      },
+    });
+
+    const newerPendingProfile = buildProfile({
+      parent: {
+        id: "parent-5",
+        email: "newer@example.com",
+        fullName: "Newer Pending Parent",
+        subscriptionStatus: "active",
+        trialStartedAt: "2026-04-04T12:00:00.000Z",
+        subscriptionActivatedAt: "2026-04-05T14:00:00.000Z",
+      },
+      student: {
+        id: "student-5",
+        parentId: "parent-5",
+      },
+    });
+
+    const now = new Date("2026-04-06T00:00:00.000Z");
+    const queue = buildPlannedNotificationOpsQueue({
+      profiles: [newerPendingProfile, olderPendingProfile],
+      history: [],
+      now,
+    });
+
+    expect(queue.summary.under24hCount).toBe(1);
+    expect(queue.summary.over72hCount).toBe(1);
+    expect(queue.items[0]?.parentEmail).toBe("older@example.com");
+    expect(queue.items[0]?.agingLabel).toBe("Older than 72h");
+    expect(queue.items[1]?.parentEmail).toBe("newer@example.com");
+    expect(queue.items[1]?.agingLabel).toBe("Under 24h");
+  });
 });

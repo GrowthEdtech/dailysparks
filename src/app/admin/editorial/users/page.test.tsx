@@ -923,7 +923,10 @@ describe("UsersAdminPage", () => {
     );
 
     expect(markup).toContain("Notification ops queue");
+    expect(markup).toContain("Age / SLA");
+    expect(markup).toContain("Older than 72h");
     expect(markup).toContain("Retry due");
+    expect(markup).toContain("Oldest unresolved first");
     expect(markup).toContain("Send batch resend");
     expect(markup).toContain("Mark batch resolved");
     expect(markup).toContain("Queue Parent");

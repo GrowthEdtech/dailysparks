@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type {
   PlannedNotificationOpsQueueItem,
@@ -24,18 +24,100 @@ type BatchActionResponse = {
   message?: string;
 };
 
+type FamilyFilter = "all" | PlannedNotificationOpsQueueItem["notificationFamily"];
+type QueueFilter = "all" | PlannedNotificationOpsQueueItem["queueLabel"];
+type AgingFilter = "all" | PlannedNotificationOpsQueueItem["agingLabel"];
+type SortMode =
+  | "oldest-unresolved-first"
+  | "newest-first"
+  | "highest-severity"
+  | "parent-a-z";
+
+function formatAge(ageHours: number) {
+  if (ageHours >= 72) {
+    const days = Math.floor(ageHours / 24);
+    return `${days}d open`;
+  }
+
+  if (ageHours >= 24) {
+    return `${ageHours}h open`;
+  }
+
+  return `${Math.max(ageHours, 0)}h open`;
+}
+
 export default function PlannedNotificationOpsQueue({
   items,
   summary,
 }: PlannedNotificationOpsQueueProps) {
+  const [familyFilter, setFamilyFilter] = useState<FamilyFilter>("all");
+  const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
+  const [agingFilter, setAgingFilter] = useState<AgingFilter>("all");
+  const [sortMode, setSortMode] = useState<SortMode>("oldest-unresolved-first");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<BatchActionResponse | null>(null);
 
+  const filteredItems = useMemo(() => {
+    const severityRank = {
+      "Manual intervention required": 0,
+      "Retry due": 1,
+      "Cooling down": 2,
+      Pending: 3,
+      "Deduped unresolved": 4,
+    } satisfies Record<PlannedNotificationOpsQueueItem["queueLabel"], number>;
+
+    const nextItems = items
+      .filter((item) =>
+        familyFilter === "all" ? true : item.notificationFamily === familyFilter,
+      )
+      .filter((item) => (queueFilter === "all" ? true : item.queueLabel === queueFilter))
+      .filter((item) => (agingFilter === "all" ? true : item.agingLabel === agingFilter));
+
+    nextItems.sort((left, right) => {
+      if (sortMode === "newest-first") {
+        return (
+          left.ageHours - right.ageHours ||
+          severityRank[left.queueLabel] - severityRank[right.queueLabel] ||
+          left.parentEmail.localeCompare(right.parentEmail)
+        );
+      }
+
+      if (sortMode === "highest-severity") {
+        return (
+          severityRank[left.queueLabel] - severityRank[right.queueLabel] ||
+          right.ageHours - left.ageHours ||
+          left.parentEmail.localeCompare(right.parentEmail)
+        );
+      }
+
+      if (sortMode === "parent-a-z") {
+        return (
+          left.parentName.localeCompare(right.parentName) ||
+          severityRank[left.queueLabel] - severityRank[right.queueLabel]
+        );
+      }
+
+      return (
+        right.ageHours - left.ageHours ||
+        severityRank[left.queueLabel] - severityRank[right.queueLabel] ||
+        left.parentEmail.localeCompare(right.parentEmail)
+      );
+    });
+
+    return nextItems;
+  }, [agingFilter, familyFilter, items, queueFilter, sortMode]);
+
+  useEffect(() => {
+    setSelectedIds((current) =>
+      current.filter((id) => filteredItems.some((item) => item.id === id)),
+    );
+  }, [filteredItems]);
+
   const selectedItems = useMemo(
-    () => items.filter((item) => selectedIds.includes(item.id)),
-    [items, selectedIds],
+    () => filteredItems.filter((item) => selectedIds.includes(item.id)),
+    [filteredItems, selectedIds],
   );
 
   function toggleSelection(id: string) {
@@ -48,7 +130,9 @@ export default function PlannedNotificationOpsQueue({
 
   function toggleSelectAll() {
     setSelectedIds((current) =>
-      current.length === items.length ? [] : items.map((item) => item.id),
+      current.length === filteredItems.length
+        ? []
+        : filteredItems.map((item) => item.id),
     );
   }
 
@@ -128,6 +212,21 @@ export default function PlannedNotificationOpsQueue({
     },
   ];
 
+  const agingCards = [
+    {
+      label: "Under 24h",
+      count: summary.under24hCount,
+    },
+    {
+      label: "24-72h",
+      count: summary.between24hAnd72hCount,
+    },
+    {
+      label: "Older than 72h",
+      count: summary.over72hCount,
+    },
+  ];
+
   return (
     <section className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -163,6 +262,35 @@ export default function PlannedNotificationOpsQueue({
         ))}
       </div>
 
+      <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Age / SLA
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              Work older unresolved items first. Anything older than 72 hours
+              should be treated as a queue breach until ops clears it.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {agingCards.map((card) => (
+              <div
+                key={card.label}
+                className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  {card.label}
+                </p>
+                <p className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
+                  {card.count}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {items.length === 0 ? (
         <p className="mt-4 text-sm text-slate-500">
           No active notification queue items are waiting for ops right now.
@@ -170,14 +298,102 @@ export default function PlannedNotificationOpsQueue({
       ) : (
         <>
           <div className="mt-4 flex flex-col gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="grid flex-1 gap-3 lg:grid-cols-4">
+              <label className="text-sm text-slate-600">
+                <span className="mb-2 block font-semibold text-[#0f172a]">
+                  Notification type
+                </span>
+                <select
+                  value={familyFilter}
+                  onChange={(event) => setFamilyFilter(event.target.value as FamilyFilter)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
+                >
+                  <option value="all">All types</option>
+                  <option value="trial-ending-reminder">Trial ending</option>
+                  <option value="billing-status-update">Billing status</option>
+                  <option value="delivery-support-alert">Delivery support</option>
+                </select>
+              </label>
+
+              <label className="text-sm text-slate-600">
+                <span className="mb-2 block font-semibold text-[#0f172a]">
+                  Queue state
+                </span>
+                <select
+                  value={queueFilter}
+                  onChange={(event) => setQueueFilter(event.target.value as QueueFilter)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
+                >
+                  <option value="all">All states</option>
+                  <option value="Manual intervention required">
+                    Manual intervention required
+                  </option>
+                  <option value="Retry due">Retry due</option>
+                  <option value="Cooling down">Cooling down</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Deduped unresolved">Deduped unresolved</option>
+                </select>
+              </label>
+
+              <label className="text-sm text-slate-600">
+                <span className="mb-2 block font-semibold text-[#0f172a]">Age / SLA</span>
+                <select
+                  value={agingFilter}
+                  onChange={(event) => setAgingFilter(event.target.value as AgingFilter)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
+                >
+                  <option value="all">All ages</option>
+                  <option value="Older than 72h">Older than 72h</option>
+                  <option value="24-72h">24-72h</option>
+                  <option value="Under 24h">Under 24h</option>
+                </select>
+              </label>
+
+              <label className="text-sm text-slate-600">
+                <span className="mb-2 block font-semibold text-[#0f172a]">Sort by</span>
+                <select
+                  value={sortMode}
+                  onChange={(event) => setSortMode(event.target.value as SortMode)}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
+                >
+                  <option value="oldest-unresolved-first">Oldest unresolved first</option>
+                  <option value="highest-severity">Highest severity first</option>
+                  <option value="newest-first">Newest first</option>
+                  <option value="parent-a-z">Parent A-Z</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
             <label className="flex items-center gap-3 text-sm text-slate-600">
               <input
                 type="checkbox"
-                checked={selectedIds.length > 0 && selectedIds.length === items.length}
+                checked={
+                  selectedIds.length > 0 &&
+                  filteredItems.length > 0 &&
+                  selectedIds.length === filteredItems.length
+                }
                 onChange={toggleSelectAll}
               />
-              Select all queue items
+              Select all visible queue items
             </label>
+
+            <div className="flex flex-col gap-2 text-sm text-slate-500 lg:text-right">
+              <p>
+                Showing{" "}
+                <span className="font-semibold text-[#0f172a]">
+                  {filteredItems.length}
+                </span>{" "}
+                of {items.length}
+              </p>
+              <p>
+                Selected{" "}
+                <span className="font-semibold text-[#0f172a]">
+                  {selectedItems.length}
+                </span>
+              </p>
+            </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
@@ -217,7 +433,13 @@ export default function PlannedNotificationOpsQueue({
           ) : null}
 
           <div className="mt-4 space-y-3">
-            {items.map((item) => (
+            {filteredItems.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
+                No queue items match the current notification, state, and SLA filters.
+              </div>
+            ) : null}
+
+            {filteredItems.map((item) => (
               <div
                 key={item.id}
                 className="rounded-[24px] border border-slate-200 bg-white px-4 py-4"
@@ -238,6 +460,9 @@ export default function PlannedNotificationOpsQueue({
                         <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
                           {item.queueLabel}
                         </span>
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                          {item.agingLabel}
+                        </span>
                       </div>
                       <p className="mt-3 text-base font-semibold text-[#0f172a]">
                         {item.parentName} · {item.parentEmail}
@@ -249,7 +474,15 @@ export default function PlannedNotificationOpsQueue({
                     </div>
                   </div>
 
-                  <dl className="grid gap-2 text-right text-sm text-slate-500">
+                  <dl className="grid gap-2 text-right text-sm text-slate-500 sm:grid-cols-2">
+                    <div>
+                      <dt className="font-semibold text-[#0f172a]">Age open</dt>
+                      <dd>{formatAge(item.ageHours)}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-[#0f172a]">Open since</dt>
+                      <dd>{item.ageStartedAt ?? "Unknown"}</dd>
+                    </div>
                     <div>
                       <dt className="font-semibold text-[#0f172a]">Failures</dt>
                       <dd>{item.failureCount}</dd>
