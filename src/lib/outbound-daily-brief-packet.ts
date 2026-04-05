@@ -18,7 +18,7 @@ export type OutboundDailyBriefPacket = {
   footerSignature: string;
 };
 
-type OutboundDailyBriefPacketInput = {
+export type OutboundDailyBriefPacketInput = {
   headline: string;
   scheduledFor: string;
   programme: string;

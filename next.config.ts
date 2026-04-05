@@ -5,6 +5,7 @@ import { getFirebaseAuthProxyRewrites } from "./src/lib/firebase-web-config";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  serverExternalPackages: ["@napi-rs/canvas"],
   turbopack: {
     root: path.join(__dirname),
   },

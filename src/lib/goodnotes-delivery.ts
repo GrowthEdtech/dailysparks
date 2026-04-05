@@ -3,7 +3,10 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
 import type { ParentProfile } from "./mvp-types";
-import { buildOutboundDailyBriefPacket } from "./outbound-daily-brief-packet";
+import {
+  buildOutboundDailyBriefPacket,
+  type OutboundDailyBriefPacketInput,
+} from "./outbound-daily-brief-packet";
 import { getProgrammeStageSummary, getWeeklyPlan } from "./weekly-plan";
 
 type GoodnotesDeliveryConfig = {
@@ -466,16 +469,15 @@ export async function createGoodnotesTestBriefPdf(profile: ParentProfile) {
   return pdf.save();
 }
 
-export async function createGoodnotesBriefPdf(
-  profile: ParentProfile,
-  brief: GeneratedDailyBriefDraft,
+export async function createOutboundDailyBriefPdf(
+  brief: OutboundDailyBriefPacketInput,
 ) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   const titleFont = await pdf.embedFont(StandardFonts.TimesRomanBold);
   const labelFont = await pdf.embedFont(StandardFonts.HelveticaBold);
   const bodyFont = await pdf.embedFont(StandardFonts.Helvetica);
-  const packet = buildGoodnotesBriefPacket(profile, brief);
+  const packet = buildOutboundDailyBriefPacket(brief);
   const generatedAt = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -683,6 +685,13 @@ export async function createGoodnotesBriefPdf(
   });
 
   return pdf.save();
+}
+
+export async function createGoodnotesBriefPdf(
+  _profile: ParentProfile,
+  brief: GeneratedDailyBriefDraft,
+) {
+  return createOutboundDailyBriefPdf(brief);
 }
 
 export async function sendTestBriefToGoodnotes(

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -153,6 +154,16 @@ export default async function DailyBriefDetailPage({
                 </span>
               ))}
             </div>
+          </div>
+
+          <div className="mt-5 overflow-hidden rounded-[28px] border border-[#d9e4f2] bg-white shadow-sm">
+            <Image
+              src={`/api/admin/daily-brief-thumbnail/${entry.id}`}
+              alt={`First-page PDF preview for ${entry.headline}`}
+              width={595}
+              height={842}
+              className="block h-auto w-full"
+            />
           </div>
 
           <div className="mt-5 grid gap-4">

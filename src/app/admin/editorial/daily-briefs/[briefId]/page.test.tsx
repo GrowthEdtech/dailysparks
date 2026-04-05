@@ -156,6 +156,10 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("v1.0.0");
     expect(markup).toContain("Cities are testing new heat protections.");
     expect(markup).toContain("Editorial preview");
+    expect(markup).toContain(
+      "daily-brief-thumbnail%2Fbrief-1",
+    );
+    expect(markup).toContain("First-page PDF preview");
     expect(markup).toContain("Summary deck");
     expect(markup).toContain("Reading brief");
     expect(markup).toContain("Discussion prompts");
