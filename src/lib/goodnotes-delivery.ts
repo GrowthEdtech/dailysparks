@@ -167,6 +167,7 @@ function drawParagraph(
   font: Awaited<ReturnType<PDFDocument["embedFont"]>>,
   fontSize: number,
   color = rgb(0.2, 0.27, 0.38),
+  lineHeight = LINE_HEIGHT,
 ) {
   const lines = wrapText(text, width, font, fontSize);
   let currentY = y;
@@ -179,10 +180,20 @@ function drawParagraph(
       font,
       color,
     });
-    currentY -= LINE_HEIGHT;
+    currentY -= lineHeight;
   }
 
   return currentY;
+}
+
+function measureParagraphHeight(
+  text: string,
+  width: number,
+  font: Awaited<ReturnType<PDFDocument["embedFont"]>>,
+  fontSize: number,
+  lineHeight = LINE_HEIGHT,
+) {
+  return wrapText(text, width, font, fontSize).length * lineHeight;
 }
 
 function drawFilledPanel(
@@ -485,12 +496,16 @@ export async function createOutboundDailyBriefPdf(
   }).format(new Date());
 
   let cursorY = PAGE_HEIGHT - PAGE_MARGIN;
+  const heroWidth = PAGE_WIDTH - PAGE_MARGIN * 2;
+  const heroInnerWidth = heroWidth - 32;
+  const titleLines = wrapText(packet.title, heroInnerWidth, titleFont, 27);
+  const heroHeight = 86 + titleLines.length * 30;
 
   drawFilledPanel(page, 0, PAGE_HEIGHT, PAGE_WIDTH, PAGE_HEIGHT, {
     fillColor: OUTBOUND_PAPER,
   });
 
-  drawFilledPanel(page, PAGE_MARGIN, cursorY + 6, PAGE_WIDTH - PAGE_MARGIN * 2, 164, {
+  drawFilledPanel(page, PAGE_MARGIN, cursorY + 6, heroWidth, heroHeight, {
     fillColor: OUTBOUND_PALE_BLUE,
     borderColor: OUTBOUND_BLUE_BORDER,
     borderWidth: 1,
@@ -505,15 +520,18 @@ export async function createOutboundDailyBriefPdf(
   });
   cursorY -= 38;
 
-  page.drawText(packet.title, {
-    x: PAGE_MARGIN + 16,
-    y: cursorY,
-    size: 28,
-    font: titleFont,
-    color: OUTBOUND_INK,
-    maxWidth: PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
-  });
-  cursorY -= 52;
+  for (const line of titleLines) {
+    page.drawText(line, {
+      x: PAGE_MARGIN + 16,
+      y: cursorY,
+      size: 27,
+      font: titleFont,
+      color: OUTBOUND_INK,
+    });
+    cursorY -= 30;
+  }
+
+  cursorY -= 4;
 
   let metadataX = PAGE_MARGIN + 16;
   for (const item of packet.metadataItems) {
@@ -533,9 +551,19 @@ export async function createOutboundDailyBriefPdf(
     metadataX += itemWidth + 10;
   }
 
-  cursorY = PAGE_HEIGHT - PAGE_MARGIN - 198;
+  cursorY = PAGE_HEIGHT - PAGE_MARGIN - heroHeight - 28;
 
-  drawFilledPanel(page, PAGE_MARGIN, cursorY, PAGE_WIDTH - PAGE_MARGIN * 2, 114, {
+  const summaryHeight =
+    52 +
+    measureParagraphHeight(
+      packet.summaryBody,
+      PAGE_WIDTH - PAGE_MARGIN * 2 - 36,
+      bodyFont,
+      BODY_FONT_SIZE,
+    ) +
+    14;
+
+  drawFilledPanel(page, PAGE_MARGIN, cursorY, PAGE_WIDTH - PAGE_MARGIN * 2, summaryHeight, {
     fillColor: rgb(1, 1, 1),
     borderColor: OUTBOUND_SOFT_BORDER,
     borderWidth: 1,
@@ -556,12 +584,21 @@ export async function createOutboundDailyBriefPdf(
     PAGE_WIDTH - PAGE_MARGIN * 2 - 36,
     bodyFont,
     BODY_FONT_SIZE,
-    OUTBOUND_SECONDARY_TEXT,
-  );
+      OUTBOUND_SECONDARY_TEXT,
+    );
   cursorY -= 22;
 
   if (packet.themesTitle && packet.themesBody) {
-    drawFilledPanel(page, PAGE_MARGIN, cursorY + 8, PAGE_WIDTH - PAGE_MARGIN * 2, 58, {
+    const themeHeight =
+      40 +
+      measureParagraphHeight(
+        packet.themesBody,
+        PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
+        bodyFont,
+        BODY_FONT_SIZE,
+      ) +
+      10;
+    drawFilledPanel(page, PAGE_MARGIN, cursorY + 8, PAGE_WIDTH - PAGE_MARGIN * 2, themeHeight, {
       fillColor: OUTBOUND_GOLD_SOFT,
       borderColor: rgb(0.95, 0.84, 0.57),
       borderWidth: 1,
@@ -595,20 +632,134 @@ export async function createOutboundDailyBriefPdf(
   });
   cursorY -= 24;
 
-  for (const paragraph of packet.readingParagraphs) {
+  for (const section of packet.readingSections) {
+    if (section.title) {
+      page.drawText(section.title, {
+        x: PAGE_MARGIN,
+        y: cursorY,
+        size: 12,
+        font: labelFont,
+        color: OUTBOUND_INK,
+      });
+      cursorY -= 18;
+    }
+
     cursorY = drawParagraph(
       page,
-      paragraph,
+      section.body,
       PAGE_MARGIN,
       cursorY,
       PAGE_WIDTH - PAGE_MARGIN * 2,
       bodyFont,
       BODY_FONT_SIZE,
+      OUTBOUND_SECONDARY_TEXT,
     );
-    cursorY -= 8;
+    cursorY -= 10;
   }
 
-  drawFilledPanel(page, PAGE_MARGIN, cursorY + 8, PAGE_WIDTH - PAGE_MARGIN * 2, 92, {
+  if (packet.vocabularyTitle && packet.vocabularyItems.length > 0) {
+    const vocabularyHeight =
+      32 +
+      packet.vocabularyItems.reduce(
+        (total, item) =>
+          total +
+          14 +
+          measureParagraphHeight(
+            item.definition,
+            PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
+            bodyFont,
+            BODY_FONT_SIZE,
+          ) +
+          8,
+        0,
+      );
+    drawFilledPanel(page, PAGE_MARGIN, cursorY + 8, PAGE_WIDTH - PAGE_MARGIN * 2, vocabularyHeight, {
+      fillColor: OUTBOUND_GOLD_SOFT,
+      borderColor: rgb(0.95, 0.84, 0.57),
+      borderWidth: 1,
+    });
+    page.drawText(packet.vocabularyTitle, {
+      x: PAGE_MARGIN + 16,
+      y: cursorY - 12,
+      size: 14,
+      font: titleFont,
+      color: OUTBOUND_INK,
+    });
+    let vocabularyY = cursorY - 34;
+    for (const item of packet.vocabularyItems) {
+      page.drawText(item.term, {
+        x: PAGE_MARGIN + 16,
+        y: vocabularyY,
+        size: 11,
+        font: labelFont,
+        color: OUTBOUND_INK,
+      });
+      vocabularyY = drawParagraph(
+        page,
+        item.definition,
+        PAGE_MARGIN + 16,
+        vocabularyY - 16,
+        PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
+        bodyFont,
+        BODY_FONT_SIZE,
+        OUTBOUND_SECONDARY_TEXT,
+      );
+      vocabularyY -= 8;
+    }
+    cursorY = vocabularyY - 10;
+  }
+
+  if (packet.bigIdeaTitle && packet.bigIdeaBody) {
+    const bigIdeaHeight =
+      40 +
+      measureParagraphHeight(
+        packet.bigIdeaBody,
+        PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
+        bodyFont,
+        BODY_FONT_SIZE,
+      ) +
+      10;
+    drawFilledPanel(page, PAGE_MARGIN, cursorY + 8, PAGE_WIDTH - PAGE_MARGIN * 2, bigIdeaHeight, {
+      fillColor: rgb(1, 1, 1),
+      borderColor: OUTBOUND_SOFT_BORDER,
+      borderWidth: 1,
+    });
+    page.drawText(packet.bigIdeaTitle, {
+      x: PAGE_MARGIN + 16,
+      y: cursorY - 14,
+      size: 15,
+      font: titleFont,
+      color: OUTBOUND_INK,
+    });
+    cursorY = drawParagraph(
+      page,
+      packet.bigIdeaBody,
+      PAGE_MARGIN + 16,
+      cursorY - 38,
+      PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
+      bodyFont,
+      BODY_FONT_SIZE,
+      OUTBOUND_SECONDARY_TEXT,
+    );
+    cursorY -= 18;
+  }
+
+  const discussionHeight =
+    32 +
+    packet.discussionPrompts.reduce(
+      (total, prompt) =>
+        total +
+        measureParagraphHeight(
+          `- ${prompt}`,
+          PAGE_WIDTH - PAGE_MARGIN * 2 - 32,
+          bodyFont,
+          BODY_FONT_SIZE,
+        ) +
+        4,
+      0,
+    ) +
+    8;
+  drawFilledPanel(page, PAGE_MARGIN, cursorY + 8, PAGE_WIDTH - PAGE_MARGIN * 2, discussionHeight, {
     fillColor: OUTBOUND_PALE_BLUE,
     borderColor: OUTBOUND_BLUE_BORDER,
     borderWidth: 1,

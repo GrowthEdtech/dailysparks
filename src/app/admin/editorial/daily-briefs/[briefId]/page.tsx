@@ -192,11 +192,36 @@ export default async function DailyBriefDetailPage({
                 {preview.readingTitle}
               </p>
               <div className="mt-3 space-y-4 text-sm leading-7 text-slate-700">
-                {preview.readingParagraphs.map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
+                {preview.readingSections.map((section) => (
+                  <div key={`${section.title ?? "reading"}-${section.body}`}>
+                    {section.title ? (
+                      <p className="text-sm font-semibold text-[#0f172a]">
+                        {section.title}
+                      </p>
+                    ) : null}
+                    <p className={section.title ? "mt-1" : undefined}>
+                      {section.body}
+                    </p>
+                  </div>
                 ))}
               </div>
             </section>
+
+            {preview.vocabularyTitle && preview.vocabularyItems.length > 0 ? (
+              <section className="rounded-[24px] border border-[#f1dfb9] bg-[#fdf7ea] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b45309]">
+                  {preview.vocabularyTitle}
+                </p>
+                <div className="mt-3 space-y-3 text-sm leading-7 text-slate-700">
+                  {preview.vocabularyItems.map((item) => (
+                    <div key={`${item.term}-${item.definition}`}>
+                      <p className="font-semibold text-[#0f172a]">{item.term}</p>
+                      <p className="mt-1">{item.definition}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             <section className="rounded-[24px] border border-[#d4e3f5] bg-[#eef6ff] p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
@@ -213,6 +238,17 @@ export default async function DailyBriefDetailPage({
                 ))}
               </div>
             </section>
+
+            {preview.bigIdeaTitle && preview.bigIdeaBody ? (
+              <section className="rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                  {preview.bigIdeaTitle}
+                </p>
+                <p className="mt-3 text-sm leading-7 text-slate-700">
+                  {preview.bigIdeaBody}
+                </p>
+              </section>
+            ) : null}
 
             <section className="rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">

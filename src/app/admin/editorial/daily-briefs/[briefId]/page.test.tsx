@@ -70,7 +70,14 @@ describe("DailyBriefDetailPage", () => {
       repetitionRisk: "low",
       repetitionNotes: "No similar brief.",
       adminNotes: "Shareable with families.",
-      briefMarkdown: "## Today\nCities are testing new heat protections.",
+      briefMarkdown: [
+        "What’s happening? Cities are testing new heat protections.",
+        "Why does this matter? Hotter weather can make school and travel harder for families.",
+        "Picture it Imagine bus stops, classrooms, and sports fields staying cooler during a heatwave.",
+        "Words to know - Heatwave: A period of unusually hot weather - Cooling centre: A safe indoor place where people can escape extreme heat",
+        "Talk about it at home - What places in your community need extra cooling? - How can families stay safe when the weather becomes dangerous?",
+        "Big idea Communities can protect people by planning ahead for extreme heat.",
+      ].join("\n"),
       pipelineStage: "failed",
       candidateSnapshotAt: "2026-04-02T05:00:00.000Z",
       generationCompletedAt: "2026-04-02T06:00:00.000Z",
@@ -162,7 +169,11 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("First-page PDF preview");
     expect(markup).toContain("Summary deck");
     expect(markup).toContain("Reading brief");
-    expect(markup).toContain("Discussion prompts");
+    expect(markup).toContain("What&#x27;s happening?");
+    expect(markup).toContain("Words to know");
+    expect(markup).toContain("Cooling centre");
+    expect(markup).toContain("Talk about it at home");
+    expect(markup).toContain("Big idea");
     expect(markup).toContain("Theme focus");
     expect(markup).toContain("Pipeline timeline");
     expect(markup).toContain("Dispatch review");

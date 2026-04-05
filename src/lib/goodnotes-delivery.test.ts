@@ -221,14 +221,38 @@ describe("goodnotes delivery", () => {
   });
 
   test("builds a branded daily brief packet model for the editorial PDF layout", () => {
-    const packet = buildGoodnotesBriefPacket(createProfile(), createGeneratedBrief());
+    const packet = buildGoodnotesBriefPacket(
+      createProfile(),
+      createGeneratedBrief({
+        headline:
+          "UN watchdog voices 'deep concern' as Iran reports new attacks on nuclear plant",
+        summary:
+          "The UN nuclear watchdog says it is very worried after Iran reported new attacks near its Bushehr nuclear power plant.",
+        topicTags: [
+          "United Nations",
+          "Iran",
+          "Nuclear Safety",
+          "Conflict",
+          "International Cooperation",
+        ],
+        briefMarkdown: [
+          "What’s happening? The **International Atomic Energy Agency (IAEA)** says it is deeply concerned after Iran reported new attacks near the **Bushehr nuclear power plant**.",
+          "Why does this matter? If a nuclear plant is damaged during conflict, people and the environment could be put at risk.",
+          "Picture it Imagine a place that helps power homes and hospitals. Even in conflict, it needs extra protection.",
+          "Words to know - **IAEA**: The UN agency that checks nuclear safety - **Restraint**: Choosing not to make a dangerous situation worse",
+          "Talk about it at home - Why do some places need extra protection during conflict? - How can countries work together to keep people safe?",
+          "Big idea When danger could spread beyond one place, international organisations often call for caution and protection.",
+        ].join("\n"),
+      }),
+    );
 
     expect(packet).toMatchObject({
       eyebrow: "Daily Sparks",
-      title: "PYP ocean mapping brief",
+      title:
+        "UN watchdog voices 'deep concern' as Iran reports new attacks on nuclear plant",
       summaryTitle: "Summary deck",
       readingTitle: "Reading brief",
-      discussionTitle: "Discussion prompts",
+      discussionTitle: "Talk about it at home",
       sourcesTitle: "Source references",
       footerSignature: "Growth Education Limited",
     });
@@ -237,11 +261,37 @@ describe("goodnotes delivery", () => {
       "PYP edition",
       "APAC edition",
     ]);
-    expect(packet.discussionPrompts).toEqual([
-      "What feels most important in today's story?",
-      "Which detail would you like to understand more clearly?",
-      "How does this connect to your own world or experience?",
+    expect(packet.readingSections).toEqual([
+      {
+        title: "What's happening?",
+        body: "The International Atomic Energy Agency (IAEA) says it is deeply concerned after Iran reported new attacks near the Bushehr nuclear power plant.",
+      },
+      {
+        title: "Why does this matter?",
+        body: "If a nuclear plant is damaged during conflict, people and the environment could be put at risk.",
+      },
+      {
+        title: "Picture it",
+        body: "Imagine a place that helps power homes and hospitals. Even in conflict, it needs extra protection.",
+      },
     ]);
+    expect(packet.vocabularyItems).toEqual([
+      {
+        term: "IAEA",
+        definition: "The UN agency that checks nuclear safety",
+      },
+      {
+        term: "Restraint",
+        definition: "Choosing not to make a dangerous situation worse",
+      },
+    ]);
+    expect(packet.discussionPrompts).toEqual([
+      "Why do some places need extra protection during conflict?",
+      "How can countries work together to keep people safe?",
+    ]);
+    expect(packet.bigIdeaBody).toBe(
+      "When danger could spread beyond one place, international organisations often call for caution and protection.",
+    );
     expect(packet.sourceLines).toEqual(["BBC - Students map sea turtles"]);
   });
 
