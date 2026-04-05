@@ -21,9 +21,9 @@ import { listPendingDeliveryTargets } from "../../../../../lib/daily-brief-deliv
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
 import { hasAutomatedDeliverySubscription } from "../../../../../lib/delivery-eligibility";
 import {
-  DAILY_BRIEF_PDF_RENDERERS,
-  type DailyBriefPdfRenderer,
-} from "../../../../../lib/goodnotes-delivery";
+  normalizeDailyBriefRendererMode,
+  resolveDailyBriefRendererPolicy,
+} from "../../../../../lib/daily-brief-renderer-policy";
 import {
   buildProfileLocalDeliveryWindowLabel,
   splitProfilesByDeliveryWindow,
@@ -109,13 +109,6 @@ function normalizeDispatchTimestamp(value: unknown) {
   return Number.isNaN(Date.parse(value)) ? undefined : new Date(value).toISOString();
 }
 
-function normalizeRenderer(value: unknown): DailyBriefPdfRenderer | undefined {
-  return typeof value === "string" &&
-      (DAILY_BRIEF_PDF_RENDERERS as readonly string[]).includes(value)
-    ? (value as DailyBriefPdfRenderer)
-    : undefined;
-}
-
 function isDeliverableBrief(entry: DailyBriefHistoryRecord) {
   return (
     entry.status === "approved" &&
@@ -192,9 +185,9 @@ async function parseRequestBody(
 
     if (
       payload.renderer !== undefined &&
-      normalizeRenderer(payload.renderer) === undefined
+      normalizeDailyBriefRendererMode(payload.renderer) === null
     ) {
-      return badRequest("renderer must be pdf-lib or typst when provided.");
+      return badRequest("renderer must be auto, pdf-lib, or typst when provided.");
     }
 
     return payload;
@@ -225,7 +218,8 @@ export async function POST(request: Request) {
   const dispatchTimestamp =
     normalizeDispatchTimestamp(parsedBody.dispatchTimestamp) ??
     new Date().toISOString();
-  const renderer = normalizeRenderer(parsedBody.renderer) ?? "pdf-lib";
+  const rendererMode = normalizeDailyBriefRendererMode(parsedBody.renderer) ??
+    "auto";
   const resolvedDispatchDate = new Date(dispatchTimestamp);
   const runDatesProcessed = parsedBody.runDate
     ? [parsedBody.runDate]
@@ -325,6 +319,14 @@ export async function POST(request: Request) {
       dispatchPlan.mode === "canary"
         ? `Dispatch mode: canary. Targeted ${programmeProfiles.length} of ${eligibleProgrammeProfiles.length} eligible profile(s) in this local-time wave.`
         : `Dispatch mode: all. Targeted ${programmeProfiles.length} eligible profile(s) in this local-time wave.`;
+    const attachmentMode = dispatchPlan.mode === "canary"
+      ? "canary"
+      : "production";
+    const renderer = resolveDailyBriefRendererPolicy({
+      selectedMode: rendererMode,
+      programme: brief.programme,
+      attachmentMode,
+    }).renderer;
 
     targetedProfileCount += programmeProfiles.length;
     skippedProfileCount += dispatchPlan.skippedProfiles.length;
@@ -431,7 +433,7 @@ export async function POST(request: Request) {
       {
         successfulReceipts: brief.deliveryReceipts,
         blockedTargets: brief.failedDeliveryTargets,
-        attachmentMode: dispatchPlan.mode === "canary" ? "canary" : "production",
+        attachmentMode,
         renderer,
       },
     );

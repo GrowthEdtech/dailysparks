@@ -71,13 +71,29 @@ export default async function DailyBriefDetailPage({
   }
 
   const preview = buildOutboundDailyBriefPacket(entry);
-  const rendererRolloutPolicy = resolveDailyBriefRendererPolicy({
+  const pypCanaryRendererPolicy = resolveDailyBriefRendererPolicy({
     selectedMode: "auto",
-    programme: entry.programme,
-    attachmentMode: entry.recordKind === "test" ? "canary" : "production",
+    programme: "PYP",
+    attachmentMode: "canary",
   });
-  const rendererRolloutLabel = getDailyBriefRendererPolicyLabel(
-    rendererRolloutPolicy,
+  const pypProductionRendererPolicy = resolveDailyBriefRendererPolicy({
+    selectedMode: "auto",
+    programme: "PYP",
+    attachmentMode: "production",
+  });
+  const nonPypProductionRendererPolicy = resolveDailyBriefRendererPolicy({
+    selectedMode: "auto",
+    programme: "MYP",
+    attachmentMode: "production",
+  });
+  const pypCanaryRendererLabel = getDailyBriefRendererPolicyLabel(
+    pypCanaryRendererPolicy,
+  );
+  const pypProductionRendererLabel = getDailyBriefRendererPolicyLabel(
+    pypProductionRendererPolicy,
+  );
+  const nonPypProductionRendererLabel = getDailyBriefRendererPolicyLabel(
+    nonPypProductionRendererPolicy,
   );
 
   return (
@@ -360,24 +376,32 @@ export default async function DailyBriefDetailPage({
                   PYP canary default
                 </p>
                 <p className="mt-2 text-sm font-semibold text-[#0f172a]">
-                  {rendererRolloutPolicy.programme === "PYP" &&
-                  rendererRolloutPolicy.attachmentMode === "canary"
-                    ? formatDailyBriefRendererLabel(rendererRolloutPolicy.renderer)
-                    : "pdf-lib live"}
+                  {formatDailyBriefRendererLabel(pypCanaryRendererPolicy.renderer)}
                 </p>
                 <p className="mt-2 text-sm text-slate-600">
-                  {rendererRolloutLabel}
+                  {pypCanaryRendererLabel}
                 </p>
               </div>
               <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  Production fallback
+                  PYP production default
                 </p>
                 <p className="mt-2 text-sm font-semibold text-[#0f172a]">
-                  pdf-lib live
+                  {formatDailyBriefRendererLabel(pypProductionRendererPolicy.renderer)}
                 </p>
                 <p className="mt-2 text-sm text-slate-600">
-                  Production delivery stays on pdf-lib until the Typst rollout exits canary.
+                  {pypProductionRendererLabel}
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  MYP / DP production fallback
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                  {formatDailyBriefRendererLabel(nonPypProductionRendererPolicy.renderer)}
+                </p>
+                <p className="mt-2 text-sm text-slate-600">
+                  {nonPypProductionRendererLabel}
                 </p>
               </div>
             </div>

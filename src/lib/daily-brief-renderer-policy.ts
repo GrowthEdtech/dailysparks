@@ -29,10 +29,13 @@ export type DailyBriefRendererPolicy = {
 };
 
 const DEFAULT_PYP_CANARY_RENDERER: DailyBriefPdfRenderer = "typst";
+const DEFAULT_PYP_PRODUCTION_RENDERER: DailyBriefPdfRenderer = "typst";
 const DEFAULT_NON_PYP_CANARY_RENDERER: DailyBriefPdfRenderer = "pdf-lib";
 const DEFAULT_PRODUCTION_RENDERER: DailyBriefPdfRenderer = "pdf-lib";
 const PYP_CANARY_RENDERER_DEFAULT_ENV =
   "DAILY_BRIEF_PYP_CANARY_RENDERER_DEFAULT";
+const PYP_PRODUCTION_RENDERER_DEFAULT_ENV =
+  "DAILY_BRIEF_PYP_PRODUCTION_RENDERER_DEFAULT";
 
 function normalizeRenderer(
   value: string | undefined,
@@ -52,6 +55,14 @@ function getPypCanaryDefaultRenderer() {
   return envValue ?? DEFAULT_PYP_CANARY_RENDERER;
 }
 
+function getPypProductionDefaultRenderer() {
+  const envValue = normalizeRenderer(
+    process.env[PYP_PRODUCTION_RENDERER_DEFAULT_ENV]?.trim(),
+  );
+
+  return envValue ?? DEFAULT_PYP_PRODUCTION_RENDERER;
+}
+
 function isPypCanaryPolicy(
   programme: Programme,
   attachmentMode: GoodnotesAttachmentMode,
@@ -60,12 +71,23 @@ function isPypCanaryPolicy(
     (attachmentMode === "canary" || attachmentMode === "test");
 }
 
+function isPypProductionPolicy(
+  programme: Programme,
+  attachmentMode: GoodnotesAttachmentMode,
+) {
+  return programme === "PYP" && attachmentMode === "production";
+}
+
 function getAutoDefaultRenderer(
   programme: Programme,
   attachmentMode: GoodnotesAttachmentMode,
 ) {
   if (isPypCanaryPolicy(programme, attachmentMode)) {
     return getPypCanaryDefaultRenderer();
+  }
+
+  if (isPypProductionPolicy(programme, attachmentMode)) {
+    return getPypProductionDefaultRenderer();
   }
 
   if (attachmentMode === "production") {
@@ -93,8 +115,10 @@ export function resolveDailyBriefRendererPolicy({
   const renderer =
     selectedMode === "auto" ? defaultRenderer : selectedMode;
   const isRollbackActive =
-    isPypCanaryPolicy(programme, attachmentMode) &&
-    getPypCanaryDefaultRenderer() !== DEFAULT_PYP_CANARY_RENDERER;
+    (isPypCanaryPolicy(programme, attachmentMode) &&
+      getPypCanaryDefaultRenderer() !== DEFAULT_PYP_CANARY_RENDERER) ||
+    (isPypProductionPolicy(programme, attachmentMode) &&
+      getPypProductionDefaultRenderer() !== DEFAULT_PYP_PRODUCTION_RENDERER);
 
   return {
     selectedMode,
@@ -119,6 +143,14 @@ export function getDailyBriefRendererPolicyLabel(
     }
 
     return "Auto default: Typst prototype for PYP canary briefs.";
+  }
+
+  if (isPypProductionPolicy(policy.programme, policy.attachmentMode)) {
+    if (policy.isRollbackActive && policy.renderer === "pdf-lib") {
+      return "Auto default: pdf-lib live for PYP production briefs (rollback active).";
+    }
+
+    return "Auto default: Typst prototype for PYP production briefs.";
   }
 
   if (policy.attachmentMode === "production") {

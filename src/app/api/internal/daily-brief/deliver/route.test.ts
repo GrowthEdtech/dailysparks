@@ -239,6 +239,53 @@ describe("daily brief deliver route", () => {
     expect(untouchedEntry?.status).toBe("draft");
   });
 
+  test("defaults PYP production delivery to typst while leaving non-PYP on pdf-lib", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createEligibleProgrammeProfile(
+      "myp-family@example.com",
+      "MYP",
+      ["goodnotes"],
+    );
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+    await createDailyBriefHistoryEntry(
+      buildHistoryInput({
+        programme: "MYP",
+        headline: "MYP civic design brief",
+        summary: "Older learners evaluate public-space design.",
+      }),
+    );
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
+      }),
+    );
+    const body = await response.json();
+    const pypCall = sendBriefToGoodnotesMock.mock.calls.find(
+      (call) => call[0]?.parent?.email === "pyp-family@example.com",
+    );
+    const mypCall = sendBriefToGoodnotesMock.mock.calls.find(
+      (call) => call[0]?.parent?.email === "myp-family@example.com",
+    );
+
+    expect(response.status).toBe(200);
+    expect(body.summary.deliveredCount).toBe(2);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(2);
+    expect(pypCall?.[2]).toEqual({
+      attachmentMode: "production",
+      renderer: "typst",
+    });
+    expect(mypCall?.[2]).toEqual({
+      attachmentMode: "production",
+      renderer: "pdf-lib",
+    });
+  });
+
   test("records partial delivery failures without losing successful sends", async () => {
     await createEligibleProgrammeProfile(
       "pyp-family@example.com",
@@ -315,7 +362,7 @@ describe("daily brief deliver route", () => {
     });
     expect(sendBriefToGoodnotesMock.mock.calls[0]?.[2]).toEqual({
       attachmentMode: "canary",
-      renderer: "pdf-lib",
+      renderer: "typst",
     });
     expect(history[0]?.status).toBe("published");
     expect(history[0]?.dispatchMode).toBe("canary");
@@ -368,7 +415,7 @@ describe("daily brief deliver route", () => {
     });
     expect(sendBriefToGoodnotesMock.mock.calls[0]?.[2]).toEqual({
       attachmentMode: "canary",
-      renderer: "pdf-lib",
+      renderer: "typst",
     });
   });
 

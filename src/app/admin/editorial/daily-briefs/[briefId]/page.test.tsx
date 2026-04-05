@@ -292,6 +292,8 @@ describe("DailyBriefDetailPage", () => {
 
     expect(markup).toContain("Renderer rollout");
     expect(markup).toContain("PYP canary default");
+    expect(markup).toContain("PYP production default");
+    expect(markup).toContain("MYP / DP production fallback");
     expect(markup).toContain("Typst prototype");
   });
 });

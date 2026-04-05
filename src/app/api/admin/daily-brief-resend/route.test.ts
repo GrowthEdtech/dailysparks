@@ -346,4 +346,52 @@ describe("admin daily brief resend route", () => {
     expect(body.renderer).toBe("typst");
     expect(body.rendererPolicyLabel).toMatch(/PYP canary/i);
   });
+
+  test("uses the auto renderer policy for PYP production resend and resolves to typst", async () => {
+    const cookie = await signIn();
+    await createProfile("family@example.com");
+    const brief = await createDailyBriefHistoryEntry(
+      buildHistoryInput({
+        recordKind: "production",
+        status: "published",
+      }),
+    );
+
+    deliverBriefToSingleProfileMock.mockResolvedValue({
+      deliverySummary: {
+        deliveryAttemptCount: 1,
+        deliverySuccessCount: 1,
+        deliveryFailureCount: 0,
+        deliveryReceipts: [],
+        failedDeliveryTargets: [],
+      },
+      updatedBrief: await getDailyBriefHistoryEntry(brief.id),
+    });
+
+    const response = await dailyBriefResendRoute(
+      new Request("http://localhost:3000/api/admin/daily-brief-resend", {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          briefId: brief.id,
+          parentEmail: "family@example.com",
+          renderer: "auto",
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(deliverBriefToSingleProfileMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        renderer: "typst",
+      }),
+    );
+    expect(body.rendererMode).toBe("auto");
+    expect(body.renderer).toBe("typst");
+    expect(body.rendererPolicyLabel).toMatch(/PYP production/i);
+  });
 });
