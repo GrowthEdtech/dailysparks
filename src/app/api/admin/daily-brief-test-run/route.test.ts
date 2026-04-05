@@ -728,4 +728,141 @@ describe("daily brief test run admin route", () => {
     expect(response.status).toBe(200);
     expect(deliverBriefToSingleProfileMock).toHaveBeenCalledOnce();
   });
+
+  test("does not fallback-send a same-day brief that never passed preflight", async () => {
+    const cookie = await signIn();
+    const targetProfile = createProfile({
+      parent: {
+        id: "parent-ckx",
+        email: "ckx.leung@gmail.com",
+        countryCode: "HK",
+        deliveryTimeZone: "Asia/Hong_Kong",
+        preferredDeliveryLocalTime: "09:00",
+      },
+      student: {
+        parentId: "parent-ckx",
+        studentName: "Charles",
+        programme: "PYP",
+      },
+    });
+
+    getProfileByEmailMock.mockResolvedValue(targetProfile);
+    listDailyBriefHistoryMock.mockResolvedValue([
+      {
+        id: "brief-pyp-draft-only",
+        scheduledFor: "2026-04-05",
+        recordKind: "test",
+        headline: "Draft PYP test brief",
+        normalizedHeadline: "draft pyp test brief",
+        summary: "A draft record exists but never passed preflight.",
+        programme: "PYP",
+        editorialCohort: "APAC",
+        status: "draft",
+        topicClusterKey: "draft pyp test brief",
+        topicLatestPublishedAt: null,
+        selectionDecision: "new",
+        selectionOverrideNote: "",
+        blockedTopics: [],
+        topicTags: ["science"],
+        sourceReferences: [
+          {
+            sourceId: "bbc",
+            sourceName: "BBC",
+            sourceDomain: "bbc.com",
+            articleTitle: "Draft PYP test brief",
+            articleUrl: "https://www.bbc.com/news/articles/test",
+          },
+        ],
+        aiConnectionId: "nf-relay",
+        aiConnectionName: "NF Relay",
+        aiModel: "gpt-5.4",
+        promptPolicyId: "policy-1",
+        promptVersionLabel: "v1.1.1",
+        promptVersion: "v1.1.1",
+        repetitionRisk: "low",
+        repetitionNotes: "No recent overlap.",
+        adminNotes: "",
+        briefMarkdown: "## Draft\nNot approved yet.",
+        pipelineStage: "generated",
+        candidateSnapshotAt: "2026-04-05T00:30:00.000Z",
+        generationCompletedAt: "2026-04-05T00:35:00.000Z",
+        pdfBuiltAt: null,
+        deliveryWindowAt: "2026-04-05T01:00:00.000Z",
+        lastDeliveryAttemptAt: null,
+        deliveryAttemptCount: 0,
+        deliverySuccessCount: 0,
+        deliveryFailureCount: 0,
+        dispatchMode: null,
+        dispatchCanaryParentEmails: [],
+        targetedProfiles: [],
+        skippedProfiles: [],
+        pendingFutureProfiles: [],
+        heldProfiles: [],
+        deliveryReceipts: [],
+        failedDeliveryTargets: [],
+        failureReason: "",
+        retryEligibleUntil: null,
+        createdAt: "2026-04-05T00:35:00.000Z",
+        updatedAt: "2026-04-05T00:35:00.000Z",
+      },
+    ]);
+    ingestRouteMock.mockResolvedValue(
+      Response.json({
+        mode: "ingest",
+        summary: { candidateCount: 3 },
+      }),
+    );
+    generateRouteMock.mockResolvedValue(
+      Response.json({
+        mode: "generate",
+        summary: {
+          generatedCount: 2,
+          skippedProgrammes: ["PYP"],
+        },
+      }),
+    );
+    preflightRouteMock.mockResolvedValue(
+      Response.json({
+        mode: "preflight",
+        ready: true,
+        summary: { approvedCount: 2 },
+      }),
+    );
+    deliverRouteMock.mockResolvedValue(
+      Response.json({
+        mode: "deliver",
+        summary: {
+          dispatchMode: "canary",
+          targetedProfileCount: 0,
+          deliverableCount: 2,
+          deliveredCount: 0,
+          failedCount: 2,
+        },
+      }),
+    );
+
+    const response = await dailyBriefTestRunRoute(
+      new Request("http://localhost:3000/api/admin/daily-brief-test-run", {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          runDate: "2026-04-05",
+          parentEmail: "ckx.leung@gmail.com",
+          renderer: "pdf-lib",
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(deliverBriefToSingleProfileMock).not.toHaveBeenCalled();
+    expect(body.stages.deliver.body.manualBackfill).toMatchObject({
+      parentEmail: "ckx.leung@gmail.com",
+      skippedReason:
+        "No approved or published same-day test brief was available for fallback delivery.",
+    });
+  });
 });

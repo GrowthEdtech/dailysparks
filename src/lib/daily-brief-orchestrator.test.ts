@@ -537,6 +537,98 @@ describe("daily brief orchestrator", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  test("does not let same-day test history block production generation for the same programme", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+
+    const connection = await createAiConnection({
+      name: "NF Relay",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: TEST_AI_CONNECTION_TOKEN,
+      active: true,
+      isDefault: true,
+      notes: "Primary runtime connection.",
+    });
+
+    const promptPolicy = await createPromptPolicy({
+      name: "Family Daily Sparks Core",
+      versionLabel: "v1.0.0",
+      sharedInstructions: "Use clear, family-facing language.",
+      antiRepetitionInstructions: "Avoid repeating recent editorial angles.",
+      outputContractInstructions:
+        "Return JSON with headline, summary, briefMarkdown, and topicTags.",
+      pypInstructions: "Use short sentences and concrete examples.",
+      mypInstructions: "Add comparisons and causes.",
+      dpInstructions: "Add evidence limits and nuance.",
+      notes: "Primary policy",
+    });
+
+    await createDailyBriefHistoryEntry({
+      scheduledFor: "2026-04-03",
+      recordKind: "test",
+      headline: "Existing PYP test brief",
+      summary: "Already generated for the test pipeline.",
+      programme: "PYP",
+      status: "published",
+      topicTags: ["oceans"],
+      sourceReferences: [
+        {
+          sourceId: "bbc",
+          sourceName: "BBC",
+          sourceDomain: "bbc.com",
+          articleTitle: "Students map sea turtles",
+          articleUrl: "https://www.bbc.com/news/world-123",
+        },
+      ],
+      aiConnectionId: connection.id,
+      aiConnectionName: connection.name,
+      aiModel: connection.defaultModel,
+      promptPolicyId: promptPolicy.id,
+      promptVersionLabel: promptPolicy.versionLabel,
+      promptVersion: promptPolicy.versionLabel,
+      repetitionRisk: "low",
+      repetitionNotes: "Already generated as a test record.",
+      adminNotes: "",
+      briefMarkdown: "## PYP\nExisting test brief",
+    });
+
+    fetchMock.mockImplementation(async (_input, init) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const programmeLine =
+        payload.messages
+          .find((message) => message.role === "user")
+          ?.content.split("\n")
+          .find((line) => line.startsWith("Programme: ")) ?? "Programme: PYP";
+      const programme = programmeLine.replace("Programme: ", "").trim();
+
+      return createChatCompletionResponse({
+        headline: `${programme} ocean mapping brief`,
+        summary: `${programme} learner summary.`,
+        briefMarkdown: `## ${programme}\nStudents are helping map turtle routes.`,
+        topicTags: ["oceans", "science"],
+      });
+    });
+
+    const result = await generateDailyBriefDrafts({
+      scheduledFor: "2026-04-03",
+      recordKind: "production",
+      candidates: [buildCandidate()],
+      fetchImpl: fetchMock,
+      now: new Date("2026-04-03T08:00:00.000Z"),
+    });
+
+    expect(result.generatedBriefs.map((brief) => brief.programme)).toContain("PYP");
+    expect(result.skippedProgrammes).not.toContain("PYP");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   test("blocks an exact published headline from being reused and reports the block reason", async () => {
     await createEligibleProgrammeProfile(
       "pyp-family@example.com",

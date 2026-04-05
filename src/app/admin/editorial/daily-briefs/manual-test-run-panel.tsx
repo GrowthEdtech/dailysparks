@@ -7,16 +7,11 @@ import {
   formatDailyBriefRendererLabel,
   type AdminDailyBriefRenderer,
 } from "./renderer-options";
-
-type TestRunResult = {
-  success: boolean;
-  runDate: string;
-  targetParentEmails: string[];
-  renderer?: AdminDailyBriefRenderer;
-  failedStage?: string;
-  stages?: Record<string, { status: number; body: unknown }>;
-  message?: string;
-};
+import {
+  buildManualTestRunOutcomeLabel,
+  formatManualTestRunStageSummary,
+  type ManualTestRunResult,
+} from "./manual-test-run-summary";
 
 function buildDefaultRunDate() {
   const nextDay = new Date();
@@ -27,23 +22,6 @@ function buildDefaultRunDate() {
 
 const DEFAULT_TEST_RECIPIENT = "admin@geledtech.com";
 
-function formatStageSummary(result: TestRunResult | null) {
-  if (!result?.stages) {
-    return "No test run has completed yet.";
-  }
-
-  return Object.entries(result.stages)
-    .map(([stageName, stageResult]) => {
-      const summary =
-        typeof stageResult.body === "object" && stageResult.body !== null
-          ? JSON.stringify(stageResult.body, null, 2)
-          : String(stageResult.body);
-
-      return `${stageName.toUpperCase()} (${stageResult.status})\n${summary}`;
-    })
-    .join("\n\n");
-}
-
 export default function ManualTestRunPanel() {
   const [runDate, setRunDate] = useState(buildDefaultRunDate);
   const [targetParentEmail, setTargetParentEmail] = useState(
@@ -52,8 +30,15 @@ export default function ManualTestRunPanel() {
   const [renderer, setRenderer] = useState<AdminDailyBriefRenderer>("pdf-lib");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [result, setResult] = useState<TestRunResult | null>(null);
-  const stageSummary = useMemo(() => formatStageSummary(result), [result]);
+  const [result, setResult] = useState<ManualTestRunResult | null>(null);
+  const stageSummary = useMemo(
+    () => formatManualTestRunStageSummary(result),
+    [result],
+  );
+  const outcomeLabel = useMemo(
+    () => buildManualTestRunOutcomeLabel(result),
+    [result],
+  );
   const summaryTargetRecipient =
     result?.targetParentEmails?.[0] ?? targetParentEmail;
   const summaryRenderer = formatDailyBriefRendererLabel(
@@ -78,7 +63,7 @@ export default function ManualTestRunPanel() {
         }),
       });
       const body = (await response.json().catch(() => null)) as
-        | TestRunResult
+        | ManualTestRunResult
         | { message?: string }
         | null;
 
@@ -92,7 +77,7 @@ export default function ManualTestRunPanel() {
         return;
       }
 
-      setResult(body as TestRunResult);
+      setResult(body as ManualTestRunResult);
     } catch (error) {
       setResult(null);
       setErrorMessage(
@@ -199,6 +184,10 @@ export default function ManualTestRunPanel() {
         <p className="mt-1 text-sm text-slate-500">
           Renderer:{" "}
           <span className="font-semibold text-slate-700">{summaryRenderer}</span>
+        </p>
+        <p className="mt-1 text-sm text-slate-500">
+          Final delivery outcome:{" "}
+          <span className="font-semibold text-slate-700">{outcomeLabel}</span>
         </p>
         <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-50 p-4 text-xs leading-6 text-slate-600">
           {stageSummary}

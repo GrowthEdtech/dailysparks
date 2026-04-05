@@ -546,6 +546,29 @@ describe("daily brief deliver route", () => {
     ]);
   });
 
+  test("finalizes editorial-only briefs without active families instead of marking them failed", async () => {
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.failedCount).toBe(0);
+    expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
+    expect(history[0]?.status).toBe("published");
+    expect(history[0]?.pipelineStage).toBe("published");
+    expect(history[0]?.failureReason).toBe("");
+    expect(history[0]?.adminNotes).toMatch(/editorial-only coverage/i);
+  });
+
   test("falls back to the previous business date when late local-time waves cross Hong Kong midnight", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-03T16:30:00.000Z"));

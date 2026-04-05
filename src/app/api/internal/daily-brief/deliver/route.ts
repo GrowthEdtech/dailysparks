@@ -331,12 +331,9 @@ export async function POST(request: Request) {
     pendingFutureProfileCount += deliveryWindowSplit.pendingProfiles.length;
 
     if (activeProgrammeProfiles.length === 0) {
-      const failureReason =
-        "No active delivery profiles remained for this programme.";
-
       await updateDailyBriefHistoryEntry(brief.id, {
-        status: "failed",
-        pipelineStage: "failed",
+        status: "published",
+        pipelineStage: "published",
         lastDeliveryAttemptAt: dispatchTimestamp,
         dispatchMode: dispatchPlan.mode,
         dispatchCanaryParentEmails: dispatchPlan.canaryParentEmails,
@@ -344,27 +341,15 @@ export async function POST(request: Request) {
         skippedProfiles,
         pendingFutureProfiles,
         heldProfiles,
-        failureReason,
+        failureReason: "",
         deliveryFailureCount: brief.deliveryFailureCount,
         failedDeliveryTargets: [],
         retryEligibleUntil: null,
-        adminNotes: appendAdminNotes(brief.adminNotes, dispatchContext),
+        adminNotes: appendAdminNotes(
+          brief.adminNotes,
+          `${dispatchContext} No active families remained in this programme, so the brief was finalized as editorial-only coverage with no live delivery audience.`,
+        ),
       });
-      await emitDailyBriefOpsAlert({
-        stage: "deliver",
-        severity: "critical",
-        runDate: brief.scheduledFor,
-        title: "Daily brief delivery blocked",
-        message: failureReason,
-        details: {
-          programme: brief.programme,
-          dispatchMode: dispatchPlan.mode,
-          eligibleProfileCount: eligibleProgrammeProfiles.length,
-          targetedProfileCount: programmeProfiles.length,
-          skippedProfileCount: dispatchPlan.skippedProfiles.length,
-        },
-      });
-      failedCount += 1;
       continue;
     }
 

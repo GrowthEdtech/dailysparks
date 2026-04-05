@@ -344,13 +344,13 @@ describe("daily brief orchestration route", () => {
     expect(body.summary.generatedCount).toBe(9);
     expect(body.summary.historyCreatedCount).toBe(9);
     expect(body.summary.publishedCount).toBe(2);
-    expect(body.summary.failedCount).toBe(7);
+    expect(body.summary.failedCount).toBe(0);
     expect(body.summary.deliveryAttemptCount).toBe(2);
     expect(body.summary.deliverySuccessCount).toBe(2);
     expect(body.summary.deliveryFailureCount).toBe(0);
     expect(candidateSnapshot?.candidateCount).toBe(1);
     expect(history).toHaveLength(9);
-    expect(history.filter((entry) => entry.status === "published")).toHaveLength(2);
+    expect(history.filter((entry) => entry.status === "published")).toHaveLength(9);
     expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
     expect(createNotionBriefPageMock).toHaveBeenCalledTimes(1);
   });
@@ -384,14 +384,14 @@ describe("daily brief orchestration route", () => {
 
     expect(secondResponse.status).toBe(200);
     expect(body.stages.ingest.summary.candidateCount).toBe(1);
-    expect(body.summary.generatedCount).toBe(8);
-    expect(body.summary.historyCreatedCount).toBe(8);
-    expect(body.summary.skippedProgrammes).toEqual(["PYP"]);
+    expect(body.summary.generatedCount).toBe(0);
+    expect(body.summary.historyCreatedCount).toBe(0);
+    expect(body.summary.skippedProgrammes).toEqual(["PYP", "MYP", "DP"]);
     expect(body.stages.cohorts).toHaveLength(3);
-    expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(2);
-    expect(body.stages.cohorts[0].preflight.ready).toBe(true);
-    expect(body.stages.deliver).not.toBeNull();
-    expect(history).toHaveLength(17);
+    expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(0);
+    expect(body.stages.cohorts[0].preflight).toBeNull();
+    expect(body.stages.deliver).toBeNull();
+    expect(history).toHaveLength(9);
     expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
   });
 
@@ -435,7 +435,7 @@ describe("daily brief orchestration route", () => {
     expect(body.summary.generatedCount).toBe(9);
     expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(3);
     expect(body.summary.publishedCount).toBe(1);
-    expect(body.summary.failedCount).toBe(8);
+    expect(body.summary.failedCount).toBe(1);
     expect(body.summary.deliverySuccessCount).toBe(1);
     expect(body.summary.deliveryFailureCount).toBe(1);
     expect(publishedEntry?.status).toBe("published");

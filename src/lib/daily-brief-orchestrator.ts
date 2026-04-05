@@ -106,12 +106,14 @@ function getExistingProgrammeSet(
   historyEntries: DailyBriefHistoryRecord[],
   scheduledFor: string,
   editorialCohort: DailyBriefEditorialCohort,
+  recordKind: DailyBriefHistoryRecord["recordKind"],
 ) {
   return new Set(
     historyEntries
       .filter(
         (entry) =>
           entry.scheduledFor === scheduledFor &&
+          entry.recordKind === recordKind &&
           entry.editorialCohort === editorialCohort &&
           entry.status !== "failed",
       )
@@ -311,6 +313,7 @@ export async function generateDailyBriefDrafts(
     historyEntries,
     options.scheduledFor,
     editorialCohort,
+    options.recordKind ?? "production",
   );
   const generatedBriefs: GeneratedDailyBriefDraft[] = [];
   const skippedProgrammes: Programme[] = [];

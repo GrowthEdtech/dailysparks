@@ -74,6 +74,18 @@ function normalizeRenderer(value: unknown): DailyBriefPdfRenderer | undefined {
     : undefined;
 }
 
+function isManualFallbackEligibleBrief(
+  brief: Awaited<ReturnType<typeof listDailyBriefHistory>>[number],
+) {
+  return (
+    brief.status === "published" ||
+    (brief.status === "approved" &&
+      (brief.pipelineStage === "preflight_passed" ||
+        brief.pipelineStage === "delivering" ||
+        brief.pipelineStage === "published"))
+  );
+}
+
 async function requireAdminSession(request: Request) {
   const session = await getEditorialAdminSessionFromRequest(request);
 
@@ -318,7 +330,11 @@ export async function POST(request: Request) {
         editorialCohort,
         programme: targetProfile.student.programme,
       })
-    ).find((brief) => brief.programme === targetProfile.student.programme);
+    ).find(
+      (brief) =>
+        brief.programme === targetProfile.student.programme &&
+        isManualFallbackEligibleBrief(brief),
+    );
 
     if (matchingTargetBrief) {
       try {
@@ -357,6 +373,16 @@ export async function POST(request: Request) {
           },
         };
       }
+    } else {
+      deliver.body = {
+        ...deliver.body,
+        manualBackfill: {
+          parentEmail: targetParentEmail,
+          renderer,
+          skippedReason:
+            "No approved or published same-day test brief was available for fallback delivery.",
+        },
+      };
     }
   }
 
