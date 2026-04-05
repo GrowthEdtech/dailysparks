@@ -54,6 +54,9 @@ export type PlannedNotificationOpsQueueItem = {
   retryAvailableAt: string | null;
   failureCount: number;
   deduped: boolean;
+  assignee: string | null;
+  opsNote: string | null;
+  collaborationUpdatedAt: string | null;
   ageStartedAt: string | null;
   ageHours: number;
   agingLabel: "Under 24h" | "24-72h" | "Older than 72h";
@@ -181,6 +184,19 @@ function getCurrentStateHistoryAndCurrentState(
           .sort((left, right) => right.runAt.localeCompare(left.runAt))
       : ([] as PlannedNotificationRunRecord[]),
   };
+}
+
+function getLatestCollaborationEntry(
+  currentStateHistory: PlannedNotificationRunRecord[],
+) {
+  return (
+    currentStateHistory.find(
+      (entry) =>
+        entry.status === "annotated" ||
+        entry.assignee !== null ||
+        entry.opsNote !== null,
+    ) ?? null
+  );
 }
 
 function getFirstNonEmptyTimestamp(
@@ -473,6 +489,7 @@ function buildQueueItem(input: {
     currentState,
     currentStateHistory,
   });
+  const latestCollaborationEntry = getLatestCollaborationEntry(currentStateHistory);
   const ageHours = getAgeHours(ageStartedAt, now);
   const agingLabel = getAgingLabel(ageHours);
 
@@ -493,6 +510,9 @@ function buildQueueItem(input: {
     retryAvailableAt: retryDecision.retryAvailableAt,
     failureCount: retryDecision.failureCount,
     deduped: status.deduped,
+    assignee: latestCollaborationEntry?.assignee ?? null,
+    opsNote: latestCollaborationEntry?.opsNote ?? null,
+    collaborationUpdatedAt: latestCollaborationEntry?.runAt ?? null,
     ageStartedAt,
     ageHours,
     agingLabel,

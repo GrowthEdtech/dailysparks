@@ -32,6 +32,8 @@ type PlannedNotificationRunContextInput = {
   invoiceStatus?: string | null;
   trialEndsAt?: string | null;
   reasonKey?: string | null;
+  assignee?: string | null;
+  opsNote?: string | null;
 };
 
 function getPlannedNotificationHistoryStore(): PlannedNotificationHistoryStore {
@@ -68,6 +70,8 @@ export async function createPlannedNotificationRunEntry(
     invoiceStatus: input.invoiceStatus?.trim() || null,
     trialEndsAt: input.trialEndsAt?.trim() || null,
     reasonKey: input.reasonKey?.trim() || null,
+    assignee: input.assignee?.trim() || null,
+    opsNote: input.opsNote?.trim() || null,
     createdAt: timestamp,
   };
 
@@ -92,5 +96,7 @@ export async function recordPlannedNotificationRun(
     invoiceStatus: input.invoiceStatus ?? null,
     trialEndsAt: input.trialEndsAt ?? null,
     reasonKey: input.reasonKey ?? null,
+    assignee: input.assignee ?? null,
+    opsNote: input.opsNote ?? null,
   });
 }

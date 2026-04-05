@@ -43,6 +43,7 @@ function normalizeEntry(
       raw?.source === "stripe-webhook" ||
       raw?.source === "manual-resend" ||
       raw?.source === "manual-resolve" ||
+      raw?.source === "manual-annotate" ||
       raw?.source === "batch-resend" ||
       raw?.source === "batch-resolve"
         ? raw.source
@@ -52,7 +53,8 @@ function normalizeEntry(
       raw?.status === "failed" ||
       raw?.status === "resolved" ||
       raw?.status === "deferred" ||
-      raw?.status === "escalated"
+      raw?.status === "escalated" ||
+      raw?.status === "annotated"
         ? raw.status
         : "skipped",
     reason: normalizeNullableString(raw?.reason),
@@ -63,6 +65,8 @@ function normalizeEntry(
     invoiceStatus: normalizeNullableString(raw?.invoiceStatus),
     trialEndsAt: normalizeNullableString(raw?.trialEndsAt),
     reasonKey: normalizeNullableString(raw?.reasonKey),
+    assignee: normalizeNullableString(raw?.assignee),
+    opsNote: normalizeNullableString(raw?.opsNote),
     createdAt,
   };
 }

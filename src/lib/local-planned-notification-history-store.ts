@@ -50,6 +50,7 @@ function normalizeSource(value: unknown): PlannedNotificationRunSource {
     value === "stripe-webhook" ||
     value === "manual-resend" ||
     value === "manual-resolve" ||
+    value === "manual-annotate" ||
     value === "batch-resend" ||
     value === "batch-resolve"
   ) {
@@ -66,7 +67,8 @@ function normalizeStatus(value: unknown): PlannedNotificationRunStatus {
     value === "failed" ||
     value === "resolved" ||
     value === "deferred" ||
-    value === "escalated"
+    value === "escalated" ||
+    value === "annotated"
   ) {
     return value;
   }
@@ -97,6 +99,8 @@ function normalizeEntry(
     invoiceStatus: normalizeNullableString(raw?.invoiceStatus),
     trialEndsAt: normalizeNullableString(raw?.trialEndsAt),
     reasonKey: normalizeNullableString(raw?.reasonKey),
+    assignee: normalizeNullableString(raw?.assignee),
+    opsNote: normalizeNullableString(raw?.opsNote),
     createdAt,
   };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import type {
   PlannedNotificationOpsQueueItem,
@@ -50,14 +51,19 @@ export default function PlannedNotificationOpsQueue({
   items,
   summary,
 }: PlannedNotificationOpsQueueProps) {
+  const router = useRouter();
   const [familyFilter, setFamilyFilter] = useState<FamilyFilter>("all");
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
   const [agingFilter, setAgingFilter] = useState<AgingFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("oldest-unresolved-first");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [annotatingId, setAnnotatingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<BatchActionResponse | null>(null);
+  const [handoffMessage, setHandoffMessage] = useState("");
+  const [assigneeDrafts, setAssigneeDrafts] = useState<Record<string, string>>({});
+  const [opsNoteDrafts, setOpsNoteDrafts] = useState<Record<string, string>>({});
 
   const filteredItems = useMemo(() => {
     const severityRank = {
@@ -114,6 +120,31 @@ export default function PlannedNotificationOpsQueue({
       current.filter((id) => filteredItems.some((item) => item.id === id)),
     );
   }, [filteredItems]);
+
+  useEffect(() => {
+    setAssigneeDrafts((current) => {
+      const nextDrafts = { ...current };
+
+      for (const item of items) {
+        if (!(item.id in nextDrafts)) {
+          nextDrafts[item.id] = item.assignee ?? "";
+        }
+      }
+
+      return nextDrafts;
+    });
+    setOpsNoteDrafts((current) => {
+      const nextDrafts = { ...current };
+
+      for (const item of items) {
+        if (!(item.id in nextDrafts)) {
+          nextDrafts[item.id] = item.opsNote ?? "";
+        }
+      }
+
+      return nextDrafts;
+    });
+  }, [items]);
 
   const selectedItems = useMemo(
     () => filteredItems.filter((item) => selectedIds.includes(item.id)),
@@ -177,6 +208,7 @@ export default function PlannedNotificationOpsQueue({
 
       setResult(body as BatchActionResponse);
       setSelectedIds([]);
+      router.refresh();
     } catch (error) {
       setResult(null);
       setErrorMessage(
@@ -186,6 +218,51 @@ export default function PlannedNotificationOpsQueue({
       );
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function saveHandoff(item: PlannedNotificationOpsQueueItem) {
+    setAnnotatingId(item.id);
+    setErrorMessage("");
+    setHandoffMessage("");
+
+    try {
+      const response = await fetch("/api/admin/planned-notification-action", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          parentEmail: item.parentEmail,
+          notificationFamily: item.notificationFamily,
+          action: "annotate",
+          assignee: assigneeDrafts[item.id] ?? "",
+          opsNote: opsNoteDrafts[item.id] ?? "",
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as
+        | { message?: string }
+        | null;
+
+      if (!response.ok) {
+        setErrorMessage(
+          body && typeof body === "object" && "message" in body && body.message
+            ? body.message
+            : "The handoff note could not be saved.",
+        );
+        return;
+      }
+
+      setHandoffMessage(`Saved handoff for ${item.parentEmail}.`);
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "The handoff note could not be saved.",
+      );
+    } finally {
+      setAnnotatingId(null);
     }
   }
 
@@ -432,6 +509,12 @@ export default function PlannedNotificationOpsQueue({
             </div>
           ) : null}
 
+          {handoffMessage ? (
+            <div className="mt-4 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+              {handoffMessage}
+            </div>
+          ) : null}
+
           <div className="mt-4 space-y-3">
             {filteredItems.length === 0 ? (
               <div className="rounded-[24px] border border-dashed border-slate-300 bg-white px-4 py-6 text-sm text-slate-500">
@@ -471,6 +554,52 @@ export default function PlannedNotificationOpsQueue({
                         {item.studentName} · {item.programmeLabel}
                       </p>
                       <p className="mt-3 text-sm text-slate-600">{item.detail}</p>
+
+                      <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_1.2fr_auto] lg:items-end">
+                        <label className="text-sm text-slate-600">
+                          <span className="mb-2 block font-semibold text-[#0f172a]">
+                            Assignee
+                          </span>
+                          <input
+                            type="text"
+                            value={assigneeDrafts[item.id] ?? ""}
+                            onChange={(event) =>
+                              setAssigneeDrafts((current) => ({
+                                ...current,
+                                [item.id]: event.target.value,
+                              }))
+                            }
+                            className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
+                            placeholder="Add owner"
+                          />
+                        </label>
+
+                        <label className="text-sm text-slate-600">
+                          <span className="mb-2 block font-semibold text-[#0f172a]">
+                            Ops note
+                          </span>
+                          <textarea
+                            value={opsNoteDrafts[item.id] ?? ""}
+                            onChange={(event) =>
+                              setOpsNoteDrafts((current) => ({
+                                ...current,
+                                [item.id]: event.target.value,
+                              }))
+                            }
+                            className="min-h-[88px] w-full rounded-2xl border border-slate-200 bg-white px-3 py-2.5"
+                            placeholder="Capture context for the next operator"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          disabled={annotatingId === item.id}
+                          onClick={() => saveHandoff(item)}
+                          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-[#0f172a] transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {annotatingId === item.id ? "Saving..." : "Save handoff"}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -494,6 +623,14 @@ export default function PlannedNotificationOpsQueue({
                     <div>
                       <dt className="font-semibold text-[#0f172a]">Retry after</dt>
                       <dd>{item.retryAvailableAt ?? "Ready now"}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-[#0f172a]">Assigned to</dt>
+                      <dd>{item.assignee ?? "Unassigned"}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-[#0f172a]">Latest handoff</dt>
+                      <dd>{item.collaborationUpdatedAt ?? "None yet"}</dd>
                     </div>
                   </dl>
                 </div>

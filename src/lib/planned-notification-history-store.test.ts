@@ -87,4 +87,35 @@ describe("planned notification history store", () => {
       messageId: "message-1",
     });
   });
+
+  test("persists assignee and ops note collaboration metadata", async () => {
+    await createPlannedNotificationRunEntry({
+      runAt: "2026-04-06T03:00:00.000Z",
+      parentId: "parent-2",
+      parentEmail: "ops@example.com",
+      notificationFamily: "delivery-support-alert",
+      source: "manual-annotate",
+      status: "annotated",
+      reason: "Needs delivery follow-up.",
+      deduped: false,
+      messageId: null,
+      errorMessage: null,
+      trialEndsAt: null,
+      invoiceId: null,
+      invoiceStatus: null,
+      reasonKey:
+        "active access is live, but no dispatchable goodnotes or notion channel is ready yet.",
+      assignee: "Kai",
+      opsNote: "Follow up after checking the Goodnotes connection again.",
+    });
+
+    const entries = await listPlannedNotificationRunHistory();
+
+    expect(entries[0]).toMatchObject({
+      source: "manual-annotate",
+      status: "annotated",
+      assignee: "Kai",
+      opsNote: "Follow up after checking the Goodnotes connection again.",
+    });
+  });
 });

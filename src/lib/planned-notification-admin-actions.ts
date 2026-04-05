@@ -9,7 +9,10 @@ import {
   getBillingStatusNotificationCurrentState,
   getDeliverySupportNotificationCurrentState,
   getTrialEndingNotificationCurrentState,
+  type BillingStatusNotificationCurrentState,
+  type DeliverySupportNotificationCurrentState,
   type PlannedNotificationFamily,
+  type TrialEndingNotificationCurrentState,
 } from "./planned-notification-state";
 import type { PlannedNotificationRunSource } from "./planned-notification-history-schema";
 
@@ -22,7 +25,7 @@ export class PlannedNotificationActionError extends Error {
   }
 }
 
-export type PlannedNotificationAction = "resend" | "resolve";
+export type PlannedNotificationAction = "resend" | "resolve" | "annotate";
 
 export type PlannedNotificationActionResult = {
   success: boolean;
@@ -32,12 +35,51 @@ export type PlannedNotificationActionResult = {
   action: PlannedNotificationAction;
   messageId: string | null;
   reason: string | null;
+  assignee: string | null;
+  opsNote: string | null;
 };
+
+type CurrentNotificationState =
+  | TrialEndingNotificationCurrentState
+  | BillingStatusNotificationCurrentState
+  | DeliverySupportNotificationCurrentState;
+
+function normalizeNullableInput(value: string | null | undefined) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function buildActionResult(input: {
+  success: boolean;
+  parentId: string;
+  parentEmail: string;
+  notificationFamily: PlannedNotificationFamily;
+  action: PlannedNotificationAction;
+  messageId?: string | null;
+  reason: string | null;
+  assignee?: string | null;
+  opsNote?: string | null;
+}): PlannedNotificationActionResult {
+  return {
+    success: input.success,
+    parentId: input.parentId,
+    parentEmail: input.parentEmail,
+    notificationFamily: input.notificationFamily,
+    action: input.action,
+    messageId: input.messageId ?? null,
+    reason: input.reason,
+    assignee: normalizeNullableInput(input.assignee),
+    opsNote: normalizeNullableInput(input.opsNote),
+  };
+}
 
 function getSource(
   action: PlannedNotificationAction,
   mode: "single" | "batch",
 ): PlannedNotificationRunSource {
+  if (action === "annotate") {
+    return "manual-annotate";
+  }
+
   if (mode === "batch") {
     return action === "resend" ? "batch-resend" : "batch-resolve";
   }
@@ -51,10 +93,14 @@ export async function performPlannedNotificationAction(input: {
   action: PlannedNotificationAction;
   mode?: "single" | "batch";
   now?: Date;
+  assignee?: string | null;
+  opsNote?: string | null;
 }): Promise<PlannedNotificationActionResult> {
   const now = input.now ?? new Date();
   const source = getSource(input.action, input.mode ?? "single");
   const parentEmail = input.parentEmail.trim().toLowerCase();
+  const assignee = normalizeNullableInput(input.assignee);
+  const opsNote = normalizeNullableInput(input.opsNote);
   const profile = await getProfileByEmail(parentEmail);
 
   if (!profile) {
@@ -73,6 +119,38 @@ export async function performPlannedNotificationAction(input: {
           409,
           "No current trial-ending notification state is available.",
         );
+      }
+
+      if (input.action === "annotate") {
+        await createPlannedNotificationRunEntry({
+          runAt: now.toISOString(),
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          notificationFamily: input.notificationFamily,
+          source,
+          status: "annotated",
+          reason: current.reason,
+          deduped: false,
+          messageId: null,
+          errorMessage: null,
+          trialEndsAt: current.trialEndsAt,
+          invoiceId: null,
+          invoiceStatus: null,
+          reasonKey: null,
+          assignee,
+          opsNote,
+        });
+
+        return buildActionResult({
+          success: true,
+          parentId: profile.parent.id,
+          parentEmail,
+          notificationFamily: input.notificationFamily,
+          action: input.action,
+          reason: current.reason,
+          assignee,
+          opsNote,
+        });
       }
 
       if (input.action === "resolve") {
@@ -95,17 +173,18 @@ export async function performPlannedNotificationAction(input: {
           invoiceId: null,
           invoiceStatus: null,
           reasonKey: null,
+          assignee: null,
+          opsNote: null,
         });
 
-        return {
+        return buildActionResult({
           success: true,
           parentId: profile.parent.id,
           parentEmail,
           notificationFamily: input.notificationFamily,
           action: input.action,
-          messageId: null,
           reason: current.reason,
-        };
+        });
       }
 
       const sendResult = await sendTrialEndingReminderNotification({ profile });
@@ -124,6 +203,8 @@ export async function performPlannedNotificationAction(input: {
         invoiceId: null,
         invoiceStatus: null,
         reasonKey: null,
+        assignee: null,
+        opsNote: null,
       });
 
       if (sendResult.sent) {
@@ -135,7 +216,7 @@ export async function performPlannedNotificationAction(input: {
         });
       }
 
-      return {
+      return buildActionResult({
         success: sendResult.sent,
         parentId: profile.parent.id,
         parentEmail,
@@ -143,7 +224,7 @@ export async function performPlannedNotificationAction(input: {
         action: input.action,
         messageId: sendResult.messageId ?? null,
         reason: sendResult.reason ?? current.reason,
-      };
+      });
     }
 
     if (input.notificationFamily === "billing-status-update") {
@@ -154,6 +235,38 @@ export async function performPlannedNotificationAction(input: {
           409,
           "No current billing notification state is available.",
         );
+      }
+
+      if (input.action === "annotate") {
+        await createPlannedNotificationRunEntry({
+          runAt: now.toISOString(),
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          notificationFamily: input.notificationFamily,
+          source,
+          status: "annotated",
+          reason: current.reason,
+          deduped: false,
+          messageId: null,
+          errorMessage: null,
+          trialEndsAt: null,
+          invoiceId: current.invoiceId,
+          invoiceStatus: current.invoiceStatus,
+          reasonKey: null,
+          assignee,
+          opsNote,
+        });
+
+        return buildActionResult({
+          success: true,
+          parentId: profile.parent.id,
+          parentEmail,
+          notificationFamily: input.notificationFamily,
+          action: input.action,
+          reason: current.reason,
+          assignee,
+          opsNote,
+        });
       }
 
       if (input.action === "resolve") {
@@ -177,17 +290,18 @@ export async function performPlannedNotificationAction(input: {
           invoiceId: current.invoiceId,
           invoiceStatus: current.invoiceStatus,
           reasonKey: null,
+          assignee: null,
+          opsNote: null,
         });
 
-        return {
+        return buildActionResult({
           success: true,
           parentId: profile.parent.id,
           parentEmail,
           notificationFamily: input.notificationFamily,
           action: input.action,
-          messageId: null,
           reason: current.reason,
-        };
+        });
       }
 
       const sendResult = await sendBillingStatusUpdateNotification({
@@ -209,6 +323,8 @@ export async function performPlannedNotificationAction(input: {
         invoiceId: current.invoiceId,
         invoiceStatus: current.invoiceStatus,
         reasonKey: null,
+        assignee: null,
+        opsNote: null,
       });
 
       if (sendResult.sent) {
@@ -222,7 +338,7 @@ export async function performPlannedNotificationAction(input: {
         });
       }
 
-      return {
+      return buildActionResult({
         success: sendResult.sent,
         parentId: profile.parent.id,
         parentEmail,
@@ -230,7 +346,7 @@ export async function performPlannedNotificationAction(input: {
         action: input.action,
         messageId: sendResult.messageId ?? null,
         reason: sendResult.reason ?? current.reason,
-      };
+      });
     }
 
     const current = getDeliverySupportNotificationCurrentState(profile, now);
@@ -240,6 +356,38 @@ export async function performPlannedNotificationAction(input: {
         409,
         "No current delivery support notification state is available.",
       );
+    }
+
+    if (input.action === "annotate") {
+      await createPlannedNotificationRunEntry({
+        runAt: now.toISOString(),
+        parentId: profile.parent.id,
+        parentEmail: profile.parent.email,
+        notificationFamily: input.notificationFamily,
+        source,
+        status: "annotated",
+        reason: current.reason,
+        deduped: false,
+        messageId: null,
+        errorMessage: null,
+        trialEndsAt: null,
+        invoiceId: null,
+        invoiceStatus: null,
+        reasonKey: current.reasonKey,
+        assignee,
+        opsNote,
+      });
+
+      return buildActionResult({
+        success: true,
+        parentId: profile.parent.id,
+        parentEmail,
+        notificationFamily: input.notificationFamily,
+        action: input.action,
+        reason: current.reason,
+        assignee,
+        opsNote,
+      });
     }
 
     if (input.action === "resolve") {
@@ -262,17 +410,18 @@ export async function performPlannedNotificationAction(input: {
         invoiceId: null,
         invoiceStatus: null,
         reasonKey: current.reasonKey,
+        assignee: null,
+        opsNote: null,
       });
 
-      return {
+      return buildActionResult({
         success: true,
         parentId: profile.parent.id,
         parentEmail,
         notificationFamily: input.notificationFamily,
         action: input.action,
-        messageId: null,
         reason: current.reason,
-      };
+      });
     }
 
     const sendResult = await sendDeliverySupportAlertNotification({
@@ -294,6 +443,8 @@ export async function performPlannedNotificationAction(input: {
       invoiceId: null,
       invoiceStatus: null,
       reasonKey: current.reasonKey,
+      assignee: null,
+      opsNote: null,
     });
 
     if (sendResult.sent) {
@@ -305,7 +456,7 @@ export async function performPlannedNotificationAction(input: {
       });
     }
 
-    return {
+    return buildActionResult({
       success: sendResult.sent,
       parentId: profile.parent.id,
       parentEmail,
@@ -313,13 +464,13 @@ export async function performPlannedNotificationAction(input: {
       action: input.action,
       messageId: sendResult.messageId ?? null,
       reason: sendResult.reason ?? current.reason,
-    };
+    });
   } catch (error) {
     if (error instanceof PlannedNotificationActionError) {
       throw error;
     }
 
-    const current =
+    const current: CurrentNotificationState | null =
       input.notificationFamily === "trial-ending-reminder"
         ? getTrialEndingNotificationCurrentState(profile, now)
         : input.notificationFamily === "billing-status-update"
@@ -362,6 +513,8 @@ export async function performPlannedNotificationAction(input: {
       invoiceId,
       invoiceStatus,
       reasonKey,
+      assignee: null,
+      opsNote: null,
     });
     throw error;
   }

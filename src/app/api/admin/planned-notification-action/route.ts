@@ -14,6 +14,8 @@ type PlannedNotificationActionRequestBody = {
   parentEmail?: unknown;
   notificationFamily?: unknown;
   action?: unknown;
+  assignee?: unknown;
+  opsNote?: unknown;
 };
 
 function unauthorized(message: string) {
@@ -53,7 +55,13 @@ function normalizeFamily(value: unknown): PlannedNotificationFamily | null {
 }
 
 function normalizeAction(value: unknown): PlannedNotificationAction | null {
-  return value === "resend" || value === "resolve" ? value : null;
+  return value === "resend" || value === "resolve" || value === "annotate"
+    ? value
+    : null;
+}
+
+function normalizeOptionalText(value: unknown) {
+  return typeof value === "string" ? value.trim() : null;
 }
 
 async function parseRequestBody(request: Request) {
@@ -97,6 +105,8 @@ export async function POST(request: Request) {
   const parentEmail = normalizeEmail(parsedBody.parentEmail);
   const notificationFamily = normalizeFamily(parsedBody.notificationFamily);
   const action = normalizeAction(parsedBody.action);
+  const assignee = normalizeOptionalText(parsedBody.assignee);
+  const opsNote = normalizeOptionalText(parsedBody.opsNote);
 
   if (!parentEmail) {
     return badRequest("parentEmail is required.");
@@ -107,7 +117,15 @@ export async function POST(request: Request) {
   }
 
   if (!action) {
-    return badRequest("action must be resend or resolve.");
+    return badRequest("action must be resend, resolve, or annotate.");
+  }
+
+  if (
+    action === "annotate" &&
+    parsedBody.assignee === undefined &&
+    parsedBody.opsNote === undefined
+  ) {
+    return badRequest("annotate requires assignee or opsNote.");
   }
 
   try {
@@ -115,6 +133,8 @@ export async function POST(request: Request) {
       parentEmail,
       notificationFamily,
       action,
+      assignee,
+      opsNote,
     });
 
     revalidateUserAdminPaths(result.parentId);
@@ -126,6 +146,8 @@ export async function POST(request: Request) {
       parentEmail,
       messageId: result.messageId,
       reason: result.reason,
+      assignee: result.assignee,
+      opsNote: result.opsNote,
     });
   } catch (error) {
     if (error instanceof Error) {

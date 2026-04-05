@@ -1,6 +1,18 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 
+import { vi } from "vitest";
+
+const { refreshMock } = vi.hoisted(() => ({
+  refreshMock: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: refreshMock,
+  }),
+}));
+
 import PlannedNotificationOpsQueue from "./planned-notification-ops-queue";
 
 describe("PlannedNotificationOpsQueue", () => {
@@ -48,5 +60,8 @@ describe("PlannedNotificationOpsQueue", () => {
     expect(markup).toContain("Older than 72h");
     expect(markup).toContain("Sort by");
     expect(markup).toContain("Oldest unresolved first");
+    expect(markup).toContain("Assignee");
+    expect(markup).toContain("Ops note");
+    expect(markup).toContain("Save handoff");
   });
 });

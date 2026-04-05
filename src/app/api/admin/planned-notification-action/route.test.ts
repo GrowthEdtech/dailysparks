@@ -247,4 +247,39 @@ describe("admin planned notification action route", () => {
       invoiceStatus: "open",
     });
   });
+
+  test("records assignee and ops note collaboration metadata for the current state", async () => {
+    const cookie = await signIn();
+    await createTrialProfile("handoff@example.com");
+
+    const response = await plannedNotificationActionRoute(
+      new Request("http://localhost:3000/api/admin/planned-notification-action", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie,
+        },
+        body: JSON.stringify({
+          parentEmail: "handoff@example.com",
+          notificationFamily: "trial-ending-reminder",
+          action: "annotate",
+          assignee: "Mae",
+          opsNote: "Hold until parent confirms billing.",
+        }),
+      }),
+    );
+    const body = await response.json();
+    const history = await listPlannedNotificationRunHistory();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(history[0]).toMatchObject({
+      parentEmail: "handoff@example.com",
+      notificationFamily: "trial-ending-reminder",
+      source: "manual-annotate",
+      status: "annotated",
+      assignee: "Mae",
+      opsNote: "Hold until parent confirms billing.",
+    });
+  });
 });

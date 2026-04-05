@@ -6,13 +6,15 @@ export type PlannedNotificationRunStatus =
   | "failed"
   | "resolved"
   | "deferred"
-  | "escalated";
+  | "escalated"
+  | "annotated";
 
 export type PlannedNotificationRunSource =
   | "growth-reconciliation"
   | "stripe-webhook"
   | "manual-resend"
   | "manual-resolve"
+  | "manual-annotate"
   | "batch-resend"
   | "batch-resolve";
 
@@ -33,5 +35,7 @@ export type PlannedNotificationRunRecord = {
   invoiceStatus: string | null;
   trialEndsAt: string | null;
   reasonKey: string | null;
+  assignee: string | null;
+  opsNote: string | null;
   createdAt: string;
 };
