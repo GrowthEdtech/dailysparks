@@ -54,6 +54,13 @@ describe("buildOutboundDailyBriefPacket", () => {
         body: "Imagine a place that helps power homes and hospitals. Even in times of conflict, that place needs extra protection because a mistake there could affect many communities, not just one building.",
       },
     ]);
+    expect(packet.layoutVariant).toBe("pyp-one-page");
+    expect(packet.summaryBody).toBe(
+      "The UN nuclear watchdog says it is very worried after Iran reported new attacks near its Bushehr nuclear power plant.",
+    );
+    expect(packet.themesBody).toBe(
+      "United Nations, Iran, Nuclear Safety, Conflict",
+    );
     expect(packet.vocabularyTitle).toBe("Words to know");
     expect(packet.vocabularyItems).toEqual([
       {
@@ -65,17 +72,11 @@ describe("buildOutboundDailyBriefPacket", () => {
         definition:
           "Choosing not to take actions that could make a dangerous situation worse",
       },
-      {
-        term: "Nuclear plant",
-        definition:
-          "A facility that uses nuclear energy to produce electricity",
-      },
     ]);
     expect(packet.discussionTitle).toBe("Talk about it at home");
     expect(packet.discussionPrompts).toEqual([
       "Why might some places need special protection during conflict?",
       "How can world organisations help when countries are in danger?",
-      "What are some important places in a community that should always be kept safe?",
     ]);
     expect(packet.bigIdeaTitle).toBe("Big idea");
     expect(packet.bigIdeaBody).toBe(
@@ -107,9 +108,42 @@ describe("buildOutboundDailyBriefPacket", () => {
     expect(packet.discussionPrompts).toEqual([
       "What feels most important in today's story?",
       "Which detail would you like to understand more clearly?",
-      "How does this connect to your own world or experience?",
     ]);
     expect(packet.vocabularyItems).toEqual([]);
     expect(packet.bigIdeaBody).toBeNull();
+  });
+
+  test("keeps the fuller packet shape for non-PYP programmes", () => {
+    const packet = buildOutboundDailyBriefPacket({
+      headline: "Students compare coastal cleanup plans across cities",
+      scheduledFor: "2026-04-03",
+      programme: "MYP",
+      editorialCohort: "APAC",
+      summary:
+        "Students compare how different cities organise shoreline cleanup efforts and what trade-offs each plan makes.",
+      topicTags: [
+        "Oceans",
+        "Civic planning",
+        "Sustainability",
+        "Communities",
+        "Evidence",
+      ],
+      briefMarkdown: [
+        "What’s happening? Students are comparing several coastal cleanup plans from different cities.",
+        "Why does this matter? Each plan solves one problem well, but creates trade-offs in cost, speed, and fairness.",
+        "Picture it Imagine three teams trying to clean the same beach, each with different tools and budgets.",
+        "Words to know - Trade-off: Giving up one advantage to gain another - Evidence: Information used to support a decision - Civic planning: Organising how a community solves shared problems",
+        "Talk about it at home - Which plan would feel fairest? - What information would help you decide? - When is a fast solution not the best solution?",
+        "Big idea Good decisions often depend on comparing trade-offs, not just choosing the first idea that sounds appealing.",
+      ].join("\n"),
+      sourceReferences: [],
+    });
+
+    expect(packet.layoutVariant).toBe("standard");
+    expect(packet.themesBody).toBe(
+      "Oceans, Civic planning, Sustainability, Communities, Evidence",
+    );
+    expect(packet.vocabularyItems).toHaveLength(3);
+    expect(packet.discussionPrompts).toHaveLength(3);
   });
 });

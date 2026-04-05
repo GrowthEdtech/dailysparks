@@ -12,6 +12,7 @@ export type OutboundDailyBriefVocabularyItem = {
 };
 
 export type OutboundDailyBriefPacket = {
+  layoutVariant: "standard" | "pyp-one-page";
   eyebrow: string;
   title: string;
   metadataItems: string[];
@@ -234,6 +235,43 @@ function parseDiscussionPrompts(value: string) {
   return splitDelimitedItems(value);
 }
 
+function splitSentences(value: string) {
+  return sanitizePlainText(value)
+    .split(/(?<=[.!?])\s+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function truncateSentenceBudget(
+  value: string,
+  options: {
+    maxSentences: number;
+    maxCharacters?: number;
+  },
+) {
+  const { maxSentences, maxCharacters } = options;
+  const sentences = splitSentences(value).slice(0, maxSentences);
+  const joined = normalizeWhitespace(sentences.join(" "));
+
+  if (!maxCharacters || joined.length <= maxCharacters) {
+    return joined;
+  }
+
+  return `${joined.slice(0, Math.max(0, maxCharacters - 1)).trimEnd()}…`;
+}
+
+function applyPypOnePagePolicyToReadingSections(
+  sections: OutboundDailyBriefReadingSection[],
+) {
+  return sections.map((section) => ({
+    ...section,
+    body: truncateSentenceBudget(section.body, {
+      maxSentences: 2,
+      maxCharacters: 220,
+    }),
+  }));
+}
+
 export function extractOutboundParagraphsFromMarkdown(markdown: string) {
   return markdown
     .split(/\n{2,}/)
@@ -244,6 +282,8 @@ export function extractOutboundParagraphsFromMarkdown(markdown: string) {
 export function buildOutboundDailyBriefPacket(
   brief: OutboundDailyBriefPacketInput,
 ): OutboundDailyBriefPacket {
+  const layoutVariant =
+    brief.programme.toUpperCase() === "PYP" ? "pyp-one-page" : "standard";
   const structuredSections = extractStructuredSections(brief.briefMarkdown);
   const readingSections = (
     [
@@ -267,8 +307,57 @@ export function buildOutboundDailyBriefPacket(
   const wordsToKnow = structuredSections.get("wordsToKnow");
   const talkAtHome = structuredSections.get("talkAboutItAtHome");
   const bigIdea = structuredSections.get("bigIdea");
+  const baseReadingSections = fallbackReadingSections;
+  const readingSectionsForLayout =
+    layoutVariant === "pyp-one-page"
+      ? applyPypOnePagePolicyToReadingSections(baseReadingSections)
+      : baseReadingSections;
+  const vocabularyItems = wordsToKnow ? parseVocabularyItems(wordsToKnow.body) : [];
+  const discussionPrompts = talkAtHome
+    ? parseDiscussionPrompts(talkAtHome.body)
+    : [
+        "What feels most important in today's story?",
+        "Which detail would you like to understand more clearly?",
+        "How does this connect to your own world or experience?",
+      ];
+  const topicTagsForLayout =
+    layoutVariant === "pyp-one-page" ? brief.topicTags.slice(0, 4) : brief.topicTags;
+  const summaryBodyForLayout =
+    layoutVariant === "pyp-one-page"
+      ? truncateSentenceBudget(brief.summary, {
+          maxSentences: 2,
+          maxCharacters: 180,
+        })
+      : brief.summary;
+  const vocabularyItemsForLayout =
+    layoutVariant === "pyp-one-page"
+      ? vocabularyItems.slice(0, 2).map((item) => ({
+          ...item,
+          definition: truncateSentenceBudget(item.definition, {
+            maxSentences: 1,
+            maxCharacters: 92,
+          }),
+        }))
+      : vocabularyItems;
+  const discussionPromptsForLayout =
+    layoutVariant === "pyp-one-page"
+      ? discussionPrompts.slice(0, 2).map((prompt) =>
+          truncateSentenceBudget(prompt, {
+            maxSentences: 1,
+            maxCharacters: 92,
+          }),
+        )
+      : discussionPrompts;
+  const bigIdeaBodyForLayout = bigIdea?.body
+    ? layoutVariant === "pyp-one-page"
+      ? truncateSentenceBudget(bigIdea.body, {
+          maxSentences: 1,
+        })
+      : bigIdea.body
+    : null;
 
   return {
+    layoutVariant,
     eyebrow: "Daily Sparks",
     title: brief.headline,
     metadataItems: [
@@ -277,24 +366,19 @@ export function buildOutboundDailyBriefPacket(
       formatOutboundEditorialCohortEdition(brief.editorialCohort),
     ],
     summaryTitle: "Summary deck",
-    summaryBody: brief.summary,
-    themesTitle: brief.topicTags.length > 0 ? "Theme focus" : null,
-    themesBody: brief.topicTags.length > 0 ? brief.topicTags.join(", ") : null,
+    summaryBody: summaryBodyForLayout,
+    themesTitle: topicTagsForLayout.length > 0 ? "Theme focus" : null,
+    themesBody:
+      topicTagsForLayout.length > 0 ? topicTagsForLayout.join(", ") : null,
     readingTitle: "Reading brief",
-    readingSections: fallbackReadingSections,
-    readingParagraphs: flattenReadingSections(fallbackReadingSections),
+    readingSections: readingSectionsForLayout,
+    readingParagraphs: flattenReadingSections(readingSectionsForLayout),
     vocabularyTitle: wordsToKnow?.title ?? null,
-    vocabularyItems: wordsToKnow ? parseVocabularyItems(wordsToKnow.body) : [],
+    vocabularyItems: vocabularyItemsForLayout,
     discussionTitle: talkAtHome?.title ?? "Discussion prompts",
-    discussionPrompts: talkAtHome
-      ? parseDiscussionPrompts(talkAtHome.body)
-      : [
-          "What feels most important in today's story?",
-          "Which detail would you like to understand more clearly?",
-          "How does this connect to your own world or experience?",
-        ],
+    discussionPrompts: discussionPromptsForLayout,
     bigIdeaTitle: bigIdea?.title ?? null,
-    bigIdeaBody: bigIdea?.body ?? null,
+    bigIdeaBody: bigIdeaBodyForLayout,
     sourcesTitle: "Source references",
     sourceLines: brief.sourceReferences.map(
       (reference) => `${reference.sourceName} - ${reference.articleTitle}`,

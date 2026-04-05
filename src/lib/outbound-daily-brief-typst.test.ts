@@ -1,3 +1,4 @@
+import { PDFDocument } from "pdf-lib";
 import { describe, expect, test } from "vitest";
 
 import {
@@ -47,7 +48,7 @@ describe("outbound daily brief typst", () => {
     const source = buildOutboundDailyBriefTypstSource(sampleBrief);
 
     expect(source).toContain("Daily Sparks");
-    expect(source).toContain(
+    expect(source.replaceAll("\u00a0", " ")).toContain(
       "UN watchdog voices 'deep concern' as Iran reports new attacks on nuclear plant",
     );
     expect(source).toContain("Summary deck");
@@ -61,32 +62,36 @@ describe("outbound daily brief typst", () => {
   test("scales long headlines down and keeps the trailing words together", () => {
     const source = buildOutboundDailyBriefTypstSource(sampleBrief);
 
-    expect(getTypstHeadlineSize(sampleBrief.headline)).toBe(20);
+    expect(getTypstHeadlineSize(sampleBrief.headline, "pyp-one-page")).toBe(18);
     expect(preventTypstHeadlineWidows(sampleBrief.headline)).toContain(
       "nuclear\u00a0plant",
     );
-    expect(source).toContain('#text(size: 20pt, weight: "bold", fill: ink)');
+    expect(source).toContain('#text(size: 18pt, weight: "bold", fill: ink)');
     expect(source).toContain("nuclear\u00a0plant");
   });
 
-  test("uses a journal-first hierarchy with a lighter hero and stronger content emphasis", () => {
+  test("uses a PYP one-page hierarchy with compact teaching blocks and content-first emphasis", () => {
     const source = buildOutboundDailyBriefTypstSource(sampleBrief);
 
-    expect(source).toContain('#v(4pt)\n  #text(size: 20pt, weight: "bold", fill: ink)');
-    expect(source).toContain('#v(10pt)\n  #grid');
+    expect(source).toContain('#v(2pt)\n  #text(size: 18pt, weight: "bold", fill: ink)');
+    expect(source).toContain('#v(5pt)\n  #grid');
     expect(source).toContain('#standfirst-card("Summary deck"');
-    expect(source).toContain('#text(size: 14pt, fill: ink)[#body]');
-    expect(source).toContain('#set par(leading: 1.22em)');
-    expect(source).toContain('label-color: gold');
-    expect(source).toContain('#text(size: 10pt, weight: "semibold", fill: gold)[#"Words to know"]');
-    expect(source).toContain('#text(size: 22pt, weight: "bold", fill: ink)[#"Reading brief"]');
-    expect(source).toContain('#text(size: 12.5pt, weight: "semibold", fill: ink)[#title]');
+    expect(source).toContain('#text(size: 12.4pt, fill: ink)[#body]');
+    expect(source).toContain('#set par(leading: 1.16em)');
+    expect(source).toContain('#text(size: 17pt, weight: "bold", fill: ink)[#"Reading brief"]');
+    expect(source).toContain('#text(size: 11.4pt, weight: "semibold", fill: ink)[#title]');
+    expect(source).not.toContain('#grid(\n  columns: (1fr, 1fr),\n  gutter: 12pt,');
+    expect(source).toContain('#text(size: 8.2pt, weight: "semibold", fill: gold)[#"Words to know"]');
+    expect(source).toContain('#compact-note("IAEA", "The UN agency that checks nuclear safety")');
+    expect(source).toContain('#compact-prompt("Why do some places need extra protection during conflict?")');
+    expect(source).toContain('#text(size: 8.2pt, weight: "semibold", fill: gold)[#"Big idea:"]');
+    expect(source).toContain('#text(size: 8.4pt, fill: muted)[#"Source: BBC"]');
     expect(source).toContain('fill: pale-blue');
-    expect(source).toContain('fill: pale-gold');
   });
 
   test("renders a typst prototype pdf for the same daily brief packet", async () => {
     const result = await renderOutboundDailyBriefTypstPrototype(sampleBrief);
+    const document = await PDFDocument.load(Buffer.from(result.pdf));
 
     expect(result.fileName).toBe(
       "2026-04-05_DailySparks_DailyBrief_PYP_un-watchdog-voices-deep-concern-as-iran-reports_typst-prototype.pdf",
@@ -94,5 +99,6 @@ describe("outbound daily brief typst", () => {
     expect(result.source).toContain("Words to know");
     expect(result.pdf).toBeInstanceOf(Uint8Array);
     expect(Buffer.from(result.pdf).subarray(0, 4).toString()).toBe("%PDF");
+    expect(document.getPageCount()).toBe(1);
   });
 });

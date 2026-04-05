@@ -45,8 +45,23 @@ function createDefaultCompiler(): TypstCompilerLike {
   return NodeCompiler.create();
 }
 
-export function getTypstHeadlineSize(headline: string) {
+export function getTypstHeadlineSize(
+  headline: string,
+  layoutVariant: "standard" | "pyp-one-page" = "standard",
+) {
   const length = headline.trim().length;
+
+  if (layoutVariant === "pyp-one-page") {
+    if (length >= 96) {
+      return 16;
+    }
+
+    if (length >= 64) {
+      return 18;
+    }
+
+    return 20;
+  }
 
   if (length >= 96) {
     return 18;
@@ -81,7 +96,8 @@ export function buildOutboundDailyBriefTypstSource(
 ) {
   const packet = buildOutboundDailyBriefPacket(brief);
   const headline = preventTypstHeadlineWidows(packet.title);
-  const headlineSize = getTypstHeadlineSize(headline);
+  const isPypOnePage = packet.layoutVariant === "pyp-one-page";
+  const headlineSize = getTypstHeadlineSize(headline, packet.layoutVariant);
   const metadataItems = packet.metadataItems
     .map((item) => `#pill(${escapeTypstString(item)})`)
     .join("\n        ");
@@ -90,131 +106,78 @@ export function buildOutboundDailyBriefTypstSource(
       `#reading-block(${escapeTypstString(section.title ?? "")}, ${escapeTypstString(section.body)})`,
     )
     .join("\n");
-  const vocabularyBlocks =
-    packet.vocabularyTitle && packet.vocabularyItems.length > 0
-      ? packet.vocabularyItems
-          .map(
-            (item) =>
-              `#vocab-item(${escapeTypstString(item.term)}, ${escapeTypstString(item.definition)})`,
-          )
-          .join("\n")
-      : "";
   const discussionBlocks = packet.discussionPrompts
     .map((prompt) => `#prompt-chip(${escapeTypstString(prompt)})`)
+    .join("\n");
+  const compactDiscussionBlocks = packet.discussionPrompts
+    .map((prompt) => `#compact-prompt(${escapeTypstString(prompt)})`)
     .join("\n");
   const sourceBlocks = packet.sourceLines
     .map((line) => `#source-line(${escapeTypstString(line)})`)
     .join("\n");
-
-  return `
-#set page(width: 595pt, height: 842pt, margin: 48pt, fill: rgb("#fffdfa"))
-#set par(justify: false, leading: 0.95em)
-#set text(size: 11pt, fill: rgb("#475569"))
-
-#let ink = rgb("#0f172a")
-#let secondary = rgb("#475569")
-#let muted = rgb("#64748b")
-#let gold = rgb("#b45309")
-#let pale-blue = rgb("#eef6ff")
-#let pale-gold = rgb("#fdf7ea")
-#let soft-border = rgb("#d9e4f2")
-#let gold-border = rgb("#f1dfb9")
-
-#let pill(value) = box(
-  fill: rgb("#f8fbff"),
-  stroke: (paint: soft-border, thickness: 1pt),
-  inset: (x: 10pt, y: 5pt),
-  radius: 999pt,
-)[#text(size: 7.5pt, weight: "semibold", fill: muted)[#value]]
-
-#let section-card(label, body, fill-color: white, border-color: soft-border, label-color: muted) = rect(
-  width: 100%,
-  fill: fill-color,
-  stroke: (paint: border-color, thickness: 1pt),
-  inset: 16pt,
-  radius: 18pt,
-)[
-  #text(size: 9pt, weight: "semibold", fill: label-color)[#label]
-  #v(8pt)
-  #set par(leading: 1.14em)
-  #text(size: 11.1pt, fill: secondary)[#body]
-]
-
-#let standfirst-card(label, body) = rect(
-  width: 100%,
-  fill: rgb("#fcfeff"),
-  stroke: (paint: soft-border, thickness: 1pt),
-  inset: 22pt,
-  radius: 18pt,
-)[
-  #text(size: 9pt, weight: "semibold", fill: gold)[#label]
-  #v(8pt)
-  #set par(leading: 1.22em)
-  #text(size: 14pt, fill: ink)[#body]
-]
-
-#let reading-block(title, body) = [
-  #if title != "" [
-    #text(size: 12.5pt, weight: "semibold", fill: ink)[#title]
-    #v(4pt)
-  ]
-  #set par(leading: 1.18em)
-  #text(size: 11.35pt, fill: secondary)[#body]
-  #v(14pt)
-]
-
-#let vocab-item(term, definition) = [
-  #text(size: 11pt, weight: "semibold", fill: ink)[#term]
-  #v(3pt)
-  #text(size: 11pt, fill: secondary)[#definition]
-  #v(8pt)
-]
-
-#let prompt-chip(prompt) = box(
-  fill: white,
-  stroke: (paint: soft-border, thickness: 1pt),
-  inset: 12pt,
-  radius: 14pt,
-)[#text(size: 10.5pt, fill: secondary)[#prompt]]
-
-#let source-line(value) = [
-  #text(size: 10pt, fill: secondary)[#value]
-  #v(6pt)
-]
-
-#rect(
-  width: 100%,
-  fill: pale-blue,
-  stroke: (paint: soft-border, thickness: 1pt),
-  inset: 18pt,
-  radius: 20pt,
-)[
-  #text(size: 8.5pt, weight: "semibold", fill: gold)[#${escapeTypstString(packet.eyebrow)}]
-  #v(4pt)
-  #text(size: ${headlineSize}pt, weight: "bold", fill: ink)[#${escapeTypstString(headline)}]
-  #v(10pt)
-  #grid(columns: (auto, auto, auto), gutter: 8pt,[
-        ${metadataItems}
-  ])
-]
-
-#v(12pt)
-#standfirst-card(${escapeTypstString(packet.summaryTitle)}, ${escapeTypstString(packet.summaryBody)})
-
-${
-  packet.themesTitle && packet.themesBody
-    ? `
+  const compactSourceLabel = packet.sourceLines[0]?.split(" - ")[0] ?? null;
+  const compactSourceLine = compactSourceLabel
+    ? `#text(size: 8.4pt, fill: muted)[#${escapeTypstString(`Source: ${compactSourceLabel}`)}]`
+    : "";
+  const compactVocabularyBlocks = packet.vocabularyItems
+    .map(
+      (item) =>
+        `#compact-note(${escapeTypstString(item.term)}, ${escapeTypstString(item.definition)})`,
+    )
+    .join("\n");
+  const compactThemeBlock =
+    isPypOnePage && packet.themesTitle && packet.themesBody
+      ? `
+#v(6pt)
+#text(size: 8.1pt, weight: "semibold", fill: gold)[#${escapeTypstString(packet.themesTitle)}]
+#v(2pt)
+#text(size: 9.6pt, fill: muted)[#${escapeTypstString(packet.themesBody)}]
+`
+      : "";
+  const standardThemeBlock =
+    !isPypOnePage && packet.themesTitle && packet.themesBody
+      ? `
 #v(12pt)
 #section-card(${escapeTypstString(packet.themesTitle)}, ${escapeTypstString(packet.themesBody)}, fill-color: pale-gold, border-color: gold-border, label-color: gold)
 `
-    : ""
-}
-
-#v(16pt)
-#text(size: 22pt, weight: "bold", fill: ink)[#${escapeTypstString(packet.readingTitle)}]
-#v(12pt)
-${readingBlocks}
-
+      : "";
+  const pypTeachingBlocks =
+    isPypOnePage
+      ? `
+#v(8pt)
+${packet.vocabularyTitle && packet.vocabularyItems.length > 0
+  ? `#text(size: 8.2pt, weight: "semibold", fill: gold)[#${escapeTypstString(packet.vocabularyTitle)}]
+#v(3pt)
+${compactVocabularyBlocks}
+#v(3pt)
+`
+  : ""}#text(size: 8.2pt, weight: "semibold", fill: muted)[#${escapeTypstString(packet.discussionTitle)}]
+#v(3pt)
+${compactDiscussionBlocks}
+${packet.bigIdeaTitle && packet.bigIdeaBody
+  ? `
+#v(3pt)
+#text(size: 8.2pt, weight: "semibold", fill: gold)[#${escapeTypstString(`${packet.bigIdeaTitle}:`)}]
+#h(4pt)
+#text(size: 9.2pt, fill: secondary)[#${escapeTypstString(packet.bigIdeaBody)}]
+`
+  : ""}
+`
+      : "";
+  const pypFooterBlock =
+    isPypOnePage
+      ? `
+#v(6pt)
+#line(length: 100%, stroke: (paint: soft-border, thickness: 1pt))
+#v(4pt)
+${compactSourceLine}
+#v(3pt)
+#text(size: 9.4pt, weight: "semibold", fill: ink)[#${escapeTypstString(packet.footerSignature)}]
+`
+      : "";
+  const standardTeachingBlocks =
+    !isPypOnePage
+      ? `
 ${
   packet.vocabularyTitle && packet.vocabularyItems.length > 0
     ? `
@@ -228,7 +191,7 @@ ${
 )[
   #text(size: 10pt, weight: "semibold", fill: gold)[#${escapeTypstString(packet.vocabularyTitle)}]
   #v(10pt)
-  ${vocabularyBlocks}
+  ${compactVocabularyBlocks.replace(/#compact-note/g, "#vocab-item")}
 ]
 `
     : ""
@@ -255,8 +218,126 @@ ${
   #v(10pt)
   ${discussionBlocks}
 ]
+`
+      : "";
 
-#v(12pt)
+  return `
+#set page(width: 595pt, height: 842pt, margin: ${isPypOnePage ? "36pt" : "48pt"}, fill: rgb("#fffdfa"))
+#set par(justify: false, leading: 0.95em)
+#set text(size: 11pt, fill: rgb("#475569"))
+
+#let ink = rgb("#0f172a")
+#let secondary = rgb("#475569")
+#let muted = rgb("#64748b")
+#let gold = rgb("#b45309")
+#let pale-blue = rgb("#eef6ff")
+#let pale-gold = rgb("#fdf7ea")
+#let soft-border = rgb("#d9e4f2")
+#let gold-border = rgb("#f1dfb9")
+
+#let pill(value) = box(
+  fill: rgb("#f8fbff"),
+  stroke: (paint: soft-border, thickness: 1pt),
+  inset: (x: ${isPypOnePage ? "8pt" : "10pt"}, y: ${isPypOnePage ? "4pt" : "5pt"}),
+  radius: 999pt,
+)[#text(size: ${isPypOnePage ? "7.1pt" : "7.5pt"}, weight: "semibold", fill: muted)[#value]]
+
+#let section-card(label, body, fill-color: white, border-color: soft-border, label-color: muted) = rect(
+  width: 100%,
+  fill: fill-color,
+  stroke: (paint: border-color, thickness: 1pt),
+  inset: 16pt,
+  radius: 18pt,
+)[
+  #text(size: 9pt, weight: "semibold", fill: label-color)[#label]
+  #v(8pt)
+  #set par(leading: 1.14em)
+  #text(size: 11.1pt, fill: secondary)[#body]
+]
+
+#let standfirst-card(label, body) = rect(
+  width: 100%,
+  fill: rgb("#fcfeff"),
+  stroke: (paint: soft-border, thickness: 1pt),
+  inset: ${isPypOnePage ? "18pt" : "22pt"},
+  radius: 18pt,
+)[
+  #text(size: ${isPypOnePage ? "8.5pt" : "9pt"}, weight: "semibold", fill: gold)[#label]
+  #v(${isPypOnePage ? "6pt" : "8pt"})
+  #set par(leading: ${isPypOnePage ? "1.16em" : "1.2em"})
+  #text(size: ${isPypOnePage ? "12.4pt" : "13.2pt"}, fill: ink)[#body]
+]
+
+#let reading-block(title, body) = [
+  #if title != "" [
+    #text(size: ${isPypOnePage ? "11.4pt" : "12.5pt"}, weight: "semibold", fill: ink)[#title]
+    #v(3pt)
+  ]
+  #set par(leading: ${isPypOnePage ? "1.1em" : "1.18em"})
+  #text(size: ${isPypOnePage ? "10.3pt" : "11.35pt"}, fill: secondary)[#body]
+  #v(${isPypOnePage ? "8pt" : "14pt"})
+]
+
+#let vocab-item(term, definition) = [
+  #text(size: 11pt, weight: "semibold", fill: ink)[#term]
+  #v(3pt)
+  #text(size: 11pt, fill: secondary)[#definition]
+  #v(8pt)
+]
+
+#let prompt-chip(prompt) = box(
+  fill: white,
+  stroke: (paint: soft-border, thickness: 1pt),
+  inset: 12pt,
+  radius: 14pt,
+)[#text(size: 10.5pt, fill: secondary)[#prompt]]
+
+#let compact-note(term, definition) = [
+  #text(size: 9.7pt, weight: "semibold", fill: ink)[#term]
+  #text(size: 9.7pt, fill: secondary)[": #definition"]
+  #v(4pt)
+]
+
+#let compact-prompt(prompt) = [
+  #text(size: 9.7pt, fill: secondary)[- #prompt]
+  #v(4pt)
+]
+
+#let source-line(value) = [
+  #text(size: 10pt, fill: secondary)[#value]
+  #v(6pt)
+]
+
+#rect(
+  width: 100%,
+  fill: pale-blue,
+  stroke: (paint: soft-border, thickness: 1pt),
+  inset: ${isPypOnePage ? "12pt" : "18pt"},
+  radius: ${isPypOnePage ? "14pt" : "20pt"},
+)[
+  #text(size: ${isPypOnePage ? "7pt" : "8.5pt"}, weight: "semibold", fill: gold)[#${escapeTypstString(packet.eyebrow)}]
+  #v(${isPypOnePage ? "2pt" : "4pt"})
+  #text(size: ${headlineSize}pt, weight: "bold", fill: ink)[#${escapeTypstString(headline)}]
+  #v(${isPypOnePage ? "5pt" : "10pt"})
+  #grid(columns: (auto, auto, auto), gutter: 8pt,[
+        ${metadataItems}
+  ])
+]
+
+#v(${isPypOnePage ? "7pt" : "12pt"})
+#standfirst-card(${escapeTypstString(packet.summaryTitle)}, ${escapeTypstString(packet.summaryBody)})
+${compactThemeBlock}
+${standardThemeBlock}
+
+#v(${isPypOnePage ? "10pt" : "16pt"})
+#text(size: ${isPypOnePage ? "17pt" : "22pt"}, weight: "bold", fill: ink)[#${escapeTypstString(packet.readingTitle)}]
+#v(${isPypOnePage ? "6pt" : "12pt"})
+${readingBlocks}
+${pypTeachingBlocks}
+${standardTeachingBlocks}
+
+${!isPypOnePage
+  ? `#v(12pt)
 #rect(
   width: 100%,
   fill: white,
@@ -272,7 +353,8 @@ ${
 #v(14pt)
 #line(length: 100%, stroke: (paint: soft-border, thickness: 1pt))
 #v(8pt)
-#text(size: 11pt, weight: "semibold", fill: ink)[#${escapeTypstString(packet.footerSignature)}]
+#text(size: 11pt, weight: "semibold", fill: ink)[#${escapeTypstString(packet.footerSignature)}]`
+  : pypFooterBlock}
 `.trim();
 }
 
