@@ -1,6 +1,7 @@
 import { updateParentNotificationEmailState } from "./mvp-store";
 import type { ParentProfile } from "./mvp-types";
 import {
+  listPlannedNotificationRunHistory,
   recordPlannedNotificationRun,
 } from "./planned-notification-history-store";
 import {
@@ -11,6 +12,9 @@ import {
   getBillingStatusNotificationCurrentState,
   getBillingStatusNotificationStatus,
 } from "./planned-notification-state";
+import {
+  getPlannedNotificationRetryDecision,
+} from "./planned-notification-ops";
 
 export async function maybeSendBillingStatusNotification(input: {
   profile: ParentProfile;
@@ -107,6 +111,48 @@ export async function maybeSendBillingStatusNotification(input: {
     });
 
     return result;
+  }
+
+  const history = await listPlannedNotificationRunHistory();
+  const retryDecision = getPlannedNotificationRetryDecision({
+    profile: {
+      ...input.profile,
+      parent: {
+        ...input.profile.parent,
+        latestInvoiceId: invoiceId,
+        latestInvoiceStatus: invoiceStatus,
+      },
+    },
+    notificationFamily: "billing-status-update",
+    history,
+    now,
+  });
+
+  if (retryDecision.kind === "cooldown" || retryDecision.kind === "escalated") {
+    const reason =
+      retryDecision.kind === "cooldown"
+        ? "Automatic retry is cooling down after a failed billing-status send."
+        : "Current billing-status notification now requires manual intervention after repeated failures.";
+
+    await recordPlannedNotificationRun({
+      runAt: now.toISOString(),
+      parentId: input.profile.parent.id,
+      parentEmail: input.profile.parent.email,
+      notificationFamily: "billing-status-update",
+      source: "stripe-webhook",
+      status: retryDecision.kind === "cooldown" ? "deferred" : "escalated",
+      reason,
+      deduped: false,
+      errorMessage: retryDecision.lastErrorMessage,
+      invoiceId,
+      invoiceStatus,
+    });
+
+    return {
+      sent: false,
+      skipped: true,
+      reason,
+    };
   }
 
   try {

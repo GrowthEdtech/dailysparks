@@ -8,9 +8,11 @@ const { updateParentNotificationEmailStateMock } = vi.hoisted(() => ({
   updateParentNotificationEmailStateMock: vi.fn(),
 }));
 
-const { recordPlannedNotificationRunMock } = vi.hoisted(() => ({
+const { recordPlannedNotificationRunMock, listPlannedNotificationRunHistoryMock } =
+  vi.hoisted(() => ({
   recordPlannedNotificationRunMock: vi.fn(),
-}));
+    listPlannedNotificationRunHistoryMock: vi.fn(),
+  }));
 
 vi.mock("./planned-notification-emails", () => ({
   sendBillingStatusUpdateNotification: sendBillingStatusUpdateNotificationMock,
@@ -22,6 +24,7 @@ vi.mock("./mvp-store", () => ({
 
 vi.mock("./planned-notification-history-store", () => ({
   recordPlannedNotificationRun: recordPlannedNotificationRunMock,
+  listPlannedNotificationRunHistory: listPlannedNotificationRunHistoryMock,
 }));
 
 import type { ParentProfile } from "./mvp-types";
@@ -110,6 +113,8 @@ describe("billing status notification", () => {
     sendBillingStatusUpdateNotificationMock.mockReset();
     updateParentNotificationEmailStateMock.mockReset();
     recordPlannedNotificationRunMock.mockReset();
+    listPlannedNotificationRunHistoryMock.mockReset();
+    listPlannedNotificationRunHistoryMock.mockResolvedValue([]);
   });
 
   test("sends a billing status email once per invoice id and status", async () => {
@@ -169,5 +174,66 @@ describe("billing status notification", () => {
       }),
     );
     expect(result.skipped).toBe(true);
+  });
+
+  test("escalates after repeated billing notification failures for the same invoice", async () => {
+    recordPlannedNotificationRunMock.mockResolvedValue(null);
+    listPlannedNotificationRunHistoryMock.mockResolvedValue([
+      {
+        id: "run-1",
+        runAt: "2026-04-05T00:30:00.000Z",
+        runDate: "2026-04-05",
+        parentId: "parent-1",
+        parentEmail: "parent@example.com",
+        notificationFamily: "billing-status-update",
+        source: "stripe-webhook",
+        status: "failed",
+        reason: "Invoice open notification pending",
+        deduped: false,
+        messageId: null,
+        errorMessage: "SMTP offline",
+        invoiceId: "in_123",
+        invoiceStatus: "paid",
+        trialEndsAt: null,
+        reasonKey: null,
+        createdAt: "2026-04-05T00:30:00.000Z",
+      },
+      {
+        id: "run-2",
+        runAt: "2026-04-05T01:15:00.000Z",
+        runDate: "2026-04-05",
+        parentId: "parent-1",
+        parentEmail: "parent@example.com",
+        notificationFamily: "billing-status-update",
+        source: "stripe-webhook",
+        status: "failed",
+        reason: "Invoice open notification pending",
+        deduped: false,
+        messageId: null,
+        errorMessage: "SMTP offline",
+        invoiceId: "in_123",
+        invoiceStatus: "paid",
+        trialEndsAt: null,
+        reasonKey: null,
+        createdAt: "2026-04-05T01:15:00.000Z",
+      },
+    ]);
+
+    const result = await maybeSendBillingStatusNotification({
+      profile: buildProfile(),
+      invoiceId: "in_123",
+      invoiceStatus: "paid",
+      now: new Date("2026-04-05T02:00:00.000Z"),
+    });
+
+    expect(sendBillingStatusUpdateNotificationMock).not.toHaveBeenCalled();
+    expect(result.skipped).toBe(true);
+    expect(result.reason).toMatch(/manual intervention/i);
+    expect(recordPlannedNotificationRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notificationFamily: "billing-status-update",
+        status: "escalated",
+      }),
+    );
   });
 });

@@ -10,10 +10,14 @@ import {
 } from "../../../../lib/planned-notification-admin-actions";
 import type { PlannedNotificationFamily } from "../../../../lib/planned-notification-state";
 
-type PlannedNotificationActionRequestBody = {
+type BatchActionItem = {
   parentEmail?: unknown;
   notificationFamily?: unknown;
+};
+
+type BatchActionBody = {
   action?: unknown;
+  items?: unknown;
 };
 
 function unauthorized(message: string) {
@@ -30,14 +34,6 @@ function unauthorized(message: string) {
 
 function badRequest(message: string) {
   return Response.json({ message }, { status: 400 });
-}
-
-function conflict(message: string) {
-  return Response.json({ message }, { status: 409 });
-}
-
-function notFound(message: string) {
-  return Response.json({ message }, { status: 404 });
 }
 
 function normalizeEmail(value: unknown) {
@@ -60,25 +56,20 @@ async function parseRequestBody(request: Request) {
   const contentLength = request.headers.get("content-length");
 
   if (contentLength === "0") {
-    return {} satisfies PlannedNotificationActionRequestBody;
+    return {} satisfies BatchActionBody;
   }
 
   const bodyText = await request.text();
 
   if (!bodyText.trim()) {
-    return {} satisfies PlannedNotificationActionRequestBody;
+    return {} satisfies BatchActionBody;
   }
 
   try {
-    return JSON.parse(bodyText) as PlannedNotificationActionRequestBody;
+    return JSON.parse(bodyText) as BatchActionBody;
   } catch {
     return badRequest("Request body must be valid JSON.");
   }
-}
-
-function revalidateUserAdminPaths(parentId: string) {
-  revalidatePath("/admin/editorial/users");
-  revalidatePath(`/admin/editorial/users/${parentId}`);
 }
 
 export async function POST(request: Request) {
@@ -94,54 +85,70 @@ export async function POST(request: Request) {
     return parsedBody;
   }
 
-  const parentEmail = normalizeEmail(parsedBody.parentEmail);
-  const notificationFamily = normalizeFamily(parsedBody.notificationFamily);
   const action = normalizeAction(parsedBody.action);
-
-  if (!parentEmail) {
-    return badRequest("parentEmail is required.");
-  }
-
-  if (!notificationFamily) {
-    return badRequest("notificationFamily is required.");
-  }
 
   if (!action) {
     return badRequest("action must be resend or resolve.");
   }
 
-  try {
-    const result = await performPlannedNotificationAction({
-      parentEmail,
-      notificationFamily,
-      action,
-    });
-
-    revalidateUserAdminPaths(result.parentId);
-
-    return Response.json({
-      success: result.success,
-      action,
-      notificationFamily,
-      parentEmail,
-      messageId: result.messageId,
-      reason: result.reason,
-    });
-  } catch (error) {
-    if (error instanceof Error) {
-      if ("statusCode" in error && error.statusCode === 404) {
-        return notFound(error.message);
-      }
-
-      if ("statusCode" in error && error.statusCode === 409) {
-        return conflict(error.message);
-      }
-    }
-
-    return conflict(
-      error instanceof Error
-        ? error.message
-        : "This notification action could not be completed.",
-    );
+  if (!Array.isArray(parsedBody.items) || parsedBody.items.length === 0) {
+    return badRequest("items must be a non-empty array.");
   }
+
+  const items = parsedBody.items
+    .map((item) => {
+      const rawItem = item as BatchActionItem;
+
+      return {
+        parentEmail: normalizeEmail(rawItem.parentEmail),
+        notificationFamily: normalizeFamily(rawItem.notificationFamily),
+      };
+    })
+    .filter(
+      (
+        item,
+      ): item is {
+        parentEmail: string;
+        notificationFamily: PlannedNotificationFamily;
+      } => Boolean(item.parentEmail && item.notificationFamily),
+    );
+
+  if (items.length === 0) {
+    return badRequest("Every batch action item needs parentEmail and notificationFamily.");
+  }
+
+  const successes = [];
+  const failures = [];
+
+  for (const item of items) {
+    try {
+      const result = await performPlannedNotificationAction({
+        parentEmail: item.parentEmail,
+        notificationFamily: item.notificationFamily,
+        action,
+        mode: "batch",
+      });
+
+      successes.push(result);
+      revalidatePath(`/admin/editorial/users/${result.parentId}`);
+    } catch (error) {
+      failures.push({
+        parentEmail: item.parentEmail,
+        notificationFamily: item.notificationFamily,
+        message:
+          error instanceof Error ? error.message : "The notification action failed.",
+      });
+    }
+  }
+
+  revalidatePath("/admin/editorial/users");
+
+  return Response.json({
+    success: failures.length === 0,
+    action,
+    successCount: successes.length,
+    failureCount: failures.length,
+    successes,
+    failures,
+  });
 }

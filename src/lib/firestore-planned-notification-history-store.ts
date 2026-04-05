@@ -42,13 +42,17 @@ function normalizeEntry(
     source:
       raw?.source === "stripe-webhook" ||
       raw?.source === "manual-resend" ||
-      raw?.source === "manual-resolve"
+      raw?.source === "manual-resolve" ||
+      raw?.source === "batch-resend" ||
+      raw?.source === "batch-resolve"
         ? raw.source
         : "growth-reconciliation",
     status:
       raw?.status === "sent" ||
       raw?.status === "failed" ||
-      raw?.status === "resolved"
+      raw?.status === "resolved" ||
+      raw?.status === "deferred" ||
+      raw?.status === "escalated"
         ? raw.status
         : "skipped",
     reason: normalizeNullableString(raw?.reason),

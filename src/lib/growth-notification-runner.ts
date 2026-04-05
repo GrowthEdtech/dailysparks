@@ -6,6 +6,7 @@ import {
   type PlannedNotificationSendResult,
 } from "./planned-notification-emails";
 import {
+  listPlannedNotificationRunHistory,
   recordPlannedNotificationRun,
 } from "./planned-notification-history-store";
 import {
@@ -14,6 +15,9 @@ import {
   getTrialEndingNotificationCurrentState,
   getTrialEndingNotificationStatus,
 } from "./planned-notification-state";
+import {
+  getPlannedNotificationRetryDecision,
+} from "./planned-notification-ops";
 
 export type GrowthNotificationRunBucket = {
   checkedCount: number;
@@ -43,6 +47,7 @@ export async function runGrowthNotificationEmails(input: {
   now?: Date;
 }): Promise<GrowthNotificationRunResult> {
   const now = input.now ?? new Date();
+  const history = await listPlannedNotificationRunHistory();
   const result: GrowthNotificationRunResult = {
     trialEnding: {
       checkedCount: 0,
@@ -64,6 +69,34 @@ export async function runGrowthNotificationEmails(input: {
       result.trialEnding.checkedCount += 1;
 
       if (trialEndingStatus.actionable && !trialEndingStatus.deduped) {
+        const retryDecision = getPlannedNotificationRetryDecision({
+          profile,
+          notificationFamily: "trial-ending-reminder",
+          history,
+          now,
+        });
+
+        if (retryDecision.kind === "cooldown" || retryDecision.kind === "escalated") {
+          result.trialEnding.skippedCount += 1;
+          await recordPlannedNotificationRun({
+            runAt: now.toISOString(),
+            parentId: profile.parent.id,
+            parentEmail: profile.parent.email,
+            notificationFamily: "trial-ending-reminder",
+            source: "growth-reconciliation",
+            status: retryDecision.kind === "cooldown" ? "deferred" : "escalated",
+            reason:
+              retryDecision.kind === "cooldown"
+                ? `Automatic retry is cooling down after a failed trial-ending send.`
+                : `Current trial-ending notification now requires manual intervention after repeated failures.`,
+            deduped: false,
+            messageId: null,
+            errorMessage: retryDecision.lastErrorMessage,
+            trialEndsAt: trialEndingState.trialEndsAt,
+          });
+          continue;
+        }
+
         try {
           const sent = await sendTrialEndingReminderNotification({ profile });
           countResult(result.trialEnding, sent);
@@ -131,6 +164,34 @@ export async function runGrowthNotificationEmails(input: {
       result.deliverySupport.checkedCount += 1;
 
       if (deliverySupportStatus.actionable && !deliverySupportStatus.deduped) {
+        const retryDecision = getPlannedNotificationRetryDecision({
+          profile,
+          notificationFamily: "delivery-support-alert",
+          history,
+          now,
+        });
+
+        if (retryDecision.kind === "cooldown" || retryDecision.kind === "escalated") {
+          result.deliverySupport.skippedCount += 1;
+          await recordPlannedNotificationRun({
+            runAt: now.toISOString(),
+            parentId: profile.parent.id,
+            parentEmail: profile.parent.email,
+            notificationFamily: "delivery-support-alert",
+            source: "growth-reconciliation",
+            status: retryDecision.kind === "cooldown" ? "deferred" : "escalated",
+            reason:
+              retryDecision.kind === "cooldown"
+                ? "Automatic retry is cooling down after a failed delivery-support send."
+                : "Current delivery-support notification now requires manual intervention after repeated failures.",
+            deduped: false,
+            messageId: null,
+            errorMessage: retryDecision.lastErrorMessage,
+            reasonKey: deliverySupportState.reasonKey,
+          });
+          continue;
+        }
+
         try {
           const sent = await sendDeliverySupportAlertNotification({
             profile,

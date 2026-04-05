@@ -17,6 +17,14 @@ vi.mock("../../../../lib/onboarding-reminder-history-store", () => ({
   listOnboardingReminderRunHistory: listOnboardingReminderRunHistoryMock,
 }));
 
+const { listPlannedNotificationRunHistoryMock } = vi.hoisted(() => ({
+  listPlannedNotificationRunHistoryMock: vi.fn(),
+}));
+
+vi.mock("../../../../lib/planned-notification-history-store", () => ({
+  listPlannedNotificationRunHistory: listPlannedNotificationRunHistoryMock,
+}));
+
 import UsersAdminPage from "./page";
 
 describe("UsersAdminPage", () => {
@@ -24,6 +32,8 @@ describe("UsersAdminPage", () => {
     listParentProfilesMock.mockReset();
     listOnboardingReminderRunHistoryMock.mockReset();
     listOnboardingReminderRunHistoryMock.mockResolvedValue([]);
+    listPlannedNotificationRunHistoryMock.mockReset();
+    listPlannedNotificationRunHistoryMock.mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -800,5 +810,122 @@ describe("UsersAdminPage", () => {
     expect(markup).toContain("Deduped");
     expect(markup).toContain("Pending");
     expect(markup).toContain("SMTP offline");
+  });
+
+  test("renders a notification ops queue with batch actions when queue items exist", async () => {
+    listParentProfilesMock.mockResolvedValue([
+      {
+        parent: {
+          id: "parent-queue",
+          email: "queue@example.com",
+          fullName: "Queue Parent",
+          countryCode: "HK",
+          deliveryTimeZone: "Asia/Hong_Kong",
+          preferredDeliveryLocalTime: "09:00",
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
+          trialEndingReminderLastNotifiedAt: null,
+          trialEndingReminderLastTrialEndsAt: null,
+          trialEndingReminderLastResolvedAt: null,
+          trialEndingReminderLastResolvedTrialEndsAt: null,
+          billingStatusNotificationLastSentAt: null,
+          billingStatusNotificationLastInvoiceId: null,
+          billingStatusNotificationLastInvoiceStatus: null,
+          billingStatusNotificationLastResolvedAt: null,
+          billingStatusNotificationLastResolvedInvoiceId: null,
+          billingStatusNotificationLastResolvedInvoiceStatus: null,
+          deliverySupportAlertLastNotifiedAt: null,
+          deliverySupportAlertLastReasonKey: null,
+          deliverySupportAlertLastResolvedAt: null,
+          deliverySupportAlertLastResolvedReasonKey: null,
+          subscriptionStatus: "trial",
+          subscriptionPlan: null,
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          trialStartedAt: "2026-04-01T00:00:00.000Z",
+          trialEndsAt: "2026-04-08T00:00:00.000Z",
+          subscriptionActivatedAt: null,
+          subscriptionRenewalAt: null,
+          latestInvoiceId: null,
+          latestInvoiceNumber: null,
+          latestInvoiceStatus: null,
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: null,
+          latestInvoiceCurrency: null,
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: null,
+          latestInvoicePeriodEnd: null,
+          notionWorkspaceId: null,
+          notionWorkspaceName: null,
+          notionBotId: null,
+          notionDatabaseId: null,
+          notionDatabaseName: null,
+          notionDataSourceId: null,
+          notionAuthorizedAt: null,
+          notionLastSyncedAt: null,
+          notionLastSyncStatus: null,
+          notionLastSyncMessage: null,
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-05T01:00:00.000Z",
+        },
+        student: {
+          id: "student-queue",
+          parentId: "parent-queue",
+          studentName: "Queue Student",
+          programme: "PYP",
+          programmeYear: 5,
+          goodnotesEmail: "",
+          goodnotesConnected: false,
+          goodnotesVerifiedAt: null,
+          goodnotesLastTestSentAt: null,
+          goodnotesLastDeliveryStatus: null,
+          goodnotesLastDeliveryMessage: null,
+          notionConnected: false,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-05T01:00:00.000Z",
+        },
+      },
+    ]);
+    listPlannedNotificationRunHistoryMock.mockResolvedValue([
+      {
+        id: "run-queue",
+        runAt: "2026-04-05T00:30:00.000Z",
+        runDate: "2026-04-05",
+        parentId: "parent-queue",
+        parentEmail: "queue@example.com",
+        notificationFamily: "trial-ending-reminder",
+        source: "growth-reconciliation",
+        status: "failed",
+        reason: "Trial ending soon",
+        deduped: false,
+        messageId: null,
+        errorMessage: "SMTP offline",
+        invoiceId: null,
+        invoiceStatus: null,
+        trialEndsAt: "2026-04-08T00:00:00.000Z",
+        reasonKey: null,
+        createdAt: "2026-04-05T00:30:00.000Z",
+      },
+    ]);
+
+    const markup = renderToStaticMarkup(
+      await UsersAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("Notification ops queue");
+    expect(markup).toContain("Retry due");
+    expect(markup).toContain("Send batch resend");
+    expect(markup).toContain("Mark batch resolved");
+    expect(markup).toContain("Queue Parent");
   });
 });

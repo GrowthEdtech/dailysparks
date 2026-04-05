@@ -49,7 +49,9 @@ function normalizeSource(value: unknown): PlannedNotificationRunSource {
     value === "growth-reconciliation" ||
     value === "stripe-webhook" ||
     value === "manual-resend" ||
-    value === "manual-resolve"
+    value === "manual-resolve" ||
+    value === "batch-resend" ||
+    value === "batch-resolve"
   ) {
     return value;
   }
@@ -62,7 +64,9 @@ function normalizeStatus(value: unknown): PlannedNotificationRunStatus {
     value === "sent" ||
     value === "skipped" ||
     value === "failed" ||
-    value === "resolved"
+    value === "resolved" ||
+    value === "deferred" ||
+    value === "escalated"
   ) {
     return value;
   }

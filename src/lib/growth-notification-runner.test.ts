@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const { sendTrialEndingReminderNotificationMock, sendDeliverySupportAlertNotificationMock } =
   vi.hoisted(() => ({
@@ -10,9 +10,11 @@ const { updateParentNotificationEmailStateMock } = vi.hoisted(() => ({
   updateParentNotificationEmailStateMock: vi.fn(),
 }));
 
-const { recordPlannedNotificationRunMock } = vi.hoisted(() => ({
+const { recordPlannedNotificationRunMock, listPlannedNotificationRunHistoryMock } =
+  vi.hoisted(() => ({
   recordPlannedNotificationRunMock: vi.fn(),
-}));
+    listPlannedNotificationRunHistoryMock: vi.fn(),
+  }));
 
 vi.mock("./planned-notification-emails", () => ({
   sendTrialEndingReminderNotification: sendTrialEndingReminderNotificationMock,
@@ -25,6 +27,7 @@ vi.mock("./mvp-store", () => ({
 
 vi.mock("./planned-notification-history-store", () => ({
   recordPlannedNotificationRun: recordPlannedNotificationRunMock,
+  listPlannedNotificationRunHistory: listPlannedNotificationRunHistoryMock,
 }));
 
 import type { ParentProfile } from "./mvp-types";
@@ -107,9 +110,19 @@ function buildProfile(
 }
 
 describe("growth notification runner", () => {
+  beforeEach(() => {
+    sendTrialEndingReminderNotificationMock.mockReset();
+    sendDeliverySupportAlertNotificationMock.mockReset();
+    updateParentNotificationEmailStateMock.mockReset();
+    recordPlannedNotificationRunMock.mockReset();
+    listPlannedNotificationRunHistoryMock.mockReset();
+    listPlannedNotificationRunHistoryMock.mockResolvedValue([]);
+  });
+
   test("sends trial-ending and delivery-support notifications only when due", async () => {
     updateParentNotificationEmailStateMock.mockResolvedValue(null);
     recordPlannedNotificationRunMock.mockResolvedValue(null);
+    listPlannedNotificationRunHistoryMock.mockResolvedValue([]);
     sendTrialEndingReminderNotificationMock.mockResolvedValue({
       sent: true,
       skipped: false,
@@ -160,5 +173,45 @@ describe("growth notification runner", () => {
     );
     expect(result.trialEnding.sentCount).toBe(1);
     expect(result.deliverySupport.sentCount).toBe(1);
+  });
+
+  test("defers automatic trial-ending retries while cooldown is active", async () => {
+    updateParentNotificationEmailStateMock.mockResolvedValue(null);
+    recordPlannedNotificationRunMock.mockResolvedValue(null);
+    listPlannedNotificationRunHistoryMock.mockResolvedValue([
+      {
+        id: "run-1",
+        runAt: "2026-04-04T01:45:00.000Z",
+        runDate: "2026-04-04",
+        parentId: "parent-1",
+        parentEmail: "parent@example.com",
+        notificationFamily: "trial-ending-reminder",
+        source: "growth-reconciliation",
+        status: "failed",
+        reason: "Trial ending soon",
+        deduped: false,
+        messageId: null,
+        errorMessage: "SMTP offline",
+        invoiceId: null,
+        invoiceStatus: null,
+        trialEndsAt: "2026-04-05T00:00:00.000Z",
+        reasonKey: null,
+        createdAt: "2026-04-04T01:45:00.000Z",
+      },
+    ]);
+
+    const result = await runGrowthNotificationEmails({
+      profiles: [buildProfile()],
+      now: new Date("2026-04-04T02:00:00.000Z"),
+    });
+
+    expect(sendTrialEndingReminderNotificationMock).not.toHaveBeenCalled();
+    expect(result.trialEnding.skippedCount).toBe(1);
+    expect(recordPlannedNotificationRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notificationFamily: "trial-ending-reminder",
+        status: "deferred",
+      }),
+    );
   });
 });

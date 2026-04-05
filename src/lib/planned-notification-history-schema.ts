@@ -4,13 +4,17 @@ export type PlannedNotificationRunStatus =
   | "sent"
   | "skipped"
   | "failed"
-  | "resolved";
+  | "resolved"
+  | "deferred"
+  | "escalated";
 
 export type PlannedNotificationRunSource =
   | "growth-reconciliation"
   | "stripe-webhook"
   | "manual-resend"
-  | "manual-resolve";
+  | "manual-resolve"
+  | "batch-resend"
+  | "batch-resolve";
 
 export type PlannedNotificationRunRecord = {
   id: string;

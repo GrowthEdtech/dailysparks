@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { listParentProfiles } from "../../../../lib/mvp-store";
 import { listOnboardingReminderRunHistory } from "../../../../lib/onboarding-reminder-history-store";
+import { listPlannedNotificationRunHistory } from "../../../../lib/planned-notification-history-store";
 import {
   getDerivedAccessState,
   type DerivedAccessState,
@@ -26,6 +27,8 @@ import {
 } from "./users-admin-helpers";
 import { getActivationDashboardSummary } from "./activation-funnel-summary";
 import { getGrowthReconciliationSummary } from "../../../../lib/growth-reconciliation";
+import { buildPlannedNotificationOpsQueue } from "../../../../lib/planned-notification-ops";
+import PlannedNotificationOpsQueue from "./planned-notification-ops-queue";
 
 type UsersAdminPageProps = {
   searchParams: Promise<{
@@ -61,6 +64,10 @@ export default async function UsersAdminPage({
   );
   const reconciliationSummary = getGrowthReconciliationSummary(allProfiles);
   const plannedNotificationSummary = getPlannedNotificationOpsSummary(visibleProfiles);
+  const plannedNotificationQueue = buildPlannedNotificationOpsQueue({
+    profiles: visibleProfiles,
+    history: await listPlannedNotificationRunHistory(),
+  });
 
   return (
     <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -395,6 +402,11 @@ export default async function UsersAdminPage({
           </div>
         </div>
       </section>
+
+      <PlannedNotificationOpsQueue
+        items={plannedNotificationQueue.items}
+        summary={plannedNotificationQueue.summary}
+      />
 
       {visibleProfiles.length === 0 ? (
         <div className="mt-8 rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-10">
