@@ -2,8 +2,9 @@ import nodemailer from "nodemailer";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
-import { getProgrammeStageSummary, getWeeklyPlan } from "./weekly-plan";
 import type { ParentProfile } from "./mvp-types";
+import { buildOutboundDailyBriefPacket } from "./outbound-daily-brief-packet";
+import { getProgrammeStageSummary, getWeeklyPlan } from "./weekly-plan";
 
 type GoodnotesDeliveryConfig = {
   smtpUrl: string;
@@ -32,23 +33,6 @@ type GoodnotesWelcomeNote = {
   nextStepsTitle: string;
   nextSteps: string[];
   signature: string;
-};
-
-type GoodnotesBriefPacket = {
-  eyebrow: string;
-  title: string;
-  metadataItems: string[];
-  summaryTitle: string;
-  summaryBody: string;
-  themesTitle: string | null;
-  themesBody: string | null;
-  readingTitle: string;
-  readingParagraphs: string[];
-  discussionTitle: string;
-  discussionPrompts: string[];
-  sourcesTitle: string;
-  sourceLines: string[];
-  footerSignature: string;
 };
 
 const PAGE_WIDTH = 595;
@@ -123,31 +107,6 @@ function formatHongKongDate(date = new Date()) {
   const day = parts.find((part) => part.type === "day")?.value ?? "00";
 
   return `${year}-${month}-${day}`;
-}
-
-function formatScheduledDateLabel(scheduledFor: string) {
-  const date = new Date(`${scheduledFor}T00:00:00.000Z`);
-
-  if (Number.isNaN(date.getTime())) {
-    return scheduledFor;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(date);
-}
-
-function formatEditorialCohortEdition(
-  editorialCohort: GeneratedDailyBriefDraft["editorialCohort"] | undefined,
-) {
-  if (!editorialCohort) {
-    return "Global edition";
-  }
-
-  return `${editorialCohort} edition`;
 }
 
 function toTestAttachmentFileName(programme: string, generatedAt = new Date()) {
@@ -282,35 +241,10 @@ export function buildGoodnotesWelcomeNote(
 }
 
 export function buildGoodnotesBriefPacket(
-  profile: ParentProfile,
+  _profile: ParentProfile,
   brief: GeneratedDailyBriefDraft,
-): GoodnotesBriefPacket {
-  return {
-    eyebrow: "Daily Sparks",
-    title: brief.headline,
-    metadataItems: [
-      formatScheduledDateLabel(brief.scheduledFor),
-      `${brief.programme} edition`,
-      formatEditorialCohortEdition(brief.editorialCohort),
-    ],
-    summaryTitle: "Summary deck",
-    summaryBody: brief.summary,
-    themesTitle: brief.topicTags.length > 0 ? "Theme focus" : null,
-    themesBody: brief.topicTags.length > 0 ? brief.topicTags.join(", ") : null,
-    readingTitle: "Reading brief",
-    readingParagraphs: extractParagraphsFromMarkdown(brief.briefMarkdown),
-    discussionTitle: "Discussion prompts",
-    discussionPrompts: [
-      "What feels most important in today's story?",
-      "Which detail would you like to understand more clearly?",
-      "How does this connect to your own world or experience?",
-    ],
-    sourcesTitle: "Source references",
-    sourceLines: brief.sourceReferences.map(
-      (reference) => `${reference.sourceName} - ${reference.articleTitle}`,
-    ),
-    footerSignature: "Growth Education Limited",
-  };
+) {
+  return buildOutboundDailyBriefPacket(brief);
 }
 
 export async function createGoodnotesTestBriefPdf(profile: ParentProfile) {
@@ -530,13 +464,6 @@ export async function createGoodnotesTestBriefPdf(profile: ParentProfile) {
   });
 
   return pdf.save();
-}
-
-function extractParagraphsFromMarkdown(markdown: string) {
-  return markdown
-    .split(/\n{2,}/)
-    .map((segment) => segment.replace(/^#+\s*/gm, "").trim())
-    .filter(Boolean);
 }
 
 export async function createGoodnotesBriefPdf(

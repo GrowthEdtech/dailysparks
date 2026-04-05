@@ -154,9 +154,14 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("Shareable with families.");
     expect(markup).toContain("Cities test new heat protections");
     expect(markup).toContain("v1.0.0");
-    expect(markup).toContain("## Today");
+    expect(markup).toContain("Cities are testing new heat protections.");
+    expect(markup).toContain("Editorial preview");
+    expect(markup).toContain("Summary deck");
+    expect(markup).toContain("Reading brief");
+    expect(markup).toContain("Discussion prompts");
+    expect(markup).toContain("Theme focus");
     expect(markup).toContain("Pipeline timeline");
-    expect(markup).toContain("Delivery health");
+    expect(markup).toContain("Dispatch review");
     expect(markup).toContain("Dispatch audience");
     expect(markup).toContain("Delivery receipts");
     expect(markup).toContain("Selection governance");

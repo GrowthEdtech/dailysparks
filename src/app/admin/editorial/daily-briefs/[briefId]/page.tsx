@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getDailyBriefHistoryEntry } from "../../../../../lib/daily-brief-history-store";
+import { buildOutboundDailyBriefPacket } from "../../../../../lib/outbound-daily-brief-packet";
 import {
   buildPipelineTimeline,
   formatAdminDateTime,
@@ -56,6 +57,8 @@ export default async function DailyBriefDetailPage({
   if (!entry) {
     notFound();
   }
+
+  const preview = buildOutboundDailyBriefPacket(entry);
 
   return (
     <section className="space-y-6">
@@ -118,13 +121,108 @@ export default async function DailyBriefDetailPage({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
-        <article className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
-            Generated brief
-          </h2>
-          <pre className="mt-4 whitespace-pre-wrap break-words rounded-[24px] bg-slate-50 p-5 text-sm leading-7 text-slate-700">
-            {entry.briefMarkdown}
-          </pre>
+        <article className="rounded-[32px] border border-[#d9e4f2] bg-[#fffdfa] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.06)]">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b45309]">
+                Editorial preview
+              </p>
+              <h2 className="mt-2 text-xl font-bold tracking-tight text-[#0f172a]">
+                Outbound PDF view
+              </h2>
+            </div>
+            <span className="inline-flex rounded-full border border-[#d9e4f2] bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              {formatRecordKindLabel(entry.recordKind)}
+            </span>
+          </div>
+
+          <div className="mt-5 rounded-[28px] border border-[#d4e3f5] bg-[#eef6ff] p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#b45309]">
+              {preview.eyebrow}
+            </p>
+            <h3 className="mt-4 text-[2rem] font-bold leading-tight tracking-tight text-[#0f172a]">
+              {preview.title}
+            </h3>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {preview.metadataItems.map((item) => (
+                <span
+                  key={item}
+                  className="inline-flex rounded-full border border-[#d4e3f5] bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4">
+            <section className="rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                {preview.summaryTitle}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-slate-700">
+                {preview.summaryBody}
+              </p>
+            </section>
+
+            {preview.themesTitle && preview.themesBody ? (
+              <section className="rounded-[24px] border border-[#f1dfb9] bg-[#fdf7ea] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b45309]">
+                  {preview.themesTitle}
+                </p>
+                <p className="mt-3 text-sm leading-7 text-slate-700">
+                  {preview.themesBody}
+                </p>
+              </section>
+            ) : null}
+
+            <section className="rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                {preview.readingTitle}
+              </p>
+              <div className="mt-3 space-y-4 text-sm leading-7 text-slate-700">
+                {preview.readingParagraphs.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-[24px] border border-[#d4e3f5] bg-[#eef6ff] p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                {preview.discussionTitle}
+              </p>
+              <div className="mt-3 space-y-3">
+                {preview.discussionPrompts.map((prompt) => (
+                  <div
+                    key={prompt}
+                    className="rounded-[18px] border border-[#d4e3f5] bg-white px-4 py-3 text-sm leading-6 text-slate-700"
+                  >
+                    {prompt}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                {preview.sourcesTitle}
+              </p>
+              <div className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                {preview.sourceLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          <div className="mt-6 border-t border-[#d9e4f2] pt-4">
+            <p className="text-base font-semibold text-[#0f172a]">
+              {preview.footerSignature}
+            </p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Prompt {entry.promptVersionLabel} · {entry.aiConnectionName} / {entry.aiModel}
+            </p>
+          </div>
         </article>
 
         <aside className="space-y-6">
@@ -234,12 +332,15 @@ export default async function DailyBriefDetailPage({
             ) : null}
           </section>
 
-          <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-[32px] border border-[#d9e4f2] bg-[#fffdfa] p-6 shadow-[0_24px_80px_rgba(15,23,42,0.06)]">
             <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
-              Delivery health
+              Dispatch review
             </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Review the live dispatch outcome against the stored outbound asset, receipts, and audience decisions for this brief.
+            </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+              <div className="rounded-[24px] border border-[#d9e4f2] bg-white p-4 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                   Attempts
                 </p>
@@ -247,7 +348,7 @@ export default async function DailyBriefDetailPage({
                   {entry.deliveryAttemptCount}
                 </p>
               </div>
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+              <div className="rounded-[24px] border border-[#d9e4f2] bg-white p-4 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                   Delivered
                 </p>
@@ -255,7 +356,7 @@ export default async function DailyBriefDetailPage({
                   {entry.deliverySuccessCount}
                 </p>
               </div>
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+              <div className="rounded-[24px] border border-[#d9e4f2] bg-white p-4 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                   Failed
                 </p>
@@ -265,7 +366,7 @@ export default async function DailyBriefDetailPage({
               </div>
             </div>
 
-            <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+            <div className="mt-4 rounded-[24px] border border-[#d4e3f5] bg-[#eef6ff] p-5 text-sm leading-6 text-slate-600">
               <p>
                 <span className="font-semibold text-[#0f172a]">
                   Delivery summary:
@@ -317,13 +418,13 @@ export default async function DailyBriefDetailPage({
 
             {entry.deliveryReceipts.length > 0 ? (
               <div className="mt-6 space-y-3">
-                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.18em] text-[#64748b]">
                   Delivery receipts
                 </h3>
                 {entry.deliveryReceipts.map((receipt) => (
                   <article
                     key={`${receipt.parentId}-${receipt.channel}-${receipt.externalId ?? receipt.attachmentFileName ?? "receipt"}`}
-                    className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+                    className="rounded-[24px] border border-[#d9e4f2] bg-white p-4 shadow-sm"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -350,7 +451,9 @@ export default async function DailyBriefDetailPage({
                         <span className="font-semibold text-[#0f172a]">
                           Attachment filename:
                         </span>{" "}
-                        {receipt.attachmentFileName ?? "Not applicable"}
+                        <span className="font-mono text-[13px] text-slate-700">
+                          {receipt.attachmentFileName ?? "Not applicable"}
+                        </span>
                       </p>
                       <p>
                         <span className="font-semibold text-[#0f172a]">
@@ -363,82 +466,81 @@ export default async function DailyBriefDetailPage({
                 ))}
               </div>
             ) : null}
-          </section>
-
-          <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
-              Dispatch audience
-            </h2>
-            <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-              <p>
-                <span className="font-semibold text-[#0f172a]">
-                  Dispatch mode:
-                </span>{" "}
-                {entry.dispatchMode ?? "Unavailable on this legacy record"}
-              </p>
-              {entry.dispatchMode === "canary" &&
-              (entry.dispatchCanaryParentEmails?.length ?? 0) > 0 ? (
+            <div className="mt-6 rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                Dispatch audience
+              </h3>
+              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
                 <p>
                   <span className="font-semibold text-[#0f172a]">
-                    Canary recipients:
+                    Dispatch mode:
                   </span>{" "}
-                  {entry.dispatchCanaryParentEmails?.join(", ")}
+                  {entry.dispatchMode ?? "Unavailable on this legacy record"}
                 </p>
-              ) : null}
-            </div>
-
-            <div className="mt-4 space-y-4">
-              {[
-                {
-                  label: "Targeted families",
-                  entries: entry.targetedProfiles ?? [],
-                },
-                {
-                  label: "Skipped families",
-                  entries: entry.skippedProfiles ?? [],
-                },
-                {
-                  label: "Pending future windows",
-                  entries: entry.pendingFutureProfiles ?? [],
-                },
-                {
-                  label: "Held for channel recovery",
-                  entries: entry.heldProfiles ?? [],
-                },
-              ].map((group) => (
-                <div
-                  key={group.label}
-                  className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
-                >
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    {group.label}
+                {entry.dispatchMode === "canary" &&
+                (entry.dispatchCanaryParentEmails?.length ?? 0) > 0 ? (
+                  <p>
+                    <span className="font-semibold text-[#0f172a]">
+                      Canary recipients:
+                    </span>{" "}
+                    {entry.dispatchCanaryParentEmails?.join(", ")}
                   </p>
-                  {group.entries.length > 0 ? (
-                    <div className="mt-3 space-y-3">
-                      {group.entries.map((audienceEntry) => (
-                        <article
-                          key={`${group.label}-${audienceEntry.parentId}-${audienceEntry.reason}`}
-                          className="rounded-[20px] border border-slate-200 bg-white px-4 py-3"
-                        >
-                          <p className="text-sm font-semibold text-[#0f172a]">
-                            {audienceEntry.parentEmail}
-                          </p>
-                          <p className="mt-1 text-sm text-slate-600">
-                            {audienceEntry.reason}
-                          </p>
-                          <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                            {audienceEntry.localDeliveryWindow}
-                          </p>
-                        </article>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-sm text-slate-500">
-                      No audience entries recorded for this category.
+                ) : null}
+              </div>
+
+              <div className="mt-4 space-y-4">
+                {[
+                  {
+                    label: "Targeted families",
+                    entries: entry.targetedProfiles ?? [],
+                  },
+                  {
+                    label: "Skipped families",
+                    entries: entry.skippedProfiles ?? [],
+                  },
+                  {
+                    label: "Pending future windows",
+                    entries: entry.pendingFutureProfiles ?? [],
+                  },
+                  {
+                    label: "Held for channel recovery",
+                    entries: entry.heldProfiles ?? [],
+                  },
+                ].map((group) => (
+                  <div
+                    key={group.label}
+                    className="rounded-[20px] border border-[#d9e4f2] bg-[#f8fbff] p-4"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {group.label}
                     </p>
-                  )}
-                </div>
-              ))}
+                    {group.entries.length > 0 ? (
+                      <div className="mt-3 space-y-3">
+                        {group.entries.map((audienceEntry) => (
+                          <article
+                            key={`${group.label}-${audienceEntry.parentId}-${audienceEntry.reason}`}
+                            className="rounded-[18px] border border-[#d9e4f2] bg-white px-4 py-3"
+                          >
+                            <p className="text-sm font-semibold text-[#0f172a]">
+                              {audienceEntry.parentEmail}
+                            </p>
+                            <p className="mt-1 text-sm text-slate-600">
+                              {audienceEntry.reason}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                              {audienceEntry.localDeliveryWindow}
+                            </p>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-slate-500">
+                        No audience entries recorded for this category.
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
