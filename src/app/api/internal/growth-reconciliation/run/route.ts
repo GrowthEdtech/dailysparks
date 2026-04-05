@@ -5,6 +5,7 @@ import {
 } from "../../../../../lib/daily-brief-run-auth";
 import { listParentProfiles } from "../../../../../lib/mvp-store";
 import { getGrowthReconciliationSummary } from "../../../../../lib/growth-reconciliation";
+import { runGrowthNotificationEmails } from "../../../../../lib/growth-notification-runner";
 
 function serviceUnavailable(message: string) {
   return Response.json({ message }, { status: 503 });
@@ -27,11 +28,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const summary = getGrowthReconciliationSummary(await listParentProfiles());
+  const profiles = await listParentProfiles();
+  const now = new Date();
+  const summary = getGrowthReconciliationSummary(profiles, now);
+  const notificationRun = await runGrowthNotificationEmails({ profiles, now });
 
   return Response.json({
     mode: "growth-reconciliation",
     runDate: summary.runDate,
     summary,
+    notificationRun,
   });
 }

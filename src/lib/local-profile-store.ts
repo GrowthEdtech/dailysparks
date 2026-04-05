@@ -19,6 +19,7 @@ import type {
   SubscriptionPlan,
   UpdateParentDeliveryPreferencesInput,
   UpdateParentGrowthMilestonesInput,
+  UpdateParentNotificationEmailStateInput,
   UpdateParentOnboardingReminderInput,
   UpdateParentNotionInput,
   UpdateStudentGoodnotesInput,
@@ -149,6 +150,27 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
   const latestInvoicePaidAt = normalizeNullableString(raw.latestInvoicePaidAt);
   const latestInvoicePeriodStart = normalizeNullableString(raw.latestInvoicePeriodStart);
   const latestInvoicePeriodEnd = normalizeNullableString(raw.latestInvoicePeriodEnd);
+  const trialEndingReminderLastNotifiedAt = normalizeNullableString(
+    raw.trialEndingReminderLastNotifiedAt,
+  );
+  const trialEndingReminderLastTrialEndsAt = normalizeNullableString(
+    raw.trialEndingReminderLastTrialEndsAt,
+  );
+  const billingStatusNotificationLastSentAt = normalizeNullableString(
+    raw.billingStatusNotificationLastSentAt,
+  );
+  const billingStatusNotificationLastInvoiceId = normalizeNullableString(
+    raw.billingStatusNotificationLastInvoiceId,
+  );
+  const billingStatusNotificationLastInvoiceStatus = normalizeNullableString(
+    raw.billingStatusNotificationLastInvoiceStatus,
+  );
+  const deliverySupportAlertLastNotifiedAt = normalizeNullableString(
+    raw.deliverySupportAlertLastNotifiedAt,
+  );
+  const deliverySupportAlertLastReasonKey = normalizeNullableString(
+    raw.deliverySupportAlertLastReasonKey,
+  );
   const notionWorkspaceId = normalizeNullableString(raw.notionWorkspaceId);
   const notionWorkspaceName = normalizeNullableString(raw.notionWorkspaceName);
   const notionBotId = normalizeNullableString(raw.notionBotId);
@@ -245,6 +267,13 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
     latestInvoicePaidAt,
     latestInvoicePeriodStart,
     latestInvoicePeriodEnd,
+    trialEndingReminderLastNotifiedAt,
+    trialEndingReminderLastTrialEndsAt,
+    billingStatusNotificationLastSentAt,
+    billingStatusNotificationLastInvoiceId,
+    billingStatusNotificationLastInvoiceStatus,
+    deliverySupportAlertLastNotifiedAt,
+    deliverySupportAlertLastReasonKey,
     notionWorkspaceId,
     notionWorkspaceName,
     notionBotId,
@@ -1131,6 +1160,86 @@ export const localProfileStore: ProfileStore = {
       parent.updatedAt = new Date().toISOString();
       await writeStore(store);
     }
+
+    return toProfile(parent, student);
+  },
+
+  async updateParentNotificationEmailState(
+    email,
+    input: UpdateParentNotificationEmailStateInput,
+  ) {
+    const normalizedEmail = normalizeEmail(email);
+    const store = await readStore();
+    const parent = store.parents.find((record) => record.email === normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = findStudentForParent(store, parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    if (input.trialEndingReminderLastNotifiedAt !== undefined) {
+      parent.trialEndingReminderLastNotifiedAt =
+        typeof input.trialEndingReminderLastNotifiedAt === "string" &&
+        input.trialEndingReminderLastNotifiedAt.trim()
+          ? input.trialEndingReminderLastNotifiedAt
+          : null;
+    }
+
+    if (input.trialEndingReminderLastTrialEndsAt !== undefined) {
+      parent.trialEndingReminderLastTrialEndsAt =
+        typeof input.trialEndingReminderLastTrialEndsAt === "string" &&
+        input.trialEndingReminderLastTrialEndsAt.trim()
+          ? input.trialEndingReminderLastTrialEndsAt
+          : null;
+    }
+
+    if (input.billingStatusNotificationLastSentAt !== undefined) {
+      parent.billingStatusNotificationLastSentAt =
+        typeof input.billingStatusNotificationLastSentAt === "string" &&
+        input.billingStatusNotificationLastSentAt.trim()
+          ? input.billingStatusNotificationLastSentAt
+          : null;
+    }
+
+    if (input.billingStatusNotificationLastInvoiceId !== undefined) {
+      parent.billingStatusNotificationLastInvoiceId =
+        typeof input.billingStatusNotificationLastInvoiceId === "string" &&
+        input.billingStatusNotificationLastInvoiceId.trim()
+          ? input.billingStatusNotificationLastInvoiceId
+          : null;
+    }
+
+    if (input.billingStatusNotificationLastInvoiceStatus !== undefined) {
+      parent.billingStatusNotificationLastInvoiceStatus =
+        typeof input.billingStatusNotificationLastInvoiceStatus === "string" &&
+        input.billingStatusNotificationLastInvoiceStatus.trim()
+          ? input.billingStatusNotificationLastInvoiceStatus
+          : null;
+    }
+
+    if (input.deliverySupportAlertLastNotifiedAt !== undefined) {
+      parent.deliverySupportAlertLastNotifiedAt =
+        typeof input.deliverySupportAlertLastNotifiedAt === "string" &&
+        input.deliverySupportAlertLastNotifiedAt.trim()
+          ? input.deliverySupportAlertLastNotifiedAt
+          : null;
+    }
+
+    if (input.deliverySupportAlertLastReasonKey !== undefined) {
+      parent.deliverySupportAlertLastReasonKey =
+        typeof input.deliverySupportAlertLastReasonKey === "string" &&
+        input.deliverySupportAlertLastReasonKey.trim()
+          ? input.deliverySupportAlertLastReasonKey
+          : null;
+    }
+
+    parent.updatedAt = new Date().toISOString();
+    await writeStore(store);
 
     return toProfile(parent, student);
   },

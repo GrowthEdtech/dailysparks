@@ -1,16 +1,12 @@
-import nodemailer from "nodemailer";
-
 import { formatPreferredDeliveryLocalTime, formatTimeZoneLabel } from "./delivery-locale";
 import type { ParentProfile } from "./mvp-types";
 import { buildNotificationEmail } from "./notification-email-design-system";
+import {
+  getTransactionalNotificationEmailConfig,
+  isTransactionalNotificationEmailConfigured,
+  sendTransactionalNotificationEmail,
+} from "./notification-email-delivery";
 import { getNotificationEmailPolicy } from "./notification-email-policy";
-
-type OnboardingReminderEmailConfig = {
-  smtpUrl: string;
-  fromEmail: string;
-  fromName: string;
-  appBaseUrl: string;
-};
 
 export type OnboardingReminderEmailContent = {
   subject: string;
@@ -27,46 +23,15 @@ export const ONBOARDING_REMINDER_EMAIL_POLICY = getNotificationEmailPolicy(
   "onboarding-reminder",
 );
 
-function normalizeEnv(value: string | undefined) {
-  return value?.trim() || "";
-}
-
-function getOnboardingReminderEmailConfig(): OnboardingReminderEmailConfig | null {
-  const smtpUrl =
-    normalizeEnv(process.env.DAILY_SPARKS_TRANSACTIONAL_SMTP_URL) ||
-    normalizeEnv(process.env.GOODNOTES_SMTP_URL);
-  const fromEmail =
-    normalizeEnv(process.env.DAILY_SPARKS_TRANSACTIONAL_FROM_EMAIL) ||
-    normalizeEnv(process.env.GOODNOTES_FROM_EMAIL);
-  const fromName =
-    normalizeEnv(process.env.DAILY_SPARKS_TRANSACTIONAL_FROM_NAME) ||
-    normalizeEnv(process.env.GOODNOTES_FROM_NAME) ||
-    "Growth Education";
-  const appBaseUrl =
-    normalizeEnv(process.env.DAILY_SPARKS_APP_BASE_URL) ||
-    "https://dailysparks.geledtech.com";
-
-  if (!smtpUrl || !fromEmail) {
-    return null;
-  }
-
-  return {
-    smtpUrl,
-    fromEmail,
-    fromName,
-    appBaseUrl: appBaseUrl.replace(/\/+$/, ""),
-  };
-}
-
 export function isOnboardingReminderEmailConfigured() {
-  return getOnboardingReminderEmailConfig() !== null;
+  return isTransactionalNotificationEmailConfigured();
 }
 
 export function buildOnboardingReminderEmail(input: {
   profile: ParentProfile;
   stageIndex: number;
 }): OnboardingReminderEmailContent {
-  const config = getOnboardingReminderEmailConfig();
+  const config = getTransactionalNotificationEmailConfig();
   const dashboardUrl = `${config?.appBaseUrl ?? "https://dailysparks.geledtech.com"}/dashboard`;
   const subject =
     input.stageIndex >= 3
@@ -118,16 +83,12 @@ export async function sendOnboardingReminderEmail(input: {
   profile: ParentProfile;
   stageIndex: number;
 }): Promise<OnboardingReminderEmailResult> {
-  const config = getOnboardingReminderEmailConfig();
-
-  if (!config) {
+  if (!isTransactionalNotificationEmailConfigured()) {
     throw new Error("Onboarding reminder email is not configured.");
   }
 
   const email = buildOnboardingReminderEmail(input);
-  const transporter = nodemailer.createTransport(config.smtpUrl);
-  const result = await transporter.sendMail({
-    from: `"${config.fromName}" <${config.fromEmail}>`,
+  const result = await sendTransactionalNotificationEmail({
     to: input.profile.parent.email,
     subject: email.subject,
     html: email.html,

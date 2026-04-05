@@ -65,7 +65,7 @@ const NOTIFICATION_EMAIL_POLICY_MAP: Record<
   },
   "trial-ending-reminder": {
     id: "trial-ending-reminder",
-    lifecycle: "planned",
+    lifecycle: "live",
     label: "Trial ending reminder",
     renderMode: "html-notification",
     assetMode: "html-only",
@@ -75,7 +75,7 @@ const NOTIFICATION_EMAIL_POLICY_MAP: Record<
   },
   "billing-status-update": {
     id: "billing-status-update",
-    lifecycle: "planned",
+    lifecycle: "live",
     label: "Billing status update",
     renderMode: "html-notification",
     assetMode: "html-only",
@@ -85,7 +85,7 @@ const NOTIFICATION_EMAIL_POLICY_MAP: Record<
   },
   "delivery-support-alert": {
     id: "delivery-support-alert",
-    lifecycle: "planned",
+    lifecycle: "live",
     label: "Delivery support alert",
     renderMode: "html-notification",
     assetMode: "html-only",
@@ -112,4 +112,3 @@ export function listLiveNotificationEmailPolicies(): NotificationEmailPolicy[] {
     (policy) => policy.lifecycle === "live",
   );
 }
-

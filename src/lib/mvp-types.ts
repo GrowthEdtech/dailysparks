@@ -85,6 +85,13 @@ export type ParentRecord = {
   latestInvoicePaidAt: string | null;
   latestInvoicePeriodStart: string | null;
   latestInvoicePeriodEnd: string | null;
+  trialEndingReminderLastNotifiedAt?: string | null;
+  trialEndingReminderLastTrialEndsAt?: string | null;
+  billingStatusNotificationLastSentAt?: string | null;
+  billingStatusNotificationLastInvoiceId?: string | null;
+  billingStatusNotificationLastInvoiceStatus?: string | null;
+  deliverySupportAlertLastNotifiedAt?: string | null;
+  deliverySupportAlertLastReasonKey?: string | null;
   notionWorkspaceId: string | null;
   notionWorkspaceName: string | null;
   notionBotId: string | null;
@@ -209,6 +216,16 @@ export type UpdateParentGrowthMilestonesInput = {
   firstDispatchableChannelAt?: string | null;
   firstBriefDeliveredAt?: string | null;
   firstPaidAt?: string | null;
+};
+
+export type UpdateParentNotificationEmailStateInput = {
+  trialEndingReminderLastNotifiedAt?: string | null;
+  trialEndingReminderLastTrialEndsAt?: string | null;
+  billingStatusNotificationLastSentAt?: string | null;
+  billingStatusNotificationLastInvoiceId?: string | null;
+  billingStatusNotificationLastInvoiceStatus?: string | null;
+  deliverySupportAlertLastNotifiedAt?: string | null;
+  deliverySupportAlertLastReasonKey?: string | null;
 };
 
 export type NotionConnectionSecretRecord = {

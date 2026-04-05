@@ -8,6 +8,7 @@ import type {
 } from "./mvp-types";
 import { isSubscriptionPlan } from "./mvp-types";
 import { getProfileByEmail, updateParentSubscription } from "./mvp-store";
+import { maybeSendBillingStatusNotification } from "./billing-status-notification";
 import type { PricingMarket } from "./pricing-market";
 import {
   getPricingForPlan,
@@ -331,7 +332,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   const { periodEnd } = getInvoicePeriod(invoice);
   const stripeCustomerId =
     typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null;
-  return syncParentSubscriptionByEmail(email, {
+  const updatedProfile = await syncParentSubscriptionByEmail(email, {
     subscriptionPlan: profile.parent.subscriptionPlan ?? undefined,
     subscriptionStatus: "active",
     stripeCustomerId: stripeCustomerId ?? profile.parent.stripeCustomerId,
@@ -340,6 +341,20 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     subscriptionRenewalAt: periodEnd ?? profile.parent.subscriptionRenewalAt,
     ...getInvoiceSummaryUpdate(invoice),
   });
+
+  if (updatedProfile) {
+    try {
+      await maybeSendBillingStatusNotification({
+        profile: updatedProfile,
+        invoiceId: invoice.id,
+        invoiceStatus: invoice.status,
+      });
+    } catch (error) {
+      console.error("Failed to send billing status update notification.", error);
+    }
+  }
+
+  return updatedProfile;
 }
 
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
@@ -361,13 +376,27 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     return null;
   }
 
-  return syncParentSubscriptionByEmail(email, {
+  const updatedProfile = await syncParentSubscriptionByEmail(email, {
     stripeCustomerId:
       (typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id) ??
       profile.parent.stripeCustomerId,
     stripeSubscriptionId: profile.parent.stripeSubscriptionId ?? undefined,
     ...getInvoiceSummaryUpdate(invoice),
   });
+
+  if (updatedProfile) {
+    try {
+      await maybeSendBillingStatusNotification({
+        profile: updatedProfile,
+        invoiceId: invoice.id,
+        invoiceStatus: invoice.status,
+      });
+    } catch (error) {
+      console.error("Failed to send billing status update notification.", error);
+    }
+  }
+
+  return updatedProfile;
 }
 
 async function handleSubscriptionLifecycleEvent(

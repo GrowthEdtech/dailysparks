@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   getOrCreateParentProfile,
   updateParentDeliveryPreferences,
+  updateParentNotificationEmailState,
   updateParentOnboardingReminder,
   getProfileByParentId,
   getProfileByEmail,
@@ -290,6 +291,45 @@ describe("mvp store", () => {
       "reminder-message-id",
     );
     expect(reloaded?.parent.onboardingReminderLastError).toBeNull();
+  });
+
+  test("updates notification email tracking and persists it", async () => {
+    await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    const updated = await updateParentNotificationEmailState("parent@example.com", {
+      trialEndingReminderLastNotifiedAt: "2026-04-05T02:00:00.000Z",
+      trialEndingReminderLastTrialEndsAt: "2026-04-08T00:00:00.000Z",
+      billingStatusNotificationLastSentAt: "2026-04-05T03:00:00.000Z",
+      billingStatusNotificationLastInvoiceId: "in_123",
+      billingStatusNotificationLastInvoiceStatus: "paid",
+      deliverySupportAlertLastNotifiedAt: "2026-04-05T04:00:00.000Z",
+      deliverySupportAlertLastReasonKey:
+        "active access is live, but no dispatchable goodnotes or notion channel is ready yet.",
+    });
+
+    expect(updated?.parent.trialEndingReminderLastNotifiedAt).toBe(
+      "2026-04-05T02:00:00.000Z",
+    );
+    expect(updated?.parent.billingStatusNotificationLastInvoiceId).toBe("in_123");
+    expect(updated?.parent.deliverySupportAlertLastReasonKey).toMatch(
+      /dispatchable goodnotes/i,
+    );
+
+    const reloaded = await getProfileByEmail("parent@example.com");
+
+    expect(reloaded?.parent.trialEndingReminderLastTrialEndsAt).toBe(
+      "2026-04-08T00:00:00.000Z",
+    );
+    expect(reloaded?.parent.billingStatusNotificationLastInvoiceStatus).toBe(
+      "paid",
+    );
+    expect(reloaded?.parent.deliverySupportAlertLastNotifiedAt).toBe(
+      "2026-04-05T04:00:00.000Z",
+    );
   });
 
   test("falls back to normalized delivery locale defaults when preferences are invalid", async () => {

@@ -84,18 +84,49 @@ function isReminderFailureBlockingActivation(profile: ParentProfile, now: Date) 
   );
 }
 
+export function getTrialEndingReminderReason(
+  profile: ParentProfile,
+  now: Date,
+): string | null {
+  if (!isTrialExpiringSoonWithoutFirstBrief(profile, now)) {
+    return null;
+  }
+
+  return `Trial expires on ${profile.parent.trialEndsAt.slice(0, 10)} before the first brief has been delivered.`;
+}
+
+export function getDeliverySupportAlertReason(
+  profile: ParentProfile,
+  now: Date,
+): string | null {
+  if (isActiveWithoutDispatchableChannel(profile, now)) {
+    return "Active access is live, but no dispatchable Goodnotes or Notion channel is ready yet.";
+  }
+
+  if (isActiveWithoutFirstSuccessfulDelivery(profile, now)) {
+    return "A dispatchable delivery channel exists, but the first brief has not been recorded as delivered.";
+  }
+
+  if (isReminderFailureBlockingActivation(profile, now)) {
+    return (
+      profile.parent.onboardingReminderLastError ||
+      "The latest onboarding reminder failed and activation is still blocked."
+    );
+  }
+
+  return null;
+}
+
 export function getGrowthReconciliationSummary(
   profiles: ParentProfile[],
   now = new Date(),
 ): GrowthReconciliationSummary {
   const trialsExpiringSoonWithoutFirstBrief = profiles
-    .filter((profile) => isTrialExpiringSoonWithoutFirstBrief(profile, now))
-    .map((profile) =>
-      toFamily(
-        profile,
-        `Trial expires on ${profile.parent.trialEndsAt.slice(0, 10)} before the first brief has been delivered.`,
-      ),
-    );
+    .map((profile) => {
+      const reason = getTrialEndingReminderReason(profile, now);
+      return reason ? toFamily(profile, reason) : null;
+    })
+    .filter((family): family is GrowthReconciliationFamily => family !== null);
 
   const activeWithoutDispatchableChannel = profiles
     .filter((profile) => isActiveWithoutDispatchableChannel(profile, now))

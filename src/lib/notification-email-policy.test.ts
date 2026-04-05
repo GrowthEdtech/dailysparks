@@ -39,6 +39,9 @@ describe("notification email policy", () => {
       "onboarding-reminder",
       "goodnotes-welcome-note-delivery",
       "daily-brief-delivery",
+      "trial-ending-reminder",
+      "billing-status-update",
+      "delivery-support-alert",
     ]);
   });
 });

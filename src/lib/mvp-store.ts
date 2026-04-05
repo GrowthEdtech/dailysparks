@@ -2,6 +2,7 @@ import type {
   CreateParentProfileInput,
   UpdateParentGrowthMilestonesInput,
   UpdateParentDeliveryPreferencesInput,
+  UpdateParentNotificationEmailStateInput,
   UpdateParentOnboardingReminderInput,
   UpdateParentNotionInput,
   UpdateParentSubscriptionInput,
@@ -96,4 +97,11 @@ export async function updateParentGrowthMilestones(
   input: UpdateParentGrowthMilestonesInput,
 ) {
   return getProfileStore().updateParentGrowthMilestones(email, input);
+}
+
+export async function updateParentNotificationEmailState(
+  email: string,
+  input: UpdateParentNotificationEmailStateInput,
+) {
+  return getProfileStore().updateParentNotificationEmailState(email, input);
 }

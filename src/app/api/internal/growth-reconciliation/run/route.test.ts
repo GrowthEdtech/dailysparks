@@ -133,5 +133,13 @@ describe("growth reconciliation route", () => {
     expect(body.summary.activeWithoutDispatchableChannel.count).toBe(1);
     expect(body.summary.activeWithoutFirstSuccessfulDelivery.count).toBe(1);
     expect(body.summary.reminderFailuresBlockingActivation.count).toBe(1);
+    expect(body.notificationRun).toMatchObject({
+      trialEnding: expect.objectContaining({
+        checkedCount: 1,
+      }),
+      deliverySupport: expect.objectContaining({
+        checkedCount: 3,
+      }),
+    });
   });
 });
