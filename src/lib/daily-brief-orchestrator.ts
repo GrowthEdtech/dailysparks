@@ -8,15 +8,13 @@ import {
   type DailyBriefEditorialCohort,
 } from "./daily-brief-cohorts";
 import { listDailyBriefHistory } from "./daily-brief-history-store";
-import { getProgrammesWithActiveAudience } from "./daily-brief-programme-coverage";
 import type { DailyBriefSelectedTopicRecord } from "./daily-brief-candidate-schema";
 import type {
   DailyBriefHistoryRecord,
   DailyBriefRepetitionRisk,
 } from "./daily-brief-history-schema";
 import { selectTopicWithPolicy } from "./daily-brief-selection-policy";
-import { listParentProfiles } from "./mvp-store";
-import type { Programme } from "./mvp-types";
+import { IB_PROGRAMMES, type Programme } from "./mvp-types";
 import {
   buildResolvedPromptPreview, getActivePromptPolicy,
 } from "./prompt-policy-store";
@@ -256,25 +254,7 @@ export async function generateDailyBriefDrafts(
   options: GenerateDailyBriefDraftsOptions,
 ): Promise<DailyBriefGenerationResult> {
   const editorialCohort = options.editorialCohort ?? "APAC";
-  const profiles = await listParentProfiles();
-  const eligibleProgrammes = getProgrammesWithActiveAudience({
-    profiles,
-    editorialCohort,
-    scheduledFor: options.scheduledFor,
-  });
-
-  if (eligibleProgrammes.length === 0) {
-    return {
-      selectedTopic: null,
-      selectionAudit: {
-        decision: null,
-        overrideNote: "",
-        blockedTopics: [],
-      },
-      generatedBriefs: [],
-      skippedProgrammes: [],
-    };
-  }
+  const editorialProgrammes = [...IB_PROGRAMMES];
 
   const promptPolicy = options.promptPolicy ?? (await getActivePromptPolicy());
 
@@ -296,7 +276,7 @@ export async function generateDailyBriefDrafts(
         topic: hydrateSelectedTopicFromRecord({
           record: options.selectedTopicRecord,
           candidates,
-          eligibleProgrammes,
+          eligibleProgrammes: editorialProgrammes,
         }),
         topicClusterKey: options.selectedTopicRecord.clusterKey,
         normalizedHeadline: options.selectedTopicRecord.normalizedHeadline,
@@ -309,7 +289,7 @@ export async function generateDailyBriefDrafts(
       }
     : selectTopicWithPolicy({
         candidates,
-        eligibleProgrammes,
+        eligibleProgrammes: editorialProgrammes,
         historyEntries,
         scheduledFor: options.scheduledFor,
         editorialCohort,
@@ -335,7 +315,7 @@ export async function generateDailyBriefDrafts(
   const generatedBriefs: GeneratedDailyBriefDraft[] = [];
   const skippedProgrammes: Programme[] = [];
 
-  for (const programme of eligibleProgrammes) {
+  for (const programme of editorialProgrammes) {
     if (existingProgrammes.has(programme)) {
       skippedProgrammes.push(programme);
       continue;

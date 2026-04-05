@@ -230,7 +230,7 @@ afterEach(async () => {
 });
 
 describe("daily brief generate route", () => {
-  test("reads the stored candidate snapshot, freezes it, and writes generated draft history entries", async () => {
+  test("reads the stored candidate snapshot, freezes it, and writes editorial-scope draft history entries", async () => {
     await createEligibleProgrammeProfile(
       "pyp-family@example.com",
       "PYP",
@@ -256,9 +256,9 @@ describe("daily brief generate route", () => {
 
     expect(response.status).toBe(200);
     expect(body.mode).toBe("generate");
-    expect(body.summary.generatedCount).toBe(1);
+    expect(body.summary.generatedCount).toBe(3);
     expect(body.selectedTopic.clusterKey).toBe("students map sea turtles");
-    expect(history).toHaveLength(1);
+    expect(history).toHaveLength(3);
     expect(frozenSnapshot?.updatedAt).toBeTruthy();
     expect(history[0]).toMatchObject({
       status: "draft",
@@ -270,10 +270,10 @@ describe("daily brief generate route", () => {
     expect(history[0]?.deliveryWindowAt).toBeTruthy();
     expect(frozenSnapshot?.selectionStatus).toBe("frozen");
     expect(Date.parse(String(frozenSnapshot?.selectionFrozenAt))).not.toBeNaN();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  test("generates a brief for an active programme even when no delivery channel is healthy yet", async () => {
+  test("generates editorial-scope briefs even when only one programme has active audience coverage", async () => {
     await createEligibleProgrammeProfile(
       "myp-family@example.com",
       "MYP",
@@ -297,9 +297,13 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(1);
-    expect(history).toHaveLength(1);
-    expect(history[0]?.programme).toBe("MYP");
+    expect(body.summary.generatedCount).toBe(3);
+    expect(history).toHaveLength(3);
+    expect(history.map((entry) => entry.programme).sort()).toEqual([
+      "DP",
+      "MYP",
+      "PYP",
+    ]);
   });
 
   test("skips programmes that already have a published brief for the same run date", async () => {
@@ -370,13 +374,14 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(1);
+    expect(body.summary.generatedCount).toBe(2);
     expect(body.summary.skippedProgrammes).toEqual(["PYP"]);
     expect(history.map((entry) => entry.programme).sort()).toEqual([
+      "DP",
       "MYP",
       "PYP",
     ]);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   test("does not create duplicate drafts when the same run date is generated twice", async () => {
@@ -414,8 +419,8 @@ describe("daily brief generate route", () => {
     expect(secondResponse.status).toBe(200);
     expect(body.summary.generatedCount).toBe(0);
     expect(body.summary.historyCreatedCount).toBe(0);
-    expect(body.summary.skippedProgrammes).toEqual(["PYP"]);
-    expect(history).toHaveLength(1);
+    expect(body.summary.skippedProgrammes).toEqual(["PYP", "MYP", "DP"]);
+    expect(history).toHaveLength(3);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -483,10 +488,12 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(1);
+    expect(body.summary.generatedCount).toBe(3);
     expect(body.summary.skippedProgrammes).toEqual([]);
-    expect(productionHistory).toHaveLength(1);
-    expect(productionHistory[0]?.recordKind).toBe("production");
+    expect(productionHistory).toHaveLength(3);
+    expect(productionHistory.every((entry) => entry.recordKind === "production")).toBe(
+      true,
+    );
   });
 
   test("keeps the candidate snapshot open when an early generation wave fails", async () => {
@@ -579,7 +586,7 @@ describe("daily brief generate route", () => {
     const frozenSnapshot = await getDailyBriefCandidateSnapshot("2026-04-03");
 
     expect(apacResponse.status).toBe(200);
-    expect(apacBody.summary.generatedCount).toBe(1);
+    expect(apacBody.summary.generatedCount).toBe(3);
     expect(frozenSnapshot?.selectedTopic).toMatchObject({
       clusterKey: "students map sea turtles",
       selectedByCohort: "APAC",
@@ -598,11 +605,9 @@ describe("daily brief generate route", () => {
 
     expect(emeaResponse.status).toBe(200);
     expect(emeaBody.selectedTopic.clusterKey).toBe("students map sea turtles");
-    expect(emeaBody.summary.generatedCount).toBe(1);
-    expect(history.map((entry) => entry.editorialCohort).sort()).toEqual([
-      "APAC",
-      "EMEA",
-    ]);
+    expect(emeaBody.summary.generatedCount).toBe(3);
+    expect(history.filter((entry) => entry.editorialCohort === "APAC")).toHaveLength(3);
+    expect(history.filter((entry) => entry.editorialCohort === "EMEA")).toHaveLength(3);
   });
 
   test("writes selection audit metadata into generated history records", async () => {
@@ -687,10 +692,14 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(history[0]).toMatchObject({
-      selectionDecision: "follow_up",
-      selectionOverrideNote: expect.stringMatching(/follow-up/i),
-      topicClusterKey: "pam bondi justice department trump",
-    });
+    expect(history).toHaveLength(3);
+    expect(
+      history.every(
+        (entry) =>
+          entry.selectionDecision === "follow_up" &&
+          /follow-up/i.test(entry.selectionOverrideNote) &&
+          entry.topicClusterKey === "pam bondi justice department trump",
+      ),
+    ).toBe(true);
   });
 });

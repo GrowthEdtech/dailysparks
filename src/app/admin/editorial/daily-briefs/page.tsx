@@ -137,6 +137,60 @@ function getCoverageStatusClasses(status: DailyBriefProgrammeCoverageStatus) {
   }
 }
 
+function buildCoverageAwareEmptyState(input: {
+  recordKind: DailyBriefRecordKind;
+  programme?: Programme;
+  editorialCohort?: DailyBriefEditorialCohort;
+  programmeCoverage: ReturnType<typeof buildDailyBriefProgrammeCoverage>;
+  runDate: string;
+}) {
+  if (input.recordKind !== "production" || !input.programme) {
+    return null;
+  }
+
+  const relevantRows = input.programmeCoverage.filter(
+    (row) =>
+      row.programme === input.programme &&
+      (!input.editorialCohort || row.editorialCohort === input.editorialCohort),
+  );
+
+  if (relevantRows.length === 0) {
+    return null;
+  }
+
+  const cohortLabel = input.editorialCohort
+    ? `${formatEditorialCohortLabel(input.editorialCohort)} `
+    : "";
+  const title = `No ${cohortLabel}${input.programme} briefs recorded yet`;
+  const statuses = new Set(relevantRows.map((row) => row.status));
+
+  if (statuses.size === 1 && statuses.has("no_active_families")) {
+    return {
+      title,
+      body: `Current reason: no active or in-trial families are mapped to ${input.programme}${input.editorialCohort ? ` in ${formatEditorialCohortLabel(input.editorialCohort)}` : ""} for ${formatDate(input.runDate)}.`,
+    };
+  }
+
+  if (statuses.size === 1 && statuses.has("no_healthy_delivery_channel")) {
+    return {
+      title,
+      body: `Current reason: ${input.programme} has active families, but none of them currently have a healthy delivery channel for ${formatDate(input.runDate)}.`,
+    };
+  }
+
+  if (statuses.size === 1 && statuses.has("awaiting_generation")) {
+    return {
+      title,
+      body: `${input.programme} is inside today's editorial scope, but the production generate step has not written records for ${formatDate(input.runDate)} yet.`,
+    };
+  }
+
+  return {
+    title,
+    body: `Generation history will appear here as soon as the brief pipeline writes ${input.programme} records into the admin store. Today's coverage summary above shows the current readiness state by cohort.`,
+  };
+}
+
 export default async function DailyBriefsAdminPage({
   searchParams,
 }: DailyBriefsAdminPageProps) {
@@ -171,6 +225,17 @@ export default async function DailyBriefsAdminPage({
     opsSummary.briefsNeedingFollowUpCount > 0 ||
     opsSummary.skippedFamilyCount > 0 ||
     opsSummary.channelIssueCount > 0;
+  const emptyState =
+    buildCoverageAwareEmptyState({
+      recordKind,
+      programme,
+      editorialCohort,
+      programmeCoverage,
+      runDate,
+    }) ?? {
+      title: "No daily briefs recorded yet",
+      body: "Generation history will appear here as soon as the brief pipeline writes real records into the admin store. Until then, this tab stays intentionally empty so the team sees the true operational state.",
+    };
 
   return (
     <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -397,8 +462,9 @@ export default async function DailyBriefsAdminPage({
               Today&apos;s editorial coverage by cohort and programme
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              This view separates active audience coverage from healthy delivery
-              channels, so missing programmes stay explainable instead of
+              Production generation now runs for every editorial programme. This
+              view separates editorial coverage from healthy delivery channels,
+              so missing audience or readiness gaps stay explainable instead of
               silently disappearing from the list.
             </p>
           </div>
@@ -764,12 +830,10 @@ export default async function DailyBriefsAdminPage({
       {history.length === 0 ? (
         <div className="mt-8 rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-10">
           <h3 className="text-xl font-bold tracking-tight text-[#0f172a]">
-            No daily briefs recorded yet
+            {emptyState.title}
           </h3>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-            Generation history will appear here as soon as the brief pipeline
-            writes real records into the admin store. Until then, this tab stays
-            intentionally empty so the team sees the true operational state.
+            {emptyState.body}
           </p>
         </div>
       ) : (

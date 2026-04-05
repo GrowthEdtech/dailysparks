@@ -141,7 +141,7 @@ afterEach(async () => {
 });
 
 describe("daily brief orchestrator", () => {
-  test("chooses one topic cluster for the day and only generates briefs for eligible programmes", async () => {
+  test("chooses one topic cluster for the day and generates briefs for every programme in editorial scope", async () => {
     await createEligibleProgrammeProfile(
       "pyp-family@example.com",
       "PYP",
@@ -198,6 +198,14 @@ describe("daily brief orchestrator", () => {
           briefMarkdown: "## MYP\nStudents compare why ocean data matters.",
           topicTags: ["oceans", "migration"],
         }),
+      )
+      .mockResolvedValueOnce(
+        createChatCompletionResponse({
+          headline: "DP ocean mapping brief",
+          summary: "A diploma-level analytical summary.",
+          briefMarkdown: "## DP\nStudents evaluate why ocean evidence matters.",
+          topicTags: ["oceans", "evidence"],
+        }),
       );
 
     const candidates = [
@@ -233,6 +241,7 @@ describe("daily brief orchestrator", () => {
     expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
       "PYP",
       "MYP",
+      "DP",
     ]);
     expect(result.generatedBriefs.every((brief) => brief.status === "draft")).toBe(
       true,
@@ -255,10 +264,13 @@ describe("daily brief orchestrator", () => {
     expect(result.generatedBriefs[1]?.resolvedPrompt).toContain(
       "Add comparisons and causes.",
     );
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.generatedBriefs[2]?.resolvedPrompt).toContain(
+      "Add evidence limits and nuance.",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  test("generates for active programmes even when their delivery channels are not yet healthy", async () => {
+  test("generates editorial-only briefs even when only one programme has audience coverage", async () => {
     await createEligibleProgrammeProfile(
       "myp-family@example.com",
       "MYP",
@@ -289,14 +301,24 @@ describe("daily brief orchestrator", () => {
       notes: "Primary policy",
     });
 
-    fetchMock.mockResolvedValueOnce(
-      createChatCompletionResponse({
-        headline: "MYP ocean mapping brief",
-        summary: "A middle-years analytical summary.",
-        briefMarkdown: "## MYP\nStudents compare why ocean data matters.",
+    fetchMock.mockImplementation(async (_input, init) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const programmeLine =
+        payload.messages
+          .find((message) => message.role === "user")
+          ?.content.split("\n")
+          .find((line) => line.startsWith("Programme: ")) ?? "Programme: PYP";
+      const programme = programmeLine.replace("Programme: ", "").trim();
+
+      return createChatCompletionResponse({
+        headline: `${programme} ocean mapping brief`,
+        summary: `${programme} analytical summary.`,
+        briefMarkdown: `## ${programme}\nStudents compare why ocean data matters.`,
         topicTags: ["oceans", "migration"],
-      }),
-    );
+      });
+    });
 
     const result = await generateDailyBriefDrafts({
       scheduledFor: "2026-04-03",
@@ -306,9 +328,11 @@ describe("daily brief orchestrator", () => {
     });
 
     expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
+      "PYP",
       "MYP",
+      "DP",
     ]);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   test("skips programmes that already have a published brief for the scheduled date", async () => {
@@ -375,14 +399,24 @@ describe("daily brief orchestrator", () => {
       briefMarkdown: "## PYP\nExisting brief",
     });
 
-    fetchMock.mockResolvedValueOnce(
-      createChatCompletionResponse({
-        headline: "MYP ocean mapping brief",
-        summary: "A middle-years analytical summary.",
-        briefMarkdown: "## MYP\nStudents compare why ocean data matters.",
+    fetchMock.mockImplementation(async (_input, init) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const programmeLine =
+        payload.messages
+          .find((message) => message.role === "user")
+          ?.content.split("\n")
+          .find((line) => line.startsWith("Programme: ")) ?? "Programme: PYP";
+      const programme = programmeLine.replace("Programme: ", "").trim();
+
+      return createChatCompletionResponse({
+        headline: `${programme} ocean mapping brief`,
+        summary: `${programme} analytical summary.`,
+        briefMarkdown: `## ${programme}\nStudents compare why ocean data matters.`,
         topicTags: ["oceans", "migration"],
-      }),
-    );
+      });
+    });
 
     const result = await generateDailyBriefDrafts({
       scheduledFor: "2026-04-03",
@@ -393,9 +427,10 @@ describe("daily brief orchestrator", () => {
 
     expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
       "MYP",
+      "DP",
     ]);
     expect(result.skippedProgrammes).toContain("PYP");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   test("treats existing same-day drafts as already generated for idempotent reruns", async () => {
@@ -468,6 +503,25 @@ describe("daily brief orchestrator", () => {
       retryEligibleUntil: null,
     });
 
+    fetchMock.mockImplementation(async (_input, init) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const programmeLine =
+        payload.messages
+          .find((message) => message.role === "user")
+          ?.content.split("\n")
+          .find((line) => line.startsWith("Programme: ")) ?? "Programme: PYP";
+      const programme = programmeLine.replace("Programme: ", "").trim();
+
+      return createChatCompletionResponse({
+        headline: `${programme} ocean mapping brief`,
+        summary: `${programme} analytical summary.`,
+        briefMarkdown: `## ${programme}\nStudents compare why ocean data matters.`,
+        topicTags: ["oceans", "migration"],
+      });
+    });
+
     const result = await generateDailyBriefDrafts({
       scheduledFor: "2026-04-03",
       candidates: [buildCandidate({})],
@@ -475,9 +529,12 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-03T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs).toEqual([]);
+    expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
+      "MYP",
+      "DP",
+    ]);
     expect(result.skippedProgrammes).toEqual(["PYP"]);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   test("blocks an exact published headline from being reused and reports the block reason", async () => {
@@ -631,14 +688,24 @@ describe("daily brief orchestrator", () => {
       briefMarkdown: "## PYP\nExisting brief",
     });
 
-    fetchMock.mockResolvedValueOnce(
-      createChatCompletionResponse({
-        headline: "Pam Bondi ouster reshapes Justice Department oversight",
-        summary: "A follow-up summary for younger learners.",
-        briefMarkdown: "## PYP\nFamilies discuss what changed after the ouster.",
+    fetchMock.mockImplementation(async (_input, init) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const programmeLine =
+        payload.messages
+          .find((message) => message.role === "user")
+          ?.content.split("\n")
+          .find((line) => line.startsWith("Programme: ")) ?? "Programme: PYP";
+      const programme = programmeLine.replace("Programme: ", "").trim();
+
+      return createChatCompletionResponse({
+        headline: `Pam Bondi ouster reshapes Justice Department oversight for ${programme}`,
+        summary: `A follow-up summary for ${programme.toLowerCase()} learners.`,
+        briefMarkdown: `## ${programme}\nFamilies discuss what changed after the ouster.`,
         topicTags: ["us-politics", "justice-department"],
-      }),
-    );
+      });
+    });
 
     const result = await generateDailyBriefDrafts({
       scheduledFor: "2026-04-07",
@@ -657,15 +724,18 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-07T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs).toHaveLength(1);
-    expect(result.generatedBriefs[0]).toMatchObject({
-      selectionDecision: "follow_up",
-      selectionOverrideNote: expect.stringMatching(/follow-up/i),
-      topicClusterKey: "pam bondi justice department trump",
-    });
+    expect(result.generatedBriefs).toHaveLength(3);
+    expect(
+      result.generatedBriefs.every(
+        (brief) =>
+          brief.selectionDecision === "follow_up" &&
+          /follow-up/i.test(brief.selectionOverrideNote) &&
+          brief.topicClusterKey === "pam bondi justice department trump",
+      ),
+    ).toBe(true);
     expect(result.selectionAudit.decision).toBe("follow_up");
     expect(result.selectionAudit.overrideNote).toMatch(/follow-up/i);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   test("rejects AI payloads that omit required non-empty output fields", async () => {

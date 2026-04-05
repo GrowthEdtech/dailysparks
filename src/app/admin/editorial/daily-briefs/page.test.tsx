@@ -54,6 +54,26 @@ describe("DailyBriefsAdminPage", () => {
     });
   });
 
+  test("uses a coverage-aware empty state when a filtered production programme has no records", async () => {
+    listDailyBriefHistoryMock.mockResolvedValue([]);
+    listParentProfilesMock.mockResolvedValue([]);
+
+    const markup = renderToStaticMarkup(
+      await DailyBriefsAdminPage({
+        searchParams: Promise.resolve({
+          kind: "production",
+          programme: "MYP",
+          cohort: "APAC",
+        }),
+      }),
+    );
+
+    expect(markup).toContain("No APAC MYP briefs recorded yet");
+    expect(markup).toContain(
+      "Current reason: no active or in-trial families are mapped to MYP in APAC for Apr 3, 2026.",
+    );
+  });
+
   test("renders recorded daily briefs when history exists", async () => {
     listDailyBriefHistoryMock
       .mockResolvedValueOnce([
