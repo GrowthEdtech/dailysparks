@@ -2,6 +2,8 @@ import nodemailer from "nodemailer";
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
+import type { DailyBriefRenderAudit } from "./daily-brief-history-schema";
+import { buildDailyBriefRenderAudit } from "./daily-brief-render-audit";
 import type { ParentProfile } from "./mvp-types";
 import { renderOutboundDailyBriefTypstPrototype } from "./outbound-daily-brief-typst";
 import {
@@ -19,6 +21,7 @@ type GoodnotesDeliveryConfig = {
 export type GoodnotesDeliveryResult = {
   messageId: string;
   attachmentFileName: string;
+  renderAudit?: DailyBriefRenderAudit | null;
 };
 
 export const DAILY_BRIEF_PDF_RENDERERS = ["pdf-lib", "typst"] as const;
@@ -853,6 +856,26 @@ export async function createOutboundDailyBriefPdf(
   return pdf.save();
 }
 
+async function createOutboundDailyBriefPdfWithAudit(
+  brief: OutboundDailyBriefPacketInput,
+  options: {
+    renderer?: DailyBriefPdfRenderer;
+  } = {},
+) {
+  const renderer = options.renderer ?? "pdf-lib";
+  const pdf = await createOutboundDailyBriefPdf(brief, { renderer });
+  const renderAudit = await buildDailyBriefRenderAudit({
+    brief,
+    pdfBytes: pdf,
+    renderer,
+  });
+
+  return {
+    pdf,
+    renderAudit,
+  };
+}
+
 export async function createGoodnotesBriefPdf(
   _profile: ParentProfile,
   brief: GeneratedDailyBriefDraft,
@@ -921,7 +944,7 @@ export async function sendBriefToGoodnotes(
     options.attachmentMode ?? "production",
     options.renderer ?? "pdf-lib",
   );
-  const pdfBytes = await createGoodnotesBriefPdf(profile, brief, {
+  const { pdf, renderAudit } = await createOutboundDailyBriefPdfWithAudit(brief, {
     renderer: options.renderer ?? "pdf-lib",
   });
   const transporter = nodemailer.createTransport(config.smtpUrl);
@@ -943,7 +966,7 @@ export async function sendBriefToGoodnotes(
     attachments: [
       {
         filename: attachmentFileName,
-        content: Buffer.from(pdfBytes),
+        content: Buffer.from(pdf),
         contentType: "application/pdf",
       },
     ],
@@ -952,5 +975,6 @@ export async function sendBriefToGoodnotes(
   return {
     messageId: result.messageId,
     attachmentFileName,
+    renderAudit,
   };
 }

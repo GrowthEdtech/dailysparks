@@ -35,6 +35,12 @@ export type DailyBriefOpsSummary = {
   publishedBriefCount: number;
   briefsNeedingFollowUpCount: number;
   deliveredFamilyCount: number;
+  typstDeliveredBriefCount: number;
+  pypAuditedBriefCount: number;
+  pypTypstAuditedBriefCount: number;
+  pypOnePageCompliantBriefCount: number;
+  pypPdfLibFallbackBriefCount: number;
+  mypCompareOnlyBriefCount: number;
   skippedFamilyCount: number;
   channelIssueCount: number;
   healthyFamilyCount: number;
@@ -183,6 +189,30 @@ export function buildDailyBriefOpsSummary({
     DailyBriefHistoryRecord["programme"],
     DailyBriefHistoryRecord[]
   >();
+  const typstDeliveredBriefCount = productionHistory.filter(
+    (entry) =>
+      entry.deliverySuccessCount > 0 && entry.renderAudit?.renderer === "typst",
+  ).length;
+  const pypProductionBriefs = productionHistory.filter(
+    (entry) => entry.programme === "PYP",
+  );
+  const pypAuditedBriefCount = pypProductionBriefs.filter(
+    (entry) => entry.renderAudit !== null && entry.renderAudit !== undefined,
+  ).length;
+  const pypTypstAuditedBriefCount = pypProductionBriefs.filter(
+    (entry) => entry.renderAudit?.renderer === "typst",
+  ).length;
+  const pypOnePageCompliantBriefCount = pypProductionBriefs.filter(
+    (entry) =>
+      entry.renderAudit?.renderer === "typst" &&
+      entry.renderAudit?.onePageCompliant === true,
+  ).length;
+  const pypPdfLibFallbackBriefCount = pypProductionBriefs.filter(
+    (entry) => entry.renderAudit?.renderer === "pdf-lib",
+  ).length;
+  const mypCompareOnlyBriefCount = productionHistory.filter(
+    (entry) => entry.programme === "MYP",
+  ).length;
 
   productionHistory.forEach((entry) => {
     briefsByProgramme.set(entry.programme, [
@@ -274,6 +304,12 @@ export function buildDailyBriefOpsSummary({
     ).length,
     briefsNeedingFollowUpCount: briefsNeedingFollowUp.length,
     deliveredFamilyCount: deliveredParentIds.size,
+    typstDeliveredBriefCount,
+    pypAuditedBriefCount,
+    pypTypstAuditedBriefCount,
+    pypOnePageCompliantBriefCount,
+    pypPdfLibFallbackBriefCount,
+    mypCompareOnlyBriefCount,
     skippedFamilyCount: skippedFamilies.length,
     channelIssueCount: channelWatchlist.length,
     healthyFamilyCount,

@@ -115,6 +115,13 @@ describe("DailyBriefsAdminPage", () => {
           deliverySuccessCount: 12,
           deliveryFailureCount: 0,
           deliveryReceipts: [],
+          renderAudit: {
+            renderer: "typst",
+            layoutVariant: "pyp-one-page",
+            pageCount: 1,
+            onePageCompliant: true,
+            auditedAt: "2026-04-02T09:00:00.000Z",
+          },
           failedDeliveryTargets: [],
           failureReason: "",
           retryEligibleUntil: null,
@@ -139,6 +146,8 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("v1.0.0");
     expect(markup).toContain("Preflight passed");
     expect(markup).toContain("12 delivered");
+    expect(markup).toContain("Typst verified");
+    expect(markup).toContain("PYP one-page");
     expect(markup).toContain("/admin/editorial/daily-briefs/brief-1");
   });
 
@@ -742,5 +751,171 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("No healthy delivery channel");
     expect(markup).toContain("Generated");
     expect(markup).toContain("No active families");
+  });
+
+  test("renders renderer rollout metrics and compare-only guidance", async () => {
+    listDailyBriefHistoryMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: "brief-pyp-typst",
+          scheduledFor: "2026-04-03",
+          recordKind: "production",
+          headline: "PYP typst brief",
+          summary: "PYP summary.",
+          programme: "PYP",
+          editorialCohort: "APAC",
+          status: "published",
+          topicClusterKey: "pyp typst",
+          normalizedHeadline: "pyp typst brief",
+          topicLatestPublishedAt: null,
+          selectionDecision: "new",
+          selectionOverrideNote: "",
+          blockedTopics: [],
+          topicTags: ["science"],
+          sourceReferences: [],
+          aiConnectionId: "nf-relay",
+          aiConnectionName: "NF Relay",
+          aiModel: "gpt-5.4",
+          promptPolicyId: "policy-1",
+          promptVersionLabel: "v1.1.1",
+          promptVersion: "v1.1.1",
+          repetitionRisk: "low",
+          repetitionNotes: "No similar brief.",
+          adminNotes: "",
+          briefMarkdown: "## Today",
+          pipelineStage: "published",
+          candidateSnapshotAt: "2026-04-03T05:00:00.000Z",
+          generationCompletedAt: "2026-04-03T06:00:00.000Z",
+          pdfBuiltAt: "2026-04-03T06:05:00.000Z",
+          deliveryWindowAt: "2026-04-03T09:00:00.000Z",
+          lastDeliveryAttemptAt: "2026-04-03T09:00:00.000Z",
+          deliveryAttemptCount: 1,
+          deliverySuccessCount: 1,
+          deliveryFailureCount: 0,
+          deliveryReceipts: [],
+          renderAudit: {
+            renderer: "typst",
+            layoutVariant: "pyp-one-page",
+            pageCount: 1,
+            onePageCompliant: true,
+            auditedAt: "2026-04-03T09:00:00.000Z",
+          },
+          failedDeliveryTargets: [],
+          failureReason: "",
+          retryEligibleUntil: null,
+          createdAt: "2026-04-03T00:00:00.000Z",
+          updatedAt: "2026-04-03T00:00:00.000Z",
+        },
+        {
+          id: "brief-pyp-fallback",
+          scheduledFor: "2026-04-03",
+          recordKind: "production",
+          headline: "PYP fallback brief",
+          summary: "Rollback summary.",
+          programme: "PYP",
+          editorialCohort: "APAC",
+          status: "published",
+          topicClusterKey: "pyp fallback",
+          normalizedHeadline: "pyp fallback brief",
+          topicLatestPublishedAt: null,
+          selectionDecision: "new",
+          selectionOverrideNote: "",
+          blockedTopics: [],
+          topicTags: ["history"],
+          sourceReferences: [],
+          aiConnectionId: "nf-relay",
+          aiConnectionName: "NF Relay",
+          aiModel: "gpt-5.4",
+          promptPolicyId: "policy-1",
+          promptVersionLabel: "v1.1.1",
+          promptVersion: "v1.1.1",
+          repetitionRisk: "low",
+          repetitionNotes: "No similar brief.",
+          adminNotes: "",
+          briefMarkdown: "## Today",
+          pipelineStage: "published",
+          candidateSnapshotAt: "2026-04-03T05:00:00.000Z",
+          generationCompletedAt: "2026-04-03T06:00:00.000Z",
+          pdfBuiltAt: "2026-04-03T06:05:00.000Z",
+          deliveryWindowAt: "2026-04-03T09:00:00.000Z",
+          lastDeliveryAttemptAt: "2026-04-03T09:01:00.000Z",
+          deliveryAttemptCount: 1,
+          deliverySuccessCount: 1,
+          deliveryFailureCount: 0,
+          deliveryReceipts: [],
+          renderAudit: {
+            renderer: "pdf-lib",
+            layoutVariant: "pyp-one-page",
+            pageCount: 1,
+            onePageCompliant: true,
+            auditedAt: "2026-04-03T09:01:00.000Z",
+          },
+          failedDeliveryTargets: [],
+          failureReason: "",
+          retryEligibleUntil: null,
+          createdAt: "2026-04-03T00:00:00.000Z",
+          updatedAt: "2026-04-03T00:00:00.000Z",
+        },
+        {
+          id: "brief-myp-compare",
+          scheduledFor: "2026-04-03",
+          recordKind: "production",
+          headline: "MYP compare-only brief",
+          summary: "MYP summary.",
+          programme: "MYP",
+          editorialCohort: "EMEA",
+          status: "approved",
+          topicClusterKey: "myp compare",
+          normalizedHeadline: "myp compare only brief",
+          topicLatestPublishedAt: null,
+          selectionDecision: "new",
+          selectionOverrideNote: "",
+          blockedTopics: [],
+          topicTags: ["politics"],
+          sourceReferences: [],
+          aiConnectionId: "nf-relay",
+          aiConnectionName: "NF Relay",
+          aiModel: "gpt-5.4",
+          promptPolicyId: "policy-1",
+          promptVersionLabel: "v1.1.1",
+          promptVersion: "v1.1.1",
+          repetitionRisk: "low",
+          repetitionNotes: "No similar brief.",
+          adminNotes: "",
+          briefMarkdown: "## Today",
+          pipelineStage: "preflight_passed",
+          candidateSnapshotAt: "2026-04-03T05:00:00.000Z",
+          generationCompletedAt: "2026-04-03T06:00:00.000Z",
+          pdfBuiltAt: "2026-04-03T06:05:00.000Z",
+          deliveryWindowAt: "2026-04-03T09:00:00.000Z",
+          lastDeliveryAttemptAt: null,
+          deliveryAttemptCount: 0,
+          deliverySuccessCount: 0,
+          deliveryFailureCount: 0,
+          deliveryReceipts: [],
+          renderAudit: null,
+          failedDeliveryTargets: [],
+          failureReason: "",
+          retryEligibleUntil: null,
+          createdAt: "2026-04-03T00:00:00.000Z",
+          updatedAt: "2026-04-03T00:00:00.000Z",
+        },
+      ]);
+    listParentProfilesMock.mockResolvedValue([]);
+
+    const markup = renderToStaticMarkup(
+      await DailyBriefsAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("Renderer rollout");
+    expect(markup).toContain("Typst delivered briefs");
+    expect(markup).toContain("PYP one-page compliance");
+    expect(markup).toContain("PYP pdf-lib fallback");
+    expect(markup).toContain("MYP compare-only");
+    expect(markup).toContain("1 / 2");
+    expect(markup).toContain("Still on pdf-lib production for side-by-side validation");
   });
 });

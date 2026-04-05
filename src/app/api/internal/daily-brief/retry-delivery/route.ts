@@ -343,6 +343,7 @@ export async function POST(request: Request) {
       skippedProfiles,
       pendingFutureProfiles: [],
       heldProfiles,
+      renderAudit: retrySummary.renderAudit ?? brief.renderAudit ?? null,
       deliveryReceipts: nextDeliveryReceipts,
       failedDeliveryTargets: remainingFailedTargets,
       retryEligibleUntil: hasRemainingFailures

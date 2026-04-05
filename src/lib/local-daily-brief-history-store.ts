@@ -12,6 +12,7 @@ import {
   type DailyBriefDeliveryReceipt,
   type DailyBriefFailedDeliveryTarget,
   type DailyBriefHistoryRecord,
+  type DailyBriefRenderAudit,
   type DailyBriefPipelineStage,
   type DailyBriefRecordKind,
   type DailyBriefRepetitionRisk,
@@ -171,6 +172,23 @@ function normalizeDispatchAudienceProfile(
   };
 }
 
+function normalizeRenderAudit(
+  raw: Partial<DailyBriefRenderAudit> | null | undefined,
+): DailyBriefRenderAudit | null {
+  if (!raw) {
+    return null;
+  }
+
+  return {
+    renderer: normalizeReceiptRenderer(raw.renderer) ?? "pdf-lib",
+    layoutVariant: raw.layoutVariant === "pyp-one-page" ? "pyp-one-page" : "standard",
+    pageCount: normalizeCount(raw.pageCount),
+    onePageCompliant:
+      typeof raw.onePageCompliant === "boolean" ? raw.onePageCompliant : null,
+    auditedAt: normalizeString(raw.auditedAt),
+  };
+}
+
 function normalizeSourceReference(
   raw: Partial<DailyBriefSourceReference> | undefined,
 ): DailyBriefSourceReference {
@@ -283,6 +301,7 @@ function normalizeEntry(
           normalizeDispatchAudienceProfile(entry),
         )
       : [],
+    renderAudit: normalizeRenderAudit(raw?.renderAudit),
     deliveryReceipts: Array.isArray(raw?.deliveryReceipts)
       ? raw.deliveryReceipts.map((receipt) =>
           normalizeDeliveryReceipt(receipt),

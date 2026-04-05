@@ -368,4 +368,26 @@ describe("goodnotes delivery", () => {
         "2026-04-07_DailySparks_DailyBrief_MYP_students-compare-coastal-cleanup-plans_typst-prototype.pdf",
     });
   });
+
+  test("returns render audit details for a typst PYP brief", async () => {
+    const profile = createProfile();
+    const brief = createGeneratedBrief({
+      headline:
+        "UN watchdog voices deep concern as Iran reports new attacks on nuclear plant",
+      scheduledFor: "2026-04-07",
+      programme: "PYP",
+    });
+
+    const result = await sendBriefToGoodnotes(profile, brief, {
+      renderer: "typst",
+    });
+
+    expect(result.renderAudit).toMatchObject({
+      renderer: "typst",
+      layoutVariant: "pyp-one-page",
+      onePageCompliant: true,
+    });
+    expect(result.renderAudit.pageCount).toBe(1);
+    expect(result.renderAudit.auditedAt).toMatch(/^2026-04-03T02:00:00/);
+  });
 });

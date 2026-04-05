@@ -137,6 +137,34 @@ function getCoverageStatusClasses(status: DailyBriefProgrammeCoverageStatus) {
   }
 }
 
+function getRendererAuditBadges(
+  entry: Awaited<ReturnType<typeof listDailyBriefHistory>>[number],
+) {
+  const badges: string[] = [];
+
+  if (entry.renderAudit?.renderer === "typst") {
+    badges.push("Typst verified");
+  }
+
+  if (entry.renderAudit?.onePageCompliant === true) {
+    badges.push("PYP one-page");
+  }
+
+  if (
+    entry.programme === "PYP" &&
+    entry.recordKind === "production" &&
+    entry.renderAudit?.renderer === "pdf-lib"
+  ) {
+    badges.push("pdf-lib fallback");
+  }
+
+  if (entry.programme === "MYP" && entry.recordKind === "production") {
+    badges.push("MYP compare-only");
+  }
+
+  return badges;
+}
+
 function buildCoverageAwareEmptyState(input: {
   recordKind: DailyBriefRecordKind;
   programme?: Programme;
@@ -827,6 +855,81 @@ export default async function DailyBriefsAdminPage({
         </div>
       </section>
 
+      <section className="mt-8 rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">
+              Renderer rollout
+            </p>
+            <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
+              PYP Typst stabilization
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Track real Typst delivery coverage, one-page compliance, rollback
+              visibility, and the compare-only boundary before we expand Typst
+              beyond PYP production.
+            </p>
+          </div>
+
+          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 text-sm text-slate-500 lg:min-w-[16rem]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Current rollout boundary
+            </p>
+            <p className="mt-2 font-semibold text-[#0f172a]">
+              PYP production is Typst-first
+            </p>
+            <p className="mt-2 leading-6">
+              MYP compare-only stays on pdf-lib production for now so the team
+              can compare real layouts before any wider switch.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              label: "Typst delivered briefs",
+              value: opsSummary.typstDeliveredBriefCount,
+              detail: "Production briefs with successful Typst receipts today.",
+            },
+            {
+              label: "PYP one-page compliance",
+              value: `${opsSummary.pypOnePageCompliantBriefCount} / ${Math.max(
+                opsSummary.pypAuditedBriefCount,
+                1,
+              )}`,
+              detail:
+                "PYP briefs with render audits that stayed on a single Typst page today.",
+            },
+            {
+              label: "PYP pdf-lib fallback",
+              value: opsSummary.pypPdfLibFallbackBriefCount,
+              detail: "Fallback visible in admin until Typst production is fully stable.",
+            },
+            {
+              label: "MYP compare-only",
+              value: opsSummary.mypCompareOnlyBriefCount,
+              detail: "Still on pdf-lib production for side-by-side validation.",
+            },
+          ].map((card) => (
+            <div
+              key={card.label}
+              className="rounded-[24px] border border-slate-200 bg-white px-4 py-4"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                {card.label}
+              </p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
+                {card.value}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                {card.detail}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {history.length === 0 ? (
         <div className="mt-8 rounded-[28px] border border-dashed border-slate-300 bg-slate-50 px-6 py-10">
           <h3 className="text-xl font-bold tracking-tight text-[#0f172a]">
@@ -870,6 +973,14 @@ export default async function DailyBriefsAdminPage({
                     <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       {entry.repetitionRisk} repetition risk
                     </span>
+                    {getRendererAuditBadges(entry).map((badge) => (
+                      <span
+                        key={`${entry.id}-${badge}`}
+                        className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+                      >
+                        {badge}
+                      </span>
+                    ))}
                   </div>
                   <h3 className="mt-3 text-2xl font-bold tracking-tight text-[#0f172a]">
                     {entry.headline}

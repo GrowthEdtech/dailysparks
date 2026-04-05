@@ -95,6 +95,10 @@ export default async function DailyBriefDetailPage({
   const nonPypProductionRendererLabel = getDailyBriefRendererPolicyLabel(
     nonPypProductionRendererPolicy,
   );
+  const isPypProductionFallback =
+    entry.programme === "PYP" &&
+    entry.recordKind === "production" &&
+    entry.renderAudit?.renderer === "pdf-lib";
 
   return (
     <section className="space-y-6">
@@ -405,6 +409,73 @@ export default async function DailyBriefDetailPage({
                 </p>
               </div>
             </div>
+          </section>
+
+          <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">
+              Render audit
+            </h2>
+            {entry.renderAudit ? (
+              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Renderer
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                    {formatDailyBriefRendererLabel(entry.renderAudit.renderer)}
+                  </p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Layout variant
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                      {entry.renderAudit.layoutVariant}
+                    </p>
+                  </div>
+                  <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Page count
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                      {entry.renderAudit.pageCount}
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    One-page compliance
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                    {entry.renderAudit.onePageCompliant === null
+                      ? "Not applicable"
+                      : entry.renderAudit.onePageCompliant
+                        ? "Compliant"
+                        : "Needs review"}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Audited {formatAdminDateTime(entry.renderAudit.auditedAt)}
+                  </p>
+                </div>
+                {isPypProductionFallback ? (
+                  <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                    <p className="font-semibold">
+                      PYP production is currently using pdf-lib instead of the Typst default.
+                    </p>
+                    <p className="mt-2 text-sm leading-6">
+                      Fallback visible in admin until the rollout is fully stable.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm leading-6 text-slate-500">
+                No render audit recorded yet. The next outbound delivery or
+                resend will capture renderer, page count, and one-page
+                compliance here.
+              </p>
+            )}
           </section>
 
           <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">

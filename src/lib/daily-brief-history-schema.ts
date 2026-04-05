@@ -75,6 +75,16 @@ export type DailyBriefDispatchAudienceProfile = {
   reason: string;
 };
 
+export type DailyBriefRenderLayoutVariant = "standard" | "pyp-one-page";
+
+export type DailyBriefRenderAudit = {
+  renderer: DailyBriefPdfRenderer;
+  layoutVariant: DailyBriefRenderLayoutVariant;
+  pageCount: number;
+  onePageCompliant: boolean | null;
+  auditedAt: string;
+};
+
 export type DailyBriefHistoryRecord = {
   id: string;
   scheduledFor: string;
@@ -117,6 +127,7 @@ export type DailyBriefHistoryRecord = {
   skippedProfiles?: DailyBriefDispatchAudienceProfile[];
   pendingFutureProfiles?: DailyBriefDispatchAudienceProfile[];
   heldProfiles?: DailyBriefDispatchAudienceProfile[];
+  renderAudit?: DailyBriefRenderAudit | null;
   deliveryReceipts: DailyBriefDeliveryReceipt[];
   failedDeliveryTargets: DailyBriefFailedDeliveryTarget[];
   failureReason: string;

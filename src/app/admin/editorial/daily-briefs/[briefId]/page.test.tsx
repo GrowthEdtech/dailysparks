@@ -136,6 +136,13 @@ describe("DailyBriefDetailPage", () => {
           externalUrl: null,
         },
       ],
+      renderAudit: {
+        renderer: "pdf-lib",
+        layoutVariant: "standard",
+        pageCount: 2,
+        onePageCompliant: null,
+        auditedAt: "2026-04-02T09:12:00.000Z",
+      },
       failedDeliveryTargets: [
         {
           parentId: "parent-1",
@@ -183,6 +190,9 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("Big idea");
     expect(markup).toContain("Theme focus");
     expect(markup).toContain("Pipeline timeline");
+    expect(markup).toContain("Render audit");
+    expect(markup).toContain("Layout variant");
+    expect(markup).toContain("Page count");
     expect(markup).toContain("Dispatch review");
     expect(markup).toContain("Dispatch audience");
     expect(markup).toContain("Delivery receipts");
@@ -277,6 +287,13 @@ describe("DailyBriefDetailPage", () => {
           externalUrl: null,
         },
       ],
+      renderAudit: {
+        renderer: "typst",
+        layoutVariant: "pyp-one-page",
+        pageCount: 1,
+        onePageCompliant: true,
+        auditedAt: "2026-04-05T01:03:00.000Z",
+      },
       failedDeliveryTargets: [],
       failureReason: "",
       retryEligibleUntil: null,
@@ -295,5 +312,87 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("PYP production default");
     expect(markup).toContain("MYP / DP production fallback");
     expect(markup).toContain("Typst prototype");
+    expect(markup).toContain("One-page compliance");
+    expect(markup).toContain("Compliant");
+  });
+
+  test("surfaces a fallback warning when a PYP production brief used pdf-lib", async () => {
+    getDailyBriefHistoryEntryMock.mockResolvedValue({
+      id: "brief-pyp-prod-1",
+      scheduledFor: "2026-04-05",
+      recordKind: "production",
+      headline: "PYP production fallback brief.",
+      summary: "A PYP production brief.",
+      programme: "PYP",
+      editorialCohort: "APAC",
+      status: "published",
+      topicClusterKey: "pyp fallback",
+      normalizedHeadline: "pyp production fallback brief",
+      topicLatestPublishedAt: null,
+      selectionDecision: "new",
+      selectionOverrideNote: "",
+      blockedTopics: [],
+      topicTags: ["science"],
+      sourceReferences: [],
+      aiConnectionId: "nf-relay",
+      aiConnectionName: "NF Relay",
+      aiModel: "gpt-5.4",
+      promptPolicyId: "policy-1",
+      promptVersionLabel: "v1.1.1",
+      promptVersion: "v1.1.1",
+      repetitionRisk: "low",
+      repetitionNotes: "No overlap.",
+      adminNotes: "",
+      briefMarkdown: "What’s happening? A brief.",
+      pipelineStage: "published",
+      candidateSnapshotAt: "2026-04-05T00:00:00.000Z",
+      generationCompletedAt: "2026-04-05T00:10:00.000Z",
+      pdfBuiltAt: "2026-04-05T00:12:00.000Z",
+      deliveryWindowAt: "2026-04-05T01:00:00.000Z",
+      lastDeliveryAttemptAt: "2026-04-05T01:03:00.000Z",
+      deliveryAttemptCount: 1,
+      deliverySuccessCount: 1,
+      deliveryFailureCount: 0,
+      dispatchMode: "all",
+      dispatchCanaryParentEmails: [],
+      targetedProfiles: [],
+      skippedProfiles: [],
+      pendingFutureProfiles: [],
+      heldProfiles: [],
+      deliveryReceipts: [
+        {
+          parentId: "parent-1",
+          parentEmail: "family@example.com",
+          channel: "goodnotes",
+          renderer: "pdf-lib",
+          attachmentFileName: "pyp-pdf-lib.pdf",
+          externalId: "smtp-1",
+          externalUrl: null,
+        },
+      ],
+      renderAudit: {
+        renderer: "pdf-lib",
+        layoutVariant: "pyp-one-page",
+        pageCount: 1,
+        onePageCompliant: true,
+        auditedAt: "2026-04-05T01:03:00.000Z",
+      },
+      failedDeliveryTargets: [],
+      failureReason: "",
+      retryEligibleUntil: null,
+      createdAt: "2026-04-05T00:00:00.000Z",
+      updatedAt: "2026-04-05T00:00:00.000Z",
+    });
+
+    const markup = renderToStaticMarkup(
+      await DailyBriefDetailPage({
+        params: Promise.resolve({ briefId: "brief-pyp-prod-1" }),
+      }),
+    );
+
+    expect(markup).toContain(
+      "PYP production is currently using pdf-lib instead of the Typst default",
+    );
+    expect(markup).toContain("Fallback visible in admin until the rollout is fully stable.");
   });
 });

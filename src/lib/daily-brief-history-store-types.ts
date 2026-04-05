@@ -16,6 +16,7 @@ type DailyBriefLifecycleField =
   | "skippedProfiles"
   | "pendingFutureProfiles"
   | "heldProfiles"
+  | "renderAudit"
   | "deliveryReceipts"
   | "failedDeliveryTargets"
   | "failureReason"

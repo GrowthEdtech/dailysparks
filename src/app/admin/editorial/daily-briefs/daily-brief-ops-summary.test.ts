@@ -104,12 +104,20 @@ function buildHistoryRecord(
         parentId: "parent-1",
         parentEmail: "family@example.com",
         channel: "goodnotes",
+        renderer: "typst",
         attachmentFileName:
           "2026-04-03_DailySparks_DailyBrief_PYP_cooling-spaces.pdf",
         externalId: "smtp-1",
         externalUrl: null,
       },
     ],
+    renderAudit: {
+      renderer: "typst",
+      layoutVariant: "pyp-one-page",
+      pageCount: 1,
+      onePageCompliant: true,
+      auditedAt: "2026-04-03T09:00:00.000Z",
+    },
     failedDeliveryTargets: [],
     failureReason: "",
     retryEligibleUntil: null,
@@ -235,6 +243,11 @@ describe("buildDailyBriefOpsSummary", () => {
         }),
       ]),
     );
+    expect(summary.typstDeliveredBriefCount).toBe(1);
+    expect(summary.pypTypstAuditedBriefCount).toBe(1);
+    expect(summary.pypOnePageCompliantBriefCount).toBe(1);
+    expect(summary.pypPdfLibFallbackBriefCount).toBe(0);
+    expect(summary.mypCompareOnlyBriefCount).toBe(1);
   });
 
   test("prefers dispatch audit reasons over generic missing receipt fallbacks", () => {

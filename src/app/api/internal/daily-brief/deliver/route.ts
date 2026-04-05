@@ -494,6 +494,7 @@ export async function POST(request: Request) {
       skippedProfiles,
       pendingFutureProfiles,
       heldProfiles,
+      renderAudit: deliverySummary.renderAudit ?? brief.renderAudit ?? null,
       deliveryReceipts: nextDeliveryReceipts,
       failedDeliveryTargets: nextFailedDeliveryTargets,
       retryEligibleUntil: hasFailures ? retryEligibleUntil : null,

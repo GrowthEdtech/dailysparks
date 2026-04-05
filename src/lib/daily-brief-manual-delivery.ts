@@ -103,6 +103,7 @@ export async function deliverBriefToSingleProfile({
     deliveryAttemptCount: nextDeliveryAttemptCount,
     deliverySuccessCount: nextDeliverySuccessCount,
     deliveryFailureCount: nextDeliveryFailureCount,
+    renderAudit: deliverySummary.renderAudit ?? brief.renderAudit ?? null,
     deliveryReceipts: nextDeliveryReceipts,
     failedDeliveryTargets: nextFailedDeliveryTargets,
     failureReason:

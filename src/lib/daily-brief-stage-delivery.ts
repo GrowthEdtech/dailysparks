@@ -16,6 +16,7 @@ import type {
   DailyBriefDeliveryReceipt,
   DailyBriefFailedDeliveryTarget,
   DailyBriefHistoryRecord,
+  DailyBriefRenderAudit,
 } from "./daily-brief-history-schema";
 import { createNotionBriefPage } from "./notion";
 import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
@@ -25,6 +26,7 @@ export type DailyBriefDeliveryAttemptSummary = {
   deliveryAttemptCount: number;
   deliverySuccessCount: number;
   deliveryFailureCount: number;
+  renderAudit: DailyBriefRenderAudit | null;
   deliveryReceipts: DailyBriefDeliveryReceipt[];
   failedDeliveryTargets: DailyBriefFailedDeliveryTarget[];
 };
@@ -152,6 +154,7 @@ export async function deliverHistoryBriefToProfiles(
   let deliveryAttemptCount = 0;
   let deliverySuccessCount = 0;
   let deliveryFailureCount = 0;
+  let renderAudit: DailyBriefRenderAudit | null = null;
   const deliveryReceipts: DailyBriefDeliveryReceipt[] = [];
   const failedDeliveryTargets: DailyBriefFailedDeliveryTarget[] = [];
 
@@ -177,6 +180,7 @@ export async function deliverHistoryBriefToProfiles(
           firstBriefDeliveredAt: deliveryTimestamp,
         });
         deliverySuccessCount += 1;
+        renderAudit = renderAudit ?? result.renderAudit ?? null;
         deliveryReceipts.push({
           parentId: profile.parent.id,
           parentEmail: profile.parent.email,
@@ -264,6 +268,7 @@ export async function deliverHistoryBriefToProfiles(
     deliveryAttemptCount,
     deliverySuccessCount,
     deliveryFailureCount,
+    renderAudit,
     deliveryReceipts,
     failedDeliveryTargets,
   };

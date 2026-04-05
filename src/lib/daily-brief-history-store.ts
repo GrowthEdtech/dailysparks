@@ -1,6 +1,7 @@
 import { firestoreDailyBriefHistoryStore } from "./firestore-daily-brief-history-store";
 import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
 import type {
+  DailyBriefRenderAudit,
   DailyBriefDispatchAudienceProfile,
   DailyBriefHistoryRecord,
 } from "./daily-brief-history-schema";
@@ -87,6 +88,27 @@ function normalizeReceiptRenderer(value: unknown): DailyBriefPdfRenderer | null 
       (DAILY_BRIEF_PDF_RENDERERS as readonly string[]).includes(value)
     ? (value as DailyBriefPdfRenderer)
     : null;
+}
+
+function normalizeRenderAudit(
+  value: DailyBriefRenderAudit | null | undefined,
+): DailyBriefRenderAudit | null {
+  if (!value) {
+    return null;
+  }
+
+  return {
+    renderer: normalizeReceiptRenderer(value.renderer) ?? "pdf-lib",
+    layoutVariant:
+      value.layoutVariant === "pyp-one-page" ? "pyp-one-page" : "standard",
+    pageCount:
+      typeof value.pageCount === "number" && Number.isFinite(value.pageCount)
+        ? value.pageCount
+        : 0,
+    onePageCompliant:
+      typeof value.onePageCompliant === "boolean" ? value.onePageCompliant : null,
+    auditedAt: value.auditedAt.trim(),
+  };
 }
 
 export async function listDailyBriefHistory(
@@ -192,6 +214,7 @@ export async function createDailyBriefHistoryEntry(
       input.pendingFutureProfiles,
     ),
     heldProfiles: normalizeDispatchAudienceProfiles(input.heldProfiles),
+    renderAudit: normalizeRenderAudit(input.renderAudit),
     deliveryReceipts:
       input.deliveryReceipts?.map((receipt) => ({
         parentId: receipt.parentId.trim(),
@@ -404,6 +427,10 @@ export async function updateDailyBriefHistoryEntry(
 
   if ("heldProfiles" in input) {
     nextInput.heldProfiles = normalizeDispatchAudienceProfiles(input.heldProfiles);
+  }
+
+  if ("renderAudit" in input) {
+    nextInput.renderAudit = normalizeRenderAudit(input.renderAudit);
   }
 
   if ("deliveryReceipts" in input) {

@@ -203,6 +203,13 @@ describe("daily brief history store", () => {
             externalUrl: null,
           },
         ],
+        renderAudit: {
+          renderer: "typst",
+          layoutVariant: "standard",
+          pageCount: 2,
+          onePageCompliant: null,
+          auditedAt: "2026-04-02T06:05:30.000Z",
+        },
         failureReason: "One destination timed out.",
         retryEligibleUntil: "2026-04-02T09:30:00.000Z",
       }),
@@ -227,6 +234,13 @@ describe("daily brief history store", () => {
         externalId: "smtp-message-id",
       }),
     ]);
+    expect(fetchedEntry?.renderAudit).toEqual({
+      renderer: "typst",
+      layoutVariant: "standard",
+      pageCount: 2,
+      onePageCompliant: null,
+      auditedAt: "2026-04-02T06:05:30.000Z",
+    });
     expect(fetchedEntry?.failureReason).toBe("One destination timed out.");
     expect(fetchedEntry?.retryEligibleUntil).toBe("2026-04-02T09:30:00.000Z");
   });
