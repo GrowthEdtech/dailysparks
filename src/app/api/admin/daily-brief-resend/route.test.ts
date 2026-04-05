@@ -428,7 +428,7 @@ describe("admin daily brief resend route", () => {
     expect(body.rendererPolicyLabel).toMatch(/PYP production/i);
   });
 
-  test("keeps MYP production resend on pdf-lib when auto mode is used", async () => {
+  test("uses the auto renderer policy for MYP production resend and resolves to typst", async () => {
     const cookie = await signIn();
     await createMypProfile("family@example.com");
     const brief = await createDailyBriefHistoryEntry(
@@ -470,12 +470,11 @@ describe("admin daily brief resend route", () => {
     expect(response.status).toBe(200);
     expect(deliverBriefToSingleProfileMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        renderer: "pdf-lib",
+        renderer: "typst",
       }),
     );
     expect(body.rendererMode).toBe("auto");
-    expect(body.renderer).toBe("pdf-lib");
-    expect(body.rendererPolicyLabel).toMatch(/MYP/i);
-    expect(body.rendererPolicyLabel).toMatch(/pdf-lib/i);
+    expect(body.renderer).toBe("typst");
+    expect(body.rendererPolicyLabel).toMatch(/Typst live/i);
   });
 });

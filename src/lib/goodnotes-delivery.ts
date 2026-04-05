@@ -126,13 +126,13 @@ function toTestAttachmentFileName(programme: string, generatedAt = new Date()) {
 function toBriefAttachmentFileName(
   brief: Pick<GeneratedDailyBriefDraft, "programme" | "scheduledFor" | "headline">,
   attachmentMode: GoodnotesAttachmentMode = "production",
-  renderer: DailyBriefPdfRenderer = "pdf-lib",
+  renderer: DailyBriefPdfRenderer = "typst",
 ) {
   const safeDate = brief.scheduledFor.trim() || formatHongKongDate();
   const programme = brief.programme.toUpperCase();
   const topicSlug = toAsciiSlug(brief.headline, "daily-reading");
   const modeSuffix = attachmentMode === "canary" ? "_canary" : "";
-  const rendererSuffix = renderer === "typst" ? "_typst-prototype" : "";
+  const rendererSuffix = renderer === "pdf-lib" ? "_legacy-pdf-lib" : "";
 
   return `${safeDate}_DailySparks_DailyBrief_${programme}_${topicSlug}${modeSuffix}${rendererSuffix}.pdf`;
 }
@@ -862,7 +862,7 @@ async function createOutboundDailyBriefPdfWithAudit(
     renderer?: DailyBriefPdfRenderer;
   } = {},
 ) {
-  const renderer = options.renderer ?? "pdf-lib";
+  const renderer = options.renderer ?? "typst";
   const pdf = await createOutboundDailyBriefPdf(brief, { renderer });
   const renderAudit = await buildDailyBriefRenderAudit({
     brief,
@@ -883,7 +883,9 @@ export async function createGoodnotesBriefPdf(
     renderer?: DailyBriefPdfRenderer;
   } = {},
 ) {
-  return createOutboundDailyBriefPdf(brief, options);
+  return createOutboundDailyBriefPdf(brief, {
+    renderer: options.renderer ?? "typst",
+  });
 }
 
 export async function sendTestBriefToGoodnotes(
@@ -942,10 +944,10 @@ export async function sendBriefToGoodnotes(
   const attachmentFileName = toBriefAttachmentFileName(
     brief,
     options.attachmentMode ?? "production",
-    options.renderer ?? "pdf-lib",
+    options.renderer ?? "typst",
   );
   const { pdf, renderAudit } = await createOutboundDailyBriefPdfWithAudit(brief, {
-    renderer: options.renderer ?? "pdf-lib",
+    renderer: options.renderer ?? "typst",
   });
   const transporter = nodemailer.createTransport(config.smtpUrl);
   const result = await transporter.sendMail({

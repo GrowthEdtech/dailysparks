@@ -36,12 +36,11 @@ export type DailyBriefOpsSummary = {
   briefsNeedingFollowUpCount: number;
   deliveredFamilyCount: number;
   typstDeliveredBriefCount: number;
+  typstAuditedBriefCount: number;
+  legacyPdfLibBriefCount: number;
   pypAuditedBriefCount: number;
-  pypTypstAuditedBriefCount: number;
   pypOnePageCompliantBriefCount: number;
-  pypPdfLibFallbackBriefCount: number;
-  mypCompareOnlyBriefCount: number;
-  mypTypstAuditedBriefCount: number;
+  mypAuditedBriefCount: number;
   mypPagePolicyAuditedBriefCount: number;
   mypPagePolicyCompliantBriefCount: number;
   skippedFamilyCount: number;
@@ -196,33 +195,32 @@ export function buildDailyBriefOpsSummary({
     (entry) =>
       entry.deliverySuccessCount > 0 && entry.renderAudit?.renderer === "typst",
   ).length;
+  const typstAuditedBriefCount = productionHistory.filter(
+    (entry) => entry.renderAudit?.renderer === "typst",
+  ).length;
+  const legacyPdfLibBriefCount = productionHistory.filter(
+    (entry) => entry.renderAudit?.renderer === "pdf-lib",
+  ).length;
   const pypProductionBriefs = productionHistory.filter(
     (entry) => entry.programme === "PYP",
   );
   const pypAuditedBriefCount = pypProductionBriefs.filter(
     (entry) => entry.renderAudit !== null && entry.renderAudit !== undefined,
   ).length;
-  const pypTypstAuditedBriefCount = pypProductionBriefs.filter(
-    (entry) => entry.renderAudit?.renderer === "typst",
-  ).length;
   const pypOnePageCompliantBriefCount = pypProductionBriefs.filter(
     (entry) =>
       entry.renderAudit?.renderer === "typst" &&
       entry.renderAudit?.onePageCompliant === true,
   ).length;
-  const pypPdfLibFallbackBriefCount = pypProductionBriefs.filter(
-    (entry) => entry.renderAudit?.renderer === "pdf-lib",
-  ).length;
   const mypProductionBriefs = productionHistory.filter(
     (entry) => entry.programme === "MYP",
   );
-  const mypCompareOnlyBriefCount = mypProductionBriefs.length;
-  const mypTypstAuditedBriefCount = mypProductionBriefs.filter(
-    (entry) => entry.renderAudit?.renderer === "typst",
+  const mypAuditedBriefCount = mypProductionBriefs.filter(
+    (entry) => entry.renderAudit !== null && entry.renderAudit !== undefined,
   ).length;
   const mypPagePolicyAuditedBriefCount = mypProductionBriefs.filter(
     (entry) =>
-      entry.renderAudit?.pagePolicyLabel === "MYP compare-only" &&
+      entry.renderAudit?.pagePolicyLabel === "MYP two-page target" &&
       entry.renderAudit?.pagePolicyPageCountLimit === 2,
   ).length;
   const mypPagePolicyCompliantBriefCount = mypProductionBriefs.filter(
@@ -320,12 +318,11 @@ export function buildDailyBriefOpsSummary({
     briefsNeedingFollowUpCount: briefsNeedingFollowUp.length,
     deliveredFamilyCount: deliveredParentIds.size,
     typstDeliveredBriefCount,
+    typstAuditedBriefCount,
+    legacyPdfLibBriefCount,
     pypAuditedBriefCount,
-    pypTypstAuditedBriefCount,
     pypOnePageCompliantBriefCount,
-    pypPdfLibFallbackBriefCount,
-    mypCompareOnlyBriefCount,
-    mypTypstAuditedBriefCount,
+    mypAuditedBriefCount,
     mypPagePolicyAuditedBriefCount,
     mypPagePolicyCompliantBriefCount,
     skippedFamilyCount: skippedFamilies.length,

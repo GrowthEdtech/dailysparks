@@ -33,7 +33,7 @@ type DeliverBriefToSingleProfileOptions = {
 export async function deliverBriefToSingleProfile({
   brief,
   profile,
-  renderer = "pdf-lib",
+  renderer = "typst",
   notePrefix = "Manual resend/backfill requested by editorial admin.",
 }: DeliverBriefToSingleProfileOptions) {
   const retryableChannels: DailyBriefFailedDeliveryTarget["channel"][] = [];

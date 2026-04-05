@@ -157,8 +157,9 @@ export default function ManualTestRunPanel() {
             ))}
           </select>
         <p className="text-xs leading-5 text-slate-500">
-            Auto uses Typst for PYP and MYP canary/test runs, while production stays on the current rollout default.
-          </p>
+          Auto follows the Typst live policy for Daily Brief delivery. Use manual
+          Typst only if you want to make that choice explicit in the audit trail.
+        </p>
           <button
             type="submit"
             disabled={isSubmitting}

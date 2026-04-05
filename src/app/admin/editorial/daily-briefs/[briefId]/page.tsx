@@ -71,42 +71,17 @@ export default async function DailyBriefDetailPage({
   }
 
   const preview = buildOutboundDailyBriefPacket(entry);
-  const pypCanaryRendererPolicy = resolveDailyBriefRendererPolicy({
+  const currentRendererPolicy = resolveDailyBriefRendererPolicy({
     selectedMode: "auto",
-    programme: "PYP",
-    attachmentMode: "canary",
+    programme: entry.programme,
+    attachmentMode: entry.recordKind === "test" ? "canary" : "production",
   });
-  const pypProductionRendererPolicy = resolveDailyBriefRendererPolicy({
-    selectedMode: "auto",
-    programme: "PYP",
-    attachmentMode: "production",
-  });
-  const mypCanaryRendererPolicy = resolveDailyBriefRendererPolicy({
-    selectedMode: "auto",
-    programme: "MYP",
-    attachmentMode: "canary",
-  });
-  const mypProductionRendererPolicy = resolveDailyBriefRendererPolicy({
-    selectedMode: "auto",
-    programme: "MYP",
-    attachmentMode: "production",
-  });
-  const pypCanaryRendererLabel = getDailyBriefRendererPolicyLabel(
-    pypCanaryRendererPolicy,
+  const currentRendererLabel = getDailyBriefRendererPolicyLabel(
+    currentRendererPolicy,
   );
-  const pypProductionRendererLabel = getDailyBriefRendererPolicyLabel(
-    pypProductionRendererPolicy,
-  );
-  const mypCanaryRendererLabel = getDailyBriefRendererPolicyLabel(
-    mypCanaryRendererPolicy,
-  );
-  const mypProductionRendererLabel = getDailyBriefRendererPolicyLabel(
-    mypProductionRendererPolicy,
-  );
-  const isPypProductionFallback =
-    entry.programme === "PYP" &&
-    entry.recordKind === "production" &&
-    entry.renderAudit?.renderer === "pdf-lib";
+  const hasLegacyPdfLibRecord =
+    entry.renderAudit?.renderer === "pdf-lib" ||
+    entry.deliveryReceipts.some((receipt) => receipt.renderer === "pdf-lib");
 
   return (
     <section className="space-y-6">
@@ -203,55 +178,71 @@ export default async function DailyBriefDetailPage({
             </div>
           </div>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-2">
+          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(280px,0.72fr)]">
             <section className="overflow-hidden rounded-[28px] border border-[#d9e4f2] bg-white shadow-sm">
               <div className="border-b border-[#d9e4f2] px-5 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
-                  pdf-lib live renderer
+                  Typst live renderer
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  This is the current production renderer used for outbound delivery.
-                </p>
-              </div>
-              <Image
-                src={buildThumbnailPath(entry.id, "pdf-lib")}
-                alt={`First-page PDF preview for ${entry.headline}`}
-                width={595}
-                height={842}
-                className="block h-auto w-full"
-              />
-            </section>
-
-            <section className="overflow-hidden rounded-[28px] border border-[#d9e4f2] bg-white shadow-sm">
-              <div className="border-b border-[#d9e4f2] px-5 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
-                  Typst prototype renderer
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Prototype only. Use this to compare page rhythm, typography, and
-                  spacing before we consider a production switch.
+                  This is the current outbound Daily Brief layout used for live
+                  delivery across PYP, MYP, and DP.
                 </p>
               </div>
               <Image
                 src={buildThumbnailPath(entry.id, "typst")}
-                alt={`First-page Typst prototype preview for ${entry.headline}`}
+                alt={`First-page Typst live preview for ${entry.headline}`}
                 unoptimized
                 width={595}
                 height={842}
                 className="block h-auto w-full"
               />
             </section>
+
+            {hasLegacyPdfLibRecord ? (
+              <section className="overflow-hidden rounded-[28px] border border-[#f1dfb9] bg-[#fdf7ea] shadow-sm">
+                <div className="border-b border-[#f1dfb9] px-5 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b45309]">
+                    Legacy pdf-lib record
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    This brief still carries a historical pdf-lib receipt or
+                    render audit. Keep it for audit review only.
+                  </p>
+                </div>
+                <Image
+                  src={buildThumbnailPath(entry.id, "pdf-lib")}
+                  alt={`Legacy pdf-lib preview for ${entry.headline}`}
+                  width={595}
+                  height={842}
+                  className="block h-auto w-full"
+                />
+              </section>
+            ) : (
+              <section className="rounded-[28px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                  Renderer status
+                </p>
+                <p className="mt-3 text-lg font-semibold text-[#0f172a]">
+                  Typst live is the active Daily Brief renderer
+                </p>
+                <p className="mt-3 text-sm leading-6 text-slate-600">
+                  New deliveries, manual tests, retries, and resends all resolve
+                  to Typst unless this record is a legacy audit from before the cutover.
+                </p>
+              </section>
+            )}
           </div>
 
           <div className="mt-5 rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
-                  Typst prototype
+                  Typst live
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
-                  Prototype only. Production delivery still uses the live
-                  `pdf-lib` renderer while we evaluate a future Typst migration.
+                  Download the current Typst source PDF or inspect the Typst
+                  template source used by the live Daily Brief chain.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -259,7 +250,7 @@ export default async function DailyBriefDetailPage({
                   href={`/api/admin/daily-brief-typst/${entry.id}`}
                   className="inline-flex items-center justify-center rounded-full bg-[#0f172a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1e293b]"
                 >
-                  Download Typst prototype PDF
+                  Download Typst PDF
                 </a>
                 <a
                   href={`/api/admin/daily-brief-typst/${entry.id}?format=source`}
@@ -385,46 +376,25 @@ export default async function DailyBriefDetailPage({
             <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
               <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  PYP canary default
+                  Current brief auto policy
                 </p>
                 <p className="mt-2 text-sm font-semibold text-[#0f172a]">
-                  {formatDailyBriefRendererLabel(pypCanaryRendererPolicy.renderer)}
+                  {formatDailyBriefRendererLabel(currentRendererPolicy.renderer)}
                 </p>
                 <p className="mt-2 text-sm text-slate-600">
-                  {pypCanaryRendererLabel}
+                  {currentRendererLabel}
                 </p>
               </div>
               <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  PYP production default
+                  Coverage
                 </p>
                 <p className="mt-2 text-sm font-semibold text-[#0f172a]">
-                  {formatDailyBriefRendererLabel(pypProductionRendererPolicy.renderer)}
+                  PYP, MYP, and DP are Typst-first
                 </p>
                 <p className="mt-2 text-sm text-slate-600">
-                  {pypProductionRendererLabel}
-                </p>
-              </div>
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  MYP canary / test default
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[#0f172a]">
-                  {formatDailyBriefRendererLabel(mypCanaryRendererPolicy.renderer)}
-                </p>
-                <p className="mt-2 text-sm text-slate-600">
-                  {mypCanaryRendererLabel}
-                </p>
-              </div>
-              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  MYP production compare-only
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[#0f172a]">
-                  {formatDailyBriefRendererLabel(mypProductionRendererPolicy.renderer)}
-                </p>
-                <p className="mt-2 text-sm text-slate-600">
-                  {mypProductionRendererLabel}
+                  Daily Brief delivery now resolves to Typst live across test,
+                  canary, resend, retry, and production paths.
                 </p>
               </div>
             </div>
@@ -489,20 +459,25 @@ export default async function DailyBriefDetailPage({
                     Audited {formatAdminDateTime(entry.renderAudit.auditedAt)}
                   </p>
                 </div>
-                {isPypProductionFallback ? (
+                {hasLegacyPdfLibRecord ? (
                   <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-amber-900">
                     <p className="font-semibold">
-                      PYP production is currently using pdf-lib instead of the Typst default.
+                      This record still carries legacy pdf-lib evidence.
                     </p>
                     <p className="mt-2 text-sm leading-6">
-                      Fallback visible in admin until the rollout is fully stable.
+                      New Daily Brief deliveries are Typst-first. Keep this
+                      legacy preview only for historical audit and comparison.
                     </p>
                   </div>
                 ) : null}
                 {entry.programme === "MYP" ? (
                   <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sky-950">
                     <p className="font-semibold">
-                      Use Typst prototype in manual resend to validate compare-only MYP output while production stays on pdf-lib.
+                      MYP uses the Typst live chain with a two-page editorial target.
+                    </p>
+                    <p className="mt-2 text-sm leading-6">
+                      Render audit keeps the page-policy result visible so the
+                      team can monitor whether MYP stays within that two-page budget.
                     </p>
                   </div>
                 ) : null}
@@ -906,7 +881,6 @@ export default async function DailyBriefDetailPage({
       <ManualResendPanel
         briefId={entry.id}
         defaultParentEmail={getDefaultManualResendEmail(entry)}
-        programme={entry.programme}
       />
     </section>
   );

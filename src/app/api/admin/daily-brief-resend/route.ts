@@ -113,7 +113,7 @@ export async function POST(request: Request) {
     parsedBody.renderer !== undefined &&
     rendererMode === null
   ) {
-    return badRequest("renderer must be auto, pdf-lib, or typst when provided.");
+    return badRequest("renderer must be auto or typst when provided.");
   }
 
   const [brief, profile] = await Promise.all([

@@ -25,7 +25,7 @@ export async function buildDailyBriefRenderAudit({
     packet.layoutVariant === "pyp-one-page"
       ? "PYP one-page"
       : packet.layoutVariant === "myp-compare"
-        ? "MYP compare-only"
+        ? "MYP two-page target"
         : null;
   const pagePolicyPageCountLimit =
     packet.layoutVariant === "pyp-one-page"

@@ -262,8 +262,8 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("Manual canary test");
     expect(markup).toContain("Test recipient");
     expect(markup).toContain("Renderer");
-    expect(markup).toContain("pdf-lib live");
-    expect(markup).toContain("Typst prototype");
+    expect(markup).toContain("Auto (policy)");
+    expect(markup).toContain("Typst live");
     expect(markup).toContain("Use any existing family email as the one-off canary target");
     expect(markup).toContain("Run staged test");
   });
@@ -753,7 +753,7 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("No active families");
   });
 
-  test("renders renderer rollout metrics and compare-only guidance", async () => {
+  test("renders typst-live rollout metrics and legacy visibility guidance", async () => {
     listDailyBriefHistoryMock
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
@@ -811,8 +811,8 @@ describe("DailyBriefsAdminPage", () => {
           id: "brief-pyp-fallback",
           scheduledFor: "2026-04-03",
           recordKind: "production",
-          headline: "PYP fallback brief",
-          summary: "Rollback summary.",
+          headline: "Legacy pdf-lib brief",
+          summary: "Legacy summary.",
           programme: "PYP",
           editorialCohort: "APAC",
           status: "published",
@@ -861,7 +861,7 @@ describe("DailyBriefsAdminPage", () => {
           id: "brief-myp-compare",
           scheduledFor: "2026-04-03",
           recordKind: "production",
-          headline: "MYP compare-only brief",
+          headline: "MYP editorial brief",
           summary: "MYP summary.",
           programme: "MYP",
           editorialCohort: "EMEA",
@@ -899,7 +899,7 @@ describe("DailyBriefsAdminPage", () => {
             layoutVariant: "myp-compare",
             pageCount: 2,
             onePageCompliant: null,
-            pagePolicyLabel: "MYP compare-only",
+            pagePolicyLabel: "MYP two-page target",
             pagePolicyPageCountLimit: 2,
             pagePolicyCompliant: true,
             auditedAt: "2026-04-03T09:05:00.000Z",
@@ -921,13 +921,13 @@ describe("DailyBriefsAdminPage", () => {
 
     expect(markup).toContain("Renderer rollout");
     expect(markup).toContain("Typst delivered briefs");
+    expect(markup).toContain("Typst audited briefs");
     expect(markup).toContain("PYP one-page compliance");
-    expect(markup).toContain("PYP pdf-lib fallback");
-    expect(markup).toContain("MYP compare-only");
-    expect(markup).toContain("MYP page-policy compliance");
+    expect(markup).toContain("MYP two-page compliance");
+    expect(markup).toContain("Legacy pdf-lib records");
     expect(markup).toContain("1 / 2");
     expect(markup).toContain("1 / 1");
-    expect(markup).toContain("Still on pdf-lib production for side-by-side validation");
-    expect(markup).toContain("Typst-audited MYP compare briefs that stayed within the two-page target.");
+    expect(markup).toContain("Daily Brief delivery is Typst-first");
+    expect(markup).toContain("Older production records that still carry pdf-lib receipts or render audits.");
   });
 });

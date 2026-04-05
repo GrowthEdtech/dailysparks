@@ -174,11 +174,10 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain(
       "daily-brief-thumbnail%2Fbrief-1",
     );
-    expect(markup).toContain("pdf-lib live renderer");
-    expect(markup).toContain("Typst prototype renderer");
-    expect(markup).toContain("First-page PDF preview");
-    expect(markup).toContain("Typst prototype");
-    expect(markup).toContain("Prototype only");
+    expect(markup).toContain("Typst live renderer");
+    expect(markup).toContain("Legacy pdf-lib record");
+    expect(markup).toContain("Legacy pdf-lib preview");
+    expect(markup).toContain("Typst live");
     expect(markup).toContain("daily-brief-typst/brief-1");
     expect(markup).toContain("daily-brief-typst-thumbnail/brief-1");
     expect(markup).toContain("Summary deck");
@@ -203,8 +202,8 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("No healthy delivery channel was available for this wave.");
     expect(markup).toContain("Manual resend / backfill");
     expect(markup).toContain("Renderer");
-    expect(markup).toContain("pdf-lib live");
-    expect(markup).toContain("Typst prototype");
+    expect(markup).toContain("Auto (policy)");
+    expect(markup).toContain("Typst live");
     expect(markup).toContain("Send manual resend");
     expect(markup).toContain(
       "Follow-up exception approved because the cluster contains a newer development and a distinct headline.",
@@ -216,7 +215,7 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain(
       "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
     );
-    expect(markup).toContain("Renderer:</span> pdf-lib");
+    expect(markup).toContain("Renderer:</span> Legacy pdf-lib");
     expect(markup).toContain("Retry eligible until");
     expect(markup).toContain(
       "Two configured deliveries timed out during the 09:10 retry window.",
@@ -308,16 +307,15 @@ describe("DailyBriefDetailPage", () => {
     );
 
     expect(markup).toContain("Renderer rollout");
-    expect(markup).toContain("PYP canary default");
-    expect(markup).toContain("PYP production default");
-    expect(markup).toContain("MYP canary / test default");
-    expect(markup).toContain("MYP production compare-only");
-    expect(markup).toContain("Typst prototype");
+    expect(markup).toContain("Current brief auto policy");
+    expect(markup).toContain("Coverage");
+    expect(markup).toContain("PYP, MYP, and DP are Typst-first");
+    expect(markup).toContain("Typst live");
     expect(markup).toContain("Page policy");
     expect(markup).toContain("Compliant");
   });
 
-  test("surfaces a fallback warning when a PYP production brief used pdf-lib", async () => {
+  test("surfaces a legacy warning when a historical brief used pdf-lib", async () => {
     getDailyBriefHistoryEntryMock.mockResolvedValue({
       id: "brief-pyp-prod-1",
       scheduledFor: "2026-04-05",
@@ -392,18 +390,18 @@ describe("DailyBriefDetailPage", () => {
     );
 
     expect(markup).toContain(
-      "PYP production is currently using pdf-lib instead of the Typst default",
+      "This record still carries legacy pdf-lib evidence.",
     );
-    expect(markup).toContain("Fallback visible in admin until the rollout is fully stable.");
+    expect(markup).toContain("legacy preview only for historical audit");
   });
 
-  test("surfaces MYP compare-only rollout guidance and page-policy compliance", async () => {
+  test("surfaces MYP page-policy guidance and compliance", async () => {
     getDailyBriefHistoryEntryMock.mockResolvedValue({
       id: "brief-myp-compare-1",
       scheduledFor: "2026-04-05",
       recordKind: "production",
       headline: "Students compare coastal cleanup plans across cities.",
-      summary: "A MYP compare-only brief.",
+      summary: "A MYP editorial brief.",
       programme: "MYP",
       editorialCohort: "EMEA",
       status: "approved",
@@ -446,7 +444,7 @@ describe("DailyBriefDetailPage", () => {
         layoutVariant: "myp-compare",
         pageCount: 2,
         onePageCompliant: null,
-        pagePolicyLabel: "MYP compare-only",
+        pagePolicyLabel: "MYP two-page target",
         pagePolicyPageCountLimit: 2,
         pagePolicyCompliant: true,
         auditedAt: "2026-04-05T01:03:00.000Z",
@@ -465,14 +463,13 @@ describe("DailyBriefDetailPage", () => {
     );
 
     expect(markup).toContain("Renderer rollout");
-    expect(markup).toContain("MYP canary / test default");
-    expect(markup).toContain("MYP production compare-only");
+    expect(markup).toContain("Current brief auto policy");
     expect(markup).toContain("Page policy");
-    expect(markup).toContain("MYP compare-only");
+    expect(markup).toContain("MYP two-page target");
     expect(markup).toContain("2 pages max");
     expect(markup).toContain("Compliant");
     expect(markup).toContain(
-      "Use Typst prototype in manual resend to validate compare-only MYP output while production stays on pdf-lib.",
+      "MYP uses the Typst live chain with a two-page editorial target.",
     );
   });
 });

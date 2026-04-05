@@ -21,8 +21,8 @@ describe("daily brief renderer policy", () => {
 
     expect(policy.renderer).toBe("typst");
     expect(policy.selectedMode).toBe("auto");
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/PYP canary/i);
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/Typst/i);
+    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/canary/i);
+    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/Typst live/i);
   });
 
   test("defaults PYP production delivery to typst", () => {
@@ -34,11 +34,11 @@ describe("daily brief renderer policy", () => {
 
     expect(policy.renderer).toBe("typst");
     expect(policy.selectedMode).toBe("auto");
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/PYP production/i);
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/Typst/i);
+    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/production/i);
+    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/Typst live/i);
   });
 
-  test("defaults MYP canary delivery to typst for compare-only validation", () => {
+  test("defaults MYP canary delivery to typst", () => {
     const policy = resolveDailyBriefRendererPolicy({
       selectedMode: "auto",
       programme: "MYP",
@@ -47,62 +47,33 @@ describe("daily brief renderer policy", () => {
 
     expect(policy.renderer).toBe("typst");
     expect(policy.selectedMode).toBe("auto");
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/MYP/i);
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/compare-only/i);
+    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/canary/i);
+    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/Typst live/i);
   });
 
-  test("keeps MYP production delivery on pdf-lib during compare-only rollout", () => {
+  test("defaults MYP production delivery to typst", () => {
     const policy = resolveDailyBriefRendererPolicy({
       selectedMode: "auto",
       programme: "MYP",
       attachmentMode: "production",
     });
 
-    expect(policy.renderer).toBe("pdf-lib");
+    expect(policy.renderer).toBe("typst");
     expect(policy.selectedMode).toBe("auto");
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/MYP/i);
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/pdf-lib/i);
+    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/production/i);
+    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/Typst live/i);
   });
 
-  test("allows a rollback flag to push PYP canary back to pdf-lib", () => {
-    process.env.DAILY_BRIEF_PYP_CANARY_RENDERER_DEFAULT = "pdf-lib";
-
+  test("defaults DP production delivery to typst", () => {
     const policy = resolveDailyBriefRendererPolicy({
       selectedMode: "auto",
-      programme: "PYP",
-      attachmentMode: "canary",
-    });
-
-    expect(policy.renderer).toBe("pdf-lib");
-    expect(policy.isRollbackActive).toBe(true);
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/rollback/i);
-  });
-
-  test("allows a rollback flag to push PYP production back to pdf-lib", () => {
-    process.env.DAILY_BRIEF_PYP_PRODUCTION_RENDERER_DEFAULT = "pdf-lib";
-
-    const policy = resolveDailyBriefRendererPolicy({
-      selectedMode: "auto",
-      programme: "PYP",
+      programme: "DP",
       attachmentMode: "production",
     });
 
-    expect(policy.renderer).toBe("pdf-lib");
-    expect(policy.isRollbackActive).toBe(true);
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/rollback/i);
-  });
-
-  test("allows a rollback flag to push MYP canary back to pdf-lib", () => {
-    process.env.DAILY_BRIEF_MYP_CANARY_RENDERER_DEFAULT = "pdf-lib";
-
-    const policy = resolveDailyBriefRendererPolicy({
-      selectedMode: "auto",
-      programme: "MYP",
-      attachmentMode: "test",
-    });
-
-    expect(policy.renderer).toBe("pdf-lib");
-    expect(policy.isRollbackActive).toBe(true);
-    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/rollback/i);
+    expect(policy.renderer).toBe("typst");
+    expect(policy.selectedMode).toBe("auto");
+    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/production/i);
+    expect(getDailyBriefRendererPolicyLabel(policy)).toMatch(/Typst live/i);
   });
 });

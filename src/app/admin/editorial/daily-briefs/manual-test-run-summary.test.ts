@@ -13,7 +13,7 @@ function buildResult(
     success: true,
     runDate: "2026-04-05",
     targetParentEmails: ["ckx.leung@gmail.com"],
-    renderer: "pdf-lib",
+    renderer: "typst",
     stages: {
       ingest: {
         status: 200,
@@ -38,7 +38,7 @@ describe("manual test run summary", () => {
   test("reports manual fallback success as the final delivery outcome", () => {
     const result = buildResult({
       rendererMode: "auto",
-      rendererPolicyLabel: "Auto default: Typst for PYP canary briefs.",
+      rendererPolicyLabel: "Auto default: Typst live for PYP canary briefs.",
       renderer: "typst",
       stages: {
         ingest: {
@@ -55,7 +55,7 @@ describe("manual test run summary", () => {
             },
             manualBackfill: {
               parentEmail: "ckx.leung@gmail.com",
-              renderer: "pdf-lib",
+              renderer: "typst",
               deliveryAttemptCount: 1,
               deliverySuccessCount: 1,
               deliveryFailureCount: 0,
@@ -75,10 +75,10 @@ describe("manual test run summary", () => {
       "Renderer mode: Auto (policy)",
     );
     expect(formatManualTestRunStageSummary(result)).toContain(
-      "Resolved renderer: Typst prototype",
+      "Resolved renderer: Typst live",
     );
     expect(formatManualTestRunStageSummary(result)).toContain(
-      "Auto default: Typst for PYP canary briefs.",
+      "Auto default: Typst live for PYP canary briefs.",
     );
   });
 
@@ -99,7 +99,7 @@ describe("manual test run summary", () => {
             },
             manualBackfill: {
               parentEmail: "ckx.leung@gmail.com",
-              renderer: "pdf-lib",
+              renderer: "typst",
               skippedReason:
                 "No approved or published same-day test brief was available for fallback delivery.",
             },

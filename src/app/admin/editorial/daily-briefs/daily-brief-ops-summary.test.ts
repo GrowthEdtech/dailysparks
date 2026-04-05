@@ -199,7 +199,7 @@ describe("buildDailyBriefOpsSummary", () => {
           layoutVariant: "myp-compare",
           pageCount: 2,
           onePageCompliant: null,
-          pagePolicyLabel: "MYP compare-only",
+          pagePolicyLabel: "MYP two-page target",
           pagePolicyPageCountLimit: 2,
           pagePolicyCompliant: true,
           auditedAt: "2026-04-03T09:05:00.000Z",
@@ -255,11 +255,10 @@ describe("buildDailyBriefOpsSummary", () => {
     );
     expect(summary.pypAuditedBriefCount).toBe(1);
     expect(summary.typstDeliveredBriefCount).toBe(1);
-    expect(summary.pypTypstAuditedBriefCount).toBe(1);
+    expect(summary.typstAuditedBriefCount).toBe(2);
     expect(summary.pypOnePageCompliantBriefCount).toBe(1);
-    expect(summary.pypPdfLibFallbackBriefCount).toBe(0);
-    expect(summary.mypCompareOnlyBriefCount).toBe(1);
-    expect(summary.mypTypstAuditedBriefCount).toBe(1);
+    expect(summary.legacyPdfLibBriefCount).toBe(0);
+    expect(summary.mypAuditedBriefCount).toBe(1);
     expect(summary.mypPagePolicyAuditedBriefCount).toBe(1);
     expect(summary.mypPagePolicyCompliantBriefCount).toBe(1);
   });

@@ -134,7 +134,7 @@ async function parseRequestBody(
       payload.renderer !== undefined &&
       normalizeDailyBriefRendererMode(payload.renderer) === null
     ) {
-      return badRequest("renderer must be auto, pdf-lib, or typst when provided.");
+      return badRequest("renderer must be auto or typst when provided.");
     }
 
     return payload;

@@ -2,17 +2,12 @@ export const DAILY_BRIEF_RENDERER_OPTIONS = [
   {
     value: "auto",
     label: "Auto (policy)",
-    description: "Uses the rollout default for this brief",
-  },
-  {
-    value: "pdf-lib",
-    label: "pdf-lib live",
-    description: "Current production renderer",
+    description: "Uses the Typst live default for this brief",
   },
   {
     value: "typst",
-    label: "Typst prototype",
-    description: "Admin-only comparison renderer",
+    label: "Typst live",
+    description: "Current Daily Brief production renderer",
   },
 ] as const;
 
@@ -33,11 +28,11 @@ export function formatDailyBriefRendererLabel(
   renderer: string | null | undefined,
 ) {
   if (renderer === "typst") {
-    return "Typst prototype";
+    return "Typst live";
   }
 
   if (renderer === "pdf-lib") {
-    return "pdf-lib";
+    return "Legacy pdf-lib";
   }
 
   return "Not recorded";

@@ -150,16 +150,15 @@ function getRendererAuditBadges(
     badges.push("PYP one-page");
   }
 
-  if (
-    entry.programme === "PYP" &&
-    entry.recordKind === "production" &&
-    entry.renderAudit?.renderer === "pdf-lib"
-  ) {
-    badges.push("pdf-lib fallback");
+  if (entry.renderAudit?.renderer === "pdf-lib") {
+    badges.push("Legacy pdf-lib");
   }
 
-  if (entry.programme === "MYP" && entry.recordKind === "production") {
-    badges.push("MYP compare-only");
+  if (
+    entry.programme === "MYP" &&
+    entry.renderAudit?.pagePolicyLabel === "MYP two-page target"
+  ) {
+    badges.push("MYP two-page target");
   }
 
   return badges;
@@ -862,12 +861,12 @@ export default async function DailyBriefsAdminPage({
               Renderer rollout
             </p>
             <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
-              PYP Typst stabilization and MYP compare-only
+              Typst live delivery across PYP, MYP, and DP
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Track real Typst delivery coverage, one-page compliance, rollback
-              visibility, and the MYP compare-only boundary before we expand
-              Typst beyond PYP production.
+              Track real Typst delivery coverage, PYP one-page compliance, MYP
+              two-page policy health, and any remaining legacy pdf-lib records
+              while the Daily Brief chain settles on a single renderer.
             </p>
           </div>
 
@@ -876,11 +875,12 @@ export default async function DailyBriefsAdminPage({
               Current rollout boundary
             </p>
             <p className="mt-2 font-semibold text-[#0f172a]">
-              PYP production is Typst-first
+              Daily Brief delivery is Typst-first
             </p>
             <p className="mt-2 leading-6">
-              MYP compare-only stays on pdf-lib production for now so the team
-              can compare real layouts before any wider switch.
+              PYP, MYP, and DP now share the Typst live chain for daily brief
+              delivery. pdf-lib remains visible only when older records still
+              carry legacy render audits or receipts.
             </p>
           </div>
         </div>
@@ -893,6 +893,14 @@ export default async function DailyBriefsAdminPage({
               detail: "Production briefs with successful Typst receipts today.",
             },
             {
+              label: "Typst audited briefs",
+              value: `${opsSummary.typstAuditedBriefCount} / ${Math.max(
+                productionHistoryForToday.length,
+                1,
+              )}`,
+              detail: "Production briefs with a recorded Typst render audit today.",
+            },
+            {
               label: "PYP one-page compliance",
               value: `${opsSummary.pypOnePageCompliantBriefCount} / ${Math.max(
                 opsSummary.pypAuditedBriefCount,
@@ -902,23 +910,19 @@ export default async function DailyBriefsAdminPage({
                 "PYP briefs with render audits that stayed on a single Typst page today.",
             },
             {
-              label: "PYP pdf-lib fallback",
-              value: opsSummary.pypPdfLibFallbackBriefCount,
-              detail: "Fallback visible in admin until Typst production is fully stable.",
-            },
-            {
-              label: "MYP compare-only",
-              value: opsSummary.mypCompareOnlyBriefCount,
-              detail: "Still on pdf-lib production for side-by-side validation.",
-            },
-            {
-              label: "MYP page-policy compliance",
+              label: "MYP two-page compliance",
               value: `${opsSummary.mypPagePolicyCompliantBriefCount} / ${Math.max(
                 opsSummary.mypPagePolicyAuditedBriefCount,
                 1,
               )}`,
               detail:
-                "Typst-audited MYP compare briefs that stayed within the two-page target.",
+                "MYP briefs with audits that stayed within the two-page editorial target.",
+            },
+            {
+              label: "Legacy pdf-lib records",
+              value: opsSummary.legacyPdfLibBriefCount,
+              detail:
+                "Older production records that still carry pdf-lib receipts or render audits.",
             },
           ].map((card) => (
             <div

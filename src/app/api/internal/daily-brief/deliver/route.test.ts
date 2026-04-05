@@ -239,7 +239,7 @@ describe("daily brief deliver route", () => {
     expect(untouchedEntry?.status).toBe("draft");
   });
 
-  test("defaults PYP production delivery to typst while leaving non-PYP on pdf-lib", async () => {
+  test("defaults production delivery to typst for PYP, MYP, and DP", async () => {
     await createEligibleProgrammeProfile(
       "pyp-family@example.com",
       "PYP",
@@ -258,6 +258,18 @@ describe("daily brief deliver route", () => {
         summary: "Older learners evaluate public-space design.",
       }),
     );
+    await createEligibleProgrammeProfile(
+      "dp-family@example.com",
+      "DP",
+      ["goodnotes"],
+    );
+    await createDailyBriefHistoryEntry(
+      buildHistoryInput({
+        programme: "DP",
+        headline: "DP policy response brief",
+        summary: "Older students analyze a policy response.",
+      }),
+    );
 
     const response = await deliverDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
@@ -272,17 +284,24 @@ describe("daily brief deliver route", () => {
     const mypCall = sendBriefToGoodnotesMock.mock.calls.find(
       (call) => call[0]?.parent?.email === "myp-family@example.com",
     );
+    const dpCall = sendBriefToGoodnotesMock.mock.calls.find(
+      (call) => call[0]?.parent?.email === "dp-family@example.com",
+    );
 
     expect(response.status).toBe(200);
-    expect(body.summary.deliveredCount).toBe(2);
-    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(2);
+    expect(body.summary.deliveredCount).toBe(3);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(3);
     expect(pypCall?.[2]).toEqual({
       attachmentMode: "production",
       renderer: "typst",
     });
     expect(mypCall?.[2]).toEqual({
       attachmentMode: "production",
-      renderer: "pdf-lib",
+      renderer: "typst",
+    });
+    expect(dpCall?.[2]).toEqual({
+      attachmentMode: "production",
+      renderer: "typst",
     });
   });
 

@@ -345,7 +345,7 @@ describe("goodnotes delivery", () => {
     });
   });
 
-  test("adds a typst prototype suffix when the typst renderer is selected", async () => {
+  test("keeps the live attachment file name when typst is selected", async () => {
     const profile = createProfile();
     const brief = createGeneratedBrief({
       headline: "Students compare coastal cleanup plans",
@@ -360,12 +360,12 @@ describe("goodnotes delivery", () => {
     expect(sendMailMock.mock.calls[0]?.[0].attachments?.[0]).toMatchObject({
       contentType: "application/pdf",
       filename:
-        "2026-04-07_DailySparks_DailyBrief_MYP_students-compare-coastal-cleanup-plans_typst-prototype.pdf",
+        "2026-04-07_DailySparks_DailyBrief_MYP_students-compare-coastal-cleanup-plans.pdf",
     });
     expect(result).toMatchObject({
       messageId: "smtp-message-id",
       attachmentFileName:
-        "2026-04-07_DailySparks_DailyBrief_MYP_students-compare-coastal-cleanup-plans_typst-prototype.pdf",
+        "2026-04-07_DailySparks_DailyBrief_MYP_students-compare-coastal-cleanup-plans.pdf",
     });
   });
 
