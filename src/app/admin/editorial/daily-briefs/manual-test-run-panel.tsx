@@ -18,6 +18,8 @@ function buildDefaultRunDate() {
   return nextDay.toISOString().slice(0, 10);
 }
 
+const DEFAULT_TEST_RECIPIENT = "admin@geledtech.com";
+
 function formatStageSummary(result: TestRunResult | null) {
   if (!result?.stages) {
     return "No test run has completed yet.";
@@ -37,10 +39,15 @@ function formatStageSummary(result: TestRunResult | null) {
 
 export default function ManualTestRunPanel() {
   const [runDate, setRunDate] = useState(buildDefaultRunDate);
+  const [targetParentEmail, setTargetParentEmail] = useState(
+    DEFAULT_TEST_RECIPIENT,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<TestRunResult | null>(null);
   const stageSummary = useMemo(() => formatStageSummary(result), [result]);
+  const summaryTargetRecipient =
+    result?.targetParentEmails?.[0] ?? targetParentEmail;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,6 +62,7 @@ export default function ManualTestRunPanel() {
         },
         body: JSON.stringify({
           runDate,
+          parentEmail: targetParentEmail,
         }),
       });
       const body = (await response.json().catch(() => null)) as
@@ -93,16 +101,33 @@ export default function ManualTestRunPanel() {
             Manual canary test
           </p>
           <h3 className="mt-2 text-xl font-bold tracking-tight text-[#0f172a]">
-            Run the staged pipeline now and deliver only to admin@geledtech.com.
+            Run the staged pipeline now and deliver only to your chosen test recipient.
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-500">
             This trigger runs ingest, generate, preflight, and deliver in order.
             It does not change the Cloud Scheduler and it keeps the dispatch
-            locked to the admin canary recipient for this manual run only.
+            locked to the one-off canary recipient for this manual run only.
+            Use any existing family email as the one-off canary target.
           </p>
         </div>
 
         <form className="flex w-full max-w-sm flex-col gap-3" onSubmit={handleSubmit}>
+          <label
+            className="text-sm font-medium text-slate-700"
+            htmlFor="manual-target-parent-email"
+          >
+            Test recipient
+          </label>
+          <input
+            id="manual-target-parent-email"
+            type="email"
+            value={targetParentEmail}
+            onChange={(event) => setTargetParentEmail(event.target.value)}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-400"
+            placeholder={DEFAULT_TEST_RECIPIENT}
+            autoComplete="email"
+            required
+          />
           <label className="text-sm font-medium text-slate-700" htmlFor="manual-run-date">
             Test run date
           </label>
@@ -132,7 +157,10 @@ export default function ManualTestRunPanel() {
       <div className="mt-4 rounded-[24px] border border-slate-200 bg-white p-4">
         <p className="text-sm font-semibold text-[#0f172a]">Latest test summary</p>
         <p className="mt-2 text-sm text-slate-500">
-          Target recipient: <span className="font-semibold text-slate-700">admin@geledtech.com</span>
+          Target recipient:{" "}
+          <span className="font-semibold text-slate-700">
+            {summaryTargetRecipient}
+          </span>
         </p>
         {result ? (
           <p className="mt-1 text-sm text-slate-500">

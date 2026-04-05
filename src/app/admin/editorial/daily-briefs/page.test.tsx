@@ -230,7 +230,8 @@ describe("DailyBriefsAdminPage", () => {
     );
 
     expect(markup).toContain("Manual canary test");
-    expect(markup).toContain("admin@geledtech.com");
+    expect(markup).toContain("Test recipient");
+    expect(markup).toContain("Use any existing family email as the one-off canary target");
     expect(markup).toContain("Run staged test");
   });
 

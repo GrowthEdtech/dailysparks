@@ -20,9 +20,10 @@ import { POST as preflightDailyBriefRoute } from "../../internal/daily-brief/pre
 
 type DailyBriefTestRunRequestBody = {
   runDate?: unknown;
+  parentEmail?: unknown;
 };
 
-const DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS = ["admin@geledtech.com"];
+const DEFAULT_DAILY_BRIEF_TEST_TARGET_PARENT_EMAIL = "admin@geledtech.com";
 
 function unauthorized(message: string) {
   return Response.json(
@@ -47,6 +48,10 @@ function serviceUnavailable(message: string) {
 function isValidRunDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) &&
     !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
+}
+
+function normalizeEmail(value: unknown) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
 async function requireAdminSession(request: Request) {
@@ -88,6 +93,13 @@ async function parseRequestBody(
       (typeof payload.runDate !== "string" || !isValidRunDate(payload.runDate))
     ) {
       return badRequest("runDate must use YYYY-MM-DD format.");
+    }
+
+    if (
+      payload.parentEmail !== undefined &&
+      normalizeEmail(payload.parentEmail).length === 0
+    ) {
+      return badRequest("parentEmail must be a non-empty email address.");
     }
 
     return payload;
@@ -142,9 +154,21 @@ export async function POST(request: Request) {
     typeof parsedBody.runDate === "string"
       ? parsedBody.runDate
       : getNextDailyBriefBusinessDate();
-  const targetProfile = await getProfileByEmail(
-    DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS[0],
-  );
+  const targetParentEmail =
+    normalizeEmail(parsedBody.parentEmail) ||
+    DEFAULT_DAILY_BRIEF_TEST_TARGET_PARENT_EMAIL;
+  const targetParentEmails = [targetParentEmail];
+  const targetProfile = await getProfileByEmail(targetParentEmail);
+
+  if (!targetProfile) {
+    return Response.json(
+      {
+        message: "We could not find a family profile for that test recipient.",
+      },
+      { status: 404 },
+    );
+  }
+
   const editorialCohort = targetProfile
     ? getEditorialCohortForProfile(
         targetProfile,
@@ -167,7 +191,7 @@ export async function POST(request: Request) {
         success: false,
         failedStage: "ingest",
         runDate,
-        targetParentEmails: DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS,
+        targetParentEmails,
         stages: { ingest },
       },
       { status: ingest.status },
@@ -190,7 +214,7 @@ export async function POST(request: Request) {
         success: false,
         failedStage: "generate",
         runDate,
-        targetParentEmails: DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS,
+        targetParentEmails,
         stages: { ingest, generate },
       },
       { status: generate.status },
@@ -213,7 +237,7 @@ export async function POST(request: Request) {
         success: false,
         failedStage: "preflight",
         runDate,
-        targetParentEmails: DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS,
+        targetParentEmails,
         stages: { ingest, generate, preflight },
       },
       { status: preflight.ok ? 409 : preflight.status },
@@ -226,7 +250,7 @@ export async function POST(request: Request) {
         runDate,
         recordKind: "test",
         dispatchMode: "canary",
-        canaryParentEmails: DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS,
+        canaryParentEmails: targetParentEmails,
         forceDispatch: true,
       }),
     ),
@@ -239,7 +263,7 @@ export async function POST(request: Request) {
         failedStage: "deliver",
         runDate,
         editorialCohort,
-        targetParentEmails: DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS,
+        targetParentEmails,
         stages: { ingest, generate, preflight, deliver },
       },
       { status: deliver.status },
@@ -250,7 +274,7 @@ export async function POST(request: Request) {
     success: true,
     runDate,
     editorialCohort,
-    targetParentEmails: DAILY_BRIEF_TEST_TARGET_PARENT_EMAILS,
+    targetParentEmails,
     stages: {
       ingest,
       generate,

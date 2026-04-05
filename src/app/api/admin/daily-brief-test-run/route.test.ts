@@ -5,11 +5,13 @@ const {
   generateRouteMock,
   preflightRouteMock,
   deliverRouteMock,
+  getProfileByEmailMock,
 } = vi.hoisted(() => ({
   ingestRouteMock: vi.fn(),
   generateRouteMock: vi.fn(),
   preflightRouteMock: vi.fn(),
   deliverRouteMock: vi.fn(),
+  getProfileByEmailMock: vi.fn(),
 }));
 
 vi.mock("../../internal/daily-brief/ingest/route", () => ({
@@ -28,14 +30,81 @@ vi.mock("../../internal/daily-brief/deliver/route", () => ({
   POST: (...args: unknown[]) => deliverRouteMock(...args),
 }));
 
+vi.mock("../../../../lib/mvp-store", () => ({
+  getProfileByEmail: (...args: unknown[]) => getProfileByEmailMock(...args),
+}));
+
 import { POST as adminLogin } from "../login/route";
 import { POST as dailyBriefTestRunRoute } from "./route";
 import { EDITORIAL_ADMIN_SESSION_COOKIE_NAME } from "../../../../lib/editorial-admin-auth";
+import type { ParentProfile } from "../../../../lib/mvp-types";
 
 const ORIGINAL_ENV = { ...process.env };
 
 const validAdminSecret = "open-sesame";
 const schedulerSecret = "scheduler-secret";
+
+function createProfile(
+  overrides?: Partial<ParentProfile>,
+): ParentProfile {
+  return {
+    parent: {
+      id: "parent-1",
+      email: "admin@geledtech.com",
+      fullName: "Admin Parent",
+      subscriptionStatus: "active",
+      subscriptionPlan: "monthly",
+      stripeCustomerId: "cus_123",
+      stripeSubscriptionId: "sub_123",
+      trialStartedAt: "2026-04-01T00:00:00.000Z",
+      trialEndsAt: "2026-04-08T00:00:00.000Z",
+      subscriptionActivatedAt: "2026-04-01T00:00:00.000Z",
+      subscriptionRenewalAt: "2026-05-01T00:00:00.000Z",
+      latestInvoiceId: null,
+      latestInvoiceNumber: null,
+      latestInvoiceStatus: null,
+      latestInvoiceHostedUrl: null,
+      latestInvoicePdfUrl: null,
+      latestInvoiceAmountPaid: null,
+      latestInvoiceCurrency: null,
+      latestInvoicePaidAt: null,
+      latestInvoicePeriodStart: null,
+      latestInvoicePeriodEnd: null,
+      notionWorkspaceId: null,
+      notionWorkspaceName: null,
+      notionBotId: null,
+      notionDatabaseId: null,
+      notionDatabaseName: null,
+      notionDataSourceId: null,
+      notionAuthorizedAt: null,
+      notionLastSyncedAt: null,
+      notionLastSyncStatus: null,
+      notionLastSyncMessage: null,
+      notionLastSyncPageId: null,
+      notionLastSyncPageUrl: null,
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+      ...overrides?.parent,
+    },
+    student: {
+      id: "student-1",
+      parentId: "parent-1",
+      studentName: "Katherine",
+      programme: "MYP",
+      programmeYear: 2,
+      goodnotesEmail: "me.fvdhgzd@goodnotes.email",
+      goodnotesConnected: true,
+      goodnotesVerifiedAt: "2026-04-03T03:20:00.000Z",
+      goodnotesLastTestSentAt: null,
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Ready.",
+      notionConnected: false,
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+      ...overrides?.student,
+    },
+  };
+}
 
 async function signIn() {
   const response = await adminLogin(
@@ -71,6 +140,7 @@ beforeEach(() => {
   generateRouteMock.mockReset();
   preflightRouteMock.mockReset();
   deliverRouteMock.mockReset();
+  getProfileByEmailMock.mockReset();
 });
 
 afterEach(() => {
@@ -91,12 +161,26 @@ describe("daily brief test run admin route", () => {
     expect(body.message).toMatch(/editorial admin/i);
   });
 
-  test("runs the staged pipeline and forces delivery to admin@geledtech.com only", async () => {
+  test("runs the staged pipeline and forces delivery to the requested family only", async () => {
     const cookie = await signIn();
+    const customProfile = createProfile({
+      parent: {
+        email: "family@example.com",
+        countryCode: "GB",
+        deliveryTimeZone: "Europe/London",
+        preferredDeliveryLocalTime: "09:00",
+      },
+      student: {
+        parentId: "parent-1",
+        programme: "MYP",
+      },
+    });
     let ingestRequestBody: Record<string, unknown> | null = null;
     let generateRequestBody: Record<string, unknown> | null = null;
     let preflightRequestBody: Record<string, unknown> | null = null;
     let deliverRequestBody: Record<string, unknown> | null = null;
+
+    getProfileByEmailMock.mockResolvedValue(customProfile);
 
     ingestRouteMock.mockImplementation(async (request: Request) => {
       ingestRequestBody = (await request.json()) as Record<string, unknown>;
@@ -146,6 +230,7 @@ describe("daily brief test run admin route", () => {
         },
         body: JSON.stringify({
           runDate: "2026-04-04",
+          parentEmail: "family@example.com",
         }),
       }),
     );
@@ -154,7 +239,8 @@ describe("daily brief test run admin route", () => {
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.runDate).toBe("2026-04-04");
-    expect(body.targetParentEmails).toEqual(["admin@geledtech.com"]);
+    expect(body.targetParentEmails).toEqual(["family@example.com"]);
+    expect(getProfileByEmailMock).toHaveBeenCalledWith("family@example.com");
     expect(ingestRouteMock).toHaveBeenCalledTimes(1);
     expect(generateRouteMock).toHaveBeenCalledTimes(1);
     expect(preflightRouteMock).toHaveBeenCalledTimes(1);
@@ -166,18 +252,18 @@ describe("daily brief test run admin route", () => {
     expect(generateRequestBody).toEqual({
       runDate: "2026-04-04",
       recordKind: "test",
-      editorialCohort: "APAC",
+      editorialCohort: "EMEA",
     });
     expect(preflightRequestBody).toEqual({
       runDate: "2026-04-04",
       recordKind: "test",
-      editorialCohort: "APAC",
+      editorialCohort: "EMEA",
     });
     expect(deliverRequestBody).toEqual({
       runDate: "2026-04-04",
       recordKind: "test",
       dispatchMode: "canary",
-      canaryParentEmails: ["admin@geledtech.com"],
+      canaryParentEmails: ["family@example.com"],
       forceDispatch: true,
     });
   });
@@ -188,6 +274,7 @@ describe("daily brief test run admin route", () => {
 
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-04-03T16:30:00.000Z"));
+    getProfileByEmailMock.mockResolvedValue(createProfile());
 
     ingestRouteMock.mockImplementation(async (request: Request) => {
       ingestRequestBody = (await request.json()) as Record<string, unknown>;
@@ -235,5 +322,29 @@ describe("daily brief test run admin route", () => {
       runDate: "2026-04-05",
       recordKind: "test",
     });
+  });
+
+  test("rejects a custom recipient when no family profile exists", async () => {
+    const cookie = await signIn();
+
+    getProfileByEmailMock.mockResolvedValue(null);
+
+    const response = await dailyBriefTestRunRoute(
+      new Request("http://localhost:3000/api/admin/daily-brief-test-run", {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          runDate: "2026-04-04",
+          parentEmail: "missing@example.com",
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.message).toMatch(/family profile/i);
   });
 });
