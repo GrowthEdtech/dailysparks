@@ -206,6 +206,7 @@ describe("admin daily brief resend route", () => {
           parentId: profile.parent.id,
           parentEmail: profile.parent.email,
           channel: "goodnotes",
+          renderer: "typst",
           attachmentFileName:
             "2026-04-03_DailySparks_DailyBrief_PYP_students-map-sea-turtles.pdf",
           externalId: "smtp-message-id",
@@ -225,6 +226,7 @@ describe("admin daily brief resend route", () => {
         body: JSON.stringify({
           briefId: brief.id,
           parentEmail: "family@example.com",
+          renderer: "typst",
         }),
       }),
     );
@@ -236,6 +238,8 @@ describe("admin daily brief resend route", () => {
       [expect.objectContaining({ parent: expect.objectContaining({ email: "family@example.com" }) })],
       expect.objectContaining({ id: brief.id }),
       expect.objectContaining({
+        attachmentMode: "production",
+        renderer: "typst",
         retryTargets: [
           expect.objectContaining({
             parentEmail: "family@example.com",
@@ -256,6 +260,7 @@ describe("admin daily brief resend route", () => {
       expect.arrayContaining([
         expect.objectContaining({
           parentEmail: "family@example.com",
+          renderer: "typst",
           attachmentFileName:
             "2026-04-03_DailySparks_DailyBrief_PYP_students-map-sea-turtles.pdf",
         }),

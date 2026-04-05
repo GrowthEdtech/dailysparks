@@ -22,6 +22,10 @@ import {
   type DailyBriefBlockedTopic,
   type DailyBriefSelectionDecision,
 } from "./daily-brief-selection-types";
+import {
+  DAILY_BRIEF_PDF_RENDERERS,
+  type DailyBriefPdfRenderer,
+} from "./goodnotes-delivery";
 import type { DailyBriefHistoryStore } from "./daily-brief-history-store-types";
 import { IB_PROGRAMMES, type Programme } from "./mvp-types";
 
@@ -117,6 +121,14 @@ function normalizeFailedDeliveryTarget(
   };
 }
 
+function normalizeReceiptRenderer(value: unknown): DailyBriefPdfRenderer | null {
+  const normalized = normalizeString(value);
+
+  return (DAILY_BRIEF_PDF_RENDERERS as readonly string[]).includes(normalized)
+    ? (normalized as DailyBriefPdfRenderer)
+    : null;
+}
+
 function normalizeDeliveryReceipt(
   raw: Partial<DailyBriefDeliveryReceipt> | undefined,
 ): DailyBriefDeliveryReceipt {
@@ -124,6 +136,7 @@ function normalizeDeliveryReceipt(
     parentId: normalizeString(raw?.parentId),
     parentEmail: normalizeString(raw?.parentEmail),
     channel: normalizeDeliveryChannel(raw?.channel),
+    renderer: normalizeReceiptRenderer(raw?.renderer),
     attachmentFileName: normalizeNullableString(raw?.attachmentFileName),
     externalId: normalizeNullableString(raw?.externalId),
     externalUrl: normalizeNullableString(raw?.externalUrl),

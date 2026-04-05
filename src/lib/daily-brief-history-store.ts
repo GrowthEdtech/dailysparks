@@ -4,6 +4,10 @@ import type {
   DailyBriefDispatchAudienceProfile,
   DailyBriefHistoryRecord,
 } from "./daily-brief-history-schema";
+import {
+  DAILY_BRIEF_PDF_RENDERERS,
+  type DailyBriefPdfRenderer,
+} from "./goodnotes-delivery";
 import { normalizeHeadlineForComparison } from "./daily-brief-selection-types";
 import { localDailyBriefHistoryStore } from "./local-daily-brief-history-store";
 import type {
@@ -76,6 +80,13 @@ function normalizeDispatchAudienceProfiles(
       reason: entry.reason.trim(),
     })) ?? []
   );
+}
+
+function normalizeReceiptRenderer(value: unknown): DailyBriefPdfRenderer | null {
+  return typeof value === "string" &&
+      (DAILY_BRIEF_PDF_RENDERERS as readonly string[]).includes(value)
+    ? (value as DailyBriefPdfRenderer)
+    : null;
 }
 
 export async function listDailyBriefHistory(
@@ -186,6 +197,7 @@ export async function createDailyBriefHistoryEntry(
         parentId: receipt.parentId.trim(),
         parentEmail: receipt.parentEmail.trim(),
         channel: receipt.channel,
+        renderer: normalizeReceiptRenderer(receipt.renderer),
         attachmentFileName: receipt.attachmentFileName?.trim() || null,
         externalId: receipt.externalId?.trim() || null,
         externalUrl: receipt.externalUrl?.trim() || null,
@@ -400,6 +412,7 @@ export async function updateDailyBriefHistoryEntry(
         parentId: receipt.parentId.trim(),
         parentEmail: receipt.parentEmail.trim(),
         channel: receipt.channel,
+        renderer: normalizeReceiptRenderer(receipt.renderer),
         attachmentFileName: receipt.attachmentFileName?.trim() || null,
         externalId: receipt.externalId?.trim() || null,
         externalUrl: receipt.externalUrl?.trim() || null,

@@ -16,6 +16,7 @@ import {
   getRecordKindBadgeClasses,
   getRetryWindowLabel,
 } from "../daily-brief-admin-helpers";
+import { formatDailyBriefRendererLabel } from "../renderer-options";
 import ManualResendPanel from "./manual-resend-panel";
 
 type DailyBriefDetailPageProps = {
@@ -47,6 +48,12 @@ function getDefaultManualResendEmail(
     entry.pendingFutureProfiles?.[0]?.parentEmail ??
     ""
   );
+}
+
+function buildThumbnailPath(briefId: string, renderer: "pdf-lib" | "typst") {
+  return renderer === "typst"
+    ? `/api/admin/daily-brief-typst-thumbnail/${briefId}`
+    : `/api/admin/daily-brief-thumbnail/${briefId}`;
 }
 
 export default async function DailyBriefDetailPage({
@@ -156,14 +163,44 @@ export default async function DailyBriefDetailPage({
             </div>
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-[28px] border border-[#d9e4f2] bg-white shadow-sm">
-            <Image
-              src={`/api/admin/daily-brief-thumbnail/${entry.id}`}
-              alt={`First-page PDF preview for ${entry.headline}`}
-              width={595}
-              height={842}
-              className="block h-auto w-full"
-            />
+          <div className="mt-5 grid gap-5 xl:grid-cols-2">
+            <section className="overflow-hidden rounded-[28px] border border-[#d9e4f2] bg-white shadow-sm">
+              <div className="border-b border-[#d9e4f2] px-5 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                  pdf-lib live renderer
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  This is the current production renderer used for outbound delivery.
+                </p>
+              </div>
+              <Image
+                src={buildThumbnailPath(entry.id, "pdf-lib")}
+                alt={`First-page PDF preview for ${entry.headline}`}
+                width={595}
+                height={842}
+                className="block h-auto w-full"
+              />
+            </section>
+
+            <section className="overflow-hidden rounded-[28px] border border-[#d9e4f2] bg-white shadow-sm">
+              <div className="border-b border-[#d9e4f2] px-5 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                  Typst prototype renderer
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Prototype only. Use this to compare page rhythm, typography, and
+                  spacing before we consider a production switch.
+                </p>
+              </div>
+              <Image
+                src={buildThumbnailPath(entry.id, "typst")}
+                alt={`First-page Typst prototype preview for ${entry.headline}`}
+                unoptimized
+                width={595}
+                height={842}
+                className="block h-auto w-full"
+              />
+            </section>
           </div>
 
           <div className="mt-5 rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
@@ -535,6 +572,12 @@ export default async function DailyBriefDetailPage({
                           External id:
                         </span>{" "}
                         {receipt.externalId ?? "Not recorded"}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-[#0f172a]">
+                          Renderer:
+                        </span>{" "}
+                        {formatDailyBriefRendererLabel(receipt.renderer)}
                       </p>
                     </div>
                   </article>

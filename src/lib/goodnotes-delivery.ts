@@ -3,6 +3,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
 import type { ParentProfile } from "./mvp-types";
+import { renderOutboundDailyBriefTypstPrototype } from "./outbound-daily-brief-typst";
 import {
   buildOutboundDailyBriefPacket,
   type OutboundDailyBriefPacketInput,
@@ -20,6 +21,9 @@ export type GoodnotesDeliveryResult = {
   attachmentFileName: string;
 };
 
+export const DAILY_BRIEF_PDF_RENDERERS = ["pdf-lib", "typst"] as const;
+export type DailyBriefPdfRenderer =
+  (typeof DAILY_BRIEF_PDF_RENDERERS)[number];
 export type GoodnotesAttachmentMode = "production" | "canary" | "test";
 
 type GoodnotesWelcomeNote = {
@@ -119,13 +123,15 @@ function toTestAttachmentFileName(programme: string, generatedAt = new Date()) {
 function toBriefAttachmentFileName(
   brief: Pick<GeneratedDailyBriefDraft, "programme" | "scheduledFor" | "headline">,
   attachmentMode: GoodnotesAttachmentMode = "production",
+  renderer: DailyBriefPdfRenderer = "pdf-lib",
 ) {
   const safeDate = brief.scheduledFor.trim() || formatHongKongDate();
   const programme = brief.programme.toUpperCase();
   const topicSlug = toAsciiSlug(brief.headline, "daily-reading");
   const modeSuffix = attachmentMode === "canary" ? "_canary" : "";
+  const rendererSuffix = renderer === "typst" ? "_typst-prototype" : "";
 
-  return `${safeDate}_DailySparks_DailyBrief_${programme}_${topicSlug}${modeSuffix}.pdf`;
+  return `${safeDate}_DailySparks_DailyBrief_${programme}_${topicSlug}${modeSuffix}${rendererSuffix}.pdf`;
 }
 
 function wrapText(
@@ -482,7 +488,16 @@ export async function createGoodnotesTestBriefPdf(profile: ParentProfile) {
 
 export async function createOutboundDailyBriefPdf(
   brief: OutboundDailyBriefPacketInput,
+  options: {
+    renderer?: DailyBriefPdfRenderer;
+  } = {},
 ) {
+  if (options.renderer === "typst") {
+    const prototype = await renderOutboundDailyBriefTypstPrototype(brief);
+
+    return prototype.pdf;
+  }
+
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   const titleFont = await pdf.embedFont(StandardFonts.TimesRomanBold);
@@ -841,8 +856,11 @@ export async function createOutboundDailyBriefPdf(
 export async function createGoodnotesBriefPdf(
   _profile: ParentProfile,
   brief: GeneratedDailyBriefDraft,
+  options: {
+    renderer?: DailyBriefPdfRenderer;
+  } = {},
 ) {
-  return createOutboundDailyBriefPdf(brief);
+  return createOutboundDailyBriefPdf(brief, options);
 }
 
 export async function sendTestBriefToGoodnotes(
@@ -889,6 +907,7 @@ export async function sendBriefToGoodnotes(
   brief: GeneratedDailyBriefDraft,
   options: {
     attachmentMode?: Extract<GoodnotesAttachmentMode, "production" | "canary">;
+    renderer?: DailyBriefPdfRenderer;
   } = {},
 ): Promise<GoodnotesDeliveryResult> {
   const config = getGoodnotesDeliveryConfig();
@@ -900,8 +919,11 @@ export async function sendBriefToGoodnotes(
   const attachmentFileName = toBriefAttachmentFileName(
     brief,
     options.attachmentMode ?? "production",
+    options.renderer ?? "pdf-lib",
   );
-  const pdfBytes = await createGoodnotesBriefPdf(profile, brief);
+  const pdfBytes = await createGoodnotesBriefPdf(profile, brief, {
+    renderer: options.renderer ?? "pdf-lib",
+  });
   const transporter = nodemailer.createTransport(config.smtpUrl);
   const result = await transporter.sendMail({
     to: profile.student.goodnotesEmail,

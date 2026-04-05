@@ -231,6 +231,7 @@ describe("daily brief test run admin route", () => {
         body: JSON.stringify({
           runDate: "2026-04-04",
           parentEmail: "family@example.com",
+          renderer: "typst",
         }),
       }),
     );
@@ -240,6 +241,7 @@ describe("daily brief test run admin route", () => {
     expect(body.success).toBe(true);
     expect(body.runDate).toBe("2026-04-04");
     expect(body.targetParentEmails).toEqual(["family@example.com"]);
+    expect(body.renderer).toBe("typst");
     expect(getProfileByEmailMock).toHaveBeenCalledWith("family@example.com");
     expect(ingestRouteMock).toHaveBeenCalledTimes(1);
     expect(generateRouteMock).toHaveBeenCalledTimes(1);
@@ -265,6 +267,7 @@ describe("daily brief test run admin route", () => {
       dispatchMode: "canary",
       canaryParentEmails: ["family@example.com"],
       forceDispatch: true,
+      renderer: "typst",
     });
   });
 

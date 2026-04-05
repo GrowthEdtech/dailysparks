@@ -9,6 +9,7 @@ const { sendBriefToGoodnotesMock, createNotionBriefPageMock } = vi.hoisted(() =>
 }));
 
 vi.mock("../../../../../lib/goodnotes-delivery", () => ({
+  DAILY_BRIEF_PDF_RENDERERS: ["pdf-lib", "typst"],
   sendBriefToGoodnotes: (...args: unknown[]) => sendBriefToGoodnotesMock(...args),
 }));
 
@@ -314,6 +315,7 @@ describe("daily brief deliver route", () => {
     });
     expect(sendBriefToGoodnotesMock.mock.calls[0]?.[2]).toEqual({
       attachmentMode: "canary",
+      renderer: "pdf-lib",
     });
     expect(history[0]?.status).toBe("published");
     expect(history[0]?.dispatchMode).toBe("canary");
@@ -366,6 +368,7 @@ describe("daily brief deliver route", () => {
     });
     expect(sendBriefToGoodnotesMock.mock.calls[0]?.[2]).toEqual({
       attachmentMode: "canary",
+      renderer: "pdf-lib",
     });
   });
 

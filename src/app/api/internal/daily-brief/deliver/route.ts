@@ -21,6 +21,10 @@ import { listPendingDeliveryTargets } from "../../../../../lib/daily-brief-deliv
 import { deliverHistoryBriefToProfiles } from "../../../../../lib/daily-brief-stage-delivery";
 import { hasAutomatedDeliverySubscription } from "../../../../../lib/delivery-eligibility";
 import {
+  DAILY_BRIEF_PDF_RENDERERS,
+  type DailyBriefPdfRenderer,
+} from "../../../../../lib/goodnotes-delivery";
+import {
   buildProfileLocalDeliveryWindowLabel,
   splitProfilesByDeliveryWindow,
 } from "../../../../../lib/delivery-window";
@@ -42,6 +46,7 @@ type DailyBriefDeliverRequestBody = {
   canaryParentEmails?: string[];
   dispatchTimestamp?: string;
   forceDispatch?: boolean;
+  renderer?: string;
 };
 
 function serviceUnavailable(message: string) {
@@ -102,6 +107,13 @@ function normalizeDispatchTimestamp(value: unknown) {
   }
 
   return Number.isNaN(Date.parse(value)) ? undefined : new Date(value).toISOString();
+}
+
+function normalizeRenderer(value: unknown): DailyBriefPdfRenderer | undefined {
+  return typeof value === "string" &&
+      (DAILY_BRIEF_PDF_RENDERERS as readonly string[]).includes(value)
+    ? (value as DailyBriefPdfRenderer)
+    : undefined;
 }
 
 function isDeliverableBrief(entry: DailyBriefHistoryRecord) {
@@ -178,6 +190,13 @@ async function parseRequestBody(
       return badRequest("dispatchTimestamp must be a valid ISO timestamp.");
     }
 
+    if (
+      payload.renderer !== undefined &&
+      normalizeRenderer(payload.renderer) === undefined
+    ) {
+      return badRequest("renderer must be pdf-lib or typst when provided.");
+    }
+
     return payload;
   } catch {
     return badRequest("Request body must be valid JSON.");
@@ -206,6 +225,7 @@ export async function POST(request: Request) {
   const dispatchTimestamp =
     normalizeDispatchTimestamp(parsedBody.dispatchTimestamp) ??
     new Date().toISOString();
+  const renderer = normalizeRenderer(parsedBody.renderer) ?? "pdf-lib";
   const resolvedDispatchDate = new Date(dispatchTimestamp);
   const runDatesProcessed = parsedBody.runDate
     ? [parsedBody.runDate]
@@ -427,6 +447,7 @@ export async function POST(request: Request) {
         successfulReceipts: brief.deliveryReceipts,
         blockedTargets: brief.failedDeliveryTargets,
         attachmentMode: dispatchPlan.mode === "canary" ? "canary" : "production",
+        renderer,
       },
     );
     const nextDeliveryReceipts = [

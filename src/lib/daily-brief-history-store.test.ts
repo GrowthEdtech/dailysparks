@@ -196,6 +196,7 @@ describe("daily brief history store", () => {
             parentId: "parent-1",
             parentEmail: "family@example.com",
             channel: "goodnotes",
+            renderer: "typst",
             attachmentFileName:
               "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
             externalId: "smtp-message-id",
@@ -220,6 +221,7 @@ describe("daily brief history store", () => {
       expect.objectContaining({
         channel: "goodnotes",
         parentEmail: "family@example.com",
+        renderer: "typst",
         attachmentFileName:
           "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
         externalId: "smtp-message-id",

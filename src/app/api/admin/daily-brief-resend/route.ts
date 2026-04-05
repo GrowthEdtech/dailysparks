@@ -15,11 +15,16 @@ import {
   clearEditorialAdminSessionCookieHeader,
   getEditorialAdminSessionFromRequest,
 } from "../../../../lib/editorial-admin-auth";
+import {
+  DAILY_BRIEF_PDF_RENDERERS,
+  type DailyBriefPdfRenderer,
+} from "../../../../lib/goodnotes-delivery";
 import { getProfileByEmail } from "../../../../lib/mvp-store";
 
 type DailyBriefResendRequestBody = {
   briefId?: unknown;
   parentEmail?: unknown;
+  renderer?: unknown;
 };
 
 function unauthorized(message: string) {
@@ -52,6 +57,13 @@ function normalizeId(value: unknown) {
 
 function normalizeEmail(value: unknown) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function normalizeRenderer(value: unknown): DailyBriefPdfRenderer | undefined {
+  return typeof value === "string" &&
+      (DAILY_BRIEF_PDF_RENDERERS as readonly string[]).includes(value)
+    ? (value as DailyBriefPdfRenderer)
+    : undefined;
 }
 
 async function parseRequestBody(request: Request) {
@@ -109,6 +121,7 @@ export async function POST(request: Request) {
 
   const briefId = normalizeId(parsedBody.briefId);
   const parentEmail = normalizeEmail(parsedBody.parentEmail);
+  const renderer = normalizeRenderer(parsedBody.renderer) ?? "pdf-lib";
 
   if (!briefId) {
     return badRequest("briefId is required.");
@@ -116,6 +129,13 @@ export async function POST(request: Request) {
 
   if (!parentEmail) {
     return badRequest("parentEmail is required.");
+  }
+
+  if (
+    parsedBody.renderer !== undefined &&
+    normalizeRenderer(parsedBody.renderer) === undefined
+  ) {
+    return badRequest("renderer must be pdf-lib or typst when provided.");
   }
 
   const [brief, profile] = await Promise.all([
@@ -172,6 +192,7 @@ export async function POST(request: Request) {
   const deliverySummary = await deliverHistoryBriefToProfiles([profile], brief, {
     retryTargets,
     attachmentMode: brief.recordKind === "test" ? "canary" : "production",
+    renderer,
   });
 
   if (deliverySummary.deliveryAttemptCount === 0) {
@@ -233,6 +254,7 @@ export async function POST(request: Request) {
     success: deliverySummary.deliveryFailureCount === 0,
     briefId,
     parentEmail,
+    renderer,
     deliverySummary,
     brief: updatedEntry ?? brief,
   });

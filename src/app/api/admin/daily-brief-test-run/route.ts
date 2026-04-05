@@ -7,6 +7,10 @@ import {
   getEditorialAdminSessionFromRequest,
 } from "../../../../lib/editorial-admin-auth";
 import {
+  DAILY_BRIEF_PDF_RENDERERS,
+  type DailyBriefPdfRenderer,
+} from "../../../../lib/goodnotes-delivery";
+import {
   getDailyBriefSchedulerHeaderName,
   getDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
@@ -21,6 +25,7 @@ import { POST as preflightDailyBriefRoute } from "../../internal/daily-brief/pre
 type DailyBriefTestRunRequestBody = {
   runDate?: unknown;
   parentEmail?: unknown;
+  renderer?: unknown;
 };
 
 const DEFAULT_DAILY_BRIEF_TEST_TARGET_PARENT_EMAIL = "admin@geledtech.com";
@@ -52,6 +57,13 @@ function isValidRunDate(value: string) {
 
 function normalizeEmail(value: unknown) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function normalizeRenderer(value: unknown): DailyBriefPdfRenderer | undefined {
+  return typeof value === "string" &&
+      (DAILY_BRIEF_PDF_RENDERERS as readonly string[]).includes(value)
+    ? (value as DailyBriefPdfRenderer)
+    : undefined;
 }
 
 async function requireAdminSession(request: Request) {
@@ -100,6 +112,13 @@ async function parseRequestBody(
       normalizeEmail(payload.parentEmail).length === 0
     ) {
       return badRequest("parentEmail must be a non-empty email address.");
+    }
+
+    if (
+      payload.renderer !== undefined &&
+      normalizeRenderer(payload.renderer) === undefined
+    ) {
+      return badRequest("renderer must be pdf-lib or typst when provided.");
     }
 
     return payload;
@@ -157,6 +176,7 @@ export async function POST(request: Request) {
   const targetParentEmail =
     normalizeEmail(parsedBody.parentEmail) ||
     DEFAULT_DAILY_BRIEF_TEST_TARGET_PARENT_EMAIL;
+  const renderer = normalizeRenderer(parsedBody.renderer) ?? "pdf-lib";
   const targetParentEmails = [targetParentEmail];
   const targetProfile = await getProfileByEmail(targetParentEmail);
 
@@ -252,6 +272,7 @@ export async function POST(request: Request) {
         dispatchMode: "canary",
         canaryParentEmails: targetParentEmails,
         forceDispatch: true,
+        renderer,
       }),
     ),
   );
@@ -275,6 +296,7 @@ export async function POST(request: Request) {
     runDate,
     editorialCohort,
     targetParentEmails,
+    renderer,
     stages: {
       ingest,
       generate,

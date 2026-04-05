@@ -4,6 +4,7 @@ import type {
   DailyBriefBlockedTopic,
   DailyBriefSelectionDecision,
 } from "./daily-brief-selection-types";
+import type { DailyBriefPdfRenderer } from "./goodnotes-delivery";
 import type { Programme } from "./mvp-types";
 
 export const DAILY_BRIEF_STATUSES = [
@@ -61,6 +62,7 @@ export type DailyBriefDeliveryReceipt = {
   parentId: string;
   parentEmail: string;
   channel: DailyBriefDeliveryChannel;
+  renderer: DailyBriefPdfRenderer | null;
   attachmentFileName: string | null;
   externalId: string | null;
   externalUrl: string | null;

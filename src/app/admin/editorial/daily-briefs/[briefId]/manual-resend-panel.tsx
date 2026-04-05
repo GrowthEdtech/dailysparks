@@ -2,6 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 
+import {
+  DAILY_BRIEF_RENDERER_OPTIONS,
+  formatDailyBriefRendererLabel,
+  type AdminDailyBriefRenderer,
+} from "../renderer-options";
+
 type ManualResendPanelProps = {
   briefId: string;
   defaultParentEmail: string;
@@ -10,6 +16,7 @@ type ManualResendPanelProps = {
 type ManualResendResult = {
   success: boolean;
   parentEmail: string;
+  renderer?: AdminDailyBriefRenderer;
   message?: string;
   deliverySummary?: {
     deliveryAttemptCount: number;
@@ -23,9 +30,13 @@ export default function ManualResendPanel({
   defaultParentEmail,
 }: ManualResendPanelProps) {
   const [parentEmail, setParentEmail] = useState(defaultParentEmail);
+  const [renderer, setRenderer] = useState<AdminDailyBriefRenderer>("pdf-lib");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<ManualResendResult | null>(null);
+  const summaryRenderer = formatDailyBriefRendererLabel(
+    result?.renderer ?? renderer,
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -41,6 +52,7 @@ export default function ManualResendPanel({
         body: JSON.stringify({
           briefId,
           parentEmail,
+          renderer,
         }),
       });
       const body = (await response.json().catch(() => null)) as
@@ -98,6 +110,23 @@ export default function ManualResendPanel({
           className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#0f172a] shadow-sm outline-none transition focus:border-slate-400"
           placeholder="family@example.com"
         />
+        <label className="text-sm font-medium text-slate-700" htmlFor="manual-resend-renderer">
+          Renderer
+        </label>
+        <select
+          id="manual-resend-renderer"
+          value={renderer}
+          onChange={(event) =>
+            setRenderer(event.target.value as AdminDailyBriefRenderer)
+          }
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#0f172a] shadow-sm outline-none transition focus:border-slate-400"
+        >
+          {DAILY_BRIEF_RENDERER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
         <button
           type="submit"
           disabled={isSubmitting}
@@ -117,6 +146,7 @@ export default function ManualResendPanel({
         <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           Manual resend processed for{" "}
           <span className="font-semibold">{result.parentEmail}</span>.
+          {" "}Renderer: <span className="font-semibold">{summaryRenderer}</span>.
           {result.deliverySummary ? (
             <>
               {" "}

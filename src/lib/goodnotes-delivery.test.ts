@@ -344,4 +344,28 @@ describe("goodnotes delivery", () => {
         "2026-04-06_DailySparks_DailyBrief_PYP_trump-removes-us-attorney-general-pam-bondi_canary.pdf",
     });
   });
+
+  test("adds a typst prototype suffix when the typst renderer is selected", async () => {
+    const profile = createProfile();
+    const brief = createGeneratedBrief({
+      headline: "Students compare coastal cleanup plans",
+      scheduledFor: "2026-04-07",
+      programme: "MYP",
+    });
+
+    const result = await sendBriefToGoodnotes(profile, brief, {
+      renderer: "typst",
+    });
+
+    expect(sendMailMock.mock.calls[0]?.[0].attachments?.[0]).toMatchObject({
+      contentType: "application/pdf",
+      filename:
+        "2026-04-07_DailySparks_DailyBrief_MYP_students-compare-coastal-cleanup-plans_typst-prototype.pdf",
+    });
+    expect(result).toMatchObject({
+      messageId: "smtp-message-id",
+      attachmentFileName:
+        "2026-04-07_DailySparks_DailyBrief_MYP_students-compare-coastal-cleanup-plans_typst-prototype.pdf",
+    });
+  });
 });

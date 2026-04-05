@@ -1,4 +1,7 @@
-import { sendBriefToGoodnotes } from "./goodnotes-delivery";
+import {
+  sendBriefToGoodnotes,
+  type DailyBriefPdfRenderer,
+} from "./goodnotes-delivery";
 import {
   updateParentGrowthMilestones,
   updateParentNotionConnection,
@@ -142,6 +145,7 @@ export async function deliverHistoryBriefToProfiles(
     successfulReceipts?: DailyBriefDeliveryReceipt[];
     blockedTargets?: DailyBriefFailedDeliveryTarget[];
     attachmentMode?: "production" | "canary";
+    renderer?: DailyBriefPdfRenderer;
   } = {},
 ): Promise<DailyBriefDeliveryAttemptSummary> {
   const deliveryBrief = toGeneratedBriefDraft(brief);
@@ -158,6 +162,7 @@ export async function deliverHistoryBriefToProfiles(
       try {
         const result = await sendBriefToGoodnotes(profile, deliveryBrief, {
           attachmentMode: options.attachmentMode ?? "production",
+          renderer: options.renderer ?? "pdf-lib",
         });
         const deliveryTimestamp = new Date().toISOString();
         await updateStudentGoodnotesDelivery(profile.parent.email, {
@@ -176,6 +181,7 @@ export async function deliverHistoryBriefToProfiles(
           parentId: profile.parent.id,
           parentEmail: profile.parent.email,
           channel: "goodnotes",
+          renderer: options.renderer ?? "pdf-lib",
           attachmentFileName: result.attachmentFileName,
           externalId: result.messageId,
           externalUrl: null,
@@ -226,6 +232,7 @@ export async function deliverHistoryBriefToProfiles(
           parentId: profile.parent.id,
           parentEmail: profile.parent.email,
           channel: "notion",
+          renderer: null,
           attachmentFileName: null,
           externalId: result.pageId,
           externalUrl: result.pageUrl,

@@ -2,10 +2,17 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 
+import {
+  DAILY_BRIEF_RENDERER_OPTIONS,
+  formatDailyBriefRendererLabel,
+  type AdminDailyBriefRenderer,
+} from "./renderer-options";
+
 type TestRunResult = {
   success: boolean;
   runDate: string;
   targetParentEmails: string[];
+  renderer?: AdminDailyBriefRenderer;
   failedStage?: string;
   stages?: Record<string, { status: number; body: unknown }>;
   message?: string;
@@ -42,12 +49,16 @@ export default function ManualTestRunPanel() {
   const [targetParentEmail, setTargetParentEmail] = useState(
     DEFAULT_TEST_RECIPIENT,
   );
+  const [renderer, setRenderer] = useState<AdminDailyBriefRenderer>("pdf-lib");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [result, setResult] = useState<TestRunResult | null>(null);
   const stageSummary = useMemo(() => formatStageSummary(result), [result]);
   const summaryTargetRecipient =
     result?.targetParentEmails?.[0] ?? targetParentEmail;
+  const summaryRenderer = formatDailyBriefRendererLabel(
+    result?.renderer ?? renderer,
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -63,6 +74,7 @@ export default function ManualTestRunPanel() {
         body: JSON.stringify({
           runDate,
           parentEmail: targetParentEmail,
+          renderer,
         }),
       });
       const body = (await response.json().catch(() => null)) as
@@ -138,6 +150,23 @@ export default function ManualTestRunPanel() {
             onChange={(event) => setRunDate(event.target.value)}
             className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm outline-none transition focus:border-slate-400"
           />
+          <label className="text-sm font-medium text-slate-700" htmlFor="manual-renderer">
+            Renderer
+          </label>
+          <select
+            id="manual-renderer"
+            value={renderer}
+            onChange={(event) =>
+              setRenderer(event.target.value as AdminDailyBriefRenderer)
+            }
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-[#0f172a] shadow-sm outline-none transition focus:border-slate-400"
+          >
+            {DAILY_BRIEF_RENDERER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
           <button
             type="submit"
             disabled={isSubmitting}
@@ -167,6 +196,10 @@ export default function ManualTestRunPanel() {
             Last run date: <span className="font-semibold text-slate-700">{result.runDate}</span>
           </p>
         ) : null}
+        <p className="mt-1 text-sm text-slate-500">
+          Renderer:{" "}
+          <span className="font-semibold text-slate-700">{summaryRenderer}</span>
+        </p>
         <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-50 p-4 text-xs leading-6 text-slate-600">
           {stageSummary}
         </pre>

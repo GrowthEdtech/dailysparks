@@ -11,6 +11,7 @@ import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 import type { DailyBriefHistoryRecord } from "./daily-brief-history-schema";
 import { createOutboundDailyBriefPdf } from "./goodnotes-delivery";
+import { renderOutboundDailyBriefTypstPrototype } from "./outbound-daily-brief-typst";
 
 function ensurePdfRenderGlobals() {
   if (!("DOMMatrix" in globalThis)) {
@@ -37,12 +38,9 @@ function getStandardFontDataUrl() {
   }
 }
 
-export async function renderDailyBriefThumbnailPng(
-  brief: DailyBriefHistoryRecord,
-) {
+async function renderPdfFirstPageThumbnailPng(pdfBytes: Uint8Array) {
   ensurePdfRenderGlobals();
 
-  const pdfBytes = await createOutboundDailyBriefPdf(brief);
   const loadingTask = getDocument({
     data: pdfBytes,
     useWorkerFetch: false,
@@ -75,4 +73,20 @@ export async function renderDailyBriefThumbnailPng(
   } finally {
     await document.destroy();
   }
+}
+
+export async function renderDailyBriefThumbnailPng(
+  brief: DailyBriefHistoryRecord,
+) {
+  const pdfBytes = await createOutboundDailyBriefPdf(brief);
+
+  return renderPdfFirstPageThumbnailPng(pdfBytes);
+}
+
+export async function renderDailyBriefTypstThumbnailPng(
+  brief: DailyBriefHistoryRecord,
+) {
+  const prototype = await renderOutboundDailyBriefTypstPrototype(brief);
+
+  return renderPdfFirstPageThumbnailPng(new Uint8Array(prototype.pdf));
 }

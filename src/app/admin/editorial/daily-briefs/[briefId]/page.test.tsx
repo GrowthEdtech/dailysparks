@@ -129,6 +129,7 @@ describe("DailyBriefDetailPage", () => {
           parentId: "parent-1",
           parentEmail: "family@example.com",
           channel: "goodnotes",
+          renderer: "pdf-lib",
           attachmentFileName:
             "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
           externalId: "smtp-message-id",
@@ -166,10 +167,13 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain(
       "daily-brief-thumbnail%2Fbrief-1",
     );
+    expect(markup).toContain("pdf-lib live renderer");
+    expect(markup).toContain("Typst prototype renderer");
     expect(markup).toContain("First-page PDF preview");
     expect(markup).toContain("Typst prototype");
     expect(markup).toContain("Prototype only");
     expect(markup).toContain("daily-brief-typst/brief-1");
+    expect(markup).toContain("daily-brief-typst-thumbnail/brief-1");
     expect(markup).toContain("Summary deck");
     expect(markup).toContain("Reading brief");
     expect(markup).toContain("What&#x27;s happening?");
@@ -188,6 +192,9 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("Pending future local delivery window.");
     expect(markup).toContain("No healthy delivery channel was available for this wave.");
     expect(markup).toContain("Manual resend / backfill");
+    expect(markup).toContain("Renderer");
+    expect(markup).toContain("pdf-lib live");
+    expect(markup).toContain("Typst prototype");
     expect(markup).toContain("Send manual resend");
     expect(markup).toContain(
       "Follow-up exception approved because the cluster contains a newer development and a distinct headline.",
@@ -199,6 +206,7 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain(
       "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
     );
+    expect(markup).toContain("Renderer:</span> pdf-lib");
     expect(markup).toContain("Retry eligible until");
     expect(markup).toContain(
       "Two configured deliveries timed out during the 09:10 retry window.",
