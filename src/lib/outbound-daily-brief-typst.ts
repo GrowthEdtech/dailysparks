@@ -49,14 +49,14 @@ export function getTypstHeadlineSize(headline: string) {
   const length = headline.trim().length;
 
   if (length >= 96) {
-    return 20;
+    return 18;
   }
 
   if (length >= 64) {
-    return 22;
+    return 20;
   }
 
-  return 24;
+  return 22;
 }
 
 export function preventTypstHeadlineWidows(headline: string) {
@@ -121,44 +121,46 @@ export function buildOutboundDailyBriefTypstSource(
 #let gold-border = rgb("#f1dfb9")
 
 #let pill(value) = box(
-  fill: white,
+  fill: rgb("#f8fbff"),
   stroke: (paint: soft-border, thickness: 1pt),
-  inset: (x: 10pt, y: 6pt),
+  inset: (x: 10pt, y: 5pt),
   radius: 999pt,
-)[#text(size: 8pt, weight: "semibold", fill: secondary)[#value]]
+)[#text(size: 7.5pt, weight: "semibold", fill: muted)[#value]]
 
 #let section-card(label, body, fill-color: white, border-color: soft-border, label-color: muted) = rect(
   width: 100%,
   fill: fill-color,
   stroke: (paint: border-color, thickness: 1pt),
-  inset: 18pt,
+  inset: 16pt,
   radius: 18pt,
 )[
-  #text(size: 10pt, weight: "semibold", fill: label-color)[#label]
+  #text(size: 9pt, weight: "semibold", fill: label-color)[#label]
   #v(8pt)
-  #text(size: 11pt, fill: secondary)[#body]
+  #set par(leading: 1.14em)
+  #text(size: 11.1pt, fill: secondary)[#body]
 ]
 
 #let standfirst-card(label, body) = rect(
   width: 100%,
-  fill: white,
+  fill: rgb("#fcfeff"),
   stroke: (paint: soft-border, thickness: 1pt),
-  inset: 20pt,
+  inset: 22pt,
   radius: 18pt,
 )[
-  #text(size: 10pt, weight: "semibold", fill: muted)[#label]
+  #text(size: 9pt, weight: "semibold", fill: gold)[#label]
   #v(8pt)
-  #set par(leading: 1.15em)
-  #text(size: 13pt, fill: ink)[#body]
+  #set par(leading: 1.22em)
+  #text(size: 14pt, fill: ink)[#body]
 ]
 
 #let reading-block(title, body) = [
   #if title != "" [
-    #text(size: 12pt, weight: "semibold", fill: ink)[#title]
+    #text(size: 12.5pt, weight: "semibold", fill: ink)[#title]
     #v(4pt)
   ]
-  #text(size: 11.2pt, fill: secondary)[#body]
-  #v(12pt)
+  #set par(leading: 1.18em)
+  #text(size: 11.35pt, fill: secondary)[#body]
+  #v(14pt)
 ]
 
 #let vocab-item(term, definition) = [
@@ -184,19 +186,19 @@ export function buildOutboundDailyBriefTypstSource(
   width: 100%,
   fill: pale-blue,
   stroke: (paint: soft-border, thickness: 1pt),
-  inset: 20pt,
-  radius: 22pt,
+  inset: 18pt,
+  radius: 20pt,
 )[
-  #text(size: 9pt, weight: "semibold", fill: gold)[#${escapeTypstString(packet.eyebrow)}]
-  #v(6pt)
+  #text(size: 8.5pt, weight: "semibold", fill: gold)[#${escapeTypstString(packet.eyebrow)}]
+  #v(4pt)
   #text(size: ${headlineSize}pt, weight: "bold", fill: ink)[#${escapeTypstString(headline)}]
-  #v(12pt)
+  #v(10pt)
   #grid(columns: (auto, auto, auto), gutter: 8pt,[
         ${metadataItems}
   ])
 ]
 
-#v(16pt)
+#v(12pt)
 #standfirst-card(${escapeTypstString(packet.summaryTitle)}, ${escapeTypstString(packet.summaryBody)})
 
 ${
@@ -208,9 +210,9 @@ ${
     : ""
 }
 
-#v(14pt)
-#text(size: 20pt, weight: "bold", fill: ink)[#${escapeTypstString(packet.readingTitle)}]
-#v(10pt)
+#v(16pt)
+#text(size: 22pt, weight: "bold", fill: ink)[#${escapeTypstString(packet.readingTitle)}]
+#v(12pt)
 ${readingBlocks}
 
 ${
@@ -236,7 +238,7 @@ ${
   packet.bigIdeaTitle && packet.bigIdeaBody
     ? `
 #v(12pt)
-#section-card(${escapeTypstString(packet.bigIdeaTitle)}, ${escapeTypstString(packet.bigIdeaBody)})
+#section-card(${escapeTypstString(packet.bigIdeaTitle)}, ${escapeTypstString(packet.bigIdeaBody)}, fill-color: pale-blue)
 `
     : ""
 }

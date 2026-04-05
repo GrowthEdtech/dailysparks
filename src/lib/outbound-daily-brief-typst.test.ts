@@ -61,24 +61,28 @@ describe("outbound daily brief typst", () => {
   test("scales long headlines down and keeps the trailing words together", () => {
     const source = buildOutboundDailyBriefTypstSource(sampleBrief);
 
-    expect(getTypstHeadlineSize(sampleBrief.headline)).toBe(22);
+    expect(getTypstHeadlineSize(sampleBrief.headline)).toBe(20);
     expect(preventTypstHeadlineWidows(sampleBrief.headline)).toContain(
       "nuclear\u00a0plant",
     );
-    expect(source).toContain('#text(size: 22pt, weight: "bold", fill: ink)');
+    expect(source).toContain('#text(size: 20pt, weight: "bold", fill: ink)');
     expect(source).toContain("nuclear\u00a0plant");
   });
 
-  test("uses a content-first hierarchy with a standfirst and stronger reading section emphasis", () => {
+  test("uses a journal-first hierarchy with a lighter hero and stronger content emphasis", () => {
     const source = buildOutboundDailyBriefTypstSource(sampleBrief);
 
-    expect(source).toContain('#v(6pt)\n  #text(size: 22pt, weight: "bold", fill: ink)');
-    expect(source).toContain('#v(12pt)\n  #grid');
+    expect(source).toContain('#v(4pt)\n  #text(size: 20pt, weight: "bold", fill: ink)');
+    expect(source).toContain('#v(10pt)\n  #grid');
     expect(source).toContain('#standfirst-card("Summary deck"');
+    expect(source).toContain('#text(size: 14pt, fill: ink)[#body]');
+    expect(source).toContain('#set par(leading: 1.22em)');
     expect(source).toContain('label-color: gold');
     expect(source).toContain('#text(size: 10pt, weight: "semibold", fill: gold)[#"Words to know"]');
-    expect(source).toContain('#text(size: 20pt, weight: "bold", fill: ink)[#"Reading brief"]');
-    expect(source).toContain('#text(size: 12pt, weight: "semibold", fill: ink)[#title]');
+    expect(source).toContain('#text(size: 22pt, weight: "bold", fill: ink)[#"Reading brief"]');
+    expect(source).toContain('#text(size: 12.5pt, weight: "semibold", fill: ink)[#title]');
+    expect(source).toContain('fill: pale-blue');
+    expect(source).toContain('fill: pale-gold');
   });
 
   test("renders a typst prototype pdf for the same daily brief packet", async () => {
