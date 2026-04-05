@@ -320,12 +320,7 @@ export async function POST(request: Request) {
       })
     ).find((brief) => brief.programme === targetProfile.student.programme);
 
-    if (
-      matchingTargetBrief &&
-      !matchingTargetBrief.deliveryReceipts.some(
-        (receipt) => receipt.parentEmail === targetParentEmail,
-      )
-    ) {
+    if (matchingTargetBrief) {
       try {
         const manualBackfill = await deliverBriefToSingleProfile({
           brief: matchingTargetBrief,
