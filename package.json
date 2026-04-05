@@ -12,6 +12,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@myriaddreamin/typst-ts-node-compiler": "^0.7.0-rc2",
     "@napi-rs/canvas": "^0.1.97",
     "@supabase/supabase-js": "^2.100.1",
     "firebase": "^12.11.0",

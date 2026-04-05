@@ -167,6 +167,9 @@ describe("DailyBriefDetailPage", () => {
       "daily-brief-thumbnail%2Fbrief-1",
     );
     expect(markup).toContain("First-page PDF preview");
+    expect(markup).toContain("Typst prototype");
+    expect(markup).toContain("Prototype only");
+    expect(markup).toContain("daily-brief-typst/brief-1");
     expect(markup).toContain("Summary deck");
     expect(markup).toContain("Reading brief");
     expect(markup).toContain("What&#x27;s happening?");

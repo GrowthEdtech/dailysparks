@@ -166,6 +166,34 @@ export default async function DailyBriefDetailPage({
             />
           </div>
 
+          <div className="mt-5 rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                  Typst prototype
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Prototype only. Production delivery still uses the live
+                  `pdf-lib` renderer while we evaluate a future Typst migration.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href={`/api/admin/daily-brief-typst/${entry.id}`}
+                  className="inline-flex items-center justify-center rounded-full bg-[#0f172a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1e293b]"
+                >
+                  Download Typst prototype PDF
+                </a>
+                <a
+                  href={`/api/admin/daily-brief-typst/${entry.id}?format=source`}
+                  className="inline-flex items-center justify-center rounded-full border border-[#d9e4f2] bg-white px-4 py-2 text-sm font-semibold text-[#0f172a] transition hover:bg-slate-50"
+                >
+                  View Typst source
+                </a>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-5 grid gap-4">
             <section className="rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
