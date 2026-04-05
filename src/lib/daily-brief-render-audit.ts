@@ -1,9 +1,8 @@
-import { PDFDocument } from "pdf-lib";
-
 import type { DailyBriefRenderAudit } from "./daily-brief-history-schema";
 import type { DailyBriefPdfRenderer } from "./goodnotes-delivery";
 import type { OutboundDailyBriefPacketInput } from "./outbound-daily-brief-packet";
 import { buildOutboundDailyBriefPacket } from "./outbound-daily-brief-packet";
+import { countPdfPages } from "./pdf-page-count";
 
 export async function buildDailyBriefRenderAudit({
   brief,
@@ -17,8 +16,7 @@ export async function buildDailyBriefRenderAudit({
   auditedAt?: string;
 }): Promise<DailyBriefRenderAudit> {
   const packet = buildOutboundDailyBriefPacket(brief);
-  const pdfDocument = await PDFDocument.load(pdfBytes);
-  const pageCount = pdfDocument.getPageCount();
+  const pageCount = await countPdfPages(pdfBytes);
   const onePageCompliant =
     packet.layoutVariant === "pyp-one-page" ? pageCount === 1 : null;
   const pagePolicyLabel =

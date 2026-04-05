@@ -54,10 +54,8 @@ function getDefaultManualResendEmail(
   );
 }
 
-function buildThumbnailPath(briefId: string, renderer: "pdf-lib" | "typst") {
-  return renderer === "typst"
-    ? `/api/admin/daily-brief-typst-thumbnail/${briefId}`
-    : `/api/admin/daily-brief-thumbnail/${briefId}`;
+function buildThumbnailPath(briefId: string) {
+  return `/api/admin/daily-brief-typst-thumbnail/${briefId}`;
 }
 
 export default async function DailyBriefDetailPage({
@@ -79,9 +77,6 @@ export default async function DailyBriefDetailPage({
   const currentRendererLabel = getDailyBriefRendererPolicyLabel(
     currentRendererPolicy,
   );
-  const hasLegacyPdfLibRecord =
-    entry.renderAudit?.renderer === "pdf-lib" ||
-    entry.deliveryReceipts.some((receipt) => receipt.renderer === "pdf-lib");
 
   return (
     <section className="space-y-6">
@@ -190,7 +185,7 @@ export default async function DailyBriefDetailPage({
                 </p>
               </div>
               <Image
-                src={buildThumbnailPath(entry.id, "typst")}
+                src={buildThumbnailPath(entry.id)}
                 alt={`First-page Typst live preview for ${entry.headline}`}
                 unoptimized
                 width={595}
@@ -199,39 +194,18 @@ export default async function DailyBriefDetailPage({
               />
             </section>
 
-            {hasLegacyPdfLibRecord ? (
-              <section className="overflow-hidden rounded-[28px] border border-[#f1dfb9] bg-[#fdf7ea] shadow-sm">
-                <div className="border-b border-[#f1dfb9] px-5 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b45309]">
-                    Legacy pdf-lib record
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    This brief still carries a historical pdf-lib receipt or
-                    render audit. Keep it for audit review only.
-                  </p>
-                </div>
-                <Image
-                  src={buildThumbnailPath(entry.id, "pdf-lib")}
-                  alt={`Legacy pdf-lib preview for ${entry.headline}`}
-                  width={595}
-                  height={842}
-                  className="block h-auto w-full"
-                />
-              </section>
-            ) : (
-              <section className="rounded-[28px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
-                  Renderer status
-                </p>
-                <p className="mt-3 text-lg font-semibold text-[#0f172a]">
-                  Typst live is the active Daily Brief renderer
-                </p>
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  New deliveries, manual tests, retries, and resends all resolve
-                  to Typst unless this record is a legacy audit from before the cutover.
-                </p>
-              </section>
-            )}
+            <section className="rounded-[28px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                Renderer status
+              </p>
+              <p className="mt-3 text-lg font-semibold text-[#0f172a]">
+                Typst live is the active Daily Brief renderer
+              </p>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                New deliveries, manual tests, retries, and resends now resolve
+                to the same Typst chain across PYP, MYP, and DP.
+              </p>
+            </section>
           </div>
 
           <div className="mt-5 rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
@@ -459,17 +433,6 @@ export default async function DailyBriefDetailPage({
                     Audited {formatAdminDateTime(entry.renderAudit.auditedAt)}
                   </p>
                 </div>
-                {hasLegacyPdfLibRecord ? (
-                  <div className="rounded-[24px] border border-amber-200 bg-amber-50 p-4 text-amber-900">
-                    <p className="font-semibold">
-                      This record still carries legacy pdf-lib evidence.
-                    </p>
-                    <p className="mt-2 text-sm leading-6">
-                      New Daily Brief deliveries are Typst-first. Keep this
-                      legacy preview only for historical audit and comparison.
-                    </p>
-                  </div>
-                ) : null}
                 {entry.programme === "MYP" ? (
                   <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-4 text-sky-950">
                     <p className="font-semibold">

@@ -137,7 +137,7 @@ function normalizeDeliveryReceipt(
     parentId: normalizeString(raw?.parentId),
     parentEmail: normalizeString(raw?.parentEmail),
     channel: normalizeDeliveryChannel(raw?.channel),
-    renderer: normalizeReceiptRenderer(raw?.renderer),
+    renderer: normalizeReceiptRenderer(raw?.renderer) ?? "typst",
     attachmentFileName: normalizeNullableString(raw?.attachmentFileName),
     externalId: normalizeNullableString(raw?.externalId),
     externalUrl: normalizeNullableString(raw?.externalUrl),
@@ -163,7 +163,7 @@ function normalizeRenderAudit(
   }
 
   return {
-    renderer: normalizeReceiptRenderer(raw.renderer) ?? "pdf-lib",
+    renderer: normalizeReceiptRenderer(raw.renderer) ?? "typst",
     layoutVariant:
       raw.layoutVariant === "pyp-one-page" ||
         raw.layoutVariant === "myp-compare"

@@ -31,9 +31,5 @@ export function formatDailyBriefRendererLabel(
     return "Typst live";
   }
 
-  if (renderer === "pdf-lib") {
-    return "Legacy pdf-lib";
-  }
-
   return "Not recorded";
 }

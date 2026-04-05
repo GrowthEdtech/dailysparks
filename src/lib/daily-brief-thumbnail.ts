@@ -42,7 +42,7 @@ async function renderPdfFirstPageThumbnailPng(pdfBytes: Uint8Array) {
   ensurePdfRenderGlobals();
 
   const loadingTask = getDocument({
-    data: pdfBytes,
+    data: new Uint8Array(pdfBytes),
     useWorkerFetch: false,
     isEvalSupported: false,
     standardFontDataUrl: getStandardFontDataUrl(),

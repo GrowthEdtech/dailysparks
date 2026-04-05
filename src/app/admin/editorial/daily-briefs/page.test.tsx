@@ -808,16 +808,16 @@ describe("DailyBriefsAdminPage", () => {
           updatedAt: "2026-04-03T00:00:00.000Z",
         },
         {
-          id: "brief-pyp-fallback",
+          id: "brief-pyp-audit-gap",
           scheduledFor: "2026-04-03",
           recordKind: "production",
-          headline: "Legacy pdf-lib brief",
-          summary: "Legacy summary.",
+          headline: "PYP audit gap brief",
+          summary: "Audit gap summary.",
           programme: "PYP",
           editorialCohort: "APAC",
           status: "published",
-          topicClusterKey: "pyp fallback",
-          normalizedHeadline: "pyp fallback brief",
+          topicClusterKey: "pyp audit gap",
+          normalizedHeadline: "pyp audit gap brief",
           topicLatestPublishedAt: null,
           selectionDecision: "new",
           selectionOverrideNote: "",
@@ -844,13 +844,7 @@ describe("DailyBriefsAdminPage", () => {
           deliverySuccessCount: 1,
           deliveryFailureCount: 0,
           deliveryReceipts: [],
-          renderAudit: {
-            renderer: "pdf-lib",
-            layoutVariant: "pyp-one-page",
-            pageCount: 1,
-            onePageCompliant: true,
-            auditedAt: "2026-04-03T09:01:00.000Z",
-          },
+          renderAudit: null,
           failedDeliveryTargets: [],
           failureReason: "",
           retryEligibleUntil: null,
@@ -924,10 +918,10 @@ describe("DailyBriefsAdminPage", () => {
     expect(markup).toContain("Typst audited briefs");
     expect(markup).toContain("PYP one-page compliance");
     expect(markup).toContain("MYP two-page compliance");
-    expect(markup).toContain("Legacy pdf-lib records");
-    expect(markup).toContain("1 / 2");
+    expect(markup).toContain("Audit gaps");
+    expect(markup).toContain("2 / 3");
     expect(markup).toContain("1 / 1");
     expect(markup).toContain("Daily Brief delivery is Typst-first");
-    expect(markup).toContain("Older production records that still carry pdf-lib receipts or render audits.");
+    expect(markup).toContain("Production briefs that still need a recorded Typst render audit.");
   });
 });

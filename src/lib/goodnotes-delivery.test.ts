@@ -19,6 +19,7 @@ vi.mock("nodemailer", () => ({
 }));
 
 import {
+  DAILY_BRIEF_PDF_RENDERERS,
   buildGoodnotesBriefPacket,
   buildGoodnotesWelcomeNote,
   createGoodnotesBriefPdf,
@@ -150,6 +151,10 @@ afterEach(() => {
 });
 
 describe("goodnotes delivery", () => {
+  test("only exposes Typst as the active daily brief renderer", () => {
+    expect(DAILY_BRIEF_PDF_RENDERERS).toEqual(["typst"]);
+  });
+
   test("builds a Growth Education welcome note payload for Goodnotes setup", () => {
     const profile = createProfile();
     const note = buildGoodnotesWelcomeNote(profile);

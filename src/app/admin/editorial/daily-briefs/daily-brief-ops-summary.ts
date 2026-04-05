@@ -37,7 +37,7 @@ export type DailyBriefOpsSummary = {
   deliveredFamilyCount: number;
   typstDeliveredBriefCount: number;
   typstAuditedBriefCount: number;
-  legacyPdfLibBriefCount: number;
+  renderAuditGapCount: number;
   pypAuditedBriefCount: number;
   pypOnePageCompliantBriefCount: number;
   mypAuditedBriefCount: number;
@@ -198,8 +198,8 @@ export function buildDailyBriefOpsSummary({
   const typstAuditedBriefCount = productionHistory.filter(
     (entry) => entry.renderAudit?.renderer === "typst",
   ).length;
-  const legacyPdfLibBriefCount = productionHistory.filter(
-    (entry) => entry.renderAudit?.renderer === "pdf-lib",
+  const renderAuditGapCount = productionHistory.filter(
+    (entry) => !entry.renderAudit,
   ).length;
   const pypProductionBriefs = productionHistory.filter(
     (entry) => entry.programme === "PYP",
@@ -319,7 +319,7 @@ export function buildDailyBriefOpsSummary({
     deliveredFamilyCount: deliveredParentIds.size,
     typstDeliveredBriefCount,
     typstAuditedBriefCount,
-    legacyPdfLibBriefCount,
+    renderAuditGapCount,
     pypAuditedBriefCount,
     pypOnePageCompliantBriefCount,
     mypAuditedBriefCount,

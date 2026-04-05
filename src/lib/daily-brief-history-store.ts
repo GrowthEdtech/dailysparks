@@ -98,7 +98,7 @@ function normalizeRenderAudit(
   }
 
   return {
-    renderer: normalizeReceiptRenderer(value.renderer) ?? "pdf-lib",
+    renderer: normalizeReceiptRenderer(value.renderer) ?? "typst",
     layoutVariant:
       value.layoutVariant === "pyp-one-page" ||
         value.layoutVariant === "myp-compare"

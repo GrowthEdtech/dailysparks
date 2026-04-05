@@ -662,7 +662,7 @@ describe("daily brief test run admin route", () => {
             parentId: "parent-admin",
             parentEmail: "admin@geledtech.com",
             channel: "goodnotes",
-            renderer: "pdf-lib",
+            renderer: "typst",
             attachmentFileName:
               "2026-04-05_DailySparks_DailyBrief_PYP_un-watchdog-voices-deep-concern-as-iran-reports_test.pdf",
             externalId: "admin-delivery-id",
@@ -908,7 +908,7 @@ describe("daily brief test run admin route", () => {
             parentId: "parent-ckx",
             parentEmail: "ckx.leung@gmail.com",
             channel: "goodnotes",
-            renderer: "pdf-lib",
+            renderer: "typst",
             attachmentFileName:
               "2026-04-05_DailySparks_DailyBrief_PYP_un-watchdog-voices-deep-concern-as-iran-reports_canary.pdf",
             externalId: "fresh-delivery-id",

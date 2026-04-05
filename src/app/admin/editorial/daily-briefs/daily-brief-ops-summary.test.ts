@@ -257,7 +257,7 @@ describe("buildDailyBriefOpsSummary", () => {
     expect(summary.typstDeliveredBriefCount).toBe(1);
     expect(summary.typstAuditedBriefCount).toBe(2);
     expect(summary.pypOnePageCompliantBriefCount).toBe(1);
-    expect(summary.legacyPdfLibBriefCount).toBe(0);
+    expect(summary.renderAuditGapCount).toBe(0);
     expect(summary.mypAuditedBriefCount).toBe(1);
     expect(summary.mypPagePolicyAuditedBriefCount).toBe(1);
     expect(summary.mypPagePolicyCompliantBriefCount).toBe(1);

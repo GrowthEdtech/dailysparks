@@ -9,7 +9,7 @@ const { sendBriefToGoodnotesMock, createNotionBriefPageMock } = vi.hoisted(() =>
 }));
 
 vi.mock("../../../../../lib/goodnotes-delivery", () => ({
-  DAILY_BRIEF_PDF_RENDERERS: ["pdf-lib", "typst"],
+  DAILY_BRIEF_PDF_RENDERERS: ["typst"],
   sendBriefToGoodnotes: (...args: unknown[]) => sendBriefToGoodnotesMock(...args),
 }));
 

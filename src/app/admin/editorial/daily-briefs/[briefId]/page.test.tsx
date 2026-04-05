@@ -129,7 +129,7 @@ describe("DailyBriefDetailPage", () => {
           parentId: "parent-1",
           parentEmail: "family@example.com",
           channel: "goodnotes",
-          renderer: "pdf-lib",
+          renderer: "typst",
           attachmentFileName:
             "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
           externalId: "smtp-message-id",
@@ -137,7 +137,7 @@ describe("DailyBriefDetailPage", () => {
         },
       ],
       renderAudit: {
-        renderer: "pdf-lib",
+        renderer: "typst",
         layoutVariant: "standard",
         pageCount: 2,
         onePageCompliant: null,
@@ -171,12 +171,8 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("v1.0.0");
     expect(markup).toContain("Cities are testing new heat protections.");
     expect(markup).toContain("Editorial preview");
-    expect(markup).toContain(
-      "daily-brief-thumbnail%2Fbrief-1",
-    );
+    expect(markup).toContain("daily-brief-typst-thumbnail/brief-1");
     expect(markup).toContain("Typst live renderer");
-    expect(markup).toContain("Legacy pdf-lib record");
-    expect(markup).toContain("Legacy pdf-lib preview");
     expect(markup).toContain("Typst live");
     expect(markup).toContain("daily-brief-typst/brief-1");
     expect(markup).toContain("daily-brief-typst-thumbnail/brief-1");
@@ -215,7 +211,7 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain(
       "2026-04-02_DailySparks_DailyBrief_MYP_cities-test-new-heat-protections.pdf",
     );
-    expect(markup).toContain("Renderer:</span> Legacy pdf-lib");
+    expect(markup).toContain("Renderer:</span> Typst live");
     expect(markup).toContain("Retry eligible until");
     expect(markup).toContain(
       "Two configured deliveries timed out during the 09:10 retry window.",
@@ -313,86 +309,6 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("Typst live");
     expect(markup).toContain("Page policy");
     expect(markup).toContain("Compliant");
-  });
-
-  test("surfaces a legacy warning when a historical brief used pdf-lib", async () => {
-    getDailyBriefHistoryEntryMock.mockResolvedValue({
-      id: "brief-pyp-prod-1",
-      scheduledFor: "2026-04-05",
-      recordKind: "production",
-      headline: "PYP production fallback brief.",
-      summary: "A PYP production brief.",
-      programme: "PYP",
-      editorialCohort: "APAC",
-      status: "published",
-      topicClusterKey: "pyp fallback",
-      normalizedHeadline: "pyp production fallback brief",
-      topicLatestPublishedAt: null,
-      selectionDecision: "new",
-      selectionOverrideNote: "",
-      blockedTopics: [],
-      topicTags: ["science"],
-      sourceReferences: [],
-      aiConnectionId: "nf-relay",
-      aiConnectionName: "NF Relay",
-      aiModel: "gpt-5.4",
-      promptPolicyId: "policy-1",
-      promptVersionLabel: "v1.1.1",
-      promptVersion: "v1.1.1",
-      repetitionRisk: "low",
-      repetitionNotes: "No overlap.",
-      adminNotes: "",
-      briefMarkdown: "What’s happening? A brief.",
-      pipelineStage: "published",
-      candidateSnapshotAt: "2026-04-05T00:00:00.000Z",
-      generationCompletedAt: "2026-04-05T00:10:00.000Z",
-      pdfBuiltAt: "2026-04-05T00:12:00.000Z",
-      deliveryWindowAt: "2026-04-05T01:00:00.000Z",
-      lastDeliveryAttemptAt: "2026-04-05T01:03:00.000Z",
-      deliveryAttemptCount: 1,
-      deliverySuccessCount: 1,
-      deliveryFailureCount: 0,
-      dispatchMode: "all",
-      dispatchCanaryParentEmails: [],
-      targetedProfiles: [],
-      skippedProfiles: [],
-      pendingFutureProfiles: [],
-      heldProfiles: [],
-      deliveryReceipts: [
-        {
-          parentId: "parent-1",
-          parentEmail: "family@example.com",
-          channel: "goodnotes",
-          renderer: "pdf-lib",
-          attachmentFileName: "pyp-pdf-lib.pdf",
-          externalId: "smtp-1",
-          externalUrl: null,
-        },
-      ],
-      renderAudit: {
-        renderer: "pdf-lib",
-        layoutVariant: "pyp-one-page",
-        pageCount: 1,
-        onePageCompliant: true,
-        auditedAt: "2026-04-05T01:03:00.000Z",
-      },
-      failedDeliveryTargets: [],
-      failureReason: "",
-      retryEligibleUntil: null,
-      createdAt: "2026-04-05T00:00:00.000Z",
-      updatedAt: "2026-04-05T00:00:00.000Z",
-    });
-
-    const markup = renderToStaticMarkup(
-      await DailyBriefDetailPage({
-        params: Promise.resolve({ briefId: "brief-pyp-prod-1" }),
-      }),
-    );
-
-    expect(markup).toContain(
-      "This record still carries legacy pdf-lib evidence.",
-    );
-    expect(markup).toContain("legacy preview only for historical audit");
   });
 
   test("surfaces MYP page-policy guidance and compliance", async () => {

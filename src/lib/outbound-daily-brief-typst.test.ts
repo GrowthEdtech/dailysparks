@@ -1,4 +1,3 @@
-import { PDFDocument } from "pdf-lib";
 import { describe, expect, test } from "vitest";
 
 import {
@@ -7,6 +6,7 @@ import {
   preventTypstHeadlineWidows,
   renderOutboundDailyBriefTypstPrototype,
 } from "./outbound-daily-brief-typst";
+import { countPdfPages } from "./pdf-page-count";
 
 describe("outbound daily brief typst", () => {
   const sampleBrief = {
@@ -115,7 +115,6 @@ describe("outbound daily brief typst", () => {
 
   test("renders a typst prototype pdf for the same daily brief packet", async () => {
     const result = await renderOutboundDailyBriefTypstPrototype(sampleBrief);
-    const document = await PDFDocument.load(Buffer.from(result.pdf));
 
     expect(result.fileName).toBe(
       "2026-04-05_DailySparks_DailyBrief_PYP_un-watchdog-voices-deep-concern-as-iran-reports_typst-prototype.pdf",
@@ -123,17 +122,16 @@ describe("outbound daily brief typst", () => {
     expect(result.source).toContain("Words to know");
     expect(result.pdf).toBeInstanceOf(Uint8Array);
     expect(Buffer.from(result.pdf).subarray(0, 4).toString()).toBe("%PDF");
-    expect(document.getPageCount()).toBe(1);
+    expect(await countPdfPages(result.pdf)).toBe(1);
   });
 
   test("uses a dedicated MYP compare-only layout tuned for a two-page validation budget", async () => {
     const source = buildOutboundDailyBriefTypstSource(mypSampleBrief);
     const result = await renderOutboundDailyBriefTypstPrototype(mypSampleBrief);
-    const document = await PDFDocument.load(Buffer.from(result.pdf));
 
     expect(source).toContain('columns: (1.15fr, 0.85fr)');
     expect(source).toContain('#text(size: 20pt, weight: "bold", fill: ink)');
     expect(source).toContain('#section-card("Words to know"');
-    expect(document.getPageCount()).toBeLessThanOrEqual(2);
+    expect(await countPdfPages(result.pdf)).toBeLessThanOrEqual(2);
   });
 });

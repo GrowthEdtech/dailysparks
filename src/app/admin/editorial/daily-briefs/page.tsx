@@ -150,10 +150,6 @@ function getRendererAuditBadges(
     badges.push("PYP one-page");
   }
 
-  if (entry.renderAudit?.renderer === "pdf-lib") {
-    badges.push("Legacy pdf-lib");
-  }
-
   if (
     entry.programme === "MYP" &&
     entry.renderAudit?.pagePolicyLabel === "MYP two-page target"
@@ -865,8 +861,8 @@ export default async function DailyBriefsAdminPage({
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-500">
               Track real Typst delivery coverage, PYP one-page compliance, MYP
-              two-page policy health, and any remaining legacy pdf-lib records
-              while the Daily Brief chain settles on a single renderer.
+              two-page policy health, and any render-audit gaps while the
+              Daily Brief chain settles on a single renderer.
             </p>
           </div>
 
@@ -879,8 +875,8 @@ export default async function DailyBriefsAdminPage({
             </p>
             <p className="mt-2 leading-6">
               PYP, MYP, and DP now share the Typst live chain for daily brief
-              delivery. pdf-lib remains visible only when older records still
-              carry legacy render audits or receipts.
+              delivery. The remaining rollout work is now about keeping render
+              audits complete and visible across every record.
             </p>
           </div>
         </div>
@@ -919,10 +915,10 @@ export default async function DailyBriefsAdminPage({
                 "MYP briefs with audits that stayed within the two-page editorial target.",
             },
             {
-              label: "Legacy pdf-lib records",
-              value: opsSummary.legacyPdfLibBriefCount,
+              label: "Audit gaps",
+              value: opsSummary.renderAuditGapCount,
               detail:
-                "Older production records that still carry pdf-lib receipts or render audits.",
+                "Production briefs that still need a recorded Typst render audit.",
             },
           ].map((card) => (
             <div
