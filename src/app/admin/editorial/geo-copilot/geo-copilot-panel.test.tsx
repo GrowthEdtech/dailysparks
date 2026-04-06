@@ -36,9 +36,12 @@ describe("GeoCopilotPanel", () => {
     expect(markup).toContain("Golden prompts");
     expect(markup).toContain("Monitoring automation");
     expect(markup).toContain("Run monitoring now");
+    expect(markup).toContain("Website-derived GEO starters");
+    expect(markup).toContain("Seed website-derived prompts");
     expect(markup).toContain("Visibility logs");
     expect(markup).toContain("Machine-readability layer");
     expect(markup).toContain("Content optimization copilot");
+    expect(markup).toContain("Content page structure suggestions");
     expect(markup).toContain("Run GEO audit");
   });
 });

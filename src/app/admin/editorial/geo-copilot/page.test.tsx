@@ -59,8 +59,10 @@ describe("GeoCopilotAdminPage", () => {
     expect(markup).toContain("Golden prompts");
     expect(markup).toContain("Visibility logs");
     expect(markup).toContain("Monitoring automation");
+    expect(markup).toContain("Website-derived GEO starters");
     expect(markup).toContain("Machine-readability layer");
     expect(markup).toContain("Content optimization copilot");
+    expect(markup).toContain("Content page structure suggestions");
     expect(markup).toContain("No Golden Prompts yet");
   });
 });

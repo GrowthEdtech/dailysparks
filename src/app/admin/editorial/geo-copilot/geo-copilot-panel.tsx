@@ -18,6 +18,10 @@ import {
   GEO_SENTIMENT_LABELS,
   GEO_VISIBILITY_MENTION_STATUSES,
 } from "../../../../lib/geo-visibility-log-schema";
+import {
+  GEO_CONTENT_PAGE_STRUCTURE_SUGGESTIONS,
+  GEO_WEBSITE_DERIVED_PROMPT_SEEDS,
+} from "../../../../lib/geo-website-derived-prompts";
 import type { Programme } from "../../../../lib/mvp-types";
 import {
   buildGeoVisibilitySummary,
@@ -194,6 +198,7 @@ export default function GeoCopilotPanel({
   const [isSavingReadability, setIsSavingReadability] = useState(false);
   const [isRunningAudit, setIsRunningAudit] = useState(false);
   const [isRunningMonitoring, setIsRunningMonitoring] = useState(false);
+  const [isSeedingPrompts, setIsSeedingPrompts] = useState(false);
 
   const recentLogs = useMemo(() => logs.slice(0, 8), [logs]);
   const recentRuns = useMemo(() => runs.slice(0, 4), [runs]);
@@ -475,6 +480,65 @@ export default function GeoCopilotPanel({
     }
   }
 
+  async function handleSeedWebsiteDerivedPrompts() {
+    setErrorMessage("");
+    setMessage("");
+    setIsSeedingPrompts(true);
+
+    try {
+      const response = await fetch("/api/admin/geo-prompts/seed", {
+        method: "POST",
+      });
+      const body = (await response.json().catch(() => null)) as
+        | {
+            createdPrompts?: GeoPromptRecord[];
+            skippedPromptCount?: number;
+            totalSeedCount?: number;
+            message?: string;
+          }
+        | null;
+
+      if (
+        !response.ok ||
+        !Array.isArray(body?.createdPrompts) ||
+        typeof body.skippedPromptCount !== "number" ||
+        typeof body.totalSeedCount !== "number"
+      ) {
+        setErrorMessage(body?.message ?? "We could not seed the GEO starter prompts.");
+        setIsSeedingPrompts(false);
+        return;
+      }
+
+      const createdPrompts = body.createdPrompts;
+      const nextPrompts = [...createdPrompts, ...prompts].sort((left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt),
+      );
+      setPrompts(nextPrompts);
+      setDraftsById((currentDrafts) => ({
+        ...currentDrafts,
+        ...Object.fromEntries(
+          createdPrompts.map((prompt) => [prompt.id, toPromptFormState(prompt)]),
+        ),
+      }));
+      refreshSummary(nextPrompts, logs, machineReadabilityStatus);
+
+      if (createdPrompts.length === 0) {
+        setMessage(
+          `All ${body.totalSeedCount} website-derived prompts are already in the GEO workspace.`,
+        );
+      } else {
+        setMessage(
+          `Seeded ${createdPrompts.length} website-derived prompts. ${body.skippedPromptCount} already existed.`,
+        );
+      }
+
+      setIsSeedingPrompts(false);
+    } catch {
+      setErrorMessage("We could not reach the GEO prompt seeding API.");
+      setIsSeedingPrompts(false);
+    }
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -659,6 +723,69 @@ export default function GeoCopilotPanel({
               </article>
             ))
           )}
+        </div>
+      </section>
+
+      <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-3xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#0f172a]">
+              Website-derived GEO starters
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Seed the first batch of GEO prompts directly from the themes your
+              public site already promises, so monitoring starts from supported intent
+              instead of speculative discovery terms.
+            </p>
+          </div>
+
+          <div className="rounded-[24px] border border-[#dbeafe] bg-[#eff6ff] px-4 py-4 md:min-w-[320px]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+              Starter prompt batch
+            </p>
+            <p className="mt-2 text-2xl font-bold text-[#0f172a]">
+              {GEO_WEBSITE_DERIVED_PROMPT_SEEDS.length}
+            </p>
+            <p className="mt-1 text-sm text-slate-600">
+              Home, About, and Contact-derived GEO intents ready to seed.
+            </p>
+            <button
+              type="button"
+              onClick={handleSeedWebsiteDerivedPrompts}
+              disabled={isSeedingPrompts}
+              className="mt-4 rounded-full bg-[#0f172a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSeedingPrompts ? "Seeding..." : "Seed website-derived prompts"}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 xl:grid-cols-2">
+          {GEO_WEBSITE_DERIVED_PROMPT_SEEDS.map((prompt) => (
+            <article
+              key={prompt.prompt}
+              className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  {prompt.priority}
+                </span>
+                {prompt.targetProgrammes.map((programme) => (
+                  <span
+                    key={`${prompt.prompt}-${programme}`}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
+                  >
+                    {programme}
+                  </span>
+                ))}
+              </div>
+              <h3 className="mt-3 text-lg font-bold tracking-tight text-[#0f172a]">
+                {prompt.intentLabel}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{prompt.prompt}</p>
+              <p className="mt-3 text-sm leading-6 text-slate-500">{prompt.notes}</p>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -1009,6 +1136,63 @@ export default function GeoCopilotPanel({
               );
             })
           )}
+        </div>
+      </section>
+
+      <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-2xl font-bold tracking-tight text-[#0f172a]">
+          Content page structure suggestions
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          Use these editorial page blueprints to support the first batch of GEO prompts
+          with clearer answer pages, FAQ coverage, and workflow evidence.
+        </p>
+
+        <div className="mt-6 grid gap-4 xl:grid-cols-3">
+          {GEO_CONTENT_PAGE_STRUCTURE_SUGGESTIONS.map((suggestion) => (
+            <article
+              key={suggestion.recommendedSlug}
+              className="rounded-[28px] border border-slate-200 bg-slate-50 p-5 shadow-sm"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b45309]">
+                Recommended slug
+              </p>
+              <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                {suggestion.recommendedSlug}
+              </p>
+              <h3 className="mt-4 text-xl font-bold tracking-tight text-[#0f172a]">
+                {suggestion.title}
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                {suggestion.primaryIntent}
+              </p>
+              <p className="mt-3 text-sm leading-6 text-slate-500">
+                {suggestion.whyNow}
+              </p>
+
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Supports prompts
+                </p>
+                <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
+                  {suggestion.targetPrompts.map((prompt) => (
+                    <li key={prompt}>{prompt}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Suggested sections
+                </p>
+                <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
+                  {suggestion.sections.map((section) => (
+                    <li key={section}>{section}</li>
+                  ))}
+                </ul>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
