@@ -240,11 +240,17 @@ function normalizeEntry(
 ): DailyBriefHistoryRecord {
   const timestamp = new Date().toISOString();
   const normalizedDispatchMode = normalizeString(raw?.dispatchMode);
+  const routingKeyIncomplete =
+    raw?.routingKeyIncomplete === true ||
+    !normalizeString(raw?.recordKind) ||
+    !normalizeString(raw?.programme) ||
+    !normalizeString(raw?.editorialCohort);
 
   return {
     id: normalizeString(raw?.id) || crypto.randomUUID(),
     scheduledFor: normalizeString(raw?.scheduledFor),
     recordKind: normalizeRecordKind(raw?.recordKind),
+    routingKeyIncomplete,
     headline: normalizeString(raw?.headline),
     normalizedHeadline:
       normalizeString(raw?.normalizedHeadline) ||

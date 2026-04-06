@@ -239,4 +239,27 @@ describe("daily brief preflight route", () => {
     expect(body.summary.alreadyApprovedCount).toBe(1);
     expect(emitDailyBriefOpsAlertMock).not.toHaveBeenCalled();
   });
+
+  test("ignores routing-incomplete legacy approvals when deciding if a run is already ready", async () => {
+    await createDailyBriefHistoryEntry(
+      buildHistoryInput({
+        status: "approved",
+        pipelineStage: "preflight_passed",
+        pdfBuiltAt: "2026-04-03T02:05:00.000Z",
+        routingKeyIncomplete: true,
+      }),
+    );
+
+    const response = await preflightDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.ready).toBe(false);
+    expect(body.blockers[0]).toMatch(/no generated briefs/i);
+    expect(body.summary.alreadyApprovedCount).toBe(0);
+  });
 });

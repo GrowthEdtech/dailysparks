@@ -6,6 +6,7 @@ import {
   DAILY_BRIEF_RECORD_KINDS,
   type DailyBriefHistoryRecord,
   type DailyBriefRecordKind,
+  hasCompleteDailyBriefRoutingKey,
 } from "../../../../../lib/daily-brief-history-schema";
 import {
   DAILY_BRIEF_DISPATCH_MODES,
@@ -111,6 +112,7 @@ function normalizeDispatchTimestamp(value: unknown) {
 
 function isDeliverableBrief(entry: DailyBriefHistoryRecord) {
   return (
+    hasCompleteDailyBriefRoutingKey(entry) &&
     entry.status === "approved" &&
     (entry.pipelineStage === "preflight_passed" ||
       entry.pipelineStage === "delivering")

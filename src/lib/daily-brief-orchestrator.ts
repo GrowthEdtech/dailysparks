@@ -13,6 +13,7 @@ import type {
   DailyBriefHistoryRecord,
   DailyBriefRepetitionRisk,
 } from "./daily-brief-history-schema";
+import { hasCompleteDailyBriefRoutingKey } from "./daily-brief-history-schema";
 import { selectTopicWithPolicy } from "./daily-brief-selection-policy";
 import { IB_PROGRAMMES, type Programme } from "./mvp-types";
 import {
@@ -112,6 +113,7 @@ function getExistingProgrammeSet(
     historyEntries
       .filter(
         (entry) =>
+          hasCompleteDailyBriefRoutingKey(entry) &&
           entry.scheduledFor === scheduledFor &&
           entry.recordKind === recordKind &&
           entry.editorialCohort === editorialCohort &&

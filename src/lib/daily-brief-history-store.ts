@@ -173,6 +173,7 @@ export async function createDailyBriefHistoryEntry(
     id: crypto.randomUUID(),
     scheduledFor: input.scheduledFor,
     recordKind: defaultRecordKind(input.recordKind),
+    routingKeyIncomplete: input.routingKeyIncomplete === true,
     headline: input.headline.trim(),
     normalizedHeadline,
     summary: input.summary.trim(),

@@ -7,6 +7,7 @@ import {
   DAILY_BRIEF_RECORD_KINDS,
   type DailyBriefHistoryRecord,
   type DailyBriefRecordKind,
+  hasCompleteDailyBriefRoutingKey,
 } from "../../../../../lib/daily-brief-history-schema";
 import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 import {
@@ -41,6 +42,7 @@ function isValidRunDate(value: string) {
 
 function isPreflightCandidate(entry: DailyBriefHistoryRecord) {
   return (
+    hasCompleteDailyBriefRoutingKey(entry) &&
     entry.status === "draft" &&
     (entry.pipelineStage === "generated" || entry.pipelineStage === "pdf_built")
   );
@@ -48,8 +50,10 @@ function isPreflightCandidate(entry: DailyBriefHistoryRecord) {
 
 function isAlreadyApproved(entry: DailyBriefHistoryRecord) {
   return (
-    (entry.status === "approved" && entry.pipelineStage === "preflight_passed") ||
-    entry.status === "published"
+    hasCompleteDailyBriefRoutingKey(entry) &&
+    ((entry.status === "approved" &&
+      entry.pipelineStage === "preflight_passed") ||
+      entry.status === "published")
   );
 }
 

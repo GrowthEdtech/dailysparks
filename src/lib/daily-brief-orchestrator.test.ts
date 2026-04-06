@@ -629,6 +629,128 @@ describe("daily brief orchestrator", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  test("ignores routing-incomplete legacy history when deciding same-day idempotent skips", async () => {
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      "goodnotes",
+    );
+
+    await createAiConnection({
+      name: "NF Relay",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: TEST_AI_CONNECTION_TOKEN,
+      active: true,
+      isDefault: true,
+      notes: "Primary runtime connection.",
+    });
+
+    await createPromptPolicy({
+      name: "Family Daily Sparks Core",
+      versionLabel: "v1.0.0",
+      sharedInstructions: "Use clear, family-facing language.",
+      antiRepetitionInstructions: "Avoid repeating recent editorial angles.",
+      outputContractInstructions:
+        "Return JSON with headline, summary, briefMarkdown, and topicTags.",
+      pypInstructions: "Use short sentences and concrete examples.",
+      mypInstructions: "Add comparisons and causes.",
+      dpInstructions: "Add evidence limits and nuance.",
+      notes: "Primary policy",
+    });
+
+    fetchMock.mockImplementation(async (_input, init) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const programmeLine =
+        payload.messages
+          .find((message) => message.role === "user")
+          ?.content.split("\n")
+          .find((line) => line.startsWith("Programme: ")) ?? "Programme: PYP";
+      const programme = programmeLine.replace("Programme: ", "").trim();
+
+      return createChatCompletionResponse({
+        headline: `${programme} ocean mapping brief`,
+        summary: `${programme} learner summary.`,
+        briefMarkdown: `## ${programme}\nStudents are helping map turtle routes.`,
+        topicTags: ["oceans", "science"],
+      });
+    });
+
+    const result = await generateDailyBriefDrafts({
+      scheduledFor: "2026-04-03",
+      recordKind: "production",
+      editorialCohort: "APAC",
+      historyEntries: [
+        {
+          id: "legacy-pyp-apac",
+          scheduledFor: "2026-04-03",
+          recordKind: "production",
+          headline: "Legacy PYP brief",
+          normalizedHeadline: "legacy pyp brief",
+          summary: "Legacy brief with incomplete routing metadata.",
+          programme: "PYP",
+          editorialCohort: "APAC",
+          status: "published",
+          topicClusterKey: "legacy-pyp-brief",
+          topicLatestPublishedAt: null,
+          selectionDecision: "new",
+          selectionOverrideNote: "",
+          blockedTopics: [],
+          topicTags: ["legacy"],
+          sourceReferences: [
+            {
+              sourceId: "bbc",
+              sourceName: "BBC",
+              sourceDomain: "bbc.com",
+              articleTitle: "Legacy PYP brief",
+              articleUrl: "https://www.bbc.com/news/world-123",
+            },
+          ],
+          aiConnectionId: "legacy",
+          aiConnectionName: "Legacy",
+          aiModel: "gpt-5.4",
+          promptPolicyId: "legacy-policy",
+          promptVersionLabel: "v0.9.0",
+          promptVersion: "v0.9.0",
+          repetitionRisk: "low",
+          repetitionNotes: "Legacy record.",
+          adminNotes: "",
+          briefMarkdown: "## Legacy\nOld brief.",
+          pipelineStage: "published",
+          candidateSnapshotAt: "2026-04-03T05:00:00.000Z",
+          generationCompletedAt: "2026-04-03T06:00:00.000Z",
+          pdfBuiltAt: "2026-04-03T06:05:00.000Z",
+          deliveryWindowAt: "2026-04-03T01:00:00.000Z",
+          lastDeliveryAttemptAt: "2026-04-03T01:10:00.000Z",
+          deliveryAttemptCount: 1,
+          deliverySuccessCount: 1,
+          deliveryFailureCount: 0,
+          deliveryReceipts: [],
+          failedDeliveryTargets: [],
+          failureReason: "",
+          retryEligibleUntil: null,
+          createdAt: "2026-04-03T06:00:00.000Z",
+          updatedAt: "2026-04-03T06:10:00.000Z",
+          routingKeyIncomplete: true,
+        },
+      ],
+      candidates: [buildCandidate()],
+      fetchImpl: fetchMock,
+      now: new Date("2026-04-03T08:00:00.000Z"),
+    });
+
+    expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
+      "PYP",
+      "MYP",
+      "DP",
+    ]);
+    expect(result.skippedProgrammes).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
   test("blocks an exact published headline from being reused and reports the block reason", async () => {
     await createEligibleProgrammeProfile(
       "pyp-family@example.com",

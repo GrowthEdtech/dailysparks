@@ -95,6 +95,7 @@ export type DailyBriefHistoryRecord = {
   id: string;
   scheduledFor: string;
   recordKind: DailyBriefRecordKind;
+  routingKeyIncomplete?: boolean;
   headline: string;
   normalizedHeadline: string;
   summary: string;
@@ -141,3 +142,9 @@ export type DailyBriefHistoryRecord = {
   createdAt: string;
   updatedAt: string;
 };
+
+export function hasCompleteDailyBriefRoutingKey(
+  entry: Pick<DailyBriefHistoryRecord, "routingKeyIncomplete">,
+) {
+  return entry.routingKeyIncomplete !== true;
+}
