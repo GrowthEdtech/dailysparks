@@ -1,11 +1,14 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const { getDailyBriefHistoryEntryMock, notFoundMock } = vi.hoisted(() => ({
+const { getDailyBriefHistoryEntryMock, notFoundMock, useRouterMock } = vi.hoisted(() => ({
   getDailyBriefHistoryEntryMock: vi.fn(),
   notFoundMock: vi.fn(() => {
     throw new Error("NOT_FOUND");
   }),
+  useRouterMock: vi.fn(() => ({
+    refresh: vi.fn(),
+  })),
 }));
 
 vi.mock("../../../../../lib/daily-brief-history-store", () => ({
@@ -14,6 +17,7 @@ vi.mock("../../../../../lib/daily-brief-history-store", () => ({
 
 vi.mock("next/navigation", () => ({
   notFound: notFoundMock,
+  useRouter: useRouterMock,
 }));
 
 import DailyBriefDetailPage from "./page";
@@ -143,6 +147,38 @@ describe("DailyBriefDetailPage", () => {
         onePageCompliant: null,
         auditedAt: "2026-04-02T09:12:00.000Z",
       },
+      syntheticCanary: {
+        status: "blocked",
+        targetParentEmails: ["synthetic-canary@example.com"],
+        attemptCount: 2,
+        successCount: 0,
+        failureCount: 2,
+        autoRetryCount: 1,
+        lastAttemptAt: "2026-04-02T09:10:00.000Z",
+        lastPassedAt: null,
+        blockedAt: "2026-04-02T09:12:00.000Z",
+        releasedAt: null,
+        releasedBy: null,
+        releaseReason: "",
+        lastFailureReason:
+          "Synthetic canary delivery failed after one automatic retry.",
+        lastFailedTargets: [
+          {
+            parentId: "parent-canary",
+            parentEmail: "synthetic-canary@example.com",
+            channel: "goodnotes",
+            errorMessage: "Relay timeout.",
+          },
+        ],
+        lastDeliveryReceipts: [],
+        renderAudit: {
+          renderer: "typst",
+          layoutVariant: "standard",
+          pageCount: 2,
+          onePageCompliant: null,
+          auditedAt: "2026-04-02T09:10:00.000Z",
+        },
+      },
       failedDeliveryTargets: [
         {
           parentId: "parent-1",
@@ -216,6 +252,11 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain(
       "Two configured deliveries timed out during the 09:10 retry window.",
     );
+    expect(markup).toContain("Synthetic canary gate");
+    expect(markup).toContain("Blocked by canary");
+    expect(markup).toContain("synthetic-canary@example.com");
+    expect(markup).toContain("Release blocked brief");
+    expect(markup).toContain("Rerun canary");
   });
 
   test("triggers the not-found flow when the brief does not exist", async () => {

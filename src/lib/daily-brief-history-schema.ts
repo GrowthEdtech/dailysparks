@@ -91,6 +91,35 @@ export type DailyBriefRenderAudit = {
   auditedAt: string;
 };
 
+export const DAILY_BRIEF_SYNTHETIC_CANARY_STATUSES = [
+  "pending",
+  "passed",
+  "blocked",
+  "released",
+] as const;
+
+export type DailyBriefSyntheticCanaryStatus =
+  (typeof DAILY_BRIEF_SYNTHETIC_CANARY_STATUSES)[number];
+
+export type DailyBriefSyntheticCanaryState = {
+  status: DailyBriefSyntheticCanaryStatus;
+  targetParentEmails: string[];
+  attemptCount: number;
+  successCount: number;
+  failureCount: number;
+  autoRetryCount: number;
+  lastAttemptAt: string | null;
+  lastPassedAt: string | null;
+  blockedAt: string | null;
+  releasedAt: string | null;
+  releasedBy: string | null;
+  releaseReason: string;
+  lastFailureReason: string;
+  lastFailedTargets: DailyBriefFailedDeliveryTarget[];
+  lastDeliveryReceipts: DailyBriefDeliveryReceipt[];
+  renderAudit: DailyBriefRenderAudit | null;
+};
+
 export type DailyBriefHistoryRecord = {
   id: string;
   scheduledFor: string;
@@ -135,6 +164,7 @@ export type DailyBriefHistoryRecord = {
   pendingFutureProfiles?: DailyBriefDispatchAudienceProfile[];
   heldProfiles?: DailyBriefDispatchAudienceProfile[];
   renderAudit?: DailyBriefRenderAudit | null;
+  syntheticCanary?: DailyBriefSyntheticCanaryState | null;
   deliveryReceipts: DailyBriefDeliveryReceipt[];
   failedDeliveryTargets: DailyBriefFailedDeliveryTarget[];
   failureReason: string;

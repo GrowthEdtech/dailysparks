@@ -225,6 +225,7 @@ beforeEach(async () => {
     DAILY_SPARKS_AI_CONFIG_ENCRYPTION_SECRET:
       "test-ai-connection-encryption-secret",
     DAILY_SPARKS_SCHEDULER_SECRET: SCHEDULER_HEADER_FIXTURE,
+    DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED: "false",
   };
   await seedEditorialSources(editorialStorePath);
   sendBriefToGoodnotesMock.mockReset();

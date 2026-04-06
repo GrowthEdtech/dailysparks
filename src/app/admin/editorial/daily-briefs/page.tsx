@@ -160,6 +160,35 @@ function getRendererAuditBadges(
   return badges;
 }
 
+function getSyntheticCanaryBadge(
+  entry: Awaited<ReturnType<typeof listDailyBriefHistory>>[number],
+) {
+  const status = entry.syntheticCanary?.status;
+
+  if (status === "blocked") {
+    return {
+      label: "Blocked by canary",
+      classes: "border-rose-200 bg-rose-50 text-rose-800",
+    };
+  }
+
+  if (status === "released") {
+    return {
+      label: "Released by ops",
+      classes: "border-amber-200 bg-amber-50 text-amber-900",
+    };
+  }
+
+  if (status === "passed") {
+    return {
+      label: "Canary passed",
+      classes: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    };
+  }
+
+  return null;
+}
+
 function buildCoverageAwareEmptyState(input: {
   recordKind: DailyBriefRecordKind;
   programme?: Programme;
@@ -982,7 +1011,7 @@ export default async function DailyBriefsAdminPage({
                     <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                       {entry.repetitionRisk} repetition risk
                     </span>
-                    {getRendererAuditBadges(entry).map((badge) => (
+                  {getRendererAuditBadges(entry).map((badge) => (
                       <span
                         key={`${entry.id}-${badge}`}
                         className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500"
@@ -990,6 +1019,13 @@ export default async function DailyBriefsAdminPage({
                         {badge}
                       </span>
                     ))}
+                    {getSyntheticCanaryBadge(entry) ? (
+                      <span
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getSyntheticCanaryBadge(entry)?.classes}`}
+                      >
+                        {getSyntheticCanaryBadge(entry)?.label}
+                      </span>
+                    ) : null}
                   </div>
                   <h3 className="mt-3 text-2xl font-bold tracking-tight text-[#0f172a]">
                     {entry.headline}
@@ -1050,6 +1086,15 @@ export default async function DailyBriefsAdminPage({
                         Failure reason:
                       </span>{" "}
                       {entry.failureReason}
+                    </p>
+                  ) : null}
+                  {entry.syntheticCanary?.status === "blocked" &&
+                  entry.syntheticCanary.lastFailureReason ? (
+                    <p className="text-rose-700">
+                      <span className="font-semibold text-rose-800">
+                        Canary gate:
+                      </span>{" "}
+                      {entry.syntheticCanary.lastFailureReason}
                     </p>
                   ) : null}
                 </div>

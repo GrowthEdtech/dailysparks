@@ -26,6 +26,10 @@ import {
   resolveDailyBriefRendererPolicy,
 } from "../../../../../lib/daily-brief-renderer-policy";
 import {
+  isDailyBriefSyntheticCanaryEnabled,
+  runDailyBriefSyntheticCanary,
+} from "../../../../../lib/daily-brief-synthetic-canary";
+import {
   buildProfileLocalDeliveryWindowLabel,
   splitProfilesByDeliveryWindow,
 } from "../../../../../lib/delivery-window";
@@ -256,6 +260,7 @@ export async function POST(request: Request) {
   let targetedProfileCount = 0;
   let skippedProfileCount = 0;
   let pendingFutureProfileCount = 0;
+  let syntheticCanaryBlockedCount = 0;
 
   const dispatchMode = planDailyBriefDispatch([], dispatchOverrides).mode;
 
@@ -329,6 +334,7 @@ export async function POST(request: Request) {
       programme: brief.programme,
       attachmentMode,
     }).renderer;
+    let adminNotesForUpdate = brief.adminNotes;
 
     targetedProfileCount += programmeProfiles.length;
     skippedProfileCount += dispatchPlan.skippedProfiles.length;
@@ -429,6 +435,97 @@ export async function POST(request: Request) {
       continue;
     }
 
+    if (recordKind === "production" && isDailyBriefSyntheticCanaryEnabled()) {
+      const existingSyntheticCanary = brief.syntheticCanary ?? null;
+
+      if (existingSyntheticCanary?.status === "blocked") {
+        syntheticCanaryBlockedCount += 1;
+        await updateDailyBriefHistoryEntry(brief.id, {
+          dispatchMode: dispatchPlan.mode,
+          dispatchCanaryParentEmails: dispatchPlan.canaryParentEmails,
+          targetedProfiles,
+          skippedProfiles,
+          pendingFutureProfiles,
+          heldProfiles,
+          syntheticCanary: existingSyntheticCanary,
+          failureReason:
+            existingSyntheticCanary.lastFailureReason
+              ? `Synthetic canary gate blocked production delivery. ${existingSyntheticCanary.lastFailureReason}`
+              : "Synthetic canary gate blocked production delivery.",
+          adminNotes: appendAdminNotes(
+            brief.adminNotes,
+            `${dispatchContext} Production delivery remains held because the synthetic canary gate is still blocked. Release or rerun the canary from admin before the next wave.`,
+          ),
+        });
+        continue;
+      }
+
+      if (
+        existingSyntheticCanary?.status !== "passed" &&
+        existingSyntheticCanary?.status !== "released"
+      ) {
+        const syntheticCanaryResult = await runDailyBriefSyntheticCanary({
+          brief,
+          dispatchableProfiles,
+          renderer,
+          attemptTimestamp: dispatchTimestamp,
+          previousState: existingSyntheticCanary,
+        });
+
+        if (!syntheticCanaryResult.passed) {
+          syntheticCanaryBlockedCount += 1;
+          await updateDailyBriefHistoryEntry(brief.id, {
+            dispatchMode: dispatchPlan.mode,
+            dispatchCanaryParentEmails: dispatchPlan.canaryParentEmails,
+            targetedProfiles,
+            skippedProfiles,
+            pendingFutureProfiles,
+            heldProfiles,
+            syntheticCanary: syntheticCanaryResult.state,
+            failureReason:
+              syntheticCanaryResult.state.lastFailureReason
+                ? `Synthetic canary gate blocked production delivery. ${syntheticCanaryResult.state.lastFailureReason}`
+                : "Synthetic canary gate blocked production delivery.",
+            retryEligibleUntil: null,
+            adminNotes: appendAdminNotes(
+              brief.adminNotes,
+              `${dispatchContext} Synthetic canary failed and the production wave was held before reaching live families.`,
+            ),
+          });
+          await emitDailyBriefOpsAlert({
+            stage: "deliver",
+            severity: "critical",
+            runDate: brief.scheduledFor,
+            title: "Daily brief blocked by synthetic canary",
+            message:
+              "Synthetic canary failed after one automatic retry, so the production delivery wave was held before reaching families.",
+            details: {
+              programme: brief.programme,
+              targetedProfileCount: programmeProfiles.length,
+              canaryTargetParentEmails:
+                syntheticCanaryResult.state.targetParentEmails,
+              syntheticCanaryFailureReason:
+                syntheticCanaryResult.state.lastFailureReason,
+            },
+          });
+          continue;
+        }
+
+        await updateDailyBriefHistoryEntry(brief.id, {
+          syntheticCanary: syntheticCanaryResult.state,
+          failureReason: "",
+          adminNotes: appendAdminNotes(
+            adminNotesForUpdate,
+            `${dispatchContext} Synthetic canary passed before live production delivery was released.`,
+          ),
+        });
+        adminNotesForUpdate = appendAdminNotes(
+          adminNotesForUpdate,
+          `${dispatchContext} Synthetic canary passed before live production delivery was released.`,
+        );
+      }
+    }
+
     const deliverySummary = await deliverHistoryBriefToProfiles(
       programmeProfiles,
       brief,
@@ -510,7 +607,7 @@ export async function POST(request: Request) {
           ? `${pendingTargets.length} delivery target(s) remain in future local windows.`
           : "",
       adminNotes: appendAdminNotes(
-        brief.adminNotes,
+        adminNotesForUpdate,
         `${dispatchContext} Delivery attempts: ${deliverySummary.deliveryAttemptCount}. Successful deliveries: ${deliverySummary.deliverySuccessCount}. Failed deliveries: ${deliverySummary.deliveryFailureCount}. Pending future targets: ${pendingTargets.length}.`,
       ),
     });
@@ -556,6 +653,7 @@ export async function POST(request: Request) {
       deliveryAttemptCount,
       deliverySuccessCount,
       deliveryFailureCount,
+      syntheticCanaryBlockedCount,
     },
   });
 }

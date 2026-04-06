@@ -22,6 +22,7 @@ import {
 } from "../daily-brief-admin-helpers";
 import { formatDailyBriefRendererLabel } from "../renderer-options";
 import ManualResendPanel from "./manual-resend-panel";
+import SyntheticCanaryPanel from "./synthetic-canary-panel";
 
 type DailyBriefDetailPageProps = {
   params: Promise<{
@@ -453,6 +454,11 @@ export default async function DailyBriefDetailPage({
               </p>
             )}
           </section>
+
+          <SyntheticCanaryPanel
+            briefId={entry.id}
+            syntheticCanary={entry.syntheticCanary ?? null}
+          />
 
           <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold tracking-tight text-[#0f172a]">

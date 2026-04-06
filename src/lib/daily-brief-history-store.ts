@@ -4,6 +4,7 @@ import type {
   DailyBriefRenderAudit,
   DailyBriefDispatchAudienceProfile,
   DailyBriefHistoryRecord,
+  DailyBriefSyntheticCanaryState,
 } from "./daily-brief-history-schema";
 import {
   DAILY_BRIEF_PDF_RENDERERS,
@@ -127,6 +128,68 @@ function normalizeRenderAudit(
   };
 }
 
+function normalizeSyntheticCanary(
+  value: DailyBriefSyntheticCanaryState | null | undefined,
+): DailyBriefSyntheticCanaryState | null {
+  if (!value) {
+    return null;
+  }
+
+  return {
+    status:
+      value.status === "passed" ||
+      value.status === "blocked" ||
+      value.status === "released"
+        ? value.status
+        : "pending",
+    targetParentEmails:
+      value.targetParentEmails?.map((entry) => entry.trim().toLowerCase()).filter(Boolean) ??
+      [],
+    attemptCount:
+      typeof value.attemptCount === "number" && Number.isFinite(value.attemptCount)
+        ? value.attemptCount
+        : 0,
+    successCount:
+      typeof value.successCount === "number" && Number.isFinite(value.successCount)
+        ? value.successCount
+        : 0,
+    failureCount:
+      typeof value.failureCount === "number" && Number.isFinite(value.failureCount)
+        ? value.failureCount
+        : 0,
+    autoRetryCount:
+      typeof value.autoRetryCount === "number" &&
+        Number.isFinite(value.autoRetryCount)
+        ? value.autoRetryCount
+        : 0,
+    lastAttemptAt: value.lastAttemptAt?.trim() || null,
+    lastPassedAt: value.lastPassedAt?.trim() || null,
+    blockedAt: value.blockedAt?.trim() || null,
+    releasedAt: value.releasedAt?.trim() || null,
+    releasedBy: value.releasedBy?.trim() || null,
+    releaseReason: value.releaseReason?.trim() || "",
+    lastFailureReason: value.lastFailureReason?.trim() || "",
+    lastFailedTargets:
+      value.lastFailedTargets?.map((target) => ({
+        parentId: target.parentId.trim(),
+        parentEmail: target.parentEmail.trim(),
+        channel: target.channel,
+        errorMessage: target.errorMessage.trim(),
+      })) ?? [],
+    lastDeliveryReceipts:
+      value.lastDeliveryReceipts?.map((receipt) => ({
+        parentId: receipt.parentId.trim(),
+        parentEmail: receipt.parentEmail.trim(),
+        channel: receipt.channel,
+        renderer: normalizeReceiptRenderer(receipt.renderer),
+        attachmentFileName: receipt.attachmentFileName?.trim() || null,
+        externalId: receipt.externalId?.trim() || null,
+        externalUrl: receipt.externalUrl?.trim() || null,
+      })) ?? [],
+    renderAudit: normalizeRenderAudit(value.renderAudit),
+  };
+}
+
 export async function listDailyBriefHistory(
   filters: DailyBriefHistoryFilters = {},
 ) {
@@ -232,6 +295,7 @@ export async function createDailyBriefHistoryEntry(
     ),
     heldProfiles: normalizeDispatchAudienceProfiles(input.heldProfiles),
     renderAudit: normalizeRenderAudit(input.renderAudit),
+    syntheticCanary: normalizeSyntheticCanary(input.syntheticCanary),
     deliveryReceipts:
       input.deliveryReceipts?.map((receipt) => ({
         parentId: receipt.parentId.trim(),
@@ -448,6 +512,10 @@ export async function updateDailyBriefHistoryEntry(
 
   if ("renderAudit" in input) {
     nextInput.renderAudit = normalizeRenderAudit(input.renderAudit);
+  }
+
+  if ("syntheticCanary" in input) {
+    nextInput.syntheticCanary = normalizeSyntheticCanary(input.syntheticCanary);
   }
 
   if ("deliveryReceipts" in input) {

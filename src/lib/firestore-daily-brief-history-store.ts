@@ -11,6 +11,7 @@ import {
   type DailyBriefFailedDeliveryTarget,
   type DailyBriefHistoryRecord,
   type DailyBriefRenderAudit,
+  type DailyBriefSyntheticCanaryState,
   type DailyBriefPipelineStage,
   type DailyBriefRecordKind,
   type DailyBriefRepetitionRisk,
@@ -186,6 +187,44 @@ function normalizeRenderAudit(
   };
 }
 
+function normalizeSyntheticCanary(
+  raw: Partial<DailyBriefSyntheticCanaryState> | null | undefined,
+): DailyBriefSyntheticCanaryState | null {
+  if (!raw) {
+    return null;
+  }
+
+  return {
+    status:
+      raw.status === "passed" ||
+      raw.status === "blocked" ||
+      raw.status === "released"
+        ? raw.status
+        : "pending",
+    targetParentEmails: normalizeStringArray(raw.targetParentEmails),
+    attemptCount: normalizeCount(raw.attemptCount),
+    successCount: normalizeCount(raw.successCount),
+    failureCount: normalizeCount(raw.failureCount),
+    autoRetryCount: normalizeCount(raw.autoRetryCount),
+    lastAttemptAt: normalizeNullableString(raw.lastAttemptAt),
+    lastPassedAt: normalizeNullableString(raw.lastPassedAt),
+    blockedAt: normalizeNullableString(raw.blockedAt),
+    releasedAt: normalizeNullableString(raw.releasedAt),
+    releasedBy: normalizeNullableString(raw.releasedBy),
+    releaseReason: normalizeString(raw.releaseReason),
+    lastFailureReason: normalizeString(raw.lastFailureReason),
+    lastFailedTargets: Array.isArray(raw.lastFailedTargets)
+      ? raw.lastFailedTargets.map((target) => normalizeFailedDeliveryTarget(target))
+      : [],
+    lastDeliveryReceipts: Array.isArray(raw.lastDeliveryReceipts)
+      ? raw.lastDeliveryReceipts.map((receipt) =>
+          normalizeDeliveryReceipt(receipt),
+        )
+      : [],
+    renderAudit: normalizeRenderAudit(raw.renderAudit),
+  };
+}
+
 function normalizeSourceReference(
   raw: Partial<DailyBriefSourceReference> | undefined,
 ): DailyBriefSourceReference {
@@ -306,6 +345,7 @@ function normalizeEntry(
         )
       : [],
     renderAudit: normalizeRenderAudit(raw?.renderAudit),
+    syntheticCanary: normalizeSyntheticCanary(raw?.syntheticCanary),
     deliveryReceipts: Array.isArray(raw?.deliveryReceipts)
       ? raw.deliveryReceipts.map((receipt) =>
           normalizeDeliveryReceipt(receipt),

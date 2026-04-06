@@ -160,6 +160,7 @@ beforeEach(async () => {
       "daily-brief-history.json",
     ),
     DAILY_SPARKS_SCHEDULER_SECRET: SCHEDULER_HEADER_FIXTURE,
+    DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED: "false",
   };
 
   sendBriefToGoodnotesMock.mockReset();
@@ -680,5 +681,71 @@ describe("daily brief deliver route", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  test("blocks production delivery when the synthetic canary fails twice", async () => {
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED = "true";
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS =
+      "synthetic-canary@example.com";
+
+    await createEligibleProgrammeProfile(
+      "synthetic-canary@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+    sendBriefToGoodnotesMock
+      .mockRejectedValueOnce(new Error("Relay timeout."))
+      .mockRejectedValueOnce(new Error("Relay timeout."));
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.deliveredCount).toBe(0);
+    expect(body.summary.syntheticCanaryBlockedCount).toBe(1);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(2);
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[0]).toMatchObject({
+      parent: {
+        email: "synthetic-canary@example.com",
+      },
+    });
+    expect(sendBriefToGoodnotesMock.mock.calls[1]?.[0]).toMatchObject({
+      parent: {
+        email: "synthetic-canary@example.com",
+      },
+    });
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[2]).toEqual({
+      attachmentMode: "canary",
+      renderer: "typst",
+    });
+    expect(history[0]?.status).toBe("approved");
+    expect(history[0]?.pipelineStage).toBe("preflight_passed");
+    expect(history[0]?.deliveryAttemptCount).toBe(0);
+    expect(history[0]?.deliveryReceipts).toEqual([]);
+    expect(history[0]?.failureReason).toMatch(/synthetic canary/i);
+    expect(history[0]?.syntheticCanary).toEqual(
+      expect.objectContaining({
+        status: "blocked",
+        targetParentEmails: ["synthetic-canary@example.com"],
+        attemptCount: 2,
+        autoRetryCount: 1,
+        successCount: 0,
+        failureCount: 2,
+      }),
+    );
   });
 });
