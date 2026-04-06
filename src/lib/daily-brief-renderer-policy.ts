@@ -2,6 +2,7 @@ import type {
   DailyBriefPdfRenderer,
   GoodnotesAttachmentMode,
 } from "./goodnotes-delivery";
+import type { DailyBriefHistoryRecord } from "./daily-brief-history-schema";
 import type { Programme } from "./mvp-types";
 
 export const DAILY_BRIEF_RENDERER_MODES = [
@@ -24,6 +25,11 @@ export type DailyBriefRendererPolicy = {
   defaultRenderer: DailyBriefPdfRenderer;
   programme: Programme;
   attachmentMode: GoodnotesAttachmentMode;
+};
+
+export type DailyBriefRendererHistoryResolution = {
+  renderer: DailyBriefPdfRenderer;
+  source: "delivery-receipt" | "render-audit" | "current-policy";
 };
 
 const DEFAULT_TYPST_RENDERER: DailyBriefPdfRenderer = "typst";
@@ -71,4 +77,48 @@ export function getDailyBriefRendererPolicyLabel(
   }
 
   return `Auto default: Typst live for ${policy.programme} canary briefs.`;
+}
+
+type DailyBriefRendererHistoryInput = Pick<
+  DailyBriefHistoryRecord,
+  "programme" | "deliveryReceipts" | "renderAudit"
+>;
+
+function findReceiptRenderer(
+  deliveryReceipts: DailyBriefHistoryRecord["deliveryReceipts"],
+) {
+  return deliveryReceipts.find((receipt) => receipt.renderer)?.renderer ?? null;
+}
+
+export function resolveDailyBriefRendererFromHistory(input: {
+  brief: DailyBriefRendererHistoryInput;
+  attachmentMode: GoodnotesAttachmentMode;
+  selectedMode?: DailyBriefRendererMode;
+}): DailyBriefRendererHistoryResolution {
+  const receiptRenderer = findReceiptRenderer(input.brief.deliveryReceipts);
+
+  if (receiptRenderer) {
+    return {
+      renderer: receiptRenderer,
+      source: "delivery-receipt",
+    };
+  }
+
+  const renderAuditRenderer = input.brief.renderAudit?.renderer ?? null;
+
+  if (renderAuditRenderer) {
+    return {
+      renderer: renderAuditRenderer,
+      source: "render-audit",
+    };
+  }
+
+  return {
+    renderer: resolveDailyBriefRendererPolicy({
+      selectedMode: input.selectedMode ?? "auto",
+      programme: input.brief.programme,
+      attachmentMode: input.attachmentMode,
+    }).renderer,
+    source: "current-policy",
+  };
 }

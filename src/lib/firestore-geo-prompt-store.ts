@@ -50,6 +50,7 @@ function normalizePromptRecord(
 
   return {
     id,
+    websiteDerivedSeedId: normalizeString(raw?.websiteDerivedSeedId) || null,
     prompt: normalizeString(raw?.prompt),
     intentLabel: normalizeString(raw?.intentLabel),
     priority: normalizePriority(raw?.priority),

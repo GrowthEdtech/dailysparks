@@ -15,16 +15,19 @@ import {
 import {
   getPlannedNotificationRetryDecision,
 } from "./planned-notification-ops";
+import type { PlannedNotificationRunSource } from "./planned-notification-history-schema";
 
 export async function maybeSendBillingStatusNotification(input: {
   profile: ParentProfile;
   invoiceId: string | null;
   invoiceStatus: string | null;
   now?: Date;
+  source?: PlannedNotificationRunSource;
 }): Promise<PlannedNotificationSendResult> {
   const now = input.now ?? new Date();
   const invoiceId = input.invoiceId?.trim() || null;
   const invoiceStatus = input.invoiceStatus?.trim() || null;
+  const source = input.source ?? "stripe-webhook";
 
   if (!invoiceId || !invoiceStatus) {
     const result = {
@@ -38,7 +41,7 @@ export async function maybeSendBillingStatusNotification(input: {
       parentId: input.profile.parent.id,
       parentEmail: input.profile.parent.email,
       notificationFamily: "billing-status-update",
-      source: "stripe-webhook",
+      source,
       status: "skipped",
       reason: result.reason,
       deduped: false,
@@ -76,7 +79,7 @@ export async function maybeSendBillingStatusNotification(input: {
       parentId: input.profile.parent.id,
       parentEmail: input.profile.parent.email,
       notificationFamily: "billing-status-update",
-      source: "stripe-webhook",
+      source,
       status: "skipped",
       reason: result.reason,
       deduped: false,
@@ -102,7 +105,7 @@ export async function maybeSendBillingStatusNotification(input: {
       parentId: input.profile.parent.id,
       parentEmail: input.profile.parent.email,
       notificationFamily: "billing-status-update",
-      source: "stripe-webhook",
+      source,
       status: status.label === "Resolved" ? "resolved" : "skipped",
       reason: status.detail,
       deduped: status.deduped,
@@ -139,7 +142,7 @@ export async function maybeSendBillingStatusNotification(input: {
       parentId: input.profile.parent.id,
       parentEmail: input.profile.parent.email,
       notificationFamily: "billing-status-update",
-      source: "stripe-webhook",
+      source,
       status: retryDecision.kind === "cooldown" ? "deferred" : "escalated",
       reason,
       deduped: false,
@@ -166,7 +169,7 @@ export async function maybeSendBillingStatusNotification(input: {
       parentId: input.profile.parent.id,
       parentEmail: input.profile.parent.email,
       notificationFamily: "billing-status-update",
-      source: "stripe-webhook",
+      source,
       status: result.sent ? "sent" : "skipped",
       reason: result.reason ?? current.reason,
       deduped: result.skipped,
@@ -193,7 +196,7 @@ export async function maybeSendBillingStatusNotification(input: {
       parentId: input.profile.parent.id,
       parentEmail: input.profile.parent.email,
       notificationFamily: "billing-status-update",
-      source: "stripe-webhook",
+      source,
       status: "failed",
       reason: current.reason,
       deduped: false,

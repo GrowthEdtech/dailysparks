@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const { sendTrialEndingReminderNotificationMock, sendDeliverySupportAlertNotificationMock } =
+const {
+  sendTrialEndingReminderNotificationMock,
+  sendDeliverySupportAlertNotificationMock,
+  sendBillingStatusUpdateNotificationMock,
+} =
   vi.hoisted(() => ({
     sendTrialEndingReminderNotificationMock: vi.fn(),
     sendDeliverySupportAlertNotificationMock: vi.fn(),
+    sendBillingStatusUpdateNotificationMock: vi.fn(),
   }));
 
 const { updateParentNotificationEmailStateMock } = vi.hoisted(() => ({
@@ -19,6 +24,7 @@ const { recordPlannedNotificationRunMock, listPlannedNotificationRunHistoryMock 
 vi.mock("./planned-notification-emails", () => ({
   sendTrialEndingReminderNotification: sendTrialEndingReminderNotificationMock,
   sendDeliverySupportAlertNotification: sendDeliverySupportAlertNotificationMock,
+  sendBillingStatusUpdateNotification: sendBillingStatusUpdateNotificationMock,
 }));
 
 vi.mock("./mvp-store", () => ({
@@ -73,6 +79,12 @@ function buildProfile(
       latestInvoicePaidAt: null,
       latestInvoicePeriodStart: null,
       latestInvoicePeriodEnd: null,
+      billingStatusNotificationLastSentAt: null,
+      billingStatusNotificationLastInvoiceId: null,
+      billingStatusNotificationLastInvoiceStatus: null,
+      billingStatusNotificationLastResolvedAt: null,
+      billingStatusNotificationLastResolvedInvoiceId: null,
+      billingStatusNotificationLastResolvedInvoiceStatus: null,
       notionWorkspaceId: null,
       notionWorkspaceName: null,
       notionBotId: null,
@@ -113,6 +125,7 @@ describe("growth notification runner", () => {
   beforeEach(() => {
     sendTrialEndingReminderNotificationMock.mockReset();
     sendDeliverySupportAlertNotificationMock.mockReset();
+    sendBillingStatusUpdateNotificationMock.mockReset();
     updateParentNotificationEmailStateMock.mockReset();
     recordPlannedNotificationRunMock.mockReset();
     listPlannedNotificationRunHistoryMock.mockReset();
@@ -135,6 +148,12 @@ describe("growth notification runner", () => {
       reason: null,
       messageId: "support-message-1",
     });
+    sendBillingStatusUpdateNotificationMock.mockResolvedValue({
+      sent: true,
+      skipped: false,
+      reason: null,
+      messageId: "billing-message-1",
+    });
 
     const result = await runGrowthNotificationEmails({
       profiles: [
@@ -145,6 +164,7 @@ describe("growth notification runner", () => {
             email: "active-no-channel@example.com",
             subscriptionStatus: "active",
             subscriptionActivatedAt: "2026-04-02T00:00:00.000Z",
+            latestInvoiceId: "in_123",
             latestInvoiceStatus: "paid",
             latestInvoicePaidAt: "2026-04-02T00:00:00.000Z",
           },
@@ -155,8 +175,9 @@ describe("growth notification runner", () => {
 
     expect(sendTrialEndingReminderNotificationMock).toHaveBeenCalledTimes(1);
     expect(sendDeliverySupportAlertNotificationMock).toHaveBeenCalledTimes(1);
-    expect(updateParentNotificationEmailStateMock).toHaveBeenCalledTimes(2);
-    expect(recordPlannedNotificationRunMock).toHaveBeenCalledTimes(2);
+    expect(sendBillingStatusUpdateNotificationMock).toHaveBeenCalledTimes(1);
+    expect(updateParentNotificationEmailStateMock).toHaveBeenCalledTimes(3);
+    expect(recordPlannedNotificationRunMock).toHaveBeenCalledTimes(3);
     expect(recordPlannedNotificationRunMock).toHaveBeenCalledWith(
       expect.objectContaining({
         notificationFamily: "trial-ending-reminder",
@@ -171,7 +192,15 @@ describe("growth notification runner", () => {
         status: "sent",
       }),
     );
+    expect(recordPlannedNotificationRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notificationFamily: "billing-status-update",
+        source: "growth-reconciliation",
+        status: "sent",
+      }),
+    );
     expect(result.trialEnding.sentCount).toBe(1);
+    expect(result.billingStatus.sentCount).toBe(1);
     expect(result.deliverySupport.sentCount).toBe(1);
   });
 

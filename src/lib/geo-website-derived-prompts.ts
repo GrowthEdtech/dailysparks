@@ -1,5 +1,9 @@
 import type { CreateGeoPromptInput } from "./geo-prompt-store";
 
+function buildWebsiteDerivedSeedId(value: string) {
+  return `website-derived:${value}`;
+}
+
 export type GeoContentPageStructureSuggestion = {
   title: string;
   recommendedSlug: string;
@@ -11,6 +15,7 @@ export type GeoContentPageStructureSuggestion = {
 
 export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
   {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("ib-family-workflow"),
     prompt: "IB reading workflow for families",
     intentLabel: "IB family workflow",
     priority: "high",
@@ -25,6 +30,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
       "Grounded in the homepage promise around daily reading support and family visibility.",
   },
   {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("daily-ib-reading-habit"),
     prompt: "daily reading habit for IB students",
     intentLabel: "Daily IB reading habit",
     priority: "high",
@@ -39,6 +45,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
       "Anchored to the site narrative around daily academic habit and distraction-free reading.",
   },
   {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("goodnotes-delivery-workflow"),
     prompt: "Goodnotes delivery for student reading briefs",
     intentLabel: "Goodnotes delivery workflow",
     priority: "high",
@@ -53,6 +60,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
       "Derived from the current Goodnotes-first product delivery promise on the public site.",
   },
   {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("notion-parent-archive"),
     prompt: "Notion archive for parent learning visibility",
     intentLabel: "Notion parent archive",
     priority: "medium",
@@ -67,6 +75,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
       "Mapped to the current Notion archive positioning and parent visibility language.",
   },
   {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("distraction-free-ipad-reading"),
     prompt: "distraction-free iPad reading workflow for kids",
     intentLabel: "Distraction-free iPad reading",
     priority: "medium",
@@ -81,6 +90,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
       "Built from the public promise around calmer reading workflows and focused device use.",
   },
   {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("programme-support-at-home"),
     prompt: "PYP and MYP reading support at home",
     intentLabel: "Programme support at home",
     priority: "medium",
@@ -95,6 +105,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
       "Tied to programme-aligned messaging that already appears across the marketing site.",
   },
   {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("writing-and-reasoning-habit"),
     prompt: "English writing and critical reasoning habit for ages 9-14",
     intentLabel: "Writing and reasoning habit",
     priority: "medium",
@@ -109,6 +120,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
       "Grounded in the site's promise about English writing and critical reasoning development.",
   },
   {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("daily-sparks-brand-routine"),
     prompt: "Daily Sparks family reading routine",
     intentLabel: "Daily Sparks brand routine",
     priority: "watch",

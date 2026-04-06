@@ -5,6 +5,7 @@ export type OpenAiCompatibleTextGenerationInput = {
   developerPrompt: string;
   userPrompt: string;
   fetchImpl?: typeof fetch;
+  signal?: AbortSignal;
 };
 
 export type OpenAiCompatibleTextGenerationResult = {
@@ -54,6 +55,7 @@ export async function generateOpenAiCompatibleText(
         "content-type": "application/json",
         authorization: `Bearer ${input.connection.apiKey}`,
       },
+      signal: input.signal,
       body: JSON.stringify({
         model: input.connection.defaultModel,
         messages: [

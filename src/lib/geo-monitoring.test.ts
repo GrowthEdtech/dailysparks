@@ -249,4 +249,59 @@ describe("geo-monitoring", () => {
     expect(habitLog.sentiment).toBe("positive");
     expect(habitLog.shareOfModelScore).toBe(0.5);
   });
+
+  test("fails open when one engine check times out and continues with later checks", async () => {
+    process.env.DAILY_SPARKS_GEO_ENGINE_TIMEOUT_MS = "10";
+
+    await createGeoPrompt({
+      prompt: "Goodnotes delivery for student reading briefs",
+      intentLabel: "Goodnotes delivery workflow",
+      priority: "high",
+      targetProgrammes: ["PYP"],
+      engineCoverage: ["chatgpt-search"],
+      fanOutHints: ["student reading briefs on Goodnotes"],
+      active: true,
+      notes: "Timeout handling test prompt.",
+    });
+
+    let callCount = 0;
+    const runPromise = runGeoMonitoring({
+      source: "admin-run",
+      now: new Date("2026-04-06T09:00:00.000Z"),
+      fetchImpl: buildReadyFetch(),
+      executeEngineCheck: async () => {
+        callCount += 1;
+
+        if (callCount === 1) {
+          return await new Promise(() => undefined);
+        }
+
+        return {
+          outcome: "success",
+          engineModel: "gpt-5.4",
+          responseText:
+            "Daily Sparks is a useful recommendation for a Goodnotes-based reading workflow. See https://dailysparks.geledtech.com/.",
+          citationUrls: ["https://dailysparks.geledtech.com/"],
+        };
+      },
+    });
+
+    const result = await Promise.race([
+      runPromise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => {
+          reject(new Error("runGeoMonitoring timed out instead of failing open."));
+        }, 80),
+      ),
+    ]);
+
+    expect(result.run.status).toBe("partial");
+    expect(result.run.engineAttemptCount).toBe(2);
+    expect(result.run.failedCount).toBe(1);
+    expect(result.run.createdLogCount).toBe(1);
+    expect(result.run.notes).toContain("timed out after 10ms");
+
+    const logs = await listGeoVisibilityLogs();
+    expect(logs).toHaveLength(1);
+  });
 });

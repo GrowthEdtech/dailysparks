@@ -24,6 +24,7 @@ import {
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
 import { getDailyBriefDispatchRunDates } from "../../../../../lib/daily-brief-run-date";
+import { resolveDailyBriefRendererFromHistory } from "../../../../../lib/daily-brief-renderer-policy";
 import { listParentProfiles } from "../../../../../lib/mvp-store";
 
 type DailyBriefRetryDeliveryRequestBody = {
@@ -248,6 +249,11 @@ export async function POST(request: Request) {
       dispatchPlan.mode === "canary"
         ? `Retry mode: canary. Targeted ${programmeProfiles.length} of ${eligibleProgrammeProfiles.length} failed profile(s).`
         : `Retry mode: all. Targeted ${programmeProfiles.length} failed profile(s).`;
+    const attachmentMode = dispatchPlan.mode === "canary" ? "canary" : "production";
+    const rendererResolution = resolveDailyBriefRendererFromHistory({
+      brief,
+      attachmentMode,
+    });
 
     targetedProfileCount += programmeProfiles.length;
     skippedProfileCount += dispatchPlan.skippedProfiles.length;
@@ -284,7 +290,8 @@ export async function POST(request: Request) {
     const retrySummary = await deliverHistoryBriefToProfiles(programmeProfiles, brief, {
       retryTargets: brief.failedDeliveryTargets,
       successfulReceipts: brief.deliveryReceipts,
-      attachmentMode: dispatchPlan.mode === "canary" ? "canary" : "production",
+      attachmentMode,
+      renderer: rendererResolution.renderer,
     });
     const nextDeliveryAttemptCount =
       brief.deliveryAttemptCount + retrySummary.deliveryAttemptCount;

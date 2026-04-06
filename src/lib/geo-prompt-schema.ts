@@ -14,6 +14,7 @@ export type GeoEngineType = (typeof GEO_ENGINE_TYPES)[number];
 
 export type GeoPromptRecord = {
   id: string;
+  websiteDerivedSeedId?: string | null;
   prompt: string;
   intentLabel: string;
   priority: GeoPromptPriority;

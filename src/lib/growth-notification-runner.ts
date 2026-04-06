@@ -5,11 +5,14 @@ import {
   sendTrialEndingReminderNotification,
   type PlannedNotificationSendResult,
 } from "./planned-notification-emails";
+import { maybeSendBillingStatusNotification } from "./billing-status-notification";
 import {
   listPlannedNotificationRunHistory,
   recordPlannedNotificationRun,
 } from "./planned-notification-history-store";
 import {
+  getBillingStatusNotificationCurrentState,
+  getBillingStatusNotificationStatus,
   getDeliverySupportNotificationCurrentState,
   getDeliverySupportNotificationStatus,
   getTrialEndingNotificationCurrentState,
@@ -27,6 +30,7 @@ export type GrowthNotificationRunBucket = {
 
 export type GrowthNotificationRunResult = {
   trialEnding: GrowthNotificationRunBucket;
+  billingStatus: GrowthNotificationRunBucket;
   deliverySupport: GrowthNotificationRunBucket;
 };
 
@@ -50,6 +54,11 @@ export async function runGrowthNotificationEmails(input: {
   const history = await listPlannedNotificationRunHistory();
   const result: GrowthNotificationRunResult = {
     trialEnding: {
+      checkedCount: 0,
+      sentCount: 0,
+      skippedCount: 0,
+    },
+    billingStatus: {
       checkedCount: 0,
       sentCount: 0,
       skippedCount: 0,
@@ -154,6 +163,26 @@ export async function runGrowthNotificationEmails(input: {
           errorMessage: null,
           trialEndsAt: trialEndingState.trialEndsAt,
         });
+      }
+    }
+
+    const billingStatusState = getBillingStatusNotificationCurrentState(profile);
+    const billingStatus = getBillingStatusNotificationStatus(profile);
+
+    if (billingStatusState) {
+      result.billingStatus.checkedCount += 1;
+
+      if (billingStatus.actionable) {
+        const billingResult = await maybeSendBillingStatusNotification({
+          profile,
+          invoiceId: billingStatusState.invoiceId,
+          invoiceStatus: billingStatusState.invoiceStatus,
+          source: "growth-reconciliation",
+          now,
+        });
+        countResult(result.billingStatus, billingResult);
+      } else {
+        result.billingStatus.skippedCount += 1;
       }
     }
 

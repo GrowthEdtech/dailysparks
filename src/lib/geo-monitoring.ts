@@ -52,6 +52,7 @@ export type GeoMonitoringEngineInput = {
   queryVariant: string;
   baseUrl: string;
   fetchImpl?: typeof fetch;
+  signal?: AbortSignal;
 };
 
 export type RunGeoMonitoringInput = {
@@ -95,6 +96,17 @@ function normalizeBaseUrl(value: string) {
 
 function normalizeResponseText(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function getGeoMonitoringEngineTimeoutMs() {
+  const rawValue = process.env.DAILY_SPARKS_GEO_ENGINE_TIMEOUT_MS?.trim();
+  const parsed = rawValue ? Number.parseInt(rawValue, 10) : Number.NaN;
+
+  if (Number.isFinite(parsed) && parsed >= 10) {
+    return parsed;
+  }
+
+  return 15000;
 }
 
 function expandPromptQueries(prompt: GeoPromptRecord) {
@@ -226,6 +238,7 @@ async function executeOpenAiCompatibleEngine(
   queryVariant: string,
   baseUrl: string,
   fetchImpl: typeof fetch,
+  signal?: AbortSignal,
 ): Promise<GeoMonitoringEngineResult> {
   try {
     const result = await generateOpenAiCompatibleText({
@@ -233,6 +246,7 @@ async function executeOpenAiCompatibleEngine(
       developerPrompt: buildDeveloperPrompt(baseUrl),
       userPrompt: `Search query: ${queryVariant}\nDoes Daily Sparks appear as a useful recommendation for this intent?`,
       fetchImpl,
+      signal,
     });
 
     return {
@@ -254,6 +268,7 @@ async function executeClaudeEngine(
   queryVariant: string,
   baseUrl: string,
   fetchImpl: typeof fetch,
+  signal?: AbortSignal,
 ): Promise<GeoMonitoringEngineResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   const model = process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-5";
@@ -273,6 +288,7 @@ async function executeClaudeEngine(
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
+      signal,
       body: JSON.stringify({
         model,
         max_tokens: 400,
@@ -324,6 +340,7 @@ async function executeGeminiEngine(
   queryVariant: string,
   baseUrl: string,
   fetchImpl: typeof fetch,
+  signal?: AbortSignal,
 ): Promise<GeoMonitoringEngineResult> {
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   const model = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
@@ -343,6 +360,7 @@ async function executeGeminiEngine(
         headers: {
           "content-type": "application/json",
         },
+        signal,
         body: JSON.stringify({
           systemInstruction: {
             parts: [{ text: buildDeveloperPrompt(baseUrl) }],
@@ -452,6 +470,7 @@ async function executeDefaultEngineCheck(
         input.queryVariant,
         input.baseUrl,
         fetchImpl,
+        input.signal,
       );
     }
     case "perplexity": {
@@ -469,17 +488,74 @@ async function executeDefaultEngineCheck(
         input.queryVariant,
         input.baseUrl,
         fetchImpl,
+        input.signal,
       );
     }
     case "gemini":
-      return executeGeminiEngine(input.queryVariant, input.baseUrl, fetchImpl);
+      return executeGeminiEngine(
+        input.queryVariant,
+        input.baseUrl,
+        fetchImpl,
+        input.signal,
+      );
     case "claude":
-      return executeClaudeEngine(input.queryVariant, input.baseUrl, fetchImpl);
+      return executeClaudeEngine(
+        input.queryVariant,
+        input.baseUrl,
+        fetchImpl,
+        input.signal,
+      );
     default:
       return {
         outcome: "skipped",
         reason: "No monitoring adapter is configured for this engine.",
       };
+  }
+}
+
+async function executeEngineCheckWithDeadline(options: {
+  executeEngineCheck: (
+    input: GeoMonitoringEngineInput,
+  ) => Promise<GeoMonitoringEngineResult>;
+  input: GeoMonitoringEngineInput;
+  timeoutMs: number;
+}) {
+  const abortController =
+    typeof AbortController === "undefined" ? null : new AbortController();
+
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    const engineCheckPromise = Promise.resolve()
+      .then(() =>
+        options.executeEngineCheck({
+          ...options.input,
+          signal: abortController?.signal,
+        }),
+      )
+      .catch((error) => ({
+        outcome: "failed" as const,
+        reason:
+          error instanceof Error
+            ? error.message
+            : "GEO monitoring engine check failed.",
+      }));
+
+    const timeoutPromise = new Promise<GeoMonitoringEngineResult>((resolve) => {
+      timeoutId = setTimeout(() => {
+        abortController?.abort();
+        resolve({
+          outcome: "failed",
+          reason: `${options.input.engine} monitoring check timed out after ${options.timeoutMs}ms.`,
+        });
+      }, options.timeoutMs);
+    });
+
+    return await Promise.race([engineCheckPromise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 
@@ -757,6 +833,7 @@ export async function runGeoMonitoring(
   let skippedCount = 0;
   let failedCount = 0;
   const deferredEnginesSeen = new Set<GeoEngineType>();
+  const engineCheckTimeoutMs = getGeoMonitoringEngineTimeoutMs();
 
   const executeEngineCheck = input.executeEngineCheck ?? executeDefaultEngineCheck;
 
@@ -791,12 +868,16 @@ export async function runGeoMonitoring(
       };
       currentBreakdown.attemptedCount += 1;
 
-      const result = await executeEngineCheck({
-        engine,
-        prompt,
-        queryVariant,
-        baseUrl,
-        fetchImpl,
+      const result = await executeEngineCheckWithDeadline({
+        executeEngineCheck,
+        timeoutMs: engineCheckTimeoutMs,
+        input: {
+          engine,
+          prompt,
+          queryVariant,
+          baseUrl,
+          fetchImpl,
+        },
       });
 
       if (result.outcome === "success") {

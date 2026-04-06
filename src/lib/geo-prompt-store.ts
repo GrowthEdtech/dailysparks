@@ -8,6 +8,7 @@ import {
 } from "./profile-store-config";
 
 export type CreateGeoPromptInput = {
+  websiteDerivedSeedId?: string | null;
   prompt: string;
   intentLabel: string;
   priority: GeoPromptPriority;
@@ -56,6 +57,10 @@ function trimStringList(values: string[]) {
 
 function trimCreateInput(input: CreateGeoPromptInput): CreateGeoPromptInput {
   return {
+    websiteDerivedSeedId:
+      input.websiteDerivedSeedId === undefined
+        ? undefined
+        : trimString(input.websiteDerivedSeedId ?? ""),
     prompt: trimString(input.prompt),
     intentLabel: trimString(input.intentLabel),
     priority: input.priority,
@@ -69,6 +74,9 @@ function trimCreateInput(input: CreateGeoPromptInput): CreateGeoPromptInput {
 
 function trimUpdateInput(input: UpdateGeoPromptInput): UpdateGeoPromptInput {
   return {
+    ...(input.websiteDerivedSeedId !== undefined
+      ? { websiteDerivedSeedId: trimString(input.websiteDerivedSeedId ?? "") }
+      : {}),
     ...(input.prompt !== undefined ? { prompt: trimString(input.prompt) } : {}),
     ...(input.intentLabel !== undefined
       ? { intentLabel: trimString(input.intentLabel) }

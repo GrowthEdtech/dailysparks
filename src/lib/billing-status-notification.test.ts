@@ -148,6 +148,34 @@ describe("billing status notification", () => {
     expect(result.sent).toBe(true);
   });
 
+  test("allows growth reconciliation to record billing sends under its own source", async () => {
+    updateParentNotificationEmailStateMock.mockResolvedValue(null);
+    recordPlannedNotificationRunMock.mockResolvedValue(null);
+    sendBillingStatusUpdateNotificationMock.mockResolvedValue({
+      sent: true,
+      skipped: false,
+      reason: null,
+      messageId: "billing-message-2",
+    });
+
+    const result = await maybeSendBillingStatusNotification({
+      profile: buildProfile(),
+      invoiceId: "in_123",
+      invoiceStatus: "paid",
+      source: "growth-reconciliation",
+      now: new Date("2026-04-05T02:00:00.000Z"),
+    });
+
+    expect(result.sent).toBe(true);
+    expect(recordPlannedNotificationRunMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        notificationFamily: "billing-status-update",
+        source: "growth-reconciliation",
+        status: "sent",
+      }),
+    );
+  });
+
   test("skips duplicate invoice notifications that were already sent", async () => {
     recordPlannedNotificationRunMock.mockResolvedValue(null);
 

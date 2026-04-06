@@ -66,6 +66,7 @@ function normalizePromptRecord(
 
   return {
     id: normalizeString(raw?.id) || crypto.randomUUID(),
+    websiteDerivedSeedId: normalizeString(raw?.websiteDerivedSeedId) || null,
     prompt: normalizeString(raw?.prompt),
     intentLabel: normalizeString(raw?.intentLabel),
     priority: normalizePriority(raw?.priority),

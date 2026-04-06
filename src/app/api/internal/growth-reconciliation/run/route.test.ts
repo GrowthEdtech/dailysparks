@@ -90,6 +90,7 @@ describe("growth reconciliation route", () => {
       subscriptionStatus: "active",
       subscriptionPlan: "monthly",
       subscriptionActivatedAt: "2026-04-02T00:00:00.000Z",
+      latestInvoiceId: "in_active_1",
       latestInvoiceStatus: "paid",
       latestInvoicePaidAt: "2026-04-02T00:00:00.000Z",
     });
@@ -99,6 +100,7 @@ describe("growth reconciliation route", () => {
       subscriptionStatus: "active",
       subscriptionPlan: "monthly",
       subscriptionActivatedAt: "2026-04-02T00:00:00.000Z",
+      latestInvoiceId: "in_active_2",
       latestInvoiceStatus: "paid",
       latestInvoicePaidAt: "2026-04-02T00:00:00.000Z",
     });
@@ -136,6 +138,9 @@ describe("growth reconciliation route", () => {
     expect(body.notificationRun).toMatchObject({
       trialEnding: expect.objectContaining({
         checkedCount: 1,
+      }),
+      billingStatus: expect.objectContaining({
+        checkedCount: 2,
       }),
       deliverySupport: expect.objectContaining({
         checkedCount: 3,

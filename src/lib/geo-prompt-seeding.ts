@@ -21,8 +21,16 @@ function normalizeProgrammeList(values: GeoPromptRecord["targetProgrammes"]) {
   return [...values].sort();
 }
 
+function normalizeSeedId(value: string | null | undefined) {
+  return typeof value === "string" && value.trim()
+    ? value.trim().toLowerCase()
+    : null;
+}
+
 function promptMatchesSeed(existingPrompt: GeoPromptRecord, seedPrompt: typeof GEO_WEBSITE_DERIVED_PROMPT_SEEDS[number]) {
   return (
+    normalizeSeedId(existingPrompt.websiteDerivedSeedId) ===
+      normalizeSeedId(seedPrompt.websiteDerivedSeedId) &&
     existingPrompt.prompt === seedPrompt.prompt &&
     existingPrompt.intentLabel === seedPrompt.intentLabel &&
     existingPrompt.priority === seedPrompt.priority &&
@@ -39,10 +47,16 @@ function promptMatchesSeed(existingPrompt: GeoPromptRecord, seedPrompt: typeof G
 
 export async function seedWebsiteDerivedGeoPrompts(): Promise<SeedWebsiteDerivedGeoPromptsResult> {
   const existingPrompts = await listGeoPrompts();
-  const existingPromptsByKey = new Map<string, GeoPromptRecord>();
+  const existingPromptsBySeedId = new Map<string, GeoPromptRecord>();
+  const existingPromptsByPrompt = new Map<string, GeoPromptRecord>();
   for (const prompt of existingPrompts) {
-    existingPromptsByKey.set(normalizePromptKey(prompt.prompt), prompt);
-    existingPromptsByKey.set(normalizePromptKey(prompt.intentLabel), prompt);
+    const seedId = normalizeSeedId(prompt.websiteDerivedSeedId);
+
+    if (seedId) {
+      existingPromptsBySeedId.set(seedId, prompt);
+    }
+
+    existingPromptsByPrompt.set(normalizePromptKey(prompt.prompt), prompt);
   }
 
   const createdPrompts: GeoPromptRecord[] = [];
@@ -50,33 +64,42 @@ export async function seedWebsiteDerivedGeoPrompts(): Promise<SeedWebsiteDerived
   let skippedPromptCount = 0;
 
   for (const seed of GEO_WEBSITE_DERIVED_PROMPT_SEEDS) {
+    const seedId = normalizeSeedId(seed.websiteDerivedSeedId);
     const promptKey = normalizePromptKey(seed.prompt);
-    const intentKey = normalizePromptKey(seed.intentLabel);
     const existingPrompt =
-      existingPromptsByKey.get(promptKey) ?? existingPromptsByKey.get(intentKey);
+      (seedId ? existingPromptsBySeedId.get(seedId) : null) ??
+      existingPromptsByPrompt.get(promptKey);
 
     if (existingPrompt) {
+      if (!normalizeSeedId(existingPrompt.websiteDerivedSeedId) && seedId) {
+        const backfilledPrompt = await updateGeoPrompt(existingPrompt.id, {
+          websiteDerivedSeedId: seed.websiteDerivedSeedId ?? null,
+        });
+
+        if (backfilledPrompt) {
+          updatedPrompts.push(backfilledPrompt);
+          existingPromptsByPrompt.set(promptKey, backfilledPrompt);
+          existingPromptsBySeedId.set(seedId, backfilledPrompt);
+        } else {
+          skippedPromptCount += 1;
+        }
+        continue;
+      }
+
       if (promptMatchesSeed(existingPrompt, seed)) {
         skippedPromptCount += 1;
         continue;
       }
-
-      const updatedPrompt = await updateGeoPrompt(existingPrompt.id, seed);
-
-      if (updatedPrompt) {
-        updatedPrompts.push(updatedPrompt);
-        existingPromptsByKey.set(promptKey, updatedPrompt);
-        existingPromptsByKey.set(intentKey, updatedPrompt);
-      } else {
-        skippedPromptCount += 1;
-      }
+      skippedPromptCount += 1;
       continue;
     }
 
     const createdPrompt = await createGeoPrompt(seed);
     createdPrompts.push(createdPrompt);
-    existingPromptsByKey.set(promptKey, createdPrompt);
-    existingPromptsByKey.set(intentKey, createdPrompt);
+    existingPromptsByPrompt.set(promptKey, createdPrompt);
+    if (seedId) {
+      existingPromptsBySeedId.set(seedId, createdPrompt);
+    }
   }
 
   return {
