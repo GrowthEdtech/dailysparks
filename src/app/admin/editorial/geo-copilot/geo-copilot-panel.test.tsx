@@ -9,6 +9,7 @@ describe("GeoCopilotPanel", () => {
       <GeoCopilotPanel
         initialPrompts={[]}
         initialLogs={[]}
+        initialRuns={[]}
         initialMachineReadabilityStatus={{
           llmsTxtStatus: "not-configured",
           llmsFullTxtStatus: "not-configured",
@@ -33,6 +34,8 @@ describe("GeoCopilotPanel", () => {
 
     expect(markup).toContain("Manage AI visibility, prompt coverage");
     expect(markup).toContain("Golden prompts");
+    expect(markup).toContain("Monitoring automation");
+    expect(markup).toContain("Run monitoring now");
     expect(markup).toContain("Visibility logs");
     expect(markup).toContain("Machine-readability layer");
     expect(markup).toContain("Content optimization copilot");

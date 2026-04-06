@@ -1,5 +1,11 @@
 import { firestoreGeoVisibilityLogStore } from "./firestore-geo-visibility-log-store";
-import { type GeoEntityAccuracyLabel, type GeoSentimentLabel, type GeoVisibilityLogRecord, type GeoVisibilityMentionStatus } from "./geo-visibility-log-schema";
+import {
+  type GeoEntityAccuracyLabel,
+  type GeoSentimentLabel,
+  type GeoVisibilityLogRecord,
+  type GeoVisibilityLogSource,
+  type GeoVisibilityMentionStatus,
+} from "./geo-visibility-log-schema";
 import { type GeoEngineType } from "./geo-prompt-schema";
 import { localGeoVisibilityLogStore } from "./local-geo-visibility-log-store";
 import {
@@ -8,9 +14,13 @@ import {
 } from "./profile-store-config";
 
 export type CreateGeoVisibilityLogInput = {
+  source?: GeoVisibilityLogSource;
+  monitoringRunId?: string | null;
   promptId: string;
   promptTextSnapshot: string;
+  queryVariant?: string;
   engine: GeoEngineType;
+  engineModel?: string;
   mentionStatus: GeoVisibilityMentionStatus;
   citationUrls: string[];
   shareOfModelScore: number;
@@ -62,9 +72,13 @@ export async function createGeoVisibilityLog(input: CreateGeoVisibilityLogInput)
   const timestamp = new Date().toISOString();
   const nextLog: GeoVisibilityLogRecord = {
     id: crypto.randomUUID(),
+    source: input.source ?? "manual",
+    monitoringRunId: input.monitoringRunId?.trim() || null,
     promptId: trimString(input.promptId),
     promptTextSnapshot: trimString(input.promptTextSnapshot),
+    queryVariant: trimString(input.queryVariant ?? input.promptTextSnapshot),
     engine: input.engine,
+    engineModel: trimString(input.engineModel ?? ""),
     mentionStatus: input.mentionStatus,
     citationUrls: trimStringList(input.citationUrls),
     shareOfModelScore: clampScore(input.shareOfModelScore),

@@ -1,10 +1,11 @@
 "use client";
 
-import { BarChart3, FileSearch, Radar, Sparkles } from "lucide-react";
+import { BarChart3, Clock3, FileSearch, Radar, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { GeoMachineReadabilityStatusRecord } from "../../../../lib/geo-machine-readability-schema";
 import { GEO_READINESS_STATUSES } from "../../../../lib/geo-machine-readability-schema";
+import type { GeoMonitoringRunRecord } from "../../../../lib/geo-monitoring-run-schema";
 import {
   GEO_ENGINE_TYPES,
   GEO_PROMPT_PRIORITIES,
@@ -28,6 +29,7 @@ import {
 type GeoCopilotPanelProps = {
   initialPrompts: GeoPromptRecord[];
   initialLogs: GeoVisibilityLogRecord[];
+  initialRuns: GeoMonitoringRunRecord[];
   initialMachineReadabilityStatus: GeoMachineReadabilityStatusRecord;
   initialSummary: GeoVisibilitySummary;
 };
@@ -159,11 +161,13 @@ function buildPromptRequestBody(prompt: PromptFormState) {
 export default function GeoCopilotPanel({
   initialPrompts,
   initialLogs,
+  initialRuns,
   initialMachineReadabilityStatus,
   initialSummary,
 }: GeoCopilotPanelProps) {
   const [prompts, setPrompts] = useState(initialPrompts);
   const [logs, setLogs] = useState(initialLogs);
+  const [runs, setRuns] = useState(initialRuns);
   const [machineReadabilityStatus, setMachineReadabilityStatus] = useState(
     initialMachineReadabilityStatus,
   );
@@ -189,8 +193,10 @@ export default function GeoCopilotPanel({
   const [isCreatingLog, setIsCreatingLog] = useState(false);
   const [isSavingReadability, setIsSavingReadability] = useState(false);
   const [isRunningAudit, setIsRunningAudit] = useState(false);
+  const [isRunningMonitoring, setIsRunningMonitoring] = useState(false);
 
   const recentLogs = useMemo(() => logs.slice(0, 8), [logs]);
+  const recentRuns = useMemo(() => runs.slice(0, 4), [runs]);
 
   function refreshSummary(nextPrompts: GeoPromptRecord[], nextLogs: GeoVisibilityLogRecord[], nextStatus: GeoMachineReadabilityStatusRecord) {
     setSummary(
@@ -415,6 +421,60 @@ export default function GeoCopilotPanel({
     }
   }
 
+  async function handleRunMonitoringNow() {
+    setErrorMessage("");
+    setMessage("");
+    setIsRunningMonitoring(true);
+
+    try {
+      const response = await fetch("/api/admin/geo-monitoring/run", {
+        method: "POST",
+      });
+      const body = (await response.json().catch(() => null)) as
+        | {
+            run?: GeoMonitoringRunRecord;
+            logs?: GeoVisibilityLogRecord[];
+            machineReadabilityStatus?: GeoMachineReadabilityStatusRecord;
+            message?: string;
+          }
+        | null;
+
+      if (
+        !response.ok ||
+        !body?.run ||
+        !body.machineReadabilityStatus ||
+        !Array.isArray(body.logs)
+      ) {
+        setErrorMessage(body?.message ?? "We could not run GEO monitoring.");
+        setIsRunningMonitoring(false);
+        return;
+      }
+
+      const nextLogs = [
+        ...body.logs,
+        ...logs.filter(
+          (existingLog) => !body.logs?.some((candidate) => candidate.id === existingLog.id),
+        ),
+      ];
+      const nextRuns = [
+        body.run,
+        ...runs.filter((existingRun) => existingRun.id !== body.run?.id),
+      ];
+
+      setLogs(nextLogs);
+      setRuns(nextRuns);
+      setMachineReadabilityStatus(body.machineReadabilityStatus);
+      refreshSummary(prompts, nextLogs, body.machineReadabilityStatus);
+      setMessage(
+        `Monitoring run complete: ${body.run.createdLogCount} automated logs created.`,
+      );
+      setIsRunningMonitoring(false);
+    } catch {
+      setErrorMessage("We could not reach the GEO monitoring API.");
+      setIsRunningMonitoring(false);
+    }
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -427,10 +487,10 @@ export default function GeoCopilotPanel({
               Manage AI visibility, prompt coverage, content checks, and machine readability in one operator workspace.
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-500">
-              This admin-first MVP mirrors the PRD inside the current editorial
-              backend, so the team can manage Golden Prompts, review AI-search
-              evidence, and run GEO content checks before the full polling
-              infrastructure lands.
+              GEO Copilot now combines scheduled monitoring, machine-readability
+              checks, Golden Prompt management, and GEO content audits in one
+              editorial workspace. Manual log entry remains available for
+              operator backfill and notes.
             </p>
           </div>
 
@@ -527,6 +587,79 @@ export default function GeoCopilotPanel({
             {message}
           </p>
         ) : null}
+      </section>
+
+      <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="max-w-3xl">
+            <h2 className="text-2xl font-bold tracking-tight text-[#0f172a]">
+              Monitoring automation
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Scheduled GEO monitoring now writes immutable run evidence, refreshes
+              machine-readability checks, and auto-creates visibility logs when
+              configured engines return usable results.
+            </p>
+          </div>
+
+          <div className="rounded-[24px] border border-[#dbeafe] bg-[#eff6ff] px-4 py-4 md:min-w-[280px]">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+              Latest monitoring run
+            </p>
+            <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+              {recentRuns[0] ? formatTimestamp(recentRuns[0].completedAt) : "Not run yet"}
+            </p>
+            <p className="mt-1 text-sm text-slate-600">
+              {recentRuns[0]
+                ? `${recentRuns[0].createdLogCount} logs · ${recentRuns[0].machineReadabilityReadyCount}/4 readiness checks ready`
+                : "Run the monitor to generate the first automated GEO evidence."}
+            </p>
+            <button
+              type="button"
+              onClick={handleRunMonitoringNow}
+              disabled={isRunningMonitoring}
+              className="mt-4 rounded-full bg-[#0f172a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isRunningMonitoring ? "Running..." : "Run monitoring now"}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-3">
+          {recentRuns.length === 0 ? (
+            <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+              No monitoring runs yet. Scheduled runs and admin-triggered runs will
+              appear here as soon as the GEO monitor writes real evidence.
+            </div>
+          ) : (
+            recentRuns.map((run) => (
+              <article
+                key={run.id}
+                className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    {run.source}
+                  </span>
+                  <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    {run.status}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <Clock3 className="h-3.5 w-3.5" />
+                    {formatTimestamp(run.completedAt)}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm font-semibold text-[#0f172a]">
+                  {run.createdLogCount} automated logs · {run.engineAttemptCount} engine checks ·{" "}
+                  {run.machineReadabilityReadyCount}/4 readability checks ready
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {run.notes || "No extra monitoring notes were recorded for this run."}
+                </p>
+              </article>
+            ))
+          )}
+        </div>
       </section>
 
       <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
@@ -885,8 +1018,8 @@ export default function GeoCopilotPanel({
             Visibility logs
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Record and review AI engine responses until the automated polling
-            layer lands.
+            Review automatically ingested GEO evidence and add manual backfill
+            entries when an operator needs to document an edge case.
           </p>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -1125,10 +1258,10 @@ export default function GeoCopilotPanel({
             <h2 className="text-2xl font-bold tracking-tight text-[#0f172a]">
               Machine-readability layer
             </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Track the readiness of llms.txt, SSR, and structured data while
-              the automation layer is still maturing.
-            </p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Track the live readiness of llms.txt, SSR, and structured data, and
+            override the snapshot manually when operations need to annotate an exception.
+          </p>
 
             <div className="mt-5 grid gap-4">
               {(

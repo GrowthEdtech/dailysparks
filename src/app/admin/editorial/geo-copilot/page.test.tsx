@@ -5,10 +5,12 @@ const {
   listGeoPromptsMock,
   listGeoVisibilityLogsMock,
   getGeoMachineReadabilityStatusMock,
+  listGeoMonitoringRunsMock,
 } = vi.hoisted(() => ({
   listGeoPromptsMock: vi.fn(),
   listGeoVisibilityLogsMock: vi.fn(),
   getGeoMachineReadabilityStatusMock: vi.fn(),
+  listGeoMonitoringRunsMock: vi.fn(),
 }));
 
 vi.mock("../../../../lib/geo-prompt-store", () => ({
@@ -23,6 +25,10 @@ vi.mock("../../../../lib/geo-machine-readability-store", () => ({
   getGeoMachineReadabilityStatus: getGeoMachineReadabilityStatusMock,
 }));
 
+vi.mock("../../../../lib/geo-monitoring-run-store", () => ({
+  listGeoMonitoringRuns: listGeoMonitoringRunsMock,
+}));
+
 import GeoCopilotAdminPage from "./page";
 
 describe("GeoCopilotAdminPage", () => {
@@ -30,11 +36,13 @@ describe("GeoCopilotAdminPage", () => {
     listGeoPromptsMock.mockReset();
     listGeoVisibilityLogsMock.mockReset();
     getGeoMachineReadabilityStatusMock.mockReset();
+    listGeoMonitoringRunsMock.mockReset();
   });
 
   test("renders the GEO Copilot workspace and empty-state language", async () => {
     listGeoPromptsMock.mockResolvedValue([]);
     listGeoVisibilityLogsMock.mockResolvedValue([]);
+    listGeoMonitoringRunsMock.mockResolvedValue([]);
     getGeoMachineReadabilityStatusMock.mockResolvedValue({
       llmsTxtStatus: "not-configured",
       llmsFullTxtStatus: "not-configured",
@@ -50,6 +58,7 @@ describe("GeoCopilotAdminPage", () => {
     expect(markup).toContain("GEO Copilot");
     expect(markup).toContain("Golden prompts");
     expect(markup).toContain("Visibility logs");
+    expect(markup).toContain("Monitoring automation");
     expect(markup).toContain("Machine-readability layer");
     expect(markup).toContain("Content optimization copilot");
     expect(markup).toContain("No Golden Prompts yet");

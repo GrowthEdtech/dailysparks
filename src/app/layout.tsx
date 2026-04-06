@@ -2,6 +2,17 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 const siteIconVersion = "2026-04-02-2";
+const baseUrl =
+  process.env.DAILY_SPARKS_APP_BASE_URL?.trim().replace(/\/+$/, "") ||
+  "https://dailysparks.geledtech.com";
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Growth Education Limited",
+  brand: "Daily Sparks",
+  url: baseUrl,
+  sameAs: [baseUrl],
+};
 
 export const metadata: Metadata = {
   title: "Daily Sparks",
@@ -25,7 +36,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationJsonLd),
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }

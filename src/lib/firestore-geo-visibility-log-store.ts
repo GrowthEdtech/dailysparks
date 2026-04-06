@@ -1,11 +1,13 @@
 import { getFirebaseAdminDb } from "./firebase-admin";
 import {
   GEO_ENTITY_ACCURACY_LABELS,
+  GEO_VISIBILITY_LOG_SOURCES,
   GEO_SENTIMENT_LABELS,
   GEO_VISIBILITY_MENTION_STATUSES,
   type GeoEntityAccuracyLabel,
   type GeoSentimentLabel,
   type GeoVisibilityLogRecord,
+  type GeoVisibilityLogSource,
   type GeoVisibilityMentionStatus,
 } from "./geo-visibility-log-schema";
 import { GEO_ENGINE_TYPES, type GeoEngineType } from "./geo-prompt-schema";
@@ -49,6 +51,13 @@ function normalizeMentionStatus(value: unknown): GeoVisibilityMentionStatus {
     : "not-mentioned";
 }
 
+function normalizeLogSource(value: unknown): GeoVisibilityLogSource {
+  const normalized = normalizeString(value);
+  return GEO_VISIBILITY_LOG_SOURCES.includes(normalized as GeoVisibilityLogSource)
+    ? (normalized as GeoVisibilityLogSource)
+    : "manual";
+}
+
 function normalizeSentiment(value: unknown): GeoSentimentLabel {
   const normalized = normalizeString(value);
   return GEO_SENTIMENT_LABELS.includes(normalized as GeoSentimentLabel)
@@ -71,9 +80,15 @@ function normalizeLogRecord(
 ): GeoVisibilityLogRecord {
   return {
     id,
+    source: normalizeLogSource(raw?.source),
+    monitoringRunId: normalizeString(raw?.monitoringRunId) || null,
     promptId: normalizeString(raw?.promptId),
     promptTextSnapshot: normalizeString(raw?.promptTextSnapshot),
+    queryVariant:
+      normalizeString(raw?.queryVariant) ||
+      normalizeString(raw?.promptTextSnapshot),
     engine: normalizeEngine(raw?.engine),
+    engineModel: normalizeString(raw?.engineModel),
     mentionStatus: normalizeMentionStatus(raw?.mentionStatus),
     citationUrls: normalizeStringList(raw?.citationUrls),
     shareOfModelScore: normalizeScore(raw?.shareOfModelScore),

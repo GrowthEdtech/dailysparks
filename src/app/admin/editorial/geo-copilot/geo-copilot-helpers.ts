@@ -65,7 +65,7 @@ export function buildGeoVisibilitySummary(input: {
     positiveSentimentRate:
       logs.length > 0 ? positiveLogs.length / logs.length : 0,
     entityAccuracyRate: logs.length > 0 ? accurateLogs.length / logs.length : 0,
-    lastScanAt: logs[0]?.createdAt ?? null,
+    lastScanAt: logs[0]?.createdAt ?? machineReadabilityStatus.lastCheckedAt,
     readinessReadyCount: readinessValues.filter((value) => value === "ready")
       .length,
   };

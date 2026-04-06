@@ -23,9 +23,13 @@ describe("geo-copilot-helpers", () => {
       logs: [
         {
           id: "log-1",
+          source: "manual",
+          monitoringRunId: null,
           promptId: "prompt-1",
           promptTextSnapshot: "Best LED tech for commercial lighting",
+          queryVariant: "Best LED tech for commercial lighting",
           engine: "chatgpt-search",
+          engineModel: "gpt-5.4",
           mentionStatus: "mentioned",
           citationUrls: [],
           shareOfModelScore: 0.6,

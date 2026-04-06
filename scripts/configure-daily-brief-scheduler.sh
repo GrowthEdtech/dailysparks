@@ -25,6 +25,7 @@ DELIVER_HALF_HOURLY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_DELIVER_HALF_HOURLY_SCHEDU
 RETRY_HALF_HOURLY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_RETRY_HALF_HOURLY_SCHEDULE:-10,40 * * * *}"
 ONBOARDING_REMINDER_HALF_HOURLY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_ONBOARDING_REMINDER_HALF_HOURLY_SCHEDULE:-20,50 * * * *}"
 GROWTH_RECONCILIATION_DAILY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_GROWTH_RECONCILIATION_DAILY_SCHEDULE:-0 7 * * *}"
+GEO_MONITORING_DAILY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_GEO_MONITORING_DAILY_SCHEDULE:-30 7 * * *}"
 LEGACY_STAGE_JOB_NAMES="${DAILY_BRIEF_SCHEDULER_LEGACY_STAGE_JOB_NAMES:-${JOB_PREFIX}-generate-0200,${JOB_PREFIX}-preflight-0215,${JOB_PREFIX}-generate-0600,${JOB_PREFIX}-preflight-0615,${JOB_PREFIX}-preflight-0850,${JOB_PREFIX}-deliver-0900,${JOB_PREFIX}-retry-0910}"
 SCHEDULER_SECRET="${DAILY_SPARKS_SCHEDULER_SECRET:-}"
 SCHEDULER_SECRET_SECRET="${DAILY_SPARKS_SCHEDULER_SECRET_SECRET:-}"
@@ -110,6 +111,7 @@ JOB_SPECS=(
   "${JOB_PREFIX}-retry-half-hourly|${RETRY_HALF_HOURLY_SCHEDULE}|/api/internal/daily-brief/retry-delivery|Retry failed Daily Sparks recipient-channel deliveries on a 30-minute cadence.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-onboarding-reminder-half-hourly|${ONBOARDING_REMINDER_HALF_HOURLY_SCHEDULE}|/api/internal/onboarding-reminder/run|Send onboarding activation reminders to logged-in families who still do not have a dispatchable delivery channel.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-growth-reconciliation-daily|${GROWTH_RECONCILIATION_DAILY_SCHEDULE}|/api/internal/growth-reconciliation/run|Summarize daily revenue and first-delivery gaps for ops follow-up.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
+  "${JOB_PREFIX}-geo-monitoring-daily|${GEO_MONITORING_DAILY_SCHEDULE}|/api/internal/geo-monitoring/run|Run the GEO Copilot monitoring pass, refresh machine-readability checks, and write automated visibility evidence.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
 )
 
 for spec in "${JOB_SPECS[@]}"; do
