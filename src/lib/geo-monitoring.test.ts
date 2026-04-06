@@ -12,6 +12,69 @@ import { listGeoVisibilityLogs } from "./geo-visibility-log-store";
 const ORIGINAL_ENV = { ...process.env };
 let tempDirectory = "";
 
+function buildReadyFetch() {
+  return async (input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input.toString();
+
+    if (url.endsWith("/llms.txt")) {
+      return new Response(
+        "# Daily Sparks\n\n- https://dailysparks.geledtech.com/\n",
+        { status: 200 },
+      );
+    }
+
+    if (url.endsWith("/llms-full.txt")) {
+      return new Response(
+        "# Daily Sparks Full\n\n## Core pages\n- https://dailysparks.geledtech.com/about\n",
+        { status: 200 },
+      );
+    }
+
+    return new Response(
+      "<html><head><script type=\"application/ld+json\">{\"@type\":\"Organization\",\"name\":\"Growth Education Limited\"}</script></head><body><main>Daily Sparks</main></body></html>",
+      {
+        status: 200,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+        },
+      },
+    );
+  };
+}
+
+async function runSinglePromptMonitoring(
+  responseText: string,
+  citationUrls: string[] = ["https://dailysparks.geledtech.com/"],
+) {
+  await createGeoPrompt({
+    prompt: "IB reading workflow for families",
+    intentLabel: "Family reading workflow",
+    priority: "high",
+    targetProgrammes: ["PYP"],
+    engineCoverage: ["chatgpt-search"],
+    fanOutHints: [],
+    active: true,
+    notes: "Classification test prompt.",
+  });
+
+  await runGeoMonitoring({
+    source: "admin-run",
+    now: new Date("2026-04-06T08:15:00.000Z"),
+    fetchImpl: buildReadyFetch(),
+    executeEngineCheck: async () => ({
+      outcome: "success",
+      engineModel: "gpt-5.4",
+      responseText,
+      citationUrls,
+    }),
+  });
+
+  const logs = await listGeoVisibilityLogs();
+  expect(logs).toHaveLength(1);
+
+  return logs[0]!;
+}
+
 describe("geo-monitoring", () => {
   beforeEach(async () => {
     tempDirectory = await mkdtemp(path.join(tmpdir(), "geo-monitoring-"));
@@ -123,5 +186,36 @@ describe("geo-monitoring", () => {
     expect(status.llmsFullTxtStatus).toBe("ready");
     expect(status.ssrStatus).toBe("ready");
     expect(status.jsonLdStatus).toBe("ready");
+  });
+
+  test("classifies clearly negative brand mentions as mentioned instead of recommended", async () => {
+    const log = await runSinglePromptMonitoring(
+      "Probably not. Daily Sparks could be a secondary recommendation for this family, but it is not the best fit for the prompt.",
+    );
+
+    expect(log.mentionStatus).toBe("mentioned");
+    expect(log.sentiment).toBe("negative");
+    expect(log.shareOfModelScore).toBeLessThan(0.55);
+    expect(log.entityAccuracy).toBe("accurate");
+  });
+
+  test("keeps caveated matches out of recommended", async () => {
+    const log = await runSinglePromptMonitoring(
+      "Daily Sparks could be useful if the family wants a Goodnotes-based reading routine, but it is only a partial fit for this question.",
+    );
+
+    expect(log.mentionStatus).toBe("mentioned");
+    expect(log.sentiment).toBe("neutral");
+    expect(log.shareOfModelScore).toBeLessThan(0.55);
+  });
+
+  test("preserves recommended classification for strong positive matches", async () => {
+    const log = await runSinglePromptMonitoring(
+      "Yes. Daily Sparks is a strong recommendation for IB families who want a daily reading workflow and parent visibility.",
+    );
+
+    expect(log.mentionStatus).toBe("recommended");
+    expect(log.sentiment).toBe("positive");
+    expect(log.shareOfModelScore).toBe(0.8);
   });
 });

@@ -89,6 +89,10 @@ function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
 }
 
+function normalizeResponseText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
 function expandPromptQueries(prompt: GeoPromptRecord) {
   return Array.from(
     new Set([prompt.prompt, ...prompt.fanOutHints].map((item) => item.trim()).filter(Boolean)),
@@ -475,53 +479,165 @@ async function executeDefaultEngineCheck(
   }
 }
 
-function inferMentionStatus(
+const GEO_STRONG_NEGATIVE_PATTERNS = [
+  /\bprobably not\b/,
+  /^\s*no\b/,
+  /^\s*not exactly\b/,
+  /\bnot the best fit\b/,
+  /\bnot (?:a |an )?(?:good fit|fit|match|recommendation)\b/,
+  /\bwould not recommend\b/,
+  /\bunlikely\b/,
+  /\bpoor fit\b/,
+  /\bweak fit\b/,
+] as const;
+
+const GEO_STRONG_POSITIVE_PATTERNS = [
+  /^\s*yes\b/,
+  /\bstrong recommendation\b/,
+  /\bhighly recommend(?:ed)?\b/,
+  /\brecommended for\b/,
+  /\bstrong fit\b/,
+  /\bgood fit\b/,
+  /\bwell-suited\b/,
+  /\bexcellent fit\b/,
+  /\buseful recommendation\b/,
+] as const;
+
+const GEO_WEAK_POSITIVE_PATTERNS = [
+  /\bhelpful\b/,
+  /\buseful\b/,
+  /\brelevant\b/,
+  /\bworth considering\b/,
+  /\bgood option\b/,
+  /\bcan support\b/,
+] as const;
+
+const GEO_CAVEAT_PATTERNS = [
+  /\bcould\b/,
+  /\bmight\b/,
+  /\bmay\b/,
+  /\bpossibly\b/,
+  /\bperhaps\b/,
+  /\bonly if\b/,
+  /\bdepending on\b/,
+  /\bpartial fit\b/,
+  /\bpartially relevant\b/,
+  /\bsecondary recommendation\b/,
+] as const;
+
+type GeoResponseSignals = {
+  hasBrandSignal: boolean;
+  strongNegative: boolean;
+  strongPositive: boolean;
+  weakPositive: boolean;
+  caveated: boolean;
+};
+
+function matchesAnyPattern(
+  responseText: string,
+  patterns: readonly RegExp[],
+) {
+  return patterns.some((pattern) => pattern.test(responseText));
+}
+
+function analyzeGeoResponse(
   responseText: string,
   citationUrls: string[],
   baseUrl: string,
-) {
+): GeoResponseSignals {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
-  const mentionsBrand = /Daily Sparks/i.test(responseText);
+  const normalizedResponseText = normalizeResponseText(responseText);
+  const mentionsBrand = /daily sparks/i.test(responseText);
   const citesBrand = citationUrls.some((url) =>
     normalizeBaseUrl(url).startsWith(normalizedBaseUrl),
   );
 
-  if ((mentionsBrand || citesBrand) && /\brecommend/i.test(responseText)) {
+  return {
+    hasBrandSignal: mentionsBrand || citesBrand,
+    strongNegative: matchesAnyPattern(
+      normalizedResponseText,
+      GEO_STRONG_NEGATIVE_PATTERNS,
+    ),
+    strongPositive: matchesAnyPattern(
+      normalizedResponseText,
+      GEO_STRONG_POSITIVE_PATTERNS,
+    ),
+    weakPositive: matchesAnyPattern(
+      normalizedResponseText,
+      GEO_WEAK_POSITIVE_PATTERNS,
+    ),
+    caveated: matchesAnyPattern(normalizedResponseText, GEO_CAVEAT_PATTERNS),
+  };
+}
+
+function inferMentionStatus(signals: GeoResponseSignals) {
+  if (!signals.hasBrandSignal) {
+    return "not-mentioned" as const;
+  }
+
+  if (
+    signals.strongPositive &&
+    !signals.strongNegative &&
+    !signals.caveated
+  ) {
     return "recommended" as const;
   }
 
-  if (mentionsBrand || citesBrand) {
-    return "mentioned" as const;
-  }
-
-  return "not-mentioned" as const;
+  return "mentioned" as const;
 }
 
-function inferSentiment(responseText: string, mentionStatus: ReturnType<typeof inferMentionStatus>) {
+function inferSentiment(
+  mentionStatus: ReturnType<typeof inferMentionStatus>,
+  signals: GeoResponseSignals,
+) {
+  if (mentionStatus === "not-mentioned") {
+    return "negative" as const;
+  }
+
+  if (signals.strongNegative) {
+    return "negative" as const;
+  }
+
   if (mentionStatus === "recommended") {
     return "positive" as const;
   }
 
-  if (mentionStatus === "mentioned" && /\bhelpful|useful|recommended|strong\b/i.test(responseText)) {
+  if (signals.strongPositive || (signals.weakPositive && !signals.caveated)) {
     return "positive" as const;
   }
 
-  if (mentionStatus === "not-mentioned") {
-    return "negative" as const;
+  if (signals.caveated || signals.weakPositive) {
+    return "neutral" as const;
   }
 
   return "neutral" as const;
 }
 
-function inferShareOfModelScore(mentionStatus: ReturnType<typeof inferMentionStatus>) {
-  switch (mentionStatus) {
-    case "recommended":
-      return 0.8;
-    case "mentioned":
-      return 0.55;
-    default:
-      return 0.1;
+function inferShareOfModelScore(
+  mentionStatus: ReturnType<typeof inferMentionStatus>,
+  signals: GeoResponseSignals,
+) {
+  if (mentionStatus === "recommended") {
+    return 0.8;
   }
+
+  if (mentionStatus === "not-mentioned") {
+    return 0.1;
+  }
+
+  if (signals.strongNegative) {
+    return 0.25;
+  }
+
+  if (signals.caveated) {
+    return 0.4;
+  }
+
+  if (signals.weakPositive) {
+    return 0.5;
+  }
+
+  return 0.45;
 }
 
 function inferCitationShareScore(citationUrls: string[], baseUrl: string) {
@@ -535,11 +651,8 @@ function inferCitationShareScore(citationUrls: string[], baseUrl: string) {
 }
 
 function inferEntityAccuracy(
-  responseText: string,
-  citationUrls: string[],
-  baseUrl: string,
+  mentionStatus: ReturnType<typeof inferMentionStatus>,
 ) {
-  const mentionStatus = inferMentionStatus(responseText, citationUrls, baseUrl);
   return mentionStatus === "not-mentioned" ? "mixed" : "accurate";
 }
 
@@ -608,11 +721,12 @@ export async function runGeoMonitoring(
       });
 
       if (result.outcome === "success") {
-        const mentionStatus = inferMentionStatus(
+        const responseSignals = analyzeGeoResponse(
           result.responseText,
           result.citationUrls,
           baseUrl,
         );
+        const mentionStatus = inferMentionStatus(responseSignals);
         const createdLog = await createGeoVisibilityLog({
           source: mapRunSourceToLogSource(input.source),
           monitoringRunId: runId,
@@ -623,14 +737,13 @@ export async function runGeoMonitoring(
           engineModel: result.engineModel,
           mentionStatus,
           citationUrls: result.citationUrls,
-          shareOfModelScore: inferShareOfModelScore(mentionStatus),
-          citationShareScore: inferCitationShareScore(result.citationUrls, baseUrl),
-          sentiment: inferSentiment(result.responseText, mentionStatus),
-          entityAccuracy: inferEntityAccuracy(
-            result.responseText,
-            result.citationUrls,
-            baseUrl,
+          shareOfModelScore: inferShareOfModelScore(
+            mentionStatus,
+            responseSignals,
           ),
+          citationShareScore: inferCitationShareScore(result.citationUrls, baseUrl),
+          sentiment: inferSentiment(mentionStatus, responseSignals),
+          entityAccuracy: inferEntityAccuracy(mentionStatus),
           responseExcerpt: result.responseText,
           notes: `Automated GEO monitoring run for ${prompt.intentLabel}.`,
         });
