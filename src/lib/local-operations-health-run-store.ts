@@ -83,6 +83,11 @@ function normalizeAlert(alert: Partial<OperationsHealthAlert> | undefined): Oper
         : null,
     webhookUsed:
       typeof alert?.webhookUsed === "boolean" ? alert.webhookUsed : null,
+    emailDelivered:
+      typeof alert?.emailDelivered === "boolean" ? alert.emailDelivered : null,
+    emailUsed: typeof alert?.emailUsed === "boolean" ? alert.emailUsed : null,
+    emailRecipient: normalizeString(alert?.emailRecipient) || null,
+    emailMessageId: normalizeString(alert?.emailMessageId) || null,
   };
 }
 

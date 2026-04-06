@@ -34,6 +34,21 @@ function getStatusBadgeClass(status: OperationsHealthRunRecord["status"]) {
   return "border-rose-200 bg-rose-50 text-rose-700";
 }
 
+function getAlertChannelLabel(alert: OperationsHealthRunRecord["alerts"][number]) {
+  const emailLabel = alert.emailUsed
+    ? alert.emailDelivered
+      ? `Ops email delivered${alert.emailRecipient ? ` to ${alert.emailRecipient}` : ""}`
+      : `Ops email failed${alert.emailRecipient ? ` to ${alert.emailRecipient}` : ""}`
+    : "Ops email not configured";
+  const webhookLabel = alert.webhookUsed
+    ? alert.webhookDelivered
+      ? "Webhook delivered"
+      : "Webhook failed"
+    : "Webhook not configured";
+
+  return { emailLabel, webhookLabel };
+}
+
 export default function OperationsHealthPanel({
   initialSnapshot,
   initialRuns,
@@ -240,6 +255,23 @@ export default function OperationsHealthPanel({
                   <p className="mt-1 text-sm leading-6 text-slate-500">
                     {alert.detail}
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(() => {
+                      const { emailLabel, webhookLabel } =
+                        getAlertChannelLabel(alert);
+
+                      return (
+                        <>
+                          <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-500">
+                            {emailLabel}
+                          </span>
+                          <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-500">
+                            {webhookLabel}
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
                 </article>
               ))
             )}

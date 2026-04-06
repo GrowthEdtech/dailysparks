@@ -240,8 +240,12 @@ export async function runOperationsHealthCycle(
 
       return {
         ...alert,
-        webhookDelivered: dispatch.delivered,
-        webhookUsed: dispatch.usedWebhook,
+        webhookDelivered: dispatch.webhookDelivered ?? dispatch.delivered,
+        webhookUsed: dispatch.webhookUsed ?? dispatch.usedWebhook,
+        emailDelivered: dispatch.emailDelivered ?? null,
+        emailUsed: dispatch.emailUsed ?? null,
+        emailRecipient: dispatch.emailRecipient ?? null,
+        emailMessageId: dispatch.emailMessageId ?? null,
       };
     }),
   );

@@ -89,6 +89,10 @@ export type OperationsHealthAlert = {
   metricValue: number | null;
   webhookDelivered?: boolean | null;
   webhookUsed?: boolean | null;
+  emailDelivered?: boolean | null;
+  emailUsed?: boolean | null;
+  emailRecipient?: string | null;
+  emailMessageId?: string | null;
 };
 
 export type OperationsHealthRemediationAction = {

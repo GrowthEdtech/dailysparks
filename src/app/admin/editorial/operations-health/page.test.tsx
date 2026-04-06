@@ -114,6 +114,10 @@ describe("OperationsHealthAdminPage", () => {
             metricValue: 1,
             webhookDelivered: false,
             webhookUsed: false,
+            emailDelivered: true,
+            emailUsed: true,
+            emailRecipient: "admin@geledtech.com",
+            emailMessageId: "ops-alert-message-id",
           },
         ],
         remediationActions: [
@@ -156,5 +160,6 @@ describe("OperationsHealthAdminPage", () => {
     expect(markup).toContain("Run health check now");
     expect(markup).toContain("Notifications require manual intervention");
     expect(markup).toContain("retry-delivery");
+    expect(markup).toContain("admin@geledtech.com");
   });
 });

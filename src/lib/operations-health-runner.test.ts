@@ -215,7 +215,16 @@ describe("runOperationsHealthCycle", () => {
     });
     const emitAlertMock = vi
       .fn<(_: never) => Promise<OperationsHealthAlertDispatchResult>>()
-      .mockResolvedValue({ delivered: true, usedWebhook: false });
+      .mockResolvedValue({
+        delivered: true,
+        usedWebhook: false,
+        webhookDelivered: false,
+        webhookUsed: false,
+        emailDelivered: true,
+        emailUsed: true,
+        emailRecipient: "admin@geledtech.com",
+        emailMessageId: "ops-alert-message-id",
+      });
     const createRunMock = vi
       .fn<(input: OperationsHealthRunRecord) => Promise<OperationsHealthRunRecord>>()
       .mockImplementation(async (input) => input);
@@ -236,6 +245,14 @@ describe("runOperationsHealthCycle", () => {
     expect(runGeoMonitoringMock).toHaveBeenCalledTimes(1);
     expect(readContextMock).toHaveBeenCalledTimes(2);
     expect(createRunMock).toHaveBeenCalledTimes(1);
+    expect(result.run.alerts[0]).toEqual(
+      expect.objectContaining({
+        emailDelivered: true,
+        emailUsed: true,
+        emailRecipient: "admin@geledtech.com",
+        emailMessageId: "ops-alert-message-id",
+      }),
+    );
     expect(result.run.remediationActions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
