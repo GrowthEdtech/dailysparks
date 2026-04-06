@@ -492,6 +492,7 @@ export default function GeoCopilotPanel({
       const body = (await response.json().catch(() => null)) as
         | {
             createdPrompts?: GeoPromptRecord[];
+            updatedPrompts?: GeoPromptRecord[];
             skippedPromptCount?: number;
             totalSeedCount?: number;
             message?: string;
@@ -501,6 +502,7 @@ export default function GeoCopilotPanel({
       if (
         !response.ok ||
         !Array.isArray(body?.createdPrompts) ||
+        !Array.isArray(body?.updatedPrompts) ||
         typeof body.skippedPromptCount !== "number" ||
         typeof body.totalSeedCount !== "number"
       ) {
@@ -510,25 +512,34 @@ export default function GeoCopilotPanel({
       }
 
       const createdPrompts = body.createdPrompts;
-      const nextPrompts = [...createdPrompts, ...prompts].sort((left, right) =>
+      const updatedPrompts = body.updatedPrompts;
+      const updatedPromptIds = new Set(updatedPrompts.map((prompt) => prompt.id));
+      const nextPrompts = [
+        ...createdPrompts,
+        ...updatedPrompts,
+        ...prompts.filter((prompt) => !updatedPromptIds.has(prompt.id)),
+      ].sort((left, right) =>
         right.updatedAt.localeCompare(left.updatedAt),
       );
       setPrompts(nextPrompts);
       setDraftsById((currentDrafts) => ({
         ...currentDrafts,
         ...Object.fromEntries(
-          createdPrompts.map((prompt) => [prompt.id, toPromptFormState(prompt)]),
+          [...createdPrompts, ...updatedPrompts].map((prompt) => [
+            prompt.id,
+            toPromptFormState(prompt),
+          ]),
         ),
       }));
       refreshSummary(nextPrompts, logs, machineReadabilityStatus);
 
-      if (createdPrompts.length === 0) {
+      if (createdPrompts.length === 0 && updatedPrompts.length === 0) {
         setMessage(
           `All ${body.totalSeedCount} website-derived prompts are already in the GEO workspace.`,
         );
       } else {
         setMessage(
-          `Seeded ${createdPrompts.length} website-derived prompts. ${body.skippedPromptCount} already existed.`,
+          `Seeded ${createdPrompts.length} prompts, synced ${updatedPrompts.length}, and skipped ${body.skippedPromptCount}.`,
         );
       }
 
@@ -748,6 +759,11 @@ export default function GeoCopilotPanel({
             </p>
             <p className="mt-1 text-sm text-slate-600">
               Home, About, and Contact-derived GEO intents ready to seed.
+            </p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Phase 1 monitors ChatGPT only via the default AI connection on
+              <span className="font-semibold text-[#0f172a]"> relay.nf.video/v1</span>.
+              Perplexity, Gemini, Claude, and Google AI Overviews will be added later.
             </p>
             <button
               type="button"

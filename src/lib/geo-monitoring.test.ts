@@ -102,12 +102,13 @@ describe("geo-monitoring", () => {
       },
     });
 
-    expect(result.run.status).toBe("partial");
+    expect(result.run.status).toBe("completed");
     expect(result.run.activePromptCount).toBe(1);
     expect(result.run.expandedQueryCount).toBe(3);
-    expect(result.run.engineAttemptCount).toBe(6);
+    expect(result.run.engineAttemptCount).toBe(3);
     expect(result.run.createdLogCount).toBe(3);
-    expect(result.run.skippedCount).toBe(3);
+    expect(result.run.skippedCount).toBe(0);
+    expect(result.run.notes).toContain("ChatGPT monitoring is active via the default AI connection.");
 
     const logs = await listGeoVisibilityLogs();
     expect(logs).toHaveLength(3);

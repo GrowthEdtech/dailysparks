@@ -15,7 +15,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
     intentLabel: "IB family workflow",
     priority: "high",
     targetProgrammes: ["PYP", "MYP", "DP"],
-    engineCoverage: ["chatgpt-search", "google-ai-overviews", "gemini"],
+    engineCoverage: ["chatgpt-search"],
     fanOutHints: [
       "IB family reading routine",
       "family reading workflow for IB students",
@@ -29,7 +29,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
     intentLabel: "Daily IB reading habit",
     priority: "high",
     targetProgrammes: ["PYP", "MYP", "DP"],
-    engineCoverage: ["chatgpt-search", "perplexity", "gemini"],
+    engineCoverage: ["chatgpt-search"],
     fanOutHints: [
       "daily reading habit for middle school students",
       "IB reading routine at home",
@@ -43,7 +43,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
     intentLabel: "Goodnotes delivery workflow",
     priority: "high",
     targetProgrammes: ["PYP", "MYP", "DP"],
-    engineCoverage: ["chatgpt-search", "google-ai-overviews", "claude"],
+    engineCoverage: ["chatgpt-search"],
     fanOutHints: [
       "Goodnotes reading brief workflow",
       "student reading briefs on Goodnotes",
@@ -57,7 +57,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
     intentLabel: "Notion parent archive",
     priority: "medium",
     targetProgrammes: ["PYP", "MYP", "DP"],
-    engineCoverage: ["chatgpt-search", "perplexity", "gemini"],
+    engineCoverage: ["chatgpt-search"],
     fanOutHints: [
       "Notion archive for parents",
       "family learning visibility in Notion",
@@ -71,7 +71,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
     intentLabel: "Distraction-free iPad reading",
     priority: "medium",
     targetProgrammes: ["PYP", "MYP"],
-    engineCoverage: ["chatgpt-search", "google-ai-overviews", "gemini"],
+    engineCoverage: ["chatgpt-search"],
     fanOutHints: [
       "iPad reading workflow for kids",
       "distraction-free reading setup for children",
@@ -85,7 +85,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
     intentLabel: "Programme support at home",
     priority: "medium",
     targetProgrammes: ["PYP", "MYP"],
-    engineCoverage: ["chatgpt-search", "perplexity", "gemini"],
+    engineCoverage: ["chatgpt-search"],
     fanOutHints: [
       "PYP reading support for parents",
       "MYP reading support at home",
@@ -99,7 +99,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
     intentLabel: "Writing and reasoning habit",
     priority: "medium",
     targetProgrammes: ["PYP", "MYP"],
-    engineCoverage: ["chatgpt-search", "google-ai-overviews", "claude"],
+    engineCoverage: ["chatgpt-search"],
     fanOutHints: [
       "critical reasoning habit for children",
       "English writing habit for ages 9 to 14",
@@ -113,7 +113,7 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
     intentLabel: "Daily Sparks brand routine",
     priority: "watch",
     targetProgrammes: ["PYP", "MYP", "DP"],
-    engineCoverage: ["chatgpt-search", "perplexity", "gemini", "claude"],
+    engineCoverage: ["chatgpt-search"],
     fanOutHints: [
       "Daily Sparks routine for families",
       "how Daily Sparks works for IB families",

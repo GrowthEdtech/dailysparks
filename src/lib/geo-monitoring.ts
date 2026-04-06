@@ -14,6 +14,11 @@ import { listGeoPrompts } from "./geo-prompt-store";
 import type { GeoEngineType, GeoPromptRecord } from "./geo-prompt-schema";
 import { createGeoVisibilityLog } from "./geo-visibility-log-store";
 import type { GeoVisibilityLogRecord, GeoVisibilityLogSource } from "./geo-visibility-log-schema";
+import {
+  buildGeoMonitoringPhaseNote,
+  getDeferredGeoMonitoringEngines,
+  getEnabledGeoMonitoringEngines,
+} from "./geo-monitoring-engine-policy";
 
 type GeoMonitoringSuccess = {
   outcome: "success";
@@ -559,6 +564,7 @@ export async function runGeoMonitoring(
   let createdLogCount = 0;
   let skippedCount = 0;
   let failedCount = 0;
+  const deferredEnginesSeen = new Set<GeoEngineType>();
 
   const executeEngineCheck = input.executeEngineCheck ?? executeDefaultEngineCheck;
 
@@ -576,7 +582,14 @@ export async function runGeoMonitoring(
   });
 
   for (const { prompt, queryVariant } of allExpandedQueries) {
-    for (const engine of prompt.engineCoverage) {
+    const enabledEngines = getEnabledGeoMonitoringEngines(prompt);
+    const deferredEngines = getDeferredGeoMonitoringEngines(prompt);
+
+    for (const deferredEngine of deferredEngines) {
+      deferredEnginesSeen.add(deferredEngine);
+    }
+
+    for (const engine of enabledEngines) {
       const currentBreakdown = engineBreakdownMap.get(engine) ?? {
         engine,
         attemptedCount: 0,
@@ -651,6 +664,10 @@ export async function runGeoMonitoring(
     notes.push("No active GEO prompts were configured for this run.");
   }
 
+  if (deferredEnginesSeen.size > 0) {
+    notes.push(buildGeoMonitoringPhaseNote());
+  }
+
   const run = await createGeoMonitoringRun({
     id: runId,
     source: input.source,
@@ -658,7 +675,7 @@ export async function runGeoMonitoring(
     activePromptCount: prompts.length,
     expandedQueryCount: allExpandedQueries.length,
     engineAttemptCount: allExpandedQueries.reduce(
-      (total, item) => total + item.prompt.engineCoverage.length,
+      (total, item) => total + getEnabledGeoMonitoringEngines(item.prompt).length,
       0,
     ),
     createdLogCount,

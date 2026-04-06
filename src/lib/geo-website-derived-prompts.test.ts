@@ -16,6 +16,13 @@ describe("geo-website-derived-prompts", () => {
     expect(
       GEO_WEBSITE_DERIVED_PROMPT_SEEDS.every((prompt) => prompt.active),
     ).toBe(true);
+    expect(
+      GEO_WEBSITE_DERIVED_PROMPT_SEEDS.every(
+        (prompt) =>
+          prompt.engineCoverage.length === 1 &&
+          prompt.engineCoverage[0] === "chatgpt-search",
+      ),
+    ).toBe(true);
   });
 
   test("defines content page structure suggestions anchored to current site themes", () => {
