@@ -44,15 +44,20 @@ function buildReadyFetch() {
 
 async function runSinglePromptMonitoring(
   responseText: string,
-  citationUrls: string[] = ["https://dailysparks.geledtech.com/"],
+  options?: {
+    citationUrls?: string[];
+    prompt?: string;
+    intentLabel?: string;
+    fanOutHints?: string[];
+  },
 ) {
-  await createGeoPrompt({
-    prompt: "IB reading workflow for families",
-    intentLabel: "Family reading workflow",
+  const prompt = await createGeoPrompt({
+    prompt: options?.prompt ?? "IB reading workflow for families",
+    intentLabel: options?.intentLabel ?? "Family reading workflow",
     priority: "high",
     targetProgrammes: ["PYP"],
     engineCoverage: ["chatgpt-search"],
-    fanOutHints: [],
+    fanOutHints: options?.fanOutHints ?? [],
     active: true,
     notes: "Classification test prompt.",
   });
@@ -65,14 +70,17 @@ async function runSinglePromptMonitoring(
       outcome: "success",
       engineModel: "gpt-5.4",
       responseText,
-      citationUrls,
+      citationUrls: options?.citationUrls ?? [
+        "https://dailysparks.geledtech.com/",
+      ],
     }),
   });
 
   const logs = await listGeoVisibilityLogs();
-  expect(logs).toHaveLength(1);
+  const matchingLogs = logs.filter((log) => log.promptId === prompt.id);
+  expect(matchingLogs.length).toBeGreaterThan(0);
 
-  return logs[0]!;
+  return matchingLogs[0]!;
 }
 
 describe("geo-monitoring", () => {
@@ -217,5 +225,28 @@ describe("geo-monitoring", () => {
     expect(log.mentionStatus).toBe("recommended");
     expect(log.sentiment).toBe("positive");
     expect(log.shareOfModelScore).toBe(0.8);
+  });
+
+  test("calibrates the same caveated answer differently for workflow and habit prompts", async () => {
+    const sharedResponse =
+      "Daily Sparks could be useful if the family wants a daily reading routine and reflection prompts, but it is only a partial fit for this question.";
+
+    const workflowLog = await runSinglePromptMonitoring(sharedResponse, {
+      prompt: "Goodnotes reading brief workflow",
+      intentLabel: "Goodnotes delivery workflow",
+    });
+
+    expect(workflowLog.mentionStatus).toBe("mentioned");
+    expect(workflowLog.sentiment).toBe("neutral");
+    expect(workflowLog.shareOfModelScore).toBe(0.3);
+
+    const habitLog = await runSinglePromptMonitoring(sharedResponse, {
+      prompt: "daily reading habit for IB students",
+      intentLabel: "Daily IB reading habit",
+    });
+
+    expect(habitLog.mentionStatus).toBe("mentioned");
+    expect(habitLog.sentiment).toBe("positive");
+    expect(habitLog.shareOfModelScore).toBe(0.5);
   });
 });

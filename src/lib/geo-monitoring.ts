@@ -525,12 +525,73 @@ const GEO_CAVEAT_PATTERNS = [
   /\bsecondary recommendation\b/,
 ] as const;
 
+const GEO_WORKFLOW_INTENT_PATTERNS = [
+  /\bworkflow\b/,
+  /\bgoodnotes\b/,
+  /\bnotion\b/,
+  /\bdelivery\b/,
+  /\bdeliver\b/,
+  /\barchive\b/,
+  /\biPad\b/i,
+  /\bsetup\b/,
+  /\bsync\b/,
+  /\btemplate\b/,
+  /\bannotation\b/,
+  /\bbriefs?\b/,
+] as const;
+
+const GEO_HABIT_INTENT_PATTERNS = [
+  /\bhabit\b/,
+  /\broutine\b/,
+  /\bsupport at home\b/,
+  /\breading support\b/,
+  /\bparent visibility\b/,
+  /\bcritical reasoning\b/,
+  /\bwriting\b/,
+  /\bfamily reading\b/,
+  /\bat home\b/,
+] as const;
+
+const GEO_WORKFLOW_RESPONSE_PATTERNS = [
+  /\bgoodnotes\b/,
+  /\bnotion\b/,
+  /\bworkflow\b/,
+  /\bdelivery\b/,
+  /\bdeliver\b/,
+  /\barchive\b/,
+  /\bintegrat(?:e|ion)\b/,
+  /\btemplate\b/,
+  /\bannotation\b/,
+  /\bimport\b/,
+  /\bsync\b/,
+  /\bpdf\b/,
+  /\bbriefs?\b/,
+] as const;
+
+const GEO_HABIT_RESPONSE_PATTERNS = [
+  /\bhabit\b/,
+  /\broutine\b/,
+  /\bdaily reading\b/,
+  /\breflection\b/,
+  /\breading stamina\b/,
+  /\bconsisten(?:t|cy)\b/,
+  /\bcritical reasoning\b/,
+  /\bcritical thinking\b/,
+  /\bwriting practice\b/,
+  /\bparent support\b/,
+  /\bsupport at home\b/,
+] as const;
+
+type GeoPromptIntentBucket = "workflow" | "habit-building" | "general";
+
 type GeoResponseSignals = {
   hasBrandSignal: boolean;
   strongNegative: boolean;
   strongPositive: boolean;
   weakPositive: boolean;
   caveated: boolean;
+  workflowEvidence: boolean;
+  habitEvidence: boolean;
 };
 
 function matchesAnyPattern(
@@ -567,19 +628,55 @@ function analyzeGeoResponse(
       GEO_WEAK_POSITIVE_PATTERNS,
     ),
     caveated: matchesAnyPattern(normalizedResponseText, GEO_CAVEAT_PATTERNS),
+    workflowEvidence: matchesAnyPattern(
+      normalizedResponseText,
+      GEO_WORKFLOW_RESPONSE_PATTERNS,
+    ),
+    habitEvidence: matchesAnyPattern(
+      normalizedResponseText,
+      GEO_HABIT_RESPONSE_PATTERNS,
+    ),
   };
 }
 
-function inferMentionStatus(signals: GeoResponseSignals) {
+function inferPromptIntentBucket(
+  prompt: GeoPromptRecord,
+  queryVariant: string,
+): GeoPromptIntentBucket {
+  const normalizedIntentText = normalizeResponseText(
+    `${prompt.prompt} ${prompt.intentLabel} ${queryVariant}`,
+  );
+
+  if (matchesAnyPattern(normalizedIntentText, GEO_WORKFLOW_INTENT_PATTERNS)) {
+    return "workflow";
+  }
+
+  if (matchesAnyPattern(normalizedIntentText, GEO_HABIT_INTENT_PATTERNS)) {
+    return "habit-building";
+  }
+
+  return "general";
+}
+
+function inferMentionStatus(
+  signals: GeoResponseSignals,
+  intentBucket: GeoPromptIntentBucket,
+) {
   if (!signals.hasBrandSignal) {
     return "not-mentioned" as const;
   }
 
-  if (
+  const positiveEnoughForRecommendation =
     signals.strongPositive &&
     !signals.strongNegative &&
-    !signals.caveated
-  ) {
+    !signals.caveated &&
+    (intentBucket === "workflow"
+      ? signals.workflowEvidence
+      : intentBucket === "habit-building"
+        ? signals.habitEvidence || signals.workflowEvidence
+        : true);
+
+  if (positiveEnoughForRecommendation) {
     return "recommended" as const;
   }
 
@@ -589,6 +686,7 @@ function inferMentionStatus(signals: GeoResponseSignals) {
 function inferSentiment(
   mentionStatus: ReturnType<typeof inferMentionStatus>,
   signals: GeoResponseSignals,
+  intentBucket: GeoPromptIntentBucket,
 ) {
   if (mentionStatus === "not-mentioned") {
     return "negative" as const;
@@ -606,6 +704,14 @@ function inferSentiment(
     return "positive" as const;
   }
 
+  if (intentBucket === "habit-building" && signals.caveated && signals.habitEvidence) {
+    return "positive" as const;
+  }
+
+  if (intentBucket === "workflow" && signals.caveated && !signals.workflowEvidence) {
+    return "neutral" as const;
+  }
+
   if (signals.caveated || signals.weakPositive) {
     return "neutral" as const;
   }
@@ -616,6 +722,7 @@ function inferSentiment(
 function inferShareOfModelScore(
   mentionStatus: ReturnType<typeof inferMentionStatus>,
   signals: GeoResponseSignals,
+  intentBucket: GeoPromptIntentBucket,
 ) {
   if (mentionStatus === "recommended") {
     return 0.8;
@@ -627,6 +734,22 @@ function inferShareOfModelScore(
 
   if (signals.strongNegative) {
     return 0.25;
+  }
+
+  if (
+    intentBucket === "workflow" &&
+    signals.caveated &&
+    !signals.workflowEvidence
+  ) {
+    return 0.3;
+  }
+
+  if (
+    intentBucket === "habit-building" &&
+    signals.caveated &&
+    signals.habitEvidence
+  ) {
+    return 0.5;
   }
 
   if (signals.caveated) {
@@ -721,12 +844,13 @@ export async function runGeoMonitoring(
       });
 
       if (result.outcome === "success") {
+        const intentBucket = inferPromptIntentBucket(prompt, queryVariant);
         const responseSignals = analyzeGeoResponse(
           result.responseText,
           result.citationUrls,
           baseUrl,
         );
-        const mentionStatus = inferMentionStatus(responseSignals);
+        const mentionStatus = inferMentionStatus(responseSignals, intentBucket);
         const createdLog = await createGeoVisibilityLog({
           source: mapRunSourceToLogSource(input.source),
           monitoringRunId: runId,
@@ -740,12 +864,17 @@ export async function runGeoMonitoring(
           shareOfModelScore: inferShareOfModelScore(
             mentionStatus,
             responseSignals,
+            intentBucket,
           ),
           citationShareScore: inferCitationShareScore(result.citationUrls, baseUrl),
-          sentiment: inferSentiment(mentionStatus, responseSignals),
+          sentiment: inferSentiment(
+            mentionStatus,
+            responseSignals,
+            intentBucket,
+          ),
           entityAccuracy: inferEntityAccuracy(mentionStatus),
           responseExcerpt: result.responseText,
-          notes: `Automated GEO monitoring run for ${prompt.intentLabel}.`,
+          notes: `Automated GEO monitoring run for ${prompt.intentLabel} (${intentBucket} intent).`,
         });
 
         createdLogs.push(createdLog);
