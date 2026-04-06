@@ -25,6 +25,11 @@ const ADMIN_TABS = [
     description: "Generation history, sources, model trace",
   },
   {
+    href: "/admin/editorial/operations-health",
+    label: "Operations Health",
+    description: "SLA alerts, self-healing, and reliability evidence",
+  },
+  {
     href: "/admin/editorial/geo-copilot",
     label: "GEO Copilot",
     description: "AI visibility, prompts, audit, readability",
