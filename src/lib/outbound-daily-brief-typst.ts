@@ -1,10 +1,17 @@
-import { NodeCompiler } from "@myriaddreamin/typst-ts-node-compiler";
+import {
+  NodeCompiler,
+  type NodeTypstCompileResult,
+  type NodeTypstDocument,
+} from "@myriaddreamin/typst-ts-node-compiler";
 
 import type { OutboundDailyBriefPacketInput } from "./outbound-daily-brief-packet";
 import { buildOutboundDailyBriefPacket } from "./outbound-daily-brief-packet";
 
 type TypstCompilerLike = {
-  pdf(args: { mainFileContent: string }): Buffer | Uint8Array;
+  compile(args: { mainFileContent: string }): NodeTypstCompileResult;
+  pdf(
+    compiledOrBy: NodeTypstDocument | { mainFileContent: string },
+  ): Buffer | Uint8Array;
 };
 
 type RenderOutboundDailyBriefTypstPrototypeOptions = {
@@ -43,6 +50,44 @@ function toTypstPrototypeFileName(
 
 function createDefaultCompiler(): TypstCompilerLike {
   return NodeCompiler.create();
+}
+
+function readTypstErrorMessage(value: unknown): string | null {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Error) {
+    return value.message;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "object" && "message" in value) {
+    const message = value.message;
+
+    return typeof message === "string" ? message : null;
+  }
+
+  return null;
+}
+
+function compileTypstDocument(compiler: TypstCompilerLike, source: string) {
+  const compileResult = compiler.compile({ mainFileContent: source });
+  const document = compileResult.result;
+
+  if (document && !compileResult.hasError()) {
+    return document;
+  }
+
+  const message =
+    readTypstErrorMessage(compileResult.takeError()) ??
+    readTypstErrorMessage(compileResult.takeDiagnostics()) ??
+    "Typst compile failed.";
+
+  throw new Error(message);
 }
 
 export function getTypstHeadlineSize(
@@ -433,11 +478,13 @@ export async function renderOutboundDailyBriefTypstPrototype(
 ) {
   const source = buildOutboundDailyBriefTypstSource(brief);
   const compiler = (options.createCompiler ?? createDefaultCompiler)();
-  const pdf = compiler.pdf({ mainFileContent: source });
+  const document = compileTypstDocument(compiler, source);
+  const pdf = compiler.pdf(document);
 
   return {
     source,
     pdf: pdf instanceof Uint8Array ? pdf : new Uint8Array(pdf),
     fileName: toTypstPrototypeFileName(brief),
+    pageCount: document.numOfPages,
   };
 }

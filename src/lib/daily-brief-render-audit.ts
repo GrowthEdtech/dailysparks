@@ -7,18 +7,23 @@ import { countPdfPages } from "./pdf-page-count";
 export async function buildDailyBriefRenderAudit({
   brief,
   pdfBytes,
+  pageCount,
   renderer,
   auditedAt = new Date().toISOString(),
 }: {
   brief: OutboundDailyBriefPacketInput;
   pdfBytes: Uint8Array;
+  pageCount?: number;
   renderer: DailyBriefPdfRenderer;
   auditedAt?: string;
 }): Promise<DailyBriefRenderAudit> {
   const packet = buildOutboundDailyBriefPacket(brief);
-  const pageCount = await countPdfPages(pdfBytes);
+  const resolvedPageCount =
+    typeof pageCount === "number" && Number.isFinite(pageCount)
+      ? pageCount
+      : await countPdfPages(pdfBytes);
   const onePageCompliant =
-    packet.layoutVariant === "pyp-one-page" ? pageCount === 1 : null;
+    packet.layoutVariant === "pyp-one-page" ? resolvedPageCount === 1 : null;
   const pagePolicyLabel =
     packet.layoutVariant === "pyp-one-page"
       ? "PYP one-page"
@@ -32,12 +37,14 @@ export async function buildDailyBriefRenderAudit({
         ? 2
         : null;
   const pagePolicyCompliant =
-    pagePolicyPageCountLimit === null ? null : pageCount <= pagePolicyPageCountLimit;
+    pagePolicyPageCountLimit === null
+      ? null
+      : resolvedPageCount <= pagePolicyPageCountLimit;
 
   return {
     renderer,
     layoutVariant: packet.layoutVariant,
-    pageCount,
+    pageCount: resolvedPageCount,
     onePageCompliant,
     pagePolicyLabel,
     pagePolicyPageCountLimit,

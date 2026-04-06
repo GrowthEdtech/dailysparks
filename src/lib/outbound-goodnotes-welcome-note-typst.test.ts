@@ -96,5 +96,6 @@ describe("outbound goodnotes welcome note typst", () => {
     expect(result.pdf).toBeInstanceOf(Uint8Array);
     expect(Buffer.from(result.pdf).subarray(0, 4).toString()).toBe("%PDF");
     expect(pageCount).toBe(1);
+    expect(result.pageCount).toBe(1);
   });
 });

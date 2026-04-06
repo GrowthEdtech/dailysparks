@@ -123,6 +123,7 @@ describe("outbound daily brief typst", () => {
     expect(result.pdf).toBeInstanceOf(Uint8Array);
     expect(Buffer.from(result.pdf).subarray(0, 4).toString()).toBe("%PDF");
     expect(await countPdfPages(result.pdf)).toBe(1);
+    expect(result.pageCount).toBe(1);
   });
 
   test("uses a dedicated MYP compare-only layout tuned for a two-page validation budget", async () => {
@@ -133,5 +134,6 @@ describe("outbound daily brief typst", () => {
     expect(source).toContain('#text(size: 20pt, weight: "bold", fill: ink)');
     expect(source).toContain('#section-card("Words to know"');
     expect(await countPdfPages(result.pdf)).toBeLessThanOrEqual(2);
+    expect(result.pageCount).toBeLessThanOrEqual(2);
   });
 });

@@ -136,15 +136,16 @@ async function createOutboundDailyBriefPdfWithAudit(
   } = {},
 ) {
   const renderer = options.renderer ?? "typst";
-  const pdf = await createOutboundDailyBriefPdf(brief, { renderer });
+  const rendered = await renderOutboundDailyBriefTypstPrototype(brief);
   const renderAudit = await buildDailyBriefRenderAudit({
     brief,
-    pdfBytes: pdf,
+    pdfBytes: rendered.pdf,
+    pageCount: rendered.pageCount,
     renderer,
   });
 
   return {
-    pdf,
+    pdf: rendered.pdf,
     renderAudit,
   };
 }
