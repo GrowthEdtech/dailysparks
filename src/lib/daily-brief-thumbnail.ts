@@ -1,6 +1,3 @@
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-
 import {
   DOMMatrix,
   ImageData,
@@ -12,6 +9,7 @@ import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import type { DailyBriefHistoryRecord } from "./daily-brief-history-schema";
 import { createOutboundDailyBriefPdf } from "./goodnotes-delivery";
 import { renderOutboundDailyBriefTypstPrototype } from "./outbound-daily-brief-typst";
+import { configurePdfJsNodeRuntime } from "./pdfjs-node";
 
 function ensurePdfRenderGlobals() {
   if (!("DOMMatrix" in globalThis)) {
@@ -27,25 +25,15 @@ function ensurePdfRenderGlobals() {
   }
 }
 
-function getStandardFontDataUrl() {
-  try {
-    const packagePath = require.resolve("pdfjs-dist/package.json");
-    const fontsDirectory = path.join(path.dirname(packagePath), "standard_fonts");
-
-    return pathToFileURL(`${fontsDirectory}${path.sep}`).href;
-  } catch {
-    return undefined;
-  }
-}
-
 async function renderPdfFirstPageThumbnailPng(pdfBytes: Uint8Array) {
   ensurePdfRenderGlobals();
+  const { standardFontDataUrl } = configurePdfJsNodeRuntime();
 
   const loadingTask = getDocument({
     data: new Uint8Array(pdfBytes),
     useWorkerFetch: false,
     isEvalSupported: false,
-    standardFontDataUrl: getStandardFontDataUrl(),
+    standardFontDataUrl: standardFontDataUrl ?? undefined,
   });
 
   const document = await loadingTask.promise;

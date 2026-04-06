@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [
     "@myriaddreamin/typst-ts-node-compiler",
     "@napi-rs/canvas",
+    "pdfjs-dist",
   ],
   turbopack: {
     root: path.join(__dirname),

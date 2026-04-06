@@ -18,6 +18,9 @@ ENV HOSTNAME=0.0.0.0
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/node_modules/pdfjs-dist/build ./node_modules/pdfjs-dist/build
+COPY --from=builder /app/node_modules/pdfjs-dist/legacy/build ./node_modules/pdfjs-dist/legacy/build
+COPY --from=builder /app/node_modules/pdfjs-dist/standard_fonts ./node_modules/pdfjs-dist/standard_fonts
 
 EXPOSE 8080
 
