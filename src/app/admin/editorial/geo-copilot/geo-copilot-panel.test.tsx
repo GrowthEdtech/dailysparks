@@ -28,6 +28,32 @@ describe("GeoCopilotPanel", () => {
           entityAccuracyRate: 0,
           lastScanAt: null,
           readinessReadyCount: 0,
+          intentBreakdown: [
+            {
+              bucket: "workflow",
+              label: "Workflow intent",
+              promptCount: 0,
+              logCount: 0,
+              shareOfModelAverage: 0,
+              positiveSentimentRate: 0,
+            },
+            {
+              bucket: "habit-building",
+              label: "Habit-building intent",
+              promptCount: 0,
+              logCount: 0,
+              shareOfModelAverage: 0,
+              positiveSentimentRate: 0,
+            },
+            {
+              bucket: "general",
+              label: "General intent",
+              promptCount: 0,
+              logCount: 0,
+              shareOfModelAverage: 0,
+              positiveSentimentRate: 0,
+            },
+          ],
         }}
       />,
     );
@@ -36,6 +62,9 @@ describe("GeoCopilotPanel", () => {
     expect(markup).toContain("Golden prompts");
     expect(markup).toContain("Monitoring automation");
     expect(markup).toContain("Run monitoring now");
+    expect(markup).toContain("Intent calibration");
+    expect(markup).toContain("Workflow intent");
+    expect(markup).toContain("Habit-building intent");
     expect(markup).toContain("Website-derived GEO starters");
     expect(markup).toContain("Seed website-derived prompts");
     expect(markup).toContain("Visibility logs");

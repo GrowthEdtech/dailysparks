@@ -651,6 +651,48 @@ export default function GeoCopilotPanel({
           </article>
         </div>
 
+        <div className="mt-6 rounded-[24px] border border-[#dbeafe] bg-[#f8fbff] p-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">
+                Intent calibration
+              </p>
+              <p className="mt-2 text-sm text-slate-600">
+                Compare how GEO visibility is trending across workflow,
+                habit-building, and general prompts.
+              </p>
+            </div>
+            <p className="text-xs font-medium text-slate-500">
+              Same engine, different intent buckets
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {summary.intentBreakdown.map((bucketSummary) => (
+              <article
+                key={bucketSummary.bucket}
+                className="rounded-[20px] border border-slate-200 bg-white p-4"
+              >
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  {bucketSummary.label}
+                </p>
+                <p className="mt-3 text-2xl font-bold text-[#0f172a]">
+                  {formatPercent(bucketSummary.shareOfModelAverage)}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Share of model · {bucketSummary.logCount} logs
+                </p>
+                <p className="mt-3 text-sm text-slate-600">
+                  Positive sentiment {formatPercent(bucketSummary.positiveSentimentRate)}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  {bucketSummary.promptCount} prompts mapped to this intent
+                </p>
+              </article>
+            ))}
+          </div>
+        </div>
+
         {errorMessage ? (
           <p className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMessage}

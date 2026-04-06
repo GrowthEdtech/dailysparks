@@ -59,6 +59,8 @@ describe("GeoCopilotAdminPage", () => {
     expect(markup).toContain("Golden prompts");
     expect(markup).toContain("Visibility logs");
     expect(markup).toContain("Monitoring automation");
+    expect(markup).toContain("Intent calibration");
+    expect(markup).toContain("Workflow intent");
     expect(markup).toContain("Website-derived GEO starters");
     expect(markup).toContain("Machine-readability layer");
     expect(markup).toContain("Content optimization copilot");

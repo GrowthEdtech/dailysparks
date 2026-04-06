@@ -19,6 +19,10 @@ import {
   getDeferredGeoMonitoringEngines,
   getEnabledGeoMonitoringEngines,
 } from "./geo-monitoring-engine-policy";
+import {
+  inferGeoPromptIntentBucketFromPrompt,
+  type GeoPromptIntentBucket,
+} from "./geo-prompt-intent";
 
 type GeoMonitoringSuccess = {
   outcome: "success";
@@ -525,33 +529,6 @@ const GEO_CAVEAT_PATTERNS = [
   /\bsecondary recommendation\b/,
 ] as const;
 
-const GEO_WORKFLOW_INTENT_PATTERNS = [
-  /\bworkflow\b/,
-  /\bgoodnotes\b/,
-  /\bnotion\b/,
-  /\bdelivery\b/,
-  /\bdeliver\b/,
-  /\barchive\b/,
-  /\biPad\b/i,
-  /\bsetup\b/,
-  /\bsync\b/,
-  /\btemplate\b/,
-  /\bannotation\b/,
-  /\bbriefs?\b/,
-] as const;
-
-const GEO_HABIT_INTENT_PATTERNS = [
-  /\bhabit\b/,
-  /\broutine\b/,
-  /\bsupport at home\b/,
-  /\breading support\b/,
-  /\bparent visibility\b/,
-  /\bcritical reasoning\b/,
-  /\bwriting\b/,
-  /\bfamily reading\b/,
-  /\bat home\b/,
-] as const;
-
 const GEO_WORKFLOW_RESPONSE_PATTERNS = [
   /\bgoodnotes\b/,
   /\bnotion\b/,
@@ -581,8 +558,6 @@ const GEO_HABIT_RESPONSE_PATTERNS = [
   /\bparent support\b/,
   /\bsupport at home\b/,
 ] as const;
-
-type GeoPromptIntentBucket = "workflow" | "habit-building" | "general";
 
 type GeoResponseSignals = {
   hasBrandSignal: boolean;
@@ -637,25 +612,6 @@ function analyzeGeoResponse(
       GEO_HABIT_RESPONSE_PATTERNS,
     ),
   };
-}
-
-function inferPromptIntentBucket(
-  prompt: GeoPromptRecord,
-  queryVariant: string,
-): GeoPromptIntentBucket {
-  const normalizedIntentText = normalizeResponseText(
-    `${prompt.prompt} ${prompt.intentLabel} ${queryVariant}`,
-  );
-
-  if (matchesAnyPattern(normalizedIntentText, GEO_WORKFLOW_INTENT_PATTERNS)) {
-    return "workflow";
-  }
-
-  if (matchesAnyPattern(normalizedIntentText, GEO_HABIT_INTENT_PATTERNS)) {
-    return "habit-building";
-  }
-
-  return "general";
 }
 
 function inferMentionStatus(
@@ -844,7 +800,10 @@ export async function runGeoMonitoring(
       });
 
       if (result.outcome === "success") {
-        const intentBucket = inferPromptIntentBucket(prompt, queryVariant);
+        const intentBucket = inferGeoPromptIntentBucketFromPrompt(
+          prompt,
+          queryVariant,
+        );
         const responseSignals = analyzeGeoResponse(
           result.responseText,
           result.citationUrls,
