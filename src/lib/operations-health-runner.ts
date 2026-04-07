@@ -195,6 +195,23 @@ export async function runOperationsHealthCycle(
 
   remediationActions.push(
     await executeRemediationAction({
+      action: "blocked-canary-review",
+      shouldRun: firstSnapshot.dailyBrief.blockedCanaryCount > 0,
+      detailWhenSkipped:
+        "No production briefs are currently blocked by synthetic canary.",
+      startedAt,
+      run: async () => ({
+        summary: {
+          blockedCanaryCount: firstSnapshot.dailyBrief.blockedCanaryCount,
+          note:
+            "Blocked production waves were held for operator release or manual canary rerun.",
+        },
+      }),
+    }),
+  );
+
+  remediationActions.push(
+    await executeRemediationAction({
       action: "growth-reconciliation",
       shouldRun:
         firstSnapshot.notifications.pendingCount > 0 ||

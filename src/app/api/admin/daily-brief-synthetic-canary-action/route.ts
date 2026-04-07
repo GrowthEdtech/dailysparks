@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 
+import { POST as deliverDailyBriefRoute } from "../../internal/daily-brief/deliver/route";
 import {
   clearEditorialAdminSessionCookieHeader,
   getEditorialAdminSessionFromRequest,
@@ -10,7 +11,11 @@ import {
 } from "../../../../lib/daily-brief-history-store";
 import { emitDailyBriefOpsAlert } from "../../../../lib/daily-brief-ops-alerts";
 import { listDispatchableDeliveryProfiles } from "../../../../lib/mvp-store";
-import { resolveDailyBriefRendererPolicy } from "../../../../lib/daily-brief-renderer-policy";
+import {
+  getDailyBriefSchedulerHeaderName,
+  getDailyBriefSchedulerSecret,
+} from "../../../../lib/daily-brief-run-auth";
+import { resolveDailyBriefRendererFromHistory } from "../../../../lib/daily-brief-renderer-policy";
 import {
   releaseDailyBriefSyntheticCanaryState,
   runDailyBriefSyntheticCanary,
@@ -51,7 +56,46 @@ function normalizeString(value: unknown) {
 }
 
 function normalizeAction(value: unknown) {
-  return value === "release" || value === "rerun" ? value : null;
+  return value === "release" ||
+      value === "rerun" ||
+      value === "release-and-deliver" ||
+      value === "rerun-and-deliver"
+    ? value
+    : null;
+}
+
+function shouldDeliverAfterAction(action: NonNullable<ReturnType<typeof normalizeAction>>) {
+  return action === "release-and-deliver" || action === "rerun-and-deliver";
+}
+
+async function triggerProductionDeliveryForBrief(brief: { id: string; scheduledFor: string }) {
+  const response = await deliverDailyBriefRoute(
+    new Request("http://localhost:3000/api/internal/daily-brief/deliver", {
+      method: "POST",
+      headers: {
+        [getDailyBriefSchedulerHeaderName()]: getDailyBriefSchedulerSecret(),
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        briefId: brief.id,
+        runDate: brief.scheduledFor,
+        recordKind: "production",
+        forceDispatch: true,
+        dispatchTimestamp: new Date().toISOString(),
+      }),
+    }),
+  );
+  const body = (await response.json().catch(() => null)) as
+    | { message?: string; summary?: Record<string, unknown> }
+    | null;
+
+  if (!response.ok) {
+    throw new Error(
+      body?.message ?? "Production delivery could not be resumed after synthetic canary release.",
+    );
+  }
+
+  return body?.summary ?? null;
 }
 
 async function parseRequestBody(
@@ -103,7 +147,9 @@ export async function POST(request: Request) {
   }
 
   if (!action) {
-    return badRequest("action must be release or rerun.");
+    return badRequest(
+      "action must be release, rerun, release-and-deliver, or rerun-and-deliver.",
+    );
   }
 
   const brief = await getDailyBriefHistoryEntry(briefId);
@@ -116,7 +162,7 @@ export async function POST(request: Request) {
     return conflict("Synthetic canary controls only apply to production briefs.");
   }
 
-  if (action === "release") {
+  if (action === "release" || action === "release-and-deliver") {
     const releasedState = releaseDailyBriefSyntheticCanaryState({
       previousState: brief.syntheticCanary,
       releasedAt: new Date().toISOString(),
@@ -136,18 +182,22 @@ export async function POST(request: Request) {
     });
     revalidateDailyBriefAdminPaths(brief.id);
 
+    const deliverySummary = shouldDeliverAfterAction(action)
+      ? await triggerProductionDeliveryForBrief(brief)
+      : null;
+
     return Response.json({
       success: true,
       action,
       briefId: brief.id,
       syntheticCanaryStatus: releasedState.status,
+      deliverySummary,
     });
   }
 
   const dispatchableProfiles = await listDispatchableDeliveryProfiles();
-  const renderer = resolveDailyBriefRendererPolicy({
-    selectedMode: "auto",
-    programme: brief.programme,
+  const renderer = resolveDailyBriefRendererFromHistory({
+    brief,
     attachmentMode: "canary",
   }).renderer;
   const rerunResult = await runDailyBriefSyntheticCanary({
@@ -194,10 +244,16 @@ export async function POST(request: Request) {
 
   revalidateDailyBriefAdminPaths(brief.id);
 
+  const deliverySummary =
+    rerunResult.passed && shouldDeliverAfterAction(action)
+      ? await triggerProductionDeliveryForBrief(brief)
+      : null;
+
   return Response.json({
     success: true,
     action,
     briefId: brief.id,
     syntheticCanaryStatus: rerunResult.state.status,
+    deliverySummary,
   });
 }

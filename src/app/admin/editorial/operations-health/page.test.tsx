@@ -76,6 +76,7 @@ describe("OperationsHealthAdminPage", () => {
           failedCount: 0,
           missingProductionCount: 0,
           retryCandidateCount: 1,
+          blockedCanaryCount: 1,
         },
         notifications: {
           queueCount: 2,
@@ -121,6 +122,13 @@ describe("OperationsHealthAdminPage", () => {
           },
         ],
         remediationActions: [
+          {
+            action: "blocked-canary-review",
+            status: "executed",
+            detail: "Blocked production waves were held for operator release or manual canary rerun.",
+            startedAt: "2026-04-06T08:00:00.000Z",
+            completedAt: "2026-04-06T08:01:00.000Z",
+          },
           {
             action: "retry-delivery",
             status: "executed",

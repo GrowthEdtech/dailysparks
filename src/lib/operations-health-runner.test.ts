@@ -85,6 +85,40 @@ describe("runOperationsHealthCycle", () => {
               pendingFutureProfiles: [],
               heldProfiles: [],
               renderAudit: null,
+              syntheticCanary: {
+                status: "blocked",
+                targetParentEmails: ["admin@geledtech.com"],
+                attemptCount: 2,
+                successCount: 0,
+                failureCount: 2,
+                autoRetryCount: 1,
+                lastAttemptAt: "2026-04-06T07:55:00.000Z",
+                lastPassedAt: null,
+                blockedAt: "2026-04-06T07:55:00.000Z",
+                releasedAt: null,
+                releasedBy: null,
+                releaseReason: "",
+                lastFailureReason: "Synthetic canary delivery failed after one automatic retry.",
+                lastFailedTargets: [
+                  {
+                    parentId: "admin-parent",
+                    parentEmail: "admin@geledtech.com",
+                    channel: "goodnotes",
+                    errorMessage: "Relay timeout",
+                  },
+                ],
+                lastDeliveryReceipts: [],
+                renderAudit: {
+                  renderer: "typst",
+                  layoutVariant: "pyp-one-page",
+                  pageCount: 1,
+                  onePageCompliant: true,
+                  pagePolicyLabel: "PYP one-page",
+                  pagePolicyPageCountLimit: 1,
+                  pagePolicyCompliant: true,
+                  auditedAt: "2026-04-06T07:55:00.000Z",
+                },
+              },
               deliveryReceipts: [],
               failedDeliveryTargets: [
                 {
@@ -257,6 +291,10 @@ describe("runOperationsHealthCycle", () => {
       expect.arrayContaining([
         expect.objectContaining({
           action: "retry-delivery",
+          status: "executed",
+        }),
+        expect.objectContaining({
+          action: "blocked-canary-review",
           status: "executed",
         }),
         expect.objectContaining({

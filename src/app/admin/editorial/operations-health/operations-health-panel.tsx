@@ -172,6 +172,9 @@ export default function OperationsHealthPanel({
             {snapshot.dailyBrief.retryCandidateCount} retry candidate
             {snapshot.dailyBrief.retryCandidateCount === 1 ? "" : "s"}
           </p>
+          <p className="mt-2 text-sm text-slate-500">
+            {snapshot.dailyBrief.blockedCanaryCount} blocked by canary
+          </p>
         </div>
 
         <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 shadow-sm">

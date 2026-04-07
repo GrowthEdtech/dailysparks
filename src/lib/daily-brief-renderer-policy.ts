@@ -29,7 +29,12 @@ export type DailyBriefRendererPolicy = {
 
 export type DailyBriefRendererHistoryResolution = {
   renderer: DailyBriefPdfRenderer;
-  source: "delivery-receipt" | "render-audit" | "current-policy";
+  source:
+    | "delivery-receipt"
+    | "render-audit"
+    | "synthetic-canary-receipt"
+    | "synthetic-canary-render-audit"
+    | "current-policy";
 };
 
 const DEFAULT_TYPST_RENDERER: DailyBriefPdfRenderer = "typst";
@@ -81,7 +86,7 @@ export function getDailyBriefRendererPolicyLabel(
 
 type DailyBriefRendererHistoryInput = Pick<
   DailyBriefHistoryRecord,
-  "programme" | "deliveryReceipts" | "renderAudit"
+  "programme" | "deliveryReceipts" | "renderAudit" | "syntheticCanary"
 >;
 
 function findReceiptRenderer(
@@ -110,6 +115,27 @@ export function resolveDailyBriefRendererFromHistory(input: {
     return {
       renderer: renderAuditRenderer,
       source: "render-audit",
+    };
+  }
+
+  const syntheticCanaryReceiptRenderer = findReceiptRenderer(
+    input.brief.syntheticCanary?.lastDeliveryReceipts ?? [],
+  );
+
+  if (syntheticCanaryReceiptRenderer) {
+    return {
+      renderer: syntheticCanaryReceiptRenderer,
+      source: "synthetic-canary-receipt",
+    };
+  }
+
+  const syntheticCanaryRenderAuditRenderer =
+    input.brief.syntheticCanary?.renderAudit?.renderer ?? null;
+
+  if (syntheticCanaryRenderAuditRenderer) {
+    return {
+      renderer: syntheticCanaryRenderAuditRenderer,
+      source: "synthetic-canary-render-audit",
     };
   }
 

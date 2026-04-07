@@ -47,6 +47,7 @@ import {
 type DailyBriefDeliverRequestBody = {
   runDate?: string;
   recordKind?: string;
+  briefId?: string;
   dispatchMode?: string;
   canaryParentEmails?: string[];
   dispatchTimestamp?: string;
@@ -112,6 +113,10 @@ function normalizeDispatchTimestamp(value: unknown) {
   }
 
   return Number.isNaN(Date.parse(value)) ? undefined : new Date(value).toISOString();
+}
+
+function normalizeBriefId(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function isDeliverableBrief(entry: DailyBriefHistoryRecord) {
@@ -231,6 +236,7 @@ export async function POST(request: Request) {
     ? [parsedBody.runDate]
     : getDailyBriefDispatchRunDates(resolvedDispatchDate);
   const recordKind = normalizeRecordKind(parsedBody.recordKind) ?? "production";
+  const briefId = normalizeBriefId(parsedBody.briefId);
   const forceDispatch = parsedBody.forceDispatch === true;
   const dispatchOverrides = {
     mode: normalizeDispatchMode(parsedBody.dispatchMode),
@@ -248,7 +254,10 @@ export async function POST(request: Request) {
       ),
     )
   ).flat();
-  const deliverableBriefs = history.filter(isDeliverableBrief);
+  const scopedHistory = briefId
+    ? history.filter((entry) => entry.id === briefId)
+    : history;
+  const deliverableBriefs = scopedHistory.filter(isDeliverableBrief);
   const dispatchableProfiles = await listDispatchableDeliveryProfiles();
   const allProfiles = await listParentProfiles();
   const retryEligibleUntil = buildRetryEligibleUntil(dispatchTimestamp);
@@ -647,6 +656,7 @@ export async function POST(request: Request) {
       skippedProfileCount,
       pendingFutureProfileCount,
       historyEntryCount: history.length,
+      scopedHistoryEntryCount: scopedHistory.length,
       deliverableCount: deliverableBriefs.length,
       deliveredCount,
       failedCount,

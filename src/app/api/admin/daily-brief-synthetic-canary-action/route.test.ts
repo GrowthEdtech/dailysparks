@@ -42,6 +42,7 @@ import {
 
 const ORIGINAL_ENV = { ...process.env };
 const validAdminSecret = "open-sesame";
+const schedulerSecret = "scheduler-secret-fixture";
 let tempDirectory = "";
 
 function buildHistoryInput(
@@ -139,7 +140,10 @@ async function signIn() {
     : "";
 }
 
-async function createCanaryProfile(email: string) {
+async function createCanaryProfile(
+  email: string,
+  programme: "PYP" | "MYP" | "DP" = "PYP",
+) {
   await getOrCreateParentProfile({
     email,
     fullName: "Canary Family",
@@ -150,9 +154,32 @@ async function createCanaryProfile(email: string) {
   });
   await updateStudentPreferences(email, {
     studentName: "Harper",
+    programme,
+    programmeYear: programme === "DP" ? 1 : programme === "MYP" ? 3 : 5,
+    goodnotesEmail: "synthetic-canary@goodnotes.email",
+  });
+  await updateStudentGoodnotesDelivery(email, {
+    goodnotesConnected: true,
+    goodnotesVerifiedAt: "2026-04-05T00:00:00.000Z",
+    goodnotesLastDeliveryStatus: "success",
+    goodnotesLastDeliveryMessage: "Ready.",
+  });
+}
+
+async function createLiveProfile(email: string) {
+  await getOrCreateParentProfile({
+    email,
+    fullName: "Live Family",
+    studentName: "Jordan",
+  });
+  await updateParentSubscription(email, {
+    subscriptionStatus: "active",
+  });
+  await updateStudentPreferences(email, {
+    studentName: "Jordan",
     programme: "PYP",
     programmeYear: 5,
-    goodnotesEmail: "synthetic-canary@goodnotes.email",
+    goodnotesEmail: "live-family@goodnotes.email",
   });
   await updateStudentGoodnotesDelivery(email, {
     goodnotesConnected: true,
@@ -179,6 +206,7 @@ beforeEach(async () => {
       tempDirectory,
       "daily-brief-history.json",
     ),
+    DAILY_SPARKS_SCHEDULER_SECRET: schedulerSecret,
     DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED: "true",
     DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS:
       "synthetic-canary@example.com",
@@ -276,6 +304,134 @@ describe("admin daily brief synthetic canary action route", () => {
         status: "passed",
         targetParentEmails: ["synthetic-canary@example.com"],
       }),
+    );
+  });
+
+  test("can release a blocked brief and immediately resume live delivery", async () => {
+    const cookie = await signIn();
+    await createLiveProfile("live-family@example.com");
+    const entry = await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const response = await syntheticCanaryActionRoute(
+      new Request(
+        "http://localhost:3000/api/admin/daily-brief-synthetic-canary-action",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie,
+          },
+          body: JSON.stringify({
+            briefId: entry.id,
+            action: "release-and-deliver",
+            releaseReason: "Ops verified the synthetic gate and wants live delivery now.",
+          }),
+        },
+      ),
+    );
+    const body = await response.json();
+    const updated = await getDailyBriefHistoryEntry(entry.id);
+
+    expect(response.status).toBe(200);
+    expect(body.syntheticCanaryStatus).toBe("released");
+    expect(body.deliverySummary).toEqual(
+      expect.objectContaining({
+        deliveredCount: 1,
+        targetedProfileCount: 1,
+        syntheticCanaryBlockedCount: 0,
+      }),
+    );
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[0]).toMatchObject({
+      parent: {
+        email: "live-family@example.com",
+      },
+    });
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[2]).toEqual({
+      attachmentMode: "production",
+      renderer: "typst",
+    });
+    expect(updated?.status).toBe("published");
+    expect(updated?.pipelineStage).toBe("published");
+    expect(updated?.syntheticCanary).toEqual(
+      expect.objectContaining({
+        status: "released",
+      }),
+    );
+    expect(updated?.deliveryReceipts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          parentEmail: "live-family@example.com",
+          channel: "goodnotes",
+          renderer: "typst",
+        }),
+      ]),
+    );
+  });
+
+  test("can rerun a blocked canary and resume live delivery in one action", async () => {
+    const cookie = await signIn();
+    await createCanaryProfile("synthetic-canary@example.com", "DP");
+    await createLiveProfile("live-family@example.com");
+    const entry = await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const response = await syntheticCanaryActionRoute(
+      new Request(
+        "http://localhost:3000/api/admin/daily-brief-synthetic-canary-action",
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            cookie,
+          },
+          body: JSON.stringify({
+            briefId: entry.id,
+            action: "rerun-and-deliver",
+          }),
+        },
+      ),
+    );
+    const body = await response.json();
+    const updated = await getDailyBriefHistoryEntry(entry.id);
+
+    expect(response.status).toBe(200);
+    expect(body.syntheticCanaryStatus).toBe("passed");
+    expect(body.deliverySummary).toEqual(
+      expect.objectContaining({
+        deliveredCount: 1,
+        targetedProfileCount: 1,
+        syntheticCanaryBlockedCount: 0,
+      }),
+    );
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(2);
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[2]).toEqual({
+      attachmentMode: "canary",
+      renderer: "typst",
+    });
+    expect(sendBriefToGoodnotesMock.mock.calls[1]?.[0]).toMatchObject({
+      parent: {
+        email: "live-family@example.com",
+      },
+    });
+    expect(sendBriefToGoodnotesMock.mock.calls[1]?.[2]).toEqual({
+      attachmentMode: "production",
+      renderer: "typst",
+    });
+    expect(updated?.status).toBe("published");
+    expect(updated?.pipelineStage).toBe("published");
+    expect(updated?.syntheticCanary).toEqual(
+      expect.objectContaining({
+        status: "passed",
+      }),
+    );
+    expect(updated?.deliveryReceipts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          parentEmail: "live-family@example.com",
+          channel: "goodnotes",
+          renderer: "typst",
+        }),
+      ]),
     );
   });
 });

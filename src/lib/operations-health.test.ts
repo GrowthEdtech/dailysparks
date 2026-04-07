@@ -200,6 +200,47 @@ describe("buildOperationsHealthSnapshot", () => {
           pipelineStage: "failed",
           failureReason: "Prompt policy missing.",
         }),
+        buildBrief({
+          editorialCohort: "AMER",
+          programme: "MYP",
+          status: "approved",
+          pipelineStage: "preflight_passed",
+          syntheticCanary: {
+            status: "blocked",
+            targetParentEmails: ["admin@geledtech.com"],
+            attemptCount: 2,
+            successCount: 0,
+            failureCount: 2,
+            autoRetryCount: 1,
+            lastAttemptAt: "2026-04-06T07:55:00.000Z",
+            lastPassedAt: null,
+            blockedAt: "2026-04-06T07:55:00.000Z",
+            releasedAt: null,
+            releasedBy: null,
+            releaseReason: "",
+            lastFailureReason: "Synthetic canary delivery failed after one automatic retry.",
+            lastFailedTargets: [
+              {
+                parentId: "parent-canary",
+                parentEmail: "admin@geledtech.com",
+                channel: "goodnotes",
+                errorMessage: "Relay timeout",
+              },
+            ],
+            lastDeliveryReceipts: [],
+            renderAudit: {
+              renderer: "typst",
+              layoutVariant: "myp-compare",
+              pageCount: 2,
+              onePageCompliant: null,
+              pagePolicyLabel: "MYP compare-only",
+              pagePolicyPageCountLimit: 2,
+              pagePolicyCompliant: true,
+              auditedAt: "2026-04-06T07:55:00.000Z",
+            },
+          },
+          failureReason: "Synthetic canary gate blocked production delivery.",
+        }),
       ],
       plannedNotificationQueue: buildNotificationQueue(),
       plannedNotificationHistory: [
@@ -223,9 +264,10 @@ describe("buildOperationsHealthSnapshot", () => {
 
     expect(snapshot.status).toBe("critical");
     expect(snapshot.dailyBrief.expectedProductionCount).toBe(9);
-    expect(snapshot.dailyBrief.generatedCount).toBe(3);
-    expect(snapshot.dailyBrief.missingProductionCount).toBe(6);
+    expect(snapshot.dailyBrief.generatedCount).toBe(4);
+    expect(snapshot.dailyBrief.missingProductionCount).toBe(5);
     expect(snapshot.dailyBrief.retryCandidateCount).toBe(1);
+    expect(snapshot.dailyBrief.blockedCanaryCount).toBe(1);
     expect(snapshot.notifications.escalatedCount).toBe(1);
     expect(snapshot.notifications.over72hCount).toBe(1);
     expect(snapshot.geo.latestRunStatus).toBe("partial");
@@ -238,6 +280,12 @@ describe("buildOperationsHealthSnapshot", () => {
         expect.objectContaining({
           area: "daily-brief",
           severity: "critical",
+        }),
+        expect.objectContaining({
+          area: "daily-brief",
+          title: "Production briefs are blocked by synthetic canary",
+          severity: "critical",
+          metricValue: 1,
         }),
         expect.objectContaining({
           area: "geo-monitoring",

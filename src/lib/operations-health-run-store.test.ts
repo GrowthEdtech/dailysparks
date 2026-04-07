@@ -42,6 +42,7 @@ describe("operations health run store", () => {
         failedCount: 1,
         missingProductionCount: 0,
         retryCandidateCount: 1,
+        blockedCanaryCount: 0,
       },
       notifications: {
         queueCount: 1,
@@ -90,6 +91,7 @@ describe("operations health run store", () => {
         failedCount: 0,
         missingProductionCount: 0,
         retryCandidateCount: 0,
+        blockedCanaryCount: 0,
       },
       notifications: {
         queueCount: 0,

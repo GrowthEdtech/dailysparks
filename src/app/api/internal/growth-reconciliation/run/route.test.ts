@@ -3,6 +3,15 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+const { reconcileBillingBackfillMock } = vi.hoisted(() => ({
+  reconcileBillingBackfillMock: vi.fn(),
+}));
+
+vi.mock("../../../../../lib/growth-billing-reconciliation", () => ({
+  reconcileBillingBackfillForProfiles: (...args: unknown[]) =>
+    reconcileBillingBackfillMock(...args),
+}));
+
 import { POST as growthReconciliationRoute } from "./route";
 import {
   getOrCreateParentProfile,
@@ -41,6 +50,14 @@ beforeEach(async () => {
     DAILY_SPARKS_STORE_PATH: path.join(tempDirectory, "mvp-store.json"),
     DAILY_SPARKS_SCHEDULER_SECRET: SCHEDULER_HEADER_FIXTURE,
   };
+  reconcileBillingBackfillMock.mockReset();
+  reconcileBillingBackfillMock.mockImplementation(async ({ profiles }) => ({
+    profiles,
+    checkedCount: 0,
+    backfilledCount: 0,
+    skippedCount: 0,
+    failedCount: 0,
+  }));
 });
 
 afterEach(async () => {
@@ -130,6 +147,12 @@ describe("growth reconciliation route", () => {
     expect(response.status).toBe(200);
     expect(body.mode).toBe("growth-reconciliation");
     expect(body.runDate).toBe("2026-04-04");
+    expect(body.billingBackfill).toEqual({
+      checkedCount: 0,
+      backfilledCount: 0,
+      skippedCount: 0,
+      failedCount: 0,
+    });
     expect(body.summary.checkedProfileCount).toBe(4);
     expect(body.summary.trialsExpiringSoonWithoutFirstBrief.count).toBe(1);
     expect(body.summary.activeWithoutDispatchableChannel.count).toBe(1);
@@ -146,5 +169,6 @@ describe("growth reconciliation route", () => {
         checkedCount: 3,
       }),
     });
+    expect(reconcileBillingBackfillMock).toHaveBeenCalledTimes(1);
   });
 });

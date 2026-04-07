@@ -76,6 +76,9 @@ export function buildOperationsHealthSnapshot(input: {
 
     return entry.retryEligibleUntil >= now.toISOString();
   }).length;
+  const blockedCanaryCount = dailyBriefHistory.filter(
+    (entry) => entry.syntheticCanary?.status === "blocked",
+  ).length;
   const missingProductionCount = Math.max(
     0,
     expectedProductionCount - generatedCount,
@@ -89,6 +92,7 @@ export function buildOperationsHealthSnapshot(input: {
     failedCount,
     missingProductionCount,
     retryCandidateCount,
+    blockedCanaryCount,
   };
 
   if (missingProductionCount > 0) {
@@ -108,6 +112,16 @@ export function buildOperationsHealthSnapshot(input: {
       title: "Retry-eligible brief deliveries need recovery",
       detail: `${retryCandidateCount} production brief(s) still have retry-eligible failed delivery targets.`,
       metricValue: retryCandidateCount,
+    });
+  }
+
+  if (blockedCanaryCount > 0) {
+    alerts.push({
+      area: "daily-brief",
+      severity: "critical",
+      title: "Production briefs are blocked by synthetic canary",
+      detail: `${blockedCanaryCount} production brief(s) are currently held by a failed synthetic canary and need operator release or rerun before delivery can resume.`,
+      metricValue: blockedCanaryCount,
     });
   }
 

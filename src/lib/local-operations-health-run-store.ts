@@ -133,6 +133,7 @@ function normalizeRunRecord(
       failedCount: normalizeNumber(raw?.dailyBrief?.failedCount),
       missingProductionCount: normalizeNumber(raw?.dailyBrief?.missingProductionCount),
       retryCandidateCount: normalizeNumber(raw?.dailyBrief?.retryCandidateCount),
+      blockedCanaryCount: normalizeNumber(raw?.dailyBrief?.blockedCanaryCount),
     },
     notifications: {
       queueCount: normalizeNumber(raw?.notifications?.queueCount),

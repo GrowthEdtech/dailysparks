@@ -74,7 +74,7 @@ export function isStripeWebhookConfigured() {
   return Boolean(getStripeWebhookSecret());
 }
 
-function getStripeServerClient() {
+export function getStripeServerClient() {
   const secretKey = getStripeSecretKey();
 
   if (!secretKey) {

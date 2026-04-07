@@ -3,6 +3,7 @@ import {
   hasValidDailyBriefSchedulerSecret,
   isDailyBriefSchedulerConfigured,
 } from "../../../../../lib/daily-brief-run-auth";
+import { reconcileBillingBackfillForProfiles } from "../../../../../lib/growth-billing-reconciliation";
 import { listParentProfiles } from "../../../../../lib/mvp-store";
 import { getGrowthReconciliationSummary } from "../../../../../lib/growth-reconciliation";
 import { runGrowthNotificationEmails } from "../../../../../lib/growth-notification-runner";
@@ -29,13 +30,24 @@ export async function POST(request: Request) {
   }
 
   const profiles = await listParentProfiles();
+  const billingBackfill = await reconcileBillingBackfillForProfiles({ profiles });
+  const hydratedProfiles = billingBackfill.profiles;
   const now = new Date();
-  const summary = getGrowthReconciliationSummary(profiles, now);
-  const notificationRun = await runGrowthNotificationEmails({ profiles, now });
+  const summary = getGrowthReconciliationSummary(hydratedProfiles, now);
+  const notificationRun = await runGrowthNotificationEmails({
+    profiles: hydratedProfiles,
+    now,
+  });
 
   return Response.json({
     mode: "growth-reconciliation",
     runDate: summary.runDate,
+    billingBackfill: {
+      checkedCount: billingBackfill.checkedCount,
+      backfilledCount: billingBackfill.backfilledCount,
+      skippedCount: billingBackfill.skippedCount,
+      failedCount: billingBackfill.failedCount,
+    },
     summary,
     notificationRun,
   });

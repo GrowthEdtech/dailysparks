@@ -18,6 +18,7 @@ export const OPERATIONS_HEALTH_ALERT_SEVERITIES = [
 ] as const;
 export const OPERATIONS_HEALTH_REMEDIATION_ACTIONS = [
   "retry-delivery",
+  "blocked-canary-review",
   "growth-reconciliation",
   "geo-monitoring",
 ] as const;
@@ -48,6 +49,7 @@ export type OperationsHealthDailyBriefSummary = {
   failedCount: number;
   missingProductionCount: number;
   retryCandidateCount: number;
+  blockedCanaryCount: number;
 };
 
 export type OperationsHealthNotificationsSummary = {
