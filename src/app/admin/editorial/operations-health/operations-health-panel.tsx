@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import type { OperationsHealthSnapshot } from "../../../../lib/operations-health";
 import type { OperationsHealthRunRecord } from "../../../../lib/operations-health-run-schema";
+import { buildOperationsHealthHandoffSummary } from "./operations-health-handoff";
 import { OPERATIONS_HEALTH_READINESS_MODULES } from "./operations-health-readiness";
 
 type OperationsHealthPanelProps = {
@@ -69,6 +70,16 @@ export default function OperationsHealthPanel({
     () => (latestRun?.remediationActions ?? []).slice(0, 5),
     [latestRun],
   );
+  const handoffSummary = useMemo(
+    () =>
+      buildOperationsHealthHandoffSummary({
+        snapshot,
+        latestRun,
+      }),
+    [latestRun, snapshot],
+  );
+  const [handoffMessage, setHandoffMessage] = useState("");
+  const [handoffError, setHandoffError] = useState("");
 
   async function runHealthCheckNow() {
     setIsRunning(true);
@@ -102,6 +113,50 @@ export default function OperationsHealthPanel({
       );
     } finally {
       setIsRunning(false);
+    }
+  }
+
+  async function copyHandoffSummary() {
+    setHandoffMessage("");
+    setHandoffError("");
+
+    try {
+      if (!navigator?.clipboard?.writeText) {
+        throw new Error("Clipboard copy is not available in this browser.");
+      }
+
+      await navigator.clipboard.writeText(handoffSummary);
+      setHandoffMessage("Shift handoff summary copied.");
+    } catch (error) {
+      setHandoffError(
+        error instanceof Error
+          ? error.message
+          : "Shift handoff summary could not be copied.",
+      );
+    }
+  }
+
+  function downloadHandoffSummary() {
+    setHandoffMessage("");
+    setHandoffError("");
+
+    try {
+      const blob = new Blob([handoffSummary], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `operations-health-handoff-${snapshot.runDate}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setHandoffMessage("Shift handoff summary downloaded.");
+    } catch (error) {
+      setHandoffError(
+        error instanceof Error
+          ? error.message
+          : "Shift handoff summary could not be downloaded.",
+      );
     }
   }
 
@@ -376,6 +431,52 @@ export default function OperationsHealthPanel({
           </div>
         </section>
       </div>
+
+      <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-sm">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Shift handoff summary
+            </p>
+            <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
+              Copy or download the latest ops memo for the next shift
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              This summary packages the current health state, top alerts,
+              remediation evidence, and a recommended handoff note into a compact
+              Markdown/TXT memo for fast operator handoff.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={copyHandoffSummary}
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-[#0f172a] transition hover:bg-slate-50"
+            >
+              Copy Markdown
+            </button>
+            <button
+              type="button"
+              onClick={downloadHandoffSummary}
+              className="inline-flex items-center justify-center rounded-full bg-[#0f172a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+            >
+              Download TXT
+            </button>
+          </div>
+        </div>
+
+        {handoffMessage ? (
+          <p className="mt-4 text-sm text-emerald-700">{handoffMessage}</p>
+        ) : null}
+        {handoffError ? (
+          <p className="mt-4 text-sm text-rose-700">{handoffError}</p>
+        ) : null}
+
+        <pre className="mt-5 overflow-x-auto rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600 whitespace-pre-wrap">
+          {handoffSummary}
+        </pre>
+      </section>
     </div>
   );
 }

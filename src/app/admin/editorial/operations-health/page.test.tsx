@@ -173,6 +173,9 @@ describe("OperationsHealthAdminPage", () => {
     expect(markup).toContain("Simulate canary fail");
     expect(markup).toContain("Incident runbook / SOP");
     expect(markup).toContain("Use rerun canary first when the blocked wave still needs a fresh synthetic proof.");
+    expect(markup).toContain("Shift handoff summary");
+    expect(markup).toContain("Copy Markdown");
+    expect(markup).toContain("Download TXT");
     expect(markup).toContain("Notifications require manual intervention");
     expect(markup).toContain("retry-delivery");
     expect(markup).toContain("admin@geledtech.com");
