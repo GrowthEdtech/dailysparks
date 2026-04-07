@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 
 import type { OperationsHealthSnapshot } from "../../../../lib/operations-health";
 import type { OperationsHealthRunRecord } from "../../../../lib/operations-health-run-schema";
+import { OPERATIONS_HEALTH_READINESS_MODULES } from "./operations-health-readiness";
 
 type OperationsHealthPanelProps = {
   initialSnapshot: OperationsHealthSnapshot;
@@ -219,6 +220,68 @@ export default function OperationsHealthPanel({
             {snapshot.notifications.escalatedCount} escalated notification
             {snapshot.notifications.escalatedCount === 1 ? "" : "s"}
           </p>
+        </div>
+      </section>
+
+      <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
+        <div className="max-w-3xl">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Ops readiness
+          </p>
+          <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
+            Stabilization checks, drills, and incident playbooks
+          </h3>
+          <p className="mt-3 text-sm leading-6 text-slate-500">
+            Keep the fast path for on-call response inside the same page as live
+            health evidence. Use these cards to scan the morning checks, rehearse
+            failure drills, and follow the smallest safe intervention during an
+            incident.
+          </p>
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-3">
+          {OPERATIONS_HEALTH_READINESS_MODULES.map((module) => (
+            <article
+              key={module.title}
+              className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 shadow-sm"
+            >
+              <h4 className="text-lg font-semibold text-[#0f172a]">
+                {module.title}
+              </h4>
+              <p className="mt-3 text-sm leading-6 text-slate-500">
+                {module.summary}
+              </p>
+
+              <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+                {module.items.map((item) => (
+                  <li key={item} className="flex gap-3">
+                    <span className="mt-2 h-1.5 w-1.5 rounded-full bg-slate-300" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {module.evidence.map((item) => (
+                  <span
+                    key={item}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-500"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+
+              <div className="mt-4 rounded-[18px] border border-dashed border-slate-200 bg-slate-50 px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Canonical doc
+                </p>
+                <p className="mt-2 break-all text-xs text-slate-500">
+                  {module.canonicalDocPath}
+                </p>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 

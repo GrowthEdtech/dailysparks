@@ -166,6 +166,13 @@ describe("OperationsHealthAdminPage", () => {
     expect(markup).toContain("Alerting / SLA policy");
     expect(markup).toContain("Auto-remediation workflows");
     expect(markup).toContain("Run health check now");
+    expect(markup).toContain("Ops readiness");
+    expect(markup).toContain("Production stabilization checklist");
+    expect(markup).toContain("Confirm canary passes before trusting today&#x27;s production wave.");
+    expect(markup).toContain("Ops drill plan");
+    expect(markup).toContain("Simulate canary fail");
+    expect(markup).toContain("Incident runbook / SOP");
+    expect(markup).toContain("Use rerun canary first when the blocked wave still needs a fresh synthetic proof.");
     expect(markup).toContain("Notifications require manual intervention");
     expect(markup).toContain("retry-delivery");
     expect(markup).toContain("admin@geledtech.com");
