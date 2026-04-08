@@ -104,6 +104,25 @@ const notebookItems: DailyBriefNotebookEntryRecord[] = [
     savedAt: "2026-04-08T01:00:00.000Z",
     createdAt: "2026-04-08T01:00:00.000Z",
   },
+  {
+    id: "notebook-2",
+    parentId: "parent_123",
+    parentEmail: "parent@example.com",
+    studentId: "student_123",
+    programme: "MYP",
+    entryType: "global-context-note",
+    title: "Global context note",
+    body: "Coastal cleanup decisions affect communities, public budgets, and environmental recovery.",
+    knowledgeBankTitle: "Inquiry notebook",
+    sourceBriefId: "brief-1",
+    sourceScheduledFor: "2026-04-08",
+    sourceHeadline: "Students compare coastal cleanup plans",
+    topicTags: ["civic planning", "sustainability"],
+    interestTags: ["Tech & Innovation", "Society & Culture"],
+    savedSource: "dashboard",
+    savedAt: "2026-04-08T01:00:00.000Z",
+    createdAt: "2026-04-08T01:00:00.000Z",
+  },
 ];
 
 const notebookSuggestion = {
@@ -248,7 +267,11 @@ describe("DashboardForm", () => {
     expect(markup).toContain("Save today&#x27;s notes");
     expect(markup).toContain("Students compare coastal cleanup plans");
     expect(markup).toContain("Saved notebook entries");
-    expect(markup).toContain("Inquiry notebook");
-    expect(markup).toContain("Global context note");
+    expect(markup).toContain("Filter notebook");
+    expect(markup).toContain("All notes (2)");
+    expect(markup).toContain("Notebook detail");
+    expect(markup).toContain("Source brief");
+    expect(markup).toContain("Topic tags");
+    expect(markup).toContain("Interest tags");
   });
 });

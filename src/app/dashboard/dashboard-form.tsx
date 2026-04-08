@@ -36,6 +36,13 @@ import {
   sanitizeInterestTagsForProgramme,
 } from "../../lib/student-interest-taxonomy";
 import { getProgrammeStageSummary, getWeeklyPlan } from "../../lib/weekly-plan";
+import {
+  ALL_NOTEBOOK_FILTER_ID,
+  buildNotebookEntryPreview,
+  buildNotebookFilterOptions,
+  filterNotebookEntries,
+  resolveSelectedNotebookEntry,
+} from "./notebook-workspace";
 
 type DashboardFormProps = {
   initialProfile: ParentProfile;
@@ -122,6 +129,10 @@ export default function DashboardForm({
   const [notebookErrorMessage, setNotebookErrorMessage] = useState("");
   const [notebookSuccessMessage, setNotebookSuccessMessage] = useState("");
   const [isSavingNotebook, setIsSavingNotebook] = useState(false);
+  const [notebookFilterId, setNotebookFilterId] = useState(ALL_NOTEBOOK_FILTER_ID);
+  const [selectedNotebookEntryId, setSelectedNotebookEntryId] = useState<string | null>(
+    notebookItems[0]?.id ?? null,
+  );
   const hasAppliedBrowserDeliveryDetection = useRef(false);
   const [isPending, startTransition] = useTransition();
 
@@ -141,7 +152,16 @@ export default function DashboardForm({
     savedDeliveryTimeZone !== DEFAULT_DELIVERY_TIME_ZONE ||
     savedPreferredDeliveryLocalTime !== DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME;
   const hasNotebookSuggestion = notebookSuggestion !== null;
-  const recentNotebookItems = notebookItems.slice(0, 6);
+  const notebookLibraryItems = notebookItems.slice(0, 40);
+  const notebookFilterOptions = buildNotebookFilterOptions(notebookLibraryItems);
+  const visibleNotebookItems = filterNotebookEntries(
+    notebookLibraryItems,
+    notebookFilterId,
+  );
+  const selectedNotebookEntry = resolveSelectedNotebookEntry(
+    visibleNotebookItems,
+    selectedNotebookEntryId,
+  );
 
   useEffect(() => {
     if (hasAppliedBrowserDeliveryDetection.current) {
@@ -569,31 +589,150 @@ export default function DashboardForm({
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                   Saved notebook entries
                 </p>
-                {recentNotebookItems.length > 0 ? (
-                  <div className="mt-3 space-y-3">
-                    {recentNotebookItems.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="rounded-2xl border border-slate-200 bg-white px-4 py-4"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-[#0f172a]">
-                              {entry.title}
-                            </p>
-                            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                              {entry.sourceScheduledFor} · {entry.programme}
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                            {entry.knowledgeBankTitle}
-                          </span>
+                {notebookLibraryItems.length > 0 ? (
+                  <div className="mt-3 space-y-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        Filter notebook
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {notebookFilterOptions.map((option) => {
+                          const active = notebookFilterId === option.id;
+
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={() => setNotebookFilterId(option.id)}
+                              className={`rounded-full border px-3 py-2 text-sm font-medium transition ${
+                                active
+                                  ? "border-[#0f172a] bg-[#0f172a] text-white"
+                                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                              }`}
+                            >
+                              {option.label} ({option.count})
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {visibleNotebookItems.length > 0 ? (
+                      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+                        <div className="space-y-3">
+                          {visibleNotebookItems.map((entry) => {
+                            const active = selectedNotebookEntry?.id === entry.id;
+
+                            return (
+                              <button
+                                key={entry.id}
+                                type="button"
+                                onClick={() => setSelectedNotebookEntryId(entry.id)}
+                                className={`w-full rounded-2xl border px-4 py-4 text-left transition ${
+                                  active
+                                    ? "border-[#0f172a] bg-slate-50 shadow-sm"
+                                    : "border-slate-200 bg-white hover:border-slate-300"
+                                }`}
+                              >
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-sm font-semibold text-[#0f172a]">
+                                      {entry.title}
+                                    </p>
+                                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                      {entry.sourceScheduledFor} · {entry.programme}
+                                    </p>
+                                  </div>
+                                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                                    {entry.knowledgeBankTitle}
+                                  </span>
+                                </div>
+                                <p className="mt-2 text-sm leading-6 text-slate-600">
+                                  {buildNotebookEntryPreview(entry)}
+                                </p>
+                              </button>
+                            );
+                          })}
                         </div>
-                        <p className="mt-2 text-sm leading-6 text-slate-600">
-                          {entry.body}
+
+                        {selectedNotebookEntry ? (
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                              Notebook detail
+                            </p>
+                            <h3 className="mt-2 text-base font-bold text-[#0f172a]">
+                              {selectedNotebookEntry.title}
+                            </h3>
+                            <p className="mt-2 text-sm leading-6 text-slate-700">
+                              {selectedNotebookEntry.body}
+                            </p>
+
+                            <dl className="mt-4 grid gap-3 text-sm">
+                              <div>
+                                <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                  Source brief
+                                </dt>
+                                <dd className="mt-1 text-slate-700">
+                                  {selectedNotebookEntry.sourceHeadline}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                  Saved on
+                                </dt>
+                                <dd className="mt-1 text-slate-700">
+                                  {selectedNotebookEntry.sourceScheduledFor}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                  Topic tags
+                                </dt>
+                                <dd className="mt-2 flex flex-wrap gap-2">
+                                  {selectedNotebookEntry.topicTags.length > 0 ? (
+                                    selectedNotebookEntry.topicTags.map((tag) => (
+                                      <span
+                                        key={tag}
+                                        className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-slate-500">No topic tags yet.</span>
+                                  )}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                  Interest tags
+                                </dt>
+                                <dd className="mt-2 flex flex-wrap gap-2">
+                                  {selectedNotebookEntry.interestTags.length > 0 ? (
+                                    selectedNotebookEntry.interestTags.map((tag) => (
+                                      <span
+                                        key={tag}
+                                        className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <span className="text-slate-500">No interest tags yet.</span>
+                                  )}
+                                </dd>
+                              </div>
+                            </dl>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
+                        <p className="text-sm leading-6 text-slate-600">
+                          No notebook entries match this filter yet.
                         </p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 ) : (
                   <p className="mt-3 text-sm leading-6 text-slate-500">
