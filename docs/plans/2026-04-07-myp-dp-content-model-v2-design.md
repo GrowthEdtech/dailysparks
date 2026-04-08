@@ -156,11 +156,12 @@ The system still selects one shared topic cluster for the day.
 
 So weekend policy in this phase should operate through:
 
+- a shared weekend-aware ranking bias inside topic selection
 - programme-specific framing instructions
 - programme-specific packet labels and prompts
 - programme-specific knowledge-capture prompts
 
-It should **not** yet attempt per-programme topic divergence.
+It should **not** yet attempt per-programme topic divergence. Instead, the shared topic selector should prefer candidates whose headline and summary better match `Vision day` and `TOK day` intent signals whenever the run falls on a weekend.
 
 ## Decision 3: Knowledge Bank V1
 

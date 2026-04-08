@@ -78,6 +78,8 @@ Run the same command again.
 **Files:**
 - Modify: `src/lib/daily-brief-orchestrator.ts`
 - Modify: `src/lib/daily-brief-orchestrator.test.ts`
+- Create: `src/lib/daily-brief-selection-policy.test.ts`
+- Modify: `src/lib/daily-brief-selection-policy.ts`
 - Modify: `src/lib/prompt-policy-schema.ts`
 - Modify: `src/lib/prompt-policy-store.test.ts`
 - Modify: `src/lib/editorial-policy.ts`
@@ -88,6 +90,9 @@ Run the same command again.
 Add coverage for:
 - weekend `MYP` generation prompt includes `Vision day` framing
 - weekend `DP` generation prompt includes `TOK day` framing
+- weekend topic selection prefers `Vision day` candidates for `MYP`
+- weekend topic selection prefers `TOK day` candidates for `DP`
+- shared `MYP + DP` weekend runs prefer a topic with combined weekend signals
 - default prompt template instructs `MYP` and `DP` to follow their new section order
 
 **Step 2: Run test to verify it fails**
@@ -101,6 +106,7 @@ npm test -- src/lib/daily-brief-orchestrator.test.ts src/lib/prompt-policy-store
 **Step 3: Write minimal implementation**
 
 Update runtime generation to:
+- bias shared weekend topic ranking toward `Vision day` / `TOK day` signals without splitting the one-topic editorial spine
 - append programme-native structure expectations
 - append weekend policy framing when relevant
 - refresh weekly-plan Sunday copy so dashboard reflects the same system policy

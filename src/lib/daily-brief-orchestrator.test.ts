@@ -409,6 +409,96 @@ describe("daily brief orchestrator", () => {
     expect(result.generatedBriefs[1]?.resolvedPrompt).toContain("TOK day");
   });
 
+  test("biases shared weekend topic selection toward a Vision plus TOK-friendly topic", async () => {
+    await createEligibleProgrammeProfile(
+      "myp-family@example.com",
+      "MYP",
+      "goodnotes",
+    );
+    await createEligibleProgrammeProfile(
+      "dp-family@example.com",
+      "DP",
+      "notion",
+    );
+
+    await createAiConnection({
+      name: "NF Relay",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: TEST_AI_CONNECTION_TOKEN,
+      active: true,
+      isDefault: true,
+      notes: "Weekend runtime connection.",
+    });
+
+    await createPromptPolicy({
+      name: "Weekend Policy",
+      versionLabel: "v1.0.0",
+      sharedInstructions: "Use clear academic language.",
+      antiRepetitionInstructions: "Keep weekend briefs distinct.",
+      outputContractInstructions:
+        "Return JSON with headline, summary, briefMarkdown, and topicTags.",
+      pypInstructions: "Unused",
+      mypInstructions: "Use inquiry structure.",
+      dpInstructions: "Use TOK structure.",
+      notes: "Weekend selection test.",
+    });
+
+    fetchMock
+      .mockResolvedValueOnce(
+        createChatCompletionResponse({
+          headline: "MYP weekend brief",
+          summary: "MYP weekend summary.",
+          briefMarkdown: "## MYP\nWeekend bridge brief.",
+          topicTags: ["weekend", "vision"],
+        }),
+      )
+      .mockResolvedValueOnce(
+        createChatCompletionResponse({
+          headline: "DP weekend brief",
+          summary: "DP weekend summary.",
+          briefMarkdown: "## DP\nWeekend TOK brief.",
+          topicTags: ["weekend", "tok"],
+        }),
+      );
+
+    const result = await generateDailyBriefDrafts({
+      scheduledFor: "2026-04-12",
+      editorialCohort: "APAC",
+      recordKind: "production",
+      now: new Date("2026-04-12T09:00:00.000Z"),
+      fetchImpl: fetchMock,
+      candidates: [
+        buildCandidate(
+          {
+            title: "City budget update challenges local councils",
+            summary:
+              "A standard public policy article without a special weekend framing.",
+            url: "https://www.bbc.com/news/world-999",
+            normalizedUrl: "https://www.bbc.com/news/world-999",
+            normalizedTitle: "city budget update challenges local councils",
+          },
+        ),
+        buildCandidate(
+          {
+            title: "How should future cities use AI fairly across cultures?",
+            summary:
+              "A cross-disciplinary debate that combines future technology, fairness, evidence limits, and global cultural trade-offs.",
+            url: "https://www.bbc.com/news/world-1000",
+            normalizedUrl: "https://www.bbc.com/news/world-1000",
+            normalizedTitle:
+              "how should future cities use ai fairly across cultures",
+          },
+        ),
+      ],
+    });
+
+    expect(result.selectedTopic?.headline).toBe(
+      "How should future cities use AI fairly across cultures?",
+    );
+  });
+
   test("skips programmes that already have a published brief for the scheduled date", async () => {
     await createEligibleProgrammeProfile(
       "pyp-family@example.com",

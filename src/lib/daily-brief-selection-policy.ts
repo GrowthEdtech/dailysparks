@@ -1,5 +1,6 @@
 import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
 import type { DailyBriefHistoryRecord } from "./daily-brief-history-schema";
+import { getWeekendDeliveryPolicy } from "./daily-brief-product-policy";
 import {
   extractHeadlineKeywords,
   normalizeHeadlineForComparison,
@@ -13,6 +14,16 @@ import {
 import type { Programme } from "./mvp-types";
 
 const NORMALIZED_HEADLINE_BLOCK_WINDOW_DAYS = 30;
+const WEEKEND_VISION_KEYWORD_GROUPS = [
+  ["future", "innovation", "innovators", "technology", "tech", "ai", "robot", "robotics", "space"],
+  ["global", "culture", "cultural", "communities", "community", "world", "planet", "climate", "environment", "heritage"],
+  ["design", "creative", "curiosity", "explore", "explores", "imagine", "imagines", "youth", "students"],
+] as const;
+const WEEKEND_TOK_KEYWORD_GROUPS = [
+  ["ethics", "ethical", "moral", "justice", "fair", "fairness", "bias", "should"],
+  ["knowledge", "truth", "certainty", "uncertainty", "evidence", "interpretation", "claim", "counterpoint"],
+  ["debate", "controversy", "controversial", "court", "law", "privacy", "trust", "judgment"],
+] as const;
 
 function getDaysBetween(left: string, right: string) {
   const leftDate = Date.parse(`${left}T00:00:00.000Z`);
@@ -100,6 +111,102 @@ function buildBlockedTopic(input: {
   };
 }
 
+function normalizeWeekendRankingText(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function buildWeekendRankingText(topic: SelectedDailyTopic) {
+  return normalizeWeekendRankingText(
+    [
+      topic.headline,
+      topic.summary,
+      ...topic.topicCandidates.flatMap((candidate) => [
+        candidate.section,
+        candidate.title,
+        candidate.summary,
+        candidate.sourceName,
+      ]),
+    ].join(" "),
+  );
+}
+
+function scoreKeywordGroups(
+  text: string,
+  keywordGroups: readonly (readonly string[])[],
+) {
+  let score = 0;
+
+  for (const group of keywordGroups) {
+    const groupMatches = new Set(
+      group.filter((keyword) => text.includes(keyword)),
+    );
+
+    if (groupMatches.size > 0) {
+      score += 2 + groupMatches.size;
+    }
+  }
+
+  return score;
+}
+
+function scoreTopicForWeekendMode(
+  topic: SelectedDailyTopic,
+  mode: ReturnType<typeof getWeekendDeliveryPolicy>["mode"],
+) {
+  if (mode === "standard") {
+    return 0;
+  }
+
+  const text = buildWeekendRankingText(topic);
+
+  if (mode === "weekend-vision") {
+    return scoreKeywordGroups(text, WEEKEND_VISION_KEYWORD_GROUPS);
+  }
+
+  if (mode === "weekend-tok") {
+    return scoreKeywordGroups(text, WEEKEND_TOK_KEYWORD_GROUPS);
+  }
+
+  return 0;
+}
+
+function applyWeekendDeliveryRanking(input: {
+  topics: SelectedDailyTopic[];
+  eligibleProgrammes: Programme[];
+  scheduledFor: string;
+}) {
+  const weekendModes = input.eligibleProgrammes
+    .map((programme) => getWeekendDeliveryPolicy(programme, input.scheduledFor).mode)
+    .filter((mode) => mode !== "standard");
+
+  if (weekendModes.length === 0) {
+    return input.topics;
+  }
+
+  const scoredTopics = input.topics.map((topic, index) => ({
+    topic,
+    index,
+    weekendScore: weekendModes.reduce(
+      (total, mode) => total + scoreTopicForWeekendMode(topic, mode),
+      0,
+    ),
+  }));
+
+  if (!scoredTopics.some((entry) => entry.weekendScore > 0)) {
+    return input.topics;
+  }
+
+  return scoredTopics
+    .sort((left, right) => {
+      if (left.weekendScore !== right.weekendScore) {
+        return right.weekendScore - left.weekendScore;
+      }
+
+      return left.index - right.index;
+    })
+    .map((entry) => entry.topic);
+}
+
 export type DailyBriefSelectionAudit = {
   decision: DailyBriefSelectionDecision | null;
   overrideNote: string;
@@ -123,10 +230,11 @@ export function selectTopicWithPolicy(input: {
   recordKind: DailyBriefHistoryRecord["recordKind"];
   topicReuseWindowDays: number;
 }): SelectedTopicDecision {
-  const rankedTopics = rankDailyTopicClusters(
-    input.candidates,
-    input.eligibleProgrammes,
-  );
+  const rankedTopics = applyWeekendDeliveryRanking({
+    topics: rankDailyTopicClusters(input.candidates, input.eligibleProgrammes),
+    eligibleProgrammes: input.eligibleProgrammes,
+    scheduledFor: input.scheduledFor,
+  });
 
   if (rankedTopics.length === 0) {
     return {
