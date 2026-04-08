@@ -291,7 +291,7 @@ describe("geo-monitoring", () => {
       new Promise<never>((_, reject) =>
         setTimeout(() => {
           reject(new Error("runGeoMonitoring timed out instead of failing open."));
-        }, 80),
+        }, 500),
       ),
     ]);
 

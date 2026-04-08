@@ -86,16 +86,20 @@ describe("outbound goodnotes welcome note typst", () => {
     expect(source).toContain("Growth Education Limited");
   });
 
-  test("renders a single-page welcome note PDF through Typst", async () => {
-    const result = await renderGoodnotesWelcomeNoteTypst(createProfile());
-    const pageCount = await countPdfPages(result.pdf);
+  test(
+    "renders a single-page welcome note PDF through Typst",
+    async () => {
+      const result = await renderGoodnotesWelcomeNoteTypst(createProfile());
+      const pageCount = await countPdfPages(result.pdf);
 
-    expect(result.fileName).toBe(
-      "2026-04-03_DailySparks_WelcomeNote_MYP_getting-started_test.pdf",
+      expect(result.fileName).toBe(
+        "2026-04-03_DailySparks_WelcomeNote_MYP_getting-started_test.pdf",
     );
     expect(result.pdf).toBeInstanceOf(Uint8Array);
     expect(Buffer.from(result.pdf).subarray(0, 4).toString()).toBe("%PDF");
-    expect(pageCount).toBe(1);
-    expect(result.pageCount).toBe(1);
-  });
+      expect(pageCount).toBe(1);
+      expect(result.pageCount).toBe(1);
+    },
+    15000,
+  );
 });

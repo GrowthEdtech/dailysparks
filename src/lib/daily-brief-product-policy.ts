@@ -30,6 +30,33 @@ export type DailyBriefWeekendPolicy = {
   promptNote: string;
 };
 
+function getProgrammeRuntimeIntentNotes(programme: Programme) {
+  if (programme === "MYP") {
+    return [
+      "Treat MYP as a bridge-tier analytical reading experience for learners moving from explanation into structured comparison and inquiry.",
+      "Global context must connect the story to a wider system, place, responsibility, or community consequence.",
+      "Compare or connect should prompt structured comparison or cross-subject connection without turning the brief into a full essay.",
+      "Inquiry question should invite compare, explain, predict, or connect thinking.",
+      "Notebook prompt must invite a short saved reflection, not a full essay.",
+    ];
+  }
+
+  if (programme === "DP") {
+    return [
+      "Treat DP as an academic evidence-and-argument reading experience.",
+      "Claim must make a defensible interpretation grounded in the supplied sources rather than repeating surface facts.",
+      "Counterpoint or evidence limit must name uncertainty, trade-off, or evidence weakness when the issue is contested or incomplete.",
+      "TOK / essay prompt should invite evaluation, justification, and evidence-aware reasoning.",
+      "Notebook capture must store one reusable academic idea or tension.",
+    ];
+  }
+
+  return [
+    "Treat PYP as a gentle, curiosity-led family reading experience.",
+    "Keep the sections concrete, welcoming, and discussion-ready for home use.",
+  ];
+}
+
 const MYP_REQUIRED_SECTION_ORDER = [
   "What's happening?",
   "Why does this matter?",
@@ -160,4 +187,25 @@ export function getWeekendDeliveryPolicy(
     promptNote:
       "Keep the weekend brief discussion-friendly and gentle, with reflective questions a family can explore together.",
   };
+}
+
+export function buildDailyBriefRuntimeContract(
+  programme: Programme,
+  scheduledFor: string,
+) {
+  const contentModel = getDailyBriefProgrammeContentModel(programme);
+  const weekendPolicy = getWeekendDeliveryPolicy(programme, scheduledFor);
+
+  return [
+    "Runtime contract overlay",
+    "If any editable house-style instruction conflicts with the runtime contract below, follow the runtime contract.",
+    `Programme tier: ${contentModel.tierLabel}`,
+    `Use this exact section order: ${contentModel.requiredSectionOrder.join(" -> ")}.`,
+    `Reading surface title: ${contentModel.readingTitle}`,
+    `Discussion surface title: ${contentModel.discussionFallbackTitle}`,
+    `Knowledge bank target: ${contentModel.knowledgeBankTitle}`,
+    `Weekend delivery mode: ${weekendPolicy.label}`,
+    `Weekend framing note: ${weekendPolicy.promptNote}`,
+    ...getProgrammeRuntimeIntentNotes(programme),
+  ].join("\n");
 }

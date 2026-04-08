@@ -260,8 +260,17 @@ describe("daily brief orchestrator", () => {
     expect(result.generatedBriefs[0]?.resolvedPrompt).toContain(
       "Add comparisons and causes.",
     );
+    expect(result.generatedBriefs[0]?.resolvedPrompt).toContain(
+      "Runtime contract overlay",
+    );
+    expect(result.generatedBriefs[0]?.resolvedPrompt).toContain(
+      "Use this exact section order: What's happening? -> Why does this matter? -> Global context -> Compare or connect -> Words to know -> Inquiry question -> Notebook prompt.",
+    );
     expect(result.generatedBriefs[1]?.resolvedPrompt).toContain(
       "Add evidence limits and nuance.",
+    );
+    expect(result.generatedBriefs[1]?.resolvedPrompt).toContain(
+      "Use this exact section order: 3-sentence abstract -> Core issue -> Claim -> Counterpoint or evidence limit -> Why this matters for IB thinking -> Key academic term -> TOK / essay prompt -> Notebook capture.",
     );
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
@@ -374,7 +383,7 @@ describe("daily brief orchestrator", () => {
       });
     });
 
-    await generateDailyBriefDrafts({
+    const result = await generateDailyBriefDrafts({
       scheduledFor: "2026-04-05",
       candidates: [buildCandidate()],
       fetchImpl: fetchMock,
@@ -396,6 +405,8 @@ describe("daily brief orchestrator", () => {
     expect(mypPrompt).toContain("global culture");
     expect(dpPrompt).toContain("Weekend delivery mode: TOK day");
     expect(dpPrompt).toContain("knowledge questions");
+    expect(result.generatedBriefs[0]?.resolvedPrompt).toContain("Vision day");
+    expect(result.generatedBriefs[1]?.resolvedPrompt).toContain("TOK day");
   });
 
   test("skips programmes that already have a published brief for the scheduled date", async () => {

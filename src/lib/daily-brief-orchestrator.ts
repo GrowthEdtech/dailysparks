@@ -3,6 +3,7 @@ import {
   getEditorialProgrammeProfile,
 } from "./editorial-policy";
 import {
+  buildDailyBriefRuntimeContract,
   getDailyBriefProgrammeContentModel,
   getWeekendDeliveryPolicy,
 } from "./daily-brief-product-policy";
@@ -338,7 +339,11 @@ export async function generateDailyBriefDrafts(
       continue;
     }
 
-    const resolvedPrompt = buildResolvedPromptPreview(promptPolicy, programme);
+    const resolvedPrompt = [
+      buildResolvedPromptPreview(promptPolicy, programme),
+      "",
+      buildDailyBriefRuntimeContract(programme, options.scheduledFor),
+    ].join("\n");
     const programmeProfile = getEditorialProgrammeProfile(programme);
     const aiResult = await generateOpenAiCompatibleText({
       connection: aiConnection,
