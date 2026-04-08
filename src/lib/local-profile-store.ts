@@ -32,6 +32,11 @@ import {
   isValidProgrammeYear,
 } from "./mvp-types";
 import type { ProfileStore } from "./profile-store";
+import {
+  DEFAULT_PUBLIC_PROGRAMME,
+  getPublicProgrammeYear,
+  sanitizeInterestTagsForProgramme,
+} from "./student-interest-taxonomy";
 import { hasAutomatedDeliverySubscription } from "./delivery-eligibility";
 import { hasDispatchableDeliveryChannel } from "./delivery-readiness";
 import {
@@ -397,6 +402,9 @@ function inferProgrammeYear(programme: Programme, rawProgrammeYear: unknown) {
 function normalizeStudentRecord(raw: Record<string, unknown>): StudentRecord {
   const timestamp = new Date().toISOString();
   const programme = inferProgramme(raw);
+  const rawInterestTags = Array.isArray(raw.interestTags)
+    ? raw.interestTags.filter((value): value is string => typeof value === "string")
+    : [];
 
   return {
     id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
@@ -407,6 +415,7 @@ function normalizeStudentRecord(raw: Record<string, unknown>): StudentRecord {
         : "Student",
     programme,
     programmeYear: inferProgrammeYear(programme, raw.programmeYear),
+    interestTags: sanitizeInterestTagsForProgramme(programme, rawInterestTags),
     goodnotesEmail:
       typeof raw.goodnotesEmail === "string" ? raw.goodnotesEmail.trim() : "",
     goodnotesConnected: raw.goodnotesConnected === true,
@@ -565,8 +574,9 @@ function createStudentRecord(parentId: string, studentName: string): StudentReco
     id: crypto.randomUUID(),
     parentId,
     studentName,
-    programme: DEFAULT_PROGRAMME,
-    programmeYear: getDefaultProgrammeYear(DEFAULT_PROGRAMME),
+    programme: DEFAULT_PUBLIC_PROGRAMME,
+    programmeYear: getPublicProgrammeYear(DEFAULT_PUBLIC_PROGRAMME),
+    interestTags: [],
     goodnotesEmail: "",
     goodnotesConnected: false,
     goodnotesVerifiedAt: null,
@@ -788,10 +798,15 @@ export const localProfileStore: ProfileStore = {
     }
 
     const nextGoodnotesEmail = input.goodnotesEmail.trim().toLowerCase();
+    const nextInterestTags = sanitizeInterestTagsForProgramme(
+      input.programme,
+      input.interestTags ?? [],
+    );
 
     student.studentName = input.studentName.trim() || student.studentName;
     student.programme = input.programme;
     student.programmeYear = input.programmeYear;
+    student.interestTags = nextInterestTags;
 
     if (student.goodnotesEmail !== nextGoodnotesEmail) {
       student.goodnotesEmail = nextGoodnotesEmail;

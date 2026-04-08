@@ -112,6 +112,8 @@ async function createBillingProfile(email: string) {
 }
 
 beforeEach(async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-04-05T12:00:00.000Z"));
   tempDirectory = await mkdtemp(
     path.join(tmpdir(), "daily-sparks-planned-notification-action-"),
   );
@@ -137,6 +139,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   process.env = { ...ORIGINAL_ENV };
 
   if (tempDirectory) {

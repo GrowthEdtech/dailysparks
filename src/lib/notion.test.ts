@@ -217,7 +217,7 @@ describe("notion delivery helpers", () => {
           type: "text",
           text: {
             content:
-              "What stands out to your family about MYP ocean mapping brief?",
+              "What global context or system-level connection stands out most in this brief?",
           },
         },
       ],
@@ -233,8 +233,21 @@ describe("notion delivery helpers", () => {
         expect.objectContaining({
           type: "bulleted_list_item",
         }),
+        expect.objectContaining({
+          heading_2: expect.objectContaining({
+            rich_text: expect.arrayContaining([
+              expect.objectContaining({
+                text: expect.objectContaining({
+                  content: "Knowledge bank",
+                }),
+              }),
+            ]),
+          }),
+        }),
       ]),
     );
+    expect(JSON.stringify(body.children)).toContain("Inquiry notebook");
+    expect(JSON.stringify(body.children)).toContain("What global context or system-level connection stands out most in this brief?");
     expect(result).toEqual({
       pageId: "page-123",
       pageUrl: "https://www.notion.so/page-123",

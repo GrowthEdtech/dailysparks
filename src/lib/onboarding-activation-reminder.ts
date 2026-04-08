@@ -91,7 +91,7 @@ export function assessOnboardingActivationReminder(input: {
 }): OnboardingActivationReminderAssessment {
   const now = input.now ?? new Date();
   const { profile } = input;
-  const accessState = getDerivedAccessState(profile.parent);
+  const accessState = getDerivedAccessState(profile.parent, now);
   const deliveryHealth = getFamilyDeliveryHealthRollup(profile);
 
   if (!(accessState === "active" || accessState === "trial_active")) {

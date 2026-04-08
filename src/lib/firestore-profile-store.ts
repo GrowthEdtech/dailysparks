@@ -25,6 +25,11 @@ import {
 } from "./delivery-locale";
 import { getFirebaseAdminDb } from "./firebase-admin";
 import type { ProfileStore } from "./profile-store";
+import {
+  DEFAULT_PUBLIC_PROGRAMME,
+  getPublicProgrammeYear,
+  sanitizeInterestTagsForProgramme,
+} from "./student-interest-taxonomy";
 import { hasAutomatedDeliverySubscription } from "./delivery-eligibility";
 import { hasDispatchableDeliveryChannel } from "./delivery-readiness";
 import {
@@ -298,13 +303,18 @@ function normalizeStudentRecord(
   raw: Partial<StudentRecord> | undefined,
 ): StudentRecord {
   const timestamp = new Date().toISOString();
+  const programme = raw?.programme || DEFAULT_PROGRAMME;
+  const rawInterestTags = Array.isArray(raw?.interestTags)
+    ? raw.interestTags.filter((value): value is string => typeof value === "string")
+    : [];
 
   return {
     id,
     parentId: raw?.parentId || "",
     studentName: raw?.studentName?.trim() || "Student",
-    programme: raw?.programme || DEFAULT_PROGRAMME,
-    programmeYear: raw?.programmeYear || getDefaultProgrammeYear(DEFAULT_PROGRAMME),
+    programme,
+    programmeYear: raw?.programmeYear || getDefaultProgrammeYear(programme),
+    interestTags: sanitizeInterestTagsForProgramme(programme, rawInterestTags),
     goodnotesEmail: raw?.goodnotesEmail?.trim() || "",
     goodnotesConnected: raw?.goodnotesConnected === true,
     goodnotesVerifiedAt: normalizeNullableString(raw?.goodnotesVerifiedAt),
@@ -530,8 +540,9 @@ function createStudentRecord(parentId: string, studentName: string): StudentReco
     id: db.collection("students").doc().id,
     parentId,
     studentName,
-    programme: DEFAULT_PROGRAMME,
-    programmeYear: getDefaultProgrammeYear(DEFAULT_PROGRAMME),
+    programme: DEFAULT_PUBLIC_PROGRAMME,
+    programmeYear: getPublicProgrammeYear(DEFAULT_PUBLIC_PROGRAMME),
+    interestTags: [],
     goodnotesEmail: "",
     goodnotesConnected: false,
     goodnotesVerifiedAt: null,
@@ -691,10 +702,15 @@ export const firestoreProfileStore: ProfileStore = {
     }
 
     const nextGoodnotesEmail = input.goodnotesEmail.trim().toLowerCase();
+    const nextInterestTags = sanitizeInterestTagsForProgramme(
+      input.programme,
+      input.interestTags ?? [],
+    );
 
     student.studentName = input.studentName.trim() || student.studentName;
     student.programme = input.programme;
     student.programmeYear = input.programmeYear;
+    student.interestTags = nextInterestTags;
 
     if (student.goodnotesEmail !== nextGoodnotesEmail) {
       student.goodnotesEmail = nextGoodnotesEmail;

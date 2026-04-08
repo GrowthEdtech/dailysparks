@@ -745,10 +745,10 @@ describe("DailyBriefsAdminPage", () => {
     );
 
     expect(markup).toContain("Programme coverage");
-    expect(markup).toContain("PYP");
+    expect(markup).toContain("PYP (Legacy)");
     expect(markup).toContain("MYP");
     expect(markup).toContain("DP");
-    expect(markup).toContain("No healthy delivery channel");
+    expect(markup).not.toContain("No healthy delivery channel");
     expect(markup).toContain("Generated");
     expect(markup).toContain("No active families");
   });
@@ -852,7 +852,7 @@ describe("DailyBriefsAdminPage", () => {
           updatedAt: "2026-04-03T00:00:00.000Z",
         },
         {
-          id: "brief-myp-compare",
+          id: "brief-myp-bridge",
           scheduledFor: "2026-04-03",
           recordKind: "production",
           headline: "MYP editorial brief",
@@ -890,10 +890,10 @@ describe("DailyBriefsAdminPage", () => {
           deliveryReceipts: [],
           renderAudit: {
             renderer: "typst",
-            layoutVariant: "myp-compare",
+            layoutVariant: "myp-bridge",
             pageCount: 2,
             onePageCompliant: null,
-            pagePolicyLabel: "MYP two-page target",
+            pagePolicyLabel: "MYP bridge 2-page target",
             pagePolicyPageCountLimit: 2,
             pagePolicyCompliant: true,
             auditedAt: "2026-04-03T09:05:00.000Z",

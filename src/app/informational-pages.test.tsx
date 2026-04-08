@@ -66,6 +66,9 @@ describe("informational pages", () => {
 
     expect(markup).not.toContain('href="#"');
     expect(markup).toContain("Powered by Growth Education Limited");
+    expect(markup).toContain("NOW FOCUSED ON IB MYP + DP");
+    expect(markup).not.toContain("NOW ALIGNED WITH IB PYP/MYP SUBJECT GROUPS");
+    expect(markup).not.toContain("IB PYP SCALE");
   });
 
   test.each(informationalPages)(

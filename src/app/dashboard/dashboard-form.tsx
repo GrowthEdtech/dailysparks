@@ -27,6 +27,11 @@ import {
   type ParentProfile,
   type Programme,
 } from "../../lib/mvp-types";
+import {
+  getInterestTaxonomyForProgramme,
+  getPublicProgrammeOptions,
+  sanitizeInterestTagsForProgramme,
+} from "../../lib/student-interest-taxonomy";
 import { getProgrammeStageSummary, getWeeklyPlan } from "../../lib/weekly-plan";
 
 type DashboardFormProps = {
@@ -70,6 +75,12 @@ export default function DashboardForm({
   const [programmeYear, setProgrammeYear] = useState(
     initialProfile.student.programmeYear,
   );
+  const [interestTags, setInterestTags] = useState(
+    sanitizeInterestTagsForProgramme(
+      initialProfile.student.programme,
+      initialProfile.student.interestTags ?? [],
+    ),
+  );
   const [countryCode, setCountryCode] = useState(initialProfile.parent.countryCode);
   const [deliveryTimeZone, setDeliveryTimeZone] = useState(
     initialProfile.parent.deliveryTimeZone,
@@ -98,6 +109,9 @@ export default function DashboardForm({
   const billingSummary = getBillingSummary(initialProfile.parent);
   const weeklyPlan = getWeeklyPlan(programme, programmeYear);
   const programmeStageSummary = getProgrammeStageSummary(programme);
+  const publicProgrammeOptions = getPublicProgrammeOptions();
+  const interestOptions = getInterestTaxonomyForProgramme(programme);
+  const isLegacyPypProfile = initialProfile.student.programme === "PYP";
   const stageLabel = programme;
   const hasSavedStudentName = hasMeaningfulStudentName(savedStudentName);
   const displayStudentName = hasSavedStudentName
@@ -174,6 +188,19 @@ export default function DashboardForm({
     setErrorMessage("");
     setProgramme(nextProgramme);
     setProgrammeYear(getDefaultProgrammeYear(nextProgramme));
+    setInterestTags((current) =>
+      sanitizeInterestTagsForProgramme(nextProgramme, current),
+    );
+  }
+
+  function handleInterestToggle(interestTag: string) {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setInterestTags((current) =>
+      current.includes(interestTag)
+        ? current.filter((tag) => tag !== interestTag)
+        : [...current, interestTag],
+    );
   }
 
   function handleCountryCodeChange(nextCountryCode: string) {
@@ -198,6 +225,7 @@ export default function DashboardForm({
           studentName,
           programme,
           programmeYear,
+          interestTags,
         }),
       });
 
@@ -214,6 +242,12 @@ export default function DashboardForm({
         setSavedStudentName(body.student.studentName);
         setProgramme(body.student.programme);
         setProgrammeYear(body.student.programmeYear);
+        setInterestTags(
+          sanitizeInterestTagsForProgramme(
+            body.student.programme,
+            body.student.interestTags ?? [],
+          ),
+        );
       }
 
       setSuccessMessage("Preferences saved.");
@@ -621,8 +655,8 @@ export default function DashboardForm({
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                   Programme
                 </p>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  {(["PYP", "MYP", "DP"] as const).map((option) => {
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  {publicProgrammeOptions.map((option) => {
                     const active = programme === option;
                     const optionSummary = getProgrammeStageSummary(option);
 
@@ -651,6 +685,19 @@ export default function DashboardForm({
                 </div>
               </div>
 
+              {isLegacyPypProfile ? (
+                <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-700">
+                    PYP legacy mode
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-amber-800">
+                    New public setup is now focused on MYP and DP. Existing PYP
+                    records stay supported, but new public configuration follows
+                    the MYP/DP track.
+                  </p>
+                </div>
+              ) : null}
+
               <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                   {programmeStageSummary.badgeLabel}
@@ -661,6 +708,42 @@ export default function DashboardForm({
                 <p className="mt-2 text-sm leading-6 text-slate-500">
                   {programmeStageSummary.description}
                 </p>
+              </div>
+
+              <div className="mt-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  Interest focus
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Choose a few areas to shape future MYP or DP reading picks.
+                </p>
+                {interestOptions.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {interestOptions.map((option) => {
+                      const active = interestTags.includes(option);
+
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => handleInterestToggle(option)}
+                          className={`rounded-full border px-3 py-2 text-sm font-medium transition ${
+                            active
+                              ? "border-[#0f172a] bg-[#0f172a] text-white"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm leading-6 text-slate-500">
+                    Interest taxonomy is currently active for MYP and DP public
+                    setup.
+                  </p>
+                )}
               </div>
             </section>
 

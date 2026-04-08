@@ -170,17 +170,17 @@ const EDITORIAL_PROGRAMME_PROFILES: Record<Programme, EditorialProgrammeProfile>
     programme: "MYP",
     readingMode: "analysis-led",
     contentGoal:
-      "Build interpretation, comparison, and interdisciplinary thinking without pushing into full academic abstraction.",
+      "Build transition-level academic reading by connecting current events to global contexts, comparison, and inquiry-driven interpretation.",
     promptFocus:
-      "Highlight causes, effects, perspective differences, and medium-depth follow-up questions.",
+      "Highlight causes, trade-offs, perspective differences, global context, and one inquiry prompt the learner can carry into a notebook.",
   },
   DP: {
     programme: "DP",
     readingMode: "argument-led",
     contentGoal:
-      "Support evidence-based interpretation, nuanced reflection, and stronger academic discussion habits.",
+      "Support academic framing, evidence-aware interpretation, and claim-versus-counterpoint habits that help with TOK, EE, and essay thinking.",
     promptFocus:
-      "Surface competing viewpoints, evidence limits, and prompts that demand justified reasoning.",
+      "Surface a core issue, a defensible claim, an evidence limit or counterpoint, and a TOK or essay-style prompt that rewards justified reasoning.",
   },
 };
 

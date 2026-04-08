@@ -121,6 +121,7 @@ export type StudentRecord = {
   studentName: string;
   programme: Programme;
   programmeYear: number;
+  interestTags?: string[];
   goodnotesEmail: string;
   goodnotesConnected: boolean;
   goodnotesVerifiedAt: string | null;
@@ -153,6 +154,7 @@ export type UpdateStudentPreferencesInput = {
   studentName: string;
   programme: Programme;
   programmeYear: number;
+  interestTags?: string[];
   goodnotesEmail: string;
 };
 

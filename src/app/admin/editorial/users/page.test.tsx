@@ -39,6 +39,8 @@ import UsersAdminPage from "./page";
 
 describe("UsersAdminPage", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-05T12:00:00.000Z"));
     listParentProfilesMock.mockReset();
     listOnboardingReminderRunHistoryMock.mockReset();
     listOnboardingReminderRunHistoryMock.mockResolvedValue([]);

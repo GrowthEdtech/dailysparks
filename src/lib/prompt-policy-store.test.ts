@@ -65,19 +65,22 @@ describe("prompt policy store", () => {
   test("builds the stricter v1.1.1 default prompt policy template", () => {
     const defaultPolicy = buildDefaultPromptPolicyInput();
 
-    expect(defaultPolicy.versionLabel).toBe("v1.1.1");
+    expect(defaultPolicy.versionLabel).toBe("v2.0.0");
     expect(defaultPolicy.sharedInstructions).toMatch(/family-facing/i);
     expect(defaultPolicy.sharedInstructions).toMatch(/do not invent/i);
     expect(defaultPolicy.outputContractInstructions).toMatch(/valid JSON only/i);
     expect(defaultPolicy.outputContractInstructions).toMatch(/briefMarkdown/i);
+    expect(defaultPolicy.outputContractInstructions).toMatch(/programme-specific section order/i);
     expect(defaultPolicy.outputContractInstructions).toMatch(/silently validate/i);
     expect(defaultPolicy.outputContractInstructions).toMatch(/non-empty/i);
     expect(defaultPolicy.pypInstructions).toMatch(/short sentences/i);
     expect(defaultPolicy.pypInstructions).toMatch(/reassuring/i);
     expect(defaultPolicy.pypInstructions).toMatch(/trusted adults|helpers/i);
-    expect(defaultPolicy.mypInstructions).toMatch(/cause/i);
-    expect(defaultPolicy.dpInstructions).toMatch(/evidence/i);
-    expect(defaultPolicy.dpInstructions).toMatch(/known, unknown, and disputed/i);
+    expect(defaultPolicy.mypInstructions).toMatch(/global context/i);
+    expect(defaultPolicy.mypInstructions).toMatch(/inquiry question/i);
+    expect(defaultPolicy.dpInstructions).toMatch(/3-sentence abstract/i);
+    expect(defaultPolicy.dpInstructions).toMatch(/TOK \/ essay prompt/i);
+    expect(defaultPolicy.dpInstructions).toMatch(/Notebook capture/i);
   });
 
   test("returns an empty list before any prompt policies are recorded", async () => {

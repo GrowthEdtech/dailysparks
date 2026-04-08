@@ -126,7 +126,7 @@ describe("outbound daily brief typst", () => {
     expect(result.pageCount).toBe(1);
   });
 
-  test("uses a dedicated MYP compare-only layout tuned for a two-page validation budget", async () => {
+  test("uses a dedicated MYP bridge layout tuned for a two-page validation budget", async () => {
     const source = buildOutboundDailyBriefTypstSource(mypSampleBrief);
     const result = await renderOutboundDailyBriefTypstPrototype(mypSampleBrief);
 

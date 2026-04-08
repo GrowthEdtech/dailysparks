@@ -41,7 +41,7 @@ export default async function Home() {
         <div className="inline-flex items-center rounded-full bg-[#fbbf24]/10 border border-[#fbbf24]/30 px-4 py-1.5 mb-8 animate-fade-in">
           <span className="flex h-2 w-2 rounded-full bg-[#fbbf24] mr-2"></span>
           <span className="text-[#fbbf24] text-xs font-bold uppercase tracking-widest">
-            NOW ALIGNED WITH IB PYP/MYP SUBJECT GROUPS
+            NOW FOCUSED ON IB MYP + DP
           </span>
         </div>
         
@@ -53,8 +53,8 @@ export default async function Home() {
         </h1>
         
         <p className="text-[#94a3b8] text-lg md:text-xl max-w-2xl leading-relaxed mb-10">
-          Automated, deep-dive reading for kids aged 9-14. Delivered daily to iPad, 
-          strictly formatted to build English writing and critical reasoning.
+          Automated, deep-dive reading for IB learners in MYP and DP. Delivered
+          daily to iPad to build analysis, writing, and academic thinking habits.
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
@@ -137,7 +137,8 @@ export default async function Home() {
             </div>
             <h3 className="text-xl font-bold mb-4 text-white">IB Focused Knowledge</h3>
             <p className="text-[#94a3b8] text-sm leading-relaxed mb-6">
-              Every spark is tailored to specific IB Subject Groups. Whether it&apos;s Sciences or Arts, the reading aligns with global curriculum standards.
+              Every spark is tailored to MYP and DP academic reading goals, so
+              students build real-world context without losing curriculum fit.
             </p>
             <div className="flex items-center gap-2 text-[#fbbf24] text-xs font-bold uppercase tracking-widest pt-4 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
               Explore Academic Alignment
@@ -184,8 +185,8 @@ export default async function Home() {
               <div className="flex gap-4 group">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#0f172a] text-white flex items-center justify-center font-bold text-sm">1</div>
                 <div>
-                  <h4 className="font-bold text-lg mb-1">Select IB Subjects</h4>
-                  <p className="text-gray-500 text-sm">Choose what subjects you want them to master in the Dashboard.</p>
+                  <h4 className="font-bold text-lg mb-1">Select stage and focus areas</h4>
+                  <p className="text-gray-500 text-sm">Choose MYP or DP, then set the reading interests you want to prioritize in the Dashboard.</p>
                 </div>
               </div>
               <div className="flex gap-4 group">
@@ -219,7 +220,7 @@ export default async function Home() {
             </div>
             {/* Decal */}
             <div className="absolute -bottom-6 -right-6 bg-[#fbbf24] text-[#0f172a] p-6 rounded-3xl shadow-xl transform rotate-3">
-              <div className="font-bold text-2xl tracking-tighter">IB PYP SCALE</div>
+              <div className="font-bold text-2xl tracking-tighter">IB MYP · DP</div>
               <div className="text-[10px] font-bold uppercase tracking-widest opacity-70">Global Standards</div>
             </div>
           </div>

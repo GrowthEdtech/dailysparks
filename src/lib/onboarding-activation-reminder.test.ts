@@ -185,6 +185,7 @@ describe("onboarding activation reminder policy", () => {
     const assessment = assessOnboardingActivationReminder({
       profile: buildProfile({
         parent: {
+          subscriptionStatus: "active",
           onboardingReminderCount: ONBOARDING_ACTIVATION_REMINDER_STAGES.length,
           onboardingReminderLastStage:
             ONBOARDING_ACTIVATION_REMINDER_STAGES.length,

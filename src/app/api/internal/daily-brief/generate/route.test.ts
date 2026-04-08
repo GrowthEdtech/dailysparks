@@ -256,9 +256,9 @@ describe("daily brief generate route", () => {
 
     expect(response.status).toBe(200);
     expect(body.mode).toBe("generate");
-    expect(body.summary.generatedCount).toBe(3);
+    expect(body.summary.generatedCount).toBe(2);
     expect(body.selectedTopic.clusterKey).toBe("students map sea turtles");
-    expect(history).toHaveLength(3);
+    expect(history).toHaveLength(2);
     expect(frozenSnapshot?.updatedAt).toBeTruthy();
     expect(history[0]).toMatchObject({
       status: "draft",
@@ -270,7 +270,7 @@ describe("daily brief generate route", () => {
     expect(history[0]?.deliveryWindowAt).toBeTruthy();
     expect(frozenSnapshot?.selectionStatus).toBe("frozen");
     expect(Date.parse(String(frozenSnapshot?.selectionFrozenAt))).not.toBeNaN();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   test("generates editorial-scope briefs even when only one programme has active audience coverage", async () => {
@@ -297,12 +297,11 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(3);
-    expect(history).toHaveLength(3);
+    expect(body.summary.generatedCount).toBe(2);
+    expect(history).toHaveLength(2);
     expect(history.map((entry) => entry.programme).sort()).toEqual([
       "DP",
       "MYP",
-      "PYP",
     ]);
   });
 
@@ -375,7 +374,7 @@ describe("daily brief generate route", () => {
 
     expect(response.status).toBe(200);
     expect(body.summary.generatedCount).toBe(2);
-    expect(body.summary.skippedProgrammes).toEqual(["PYP"]);
+    expect(body.summary.skippedProgrammes).toEqual([]);
     expect(history.map((entry) => entry.programme).sort()).toEqual([
       "DP",
       "MYP",
@@ -419,8 +418,8 @@ describe("daily brief generate route", () => {
     expect(secondResponse.status).toBe(200);
     expect(body.summary.generatedCount).toBe(0);
     expect(body.summary.historyCreatedCount).toBe(0);
-    expect(body.summary.skippedProgrammes).toEqual(["PYP", "MYP", "DP"]);
-    expect(history).toHaveLength(3);
+    expect(body.summary.skippedProgrammes).toEqual(["MYP", "DP"]);
+    expect(history).toHaveLength(2);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -488,9 +487,9 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(3);
+    expect(body.summary.generatedCount).toBe(2);
     expect(body.summary.skippedProgrammes).toEqual([]);
-    expect(productionHistory).toHaveLength(3);
+    expect(productionHistory).toHaveLength(2);
     expect(productionHistory.every((entry) => entry.recordKind === "production")).toBe(
       true,
     );
@@ -586,7 +585,7 @@ describe("daily brief generate route", () => {
     const frozenSnapshot = await getDailyBriefCandidateSnapshot("2026-04-03");
 
     expect(apacResponse.status).toBe(200);
-    expect(apacBody.summary.generatedCount).toBe(3);
+    expect(apacBody.summary.generatedCount).toBe(2);
     expect(frozenSnapshot?.selectedTopic).toMatchObject({
       clusterKey: "students map sea turtles",
       selectedByCohort: "APAC",
@@ -605,9 +604,9 @@ describe("daily brief generate route", () => {
 
     expect(emeaResponse.status).toBe(200);
     expect(emeaBody.selectedTopic.clusterKey).toBe("students map sea turtles");
-    expect(emeaBody.summary.generatedCount).toBe(3);
-    expect(history.filter((entry) => entry.editorialCohort === "APAC")).toHaveLength(3);
-    expect(history.filter((entry) => entry.editorialCohort === "EMEA")).toHaveLength(3);
+    expect(emeaBody.summary.generatedCount).toBe(2);
+    expect(history.filter((entry) => entry.editorialCohort === "APAC")).toHaveLength(2);
+    expect(history.filter((entry) => entry.editorialCohort === "EMEA")).toHaveLength(2);
   });
 
   test("writes selection audit metadata into generated history records", async () => {
@@ -692,7 +691,7 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(history).toHaveLength(3);
+    expect(history).toHaveLength(2);
     expect(
       history.every(
         (entry) =>

@@ -69,8 +69,9 @@ describe("mvp store", () => {
     expect(profile.parent.onboardingReminderLastMessageId).toBeNull();
     expect(profile.parent.onboardingReminderLastError).toBeNull();
     expect(profile.student.studentName).toBe("Katherine");
-    expect(profile.student.programme).toBe("PYP");
-    expect(profile.student.programmeYear).toBe(5);
+    expect(profile.student.programme).toBe("MYP");
+    expect(profile.student.programmeYear).toBe(3);
+    expect(profile.student.interestTags).toEqual([]);
     expect(profile.student.parentId).toBe(profile.parent.id);
     expect(profile.student.goodnotesConnected).toBe(false);
     expect(profile.student.goodnotesVerifiedAt).toBeNull();
@@ -171,8 +172,9 @@ describe("mvp store", () => {
 
     expect(profile?.parent.email).toBe("parent@example.com");
     expect(profile?.student.studentName).toBe("Katherine");
-    expect(profile?.student.programme).toBe("PYP");
-    expect(profile?.student.programmeYear).toBe(5);
+    expect(profile?.student.programme).toBe("MYP");
+    expect(profile?.student.programmeYear).toBe(3);
+    expect(profile?.student.interestTags).toEqual([]);
   });
 
   test("updates student preferences and persists them", async () => {
@@ -190,6 +192,7 @@ describe("mvp store", () => {
       goodnotesEmail: "katherine@goodnotes.email",
       programme: "MYP",
       programmeYear: 3,
+      interestTags: ["Tech & Innovation", "TOK", "Society & Culture"],
     });
 
     expect(updated?.student.studentName).toBe("Katherine Sparks");
@@ -201,6 +204,10 @@ describe("mvp store", () => {
     expect(updated?.student.goodnotesLastDeliveryMessage).toMatch(/saved/i);
     expect(updated?.student.programme).toBe("MYP");
     expect(updated?.student.programmeYear).toBe(3);
+    expect(updated?.student.interestTags).toEqual([
+      "Tech & Innovation",
+      "Society & Culture",
+    ]);
     expect(updated?.parent.childProfileCompletedAt).toBe(
       "2026-04-01T00:15:00.000Z",
     );
@@ -216,9 +223,40 @@ describe("mvp store", () => {
     expect(reloaded?.student.goodnotesLastDeliveryMessage).toMatch(/saved/i);
     expect(reloaded?.student.programme).toBe("MYP");
     expect(reloaded?.student.programmeYear).toBe(3);
+    expect(reloaded?.student.interestTags).toEqual([
+      "Tech & Innovation",
+      "Society & Culture",
+    ]);
     expect(reloaded?.parent.childProfileCompletedAt).toBe(
       "2026-04-01T00:15:00.000Z",
     );
+  });
+
+  test("prunes incompatible interest tags when the programme changes", async () => {
+    await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    await updateStudentPreferences("parent@example.com", {
+      studentName: "Katherine",
+      goodnotesEmail: "",
+      programme: "MYP",
+      programmeYear: 3,
+      interestTags: ["Tech & Innovation", "Society & Culture"],
+    });
+
+    const updated = await updateStudentPreferences("parent@example.com", {
+      studentName: "Katherine",
+      goodnotesEmail: "",
+      programme: "DP",
+      programmeYear: 1,
+      interestTags: ["TOK", "Law", "Tech & Innovation"],
+    });
+
+    expect(updated?.student.programme).toBe("DP");
+    expect(updated?.student.interestTags).toEqual(["TOK", "Law"]);
   });
 
   test("updates parent delivery locale preferences and persists them", async () => {

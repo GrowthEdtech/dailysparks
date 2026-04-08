@@ -78,7 +78,8 @@ export type DailyBriefDispatchAudienceProfile = {
 export type DailyBriefRenderLayoutVariant =
   | "standard"
   | "pyp-one-page"
-  | "myp-compare";
+  | "myp-bridge"
+  | "dp-academic";
 
 export type DailyBriefRenderAudit = {
   renderer: DailyBriefPdfRenderer;

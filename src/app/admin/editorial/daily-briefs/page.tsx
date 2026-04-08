@@ -23,10 +23,10 @@ import {
 } from "../../../../lib/daily-brief-delivery-policy";
 import { listParentProfiles } from "../../../../lib/mvp-store";
 import {
-  IB_PROGRAMMES,
   isProgramme,
   type Programme,
 } from "../../../../lib/mvp-types";
+import { getAdminProgrammeOptions, isLegacyProgramme } from "../../../../lib/programme-availability-policy";
 import {
   formatEditorialCohortLabel,
   formatRecordKindLabel,
@@ -152,9 +152,16 @@ function getRendererAuditBadges(
 
   if (
     entry.programme === "MYP" &&
-    entry.renderAudit?.pagePolicyLabel === "MYP two-page target"
+    entry.renderAudit?.pagePolicyLabel === "MYP bridge 2-page target"
   ) {
-    badges.push("MYP two-page target");
+    badges.push("MYP bridge 2-page target");
+  }
+
+  if (
+    entry.programme === "DP" &&
+    entry.renderAudit?.pagePolicyLabel === "DP academic 2-page target"
+  ) {
+    badges.push("DP academic 2-page target");
   }
 
   return badges;
@@ -359,7 +366,7 @@ export default async function DailyBriefsAdminPage({
               >
                 All
               </Link>
-              {IB_PROGRAMMES.map((programmeOption) => (
+              {getAdminProgrammeOptions().map((programmeOption) => (
                 <Link
                   key={programmeOption}
                   href={buildFilterHref({
@@ -379,7 +386,9 @@ export default async function DailyBriefsAdminPage({
                       : INACTIVE_FILTER_CHIP_STYLE
                   }
                 >
-                  {programmeOption}
+                  {isLegacyProgramme(programmeOption)
+                    ? `${programmeOption} (Legacy)`
+                    : programmeOption}
                 </Link>
               ))}
             </div>

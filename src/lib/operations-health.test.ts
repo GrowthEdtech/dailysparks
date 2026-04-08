@@ -230,10 +230,10 @@ describe("buildOperationsHealthSnapshot", () => {
             lastDeliveryReceipts: [],
             renderAudit: {
               renderer: "typst",
-              layoutVariant: "myp-compare",
+              layoutVariant: "myp-bridge",
               pageCount: 2,
               onePageCompliant: null,
-              pagePolicyLabel: "MYP compare-only",
+              pagePolicyLabel: "MYP bridge 2-page target",
               pagePolicyPageCountLimit: 2,
               pagePolicyCompliant: true,
               auditedAt: "2026-04-06T07:55:00.000Z",

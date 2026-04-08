@@ -212,14 +212,14 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("Typst live");
     expect(markup).toContain("daily-brief-typst/brief-1");
     expect(markup).toContain("daily-brief-typst-thumbnail/brief-1");
-    expect(markup).toContain("Summary deck");
-    expect(markup).toContain("Reading brief");
+    expect(markup).toContain("Bridge brief");
+    expect(markup).toContain("Context and comparison");
     expect(markup).toContain("What&#x27;s happening?");
     expect(markup).toContain("Words to know");
     expect(markup).toContain("Cooling centre");
-    expect(markup).toContain("Talk about it at home");
-    expect(markup).toContain("Big idea");
-    expect(markup).toContain("Theme focus");
+    expect(markup).toContain("Inquiry question");
+    expect(markup).toContain("Notebook prompt");
+    expect(markup).toContain("Focus areas");
     expect(markup).toContain("Pipeline timeline");
     expect(markup).toContain("Render audit");
     expect(markup).toContain("Layout variant");
@@ -354,7 +354,7 @@ describe("DailyBriefDetailPage", () => {
 
   test("surfaces MYP page-policy guidance and compliance", async () => {
     getDailyBriefHistoryEntryMock.mockResolvedValue({
-      id: "brief-myp-compare-1",
+      id: "brief-myp-bridge-1",
       scheduledFor: "2026-04-05",
       recordKind: "production",
       headline: "Students compare coastal cleanup plans across cities.",
@@ -398,10 +398,10 @@ describe("DailyBriefDetailPage", () => {
       deliveryReceipts: [],
       renderAudit: {
         renderer: "typst",
-        layoutVariant: "myp-compare",
+        layoutVariant: "myp-bridge",
         pageCount: 2,
         onePageCompliant: null,
-        pagePolicyLabel: "MYP two-page target",
+        pagePolicyLabel: "MYP bridge 2-page target",
         pagePolicyPageCountLimit: 2,
         pagePolicyCompliant: true,
         auditedAt: "2026-04-05T01:03:00.000Z",
@@ -415,14 +415,14 @@ describe("DailyBriefDetailPage", () => {
 
     const markup = renderToStaticMarkup(
       await DailyBriefDetailPage({
-        params: Promise.resolve({ briefId: "brief-myp-compare-1" }),
+        params: Promise.resolve({ briefId: "brief-myp-bridge-1" }),
       }),
     );
 
     expect(markup).toContain("Renderer rollout");
     expect(markup).toContain("Current brief auto policy");
     expect(markup).toContain("Page policy");
-    expect(markup).toContain("MYP two-page target");
+    expect(markup).toContain("MYP bridge 2-page target");
     expect(markup).toContain("2 pages max");
     expect(markup).toContain("Compliant");
     expect(markup).toContain(

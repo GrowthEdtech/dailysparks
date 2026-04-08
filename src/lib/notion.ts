@@ -1,11 +1,13 @@
 import { Buffer } from "node:buffer";
 
 import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
+import { buildDailyBriefKnowledgeBank } from "./daily-brief-knowledge-bank";
 import type { ParentProfile } from "./mvp-types";
 import type { NotionConnectionSecretRecord } from "./mvp-types";
 import { clearNotionConnectionSecret, getNotionConnectionSecret, setNotionConnectionSecret } from "./notion-connection-store";
 import { getNotionConfig } from "./notion-config";
 import { decryptNotionToken, encryptNotionToken } from "./notion-crypto";
+import { buildOutboundDailyBriefPacket } from "./outbound-daily-brief-packet";
 
 type OAuthTokenResponse = {
   access_token: string;
@@ -128,10 +130,6 @@ function buildDailySparksBriefId(brief: GeneratedDailyBriefDraft) {
   return `daily-sparks-${brief.programme.toLowerCase()}-${brief.scheduledFor}`;
 }
 
-function buildBriefDiscussionPrompt(brief: GeneratedDailyBriefDraft) {
-  return `What stands out to your family about ${brief.headline}?`;
-}
-
 function toPlainRichText(content: string) {
   return [
     {
@@ -141,13 +139,6 @@ function toPlainRichText(content: string) {
       },
     },
   ];
-}
-
-function extractMarkdownParagraphs(markdown: string) {
-  return markdown
-    .split(/\n{2,}/)
-    .map((segment) => segment.replace(/^#+\s*/gm, "").trim())
-    .filter(Boolean);
 }
 
 function toNotionParagraphBlock(content: string): NotionBlock {
@@ -173,6 +164,17 @@ function toNotionBulletedListItemBlock(content: string): NotionBlock {
 function buildNotionBriefPageChildren(
   brief: GeneratedDailyBriefDraft,
 ): NotionBlock[] {
+  const packet = buildOutboundDailyBriefPacket({
+    headline: brief.headline,
+    scheduledFor: brief.scheduledFor,
+    programme: brief.programme,
+    editorialCohort: brief.editorialCohort,
+    summary: brief.summary,
+    topicTags: brief.topicTags,
+    briefMarkdown: brief.briefMarkdown,
+    sourceReferences: brief.sourceReferences,
+  });
+  const knowledgeBank = buildDailyBriefKnowledgeBank(packet);
   const children: NotionBlock[] = [
     {
       object: "block",
@@ -181,10 +183,81 @@ function buildNotionBriefPageChildren(
         rich_text: toPlainRichText("Brief"),
       },
     },
+    {
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: toPlainRichText(packet.summaryTitle),
+      },
+    },
+    toNotionParagraphBlock(packet.summaryBody),
   ];
 
-  for (const paragraph of extractMarkdownParagraphs(brief.briefMarkdown)) {
+  if (packet.themesTitle && packet.themesBody) {
+    children.push({
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: toPlainRichText(packet.themesTitle),
+      },
+    });
+    children.push(toNotionParagraphBlock(packet.themesBody));
+  }
+
+  children.push({
+    object: "block",
+    type: "heading_3",
+    heading_3: {
+      rich_text: toPlainRichText(packet.readingTitle),
+    },
+  });
+
+  for (const section of packet.readingSections) {
+    const paragraph = section.title
+      ? `${section.title}: ${section.body}`
+      : section.body;
     children.push(toNotionParagraphBlock(paragraph));
+  }
+
+  if (packet.vocabularyTitle && packet.vocabularyItems.length > 0) {
+    children.push({
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: toPlainRichText(packet.vocabularyTitle),
+      },
+    });
+
+    for (const item of packet.vocabularyItems) {
+      children.push(
+        toNotionBulletedListItemBlock(`${item.term}: ${item.definition}`),
+      );
+    }
+  }
+
+  if (packet.discussionPrompts.length > 0) {
+    children.push({
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: toPlainRichText(packet.discussionTitle),
+      },
+    });
+
+    for (const prompt of packet.discussionPrompts) {
+      children.push(toNotionBulletedListItemBlock(prompt));
+    }
+  }
+
+  if (packet.bigIdeaTitle && packet.bigIdeaBody) {
+    children.push({
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: toPlainRichText(packet.bigIdeaTitle),
+      },
+    });
+    children.push(toNotionParagraphBlock(packet.bigIdeaBody));
   }
 
   if (brief.sourceReferences.length > 0) {
@@ -203,6 +276,27 @@ function buildNotionBriefPageChildren(
         ),
       );
     }
+  }
+
+  children.push({
+    object: "block",
+    type: "heading_2",
+    heading_2: {
+      rich_text: toPlainRichText("Knowledge bank"),
+    },
+  });
+  children.push(toNotionParagraphBlock(knowledgeBank.title));
+  children.push(toNotionParagraphBlock(knowledgeBank.capturePrompt));
+
+  for (const section of knowledgeBank.sections) {
+    children.push({
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: toPlainRichText(section.title),
+      },
+    });
+    children.push(toNotionParagraphBlock(section.body));
   }
 
   return children;
@@ -668,6 +762,17 @@ export async function createNotionBriefPage(
   }
 
   const config = getNotionConfig();
+  const packet = buildOutboundDailyBriefPacket({
+    headline: brief.headline,
+    scheduledFor: brief.scheduledFor,
+    programme: brief.programme,
+    editorialCohort: brief.editorialCohort,
+    summary: brief.summary,
+    topicTags: brief.topicTags,
+    briefMarkdown: brief.briefMarkdown,
+    sourceReferences: brief.sourceReferences,
+  });
+  const knowledgeBank = buildDailyBriefKnowledgeBank(packet);
   const pageResult = await notionJsonRequest<Record<string, unknown>>(
     `${config!.apiBaseUrl}/pages`,
     {
@@ -709,7 +814,7 @@ export async function createNotionBriefPage(
             rich_text: toPlainRichText(brief.summary),
           },
           Prompt: {
-            rich_text: toPlainRichText(buildBriefDiscussionPrompt(brief)),
+            rich_text: toPlainRichText(knowledgeBank.capturePrompt),
           },
           Student: {
             rich_text: toPlainRichText(profile.student.studentName),

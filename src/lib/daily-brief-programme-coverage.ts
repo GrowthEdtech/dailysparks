@@ -10,7 +10,8 @@ import type {
 } from "./daily-brief-history-schema";
 import { hasDispatchableDeliveryChannel } from "./delivery-readiness";
 import { getDerivedAccessState } from "./access-state";
-import { IB_PROGRAMMES, type ParentProfile, type Programme } from "./mvp-types";
+import type { ParentProfile, Programme } from "./mvp-types";
+import { getEditoriallyActiveProgrammes } from "./programme-availability-policy";
 
 export const DAILY_BRIEF_PROGRAMME_COVERAGE_STATUSES = [
   "generated",
@@ -66,7 +67,7 @@ export function getProgrammesWithActiveAudience(input: {
     evaluationDate,
   );
 
-  return IB_PROGRAMMES.filter((programme) =>
+  return getEditoriallyActiveProgrammes().filter((programme) =>
     activeCohortProfiles.some(
       (profile) => profile.student.programme === programme,
     ),
@@ -94,7 +95,7 @@ export function buildDailyBriefProgrammeCoverage(input: {
       evaluationDate,
     );
 
-    return IB_PROGRAMMES.map((programme) => {
+    return getEditoriallyActiveProgrammes().map((programme) => {
       const programmeProfiles = cohortProfiles.filter(
         (profile) => profile.student.programme === programme,
       );

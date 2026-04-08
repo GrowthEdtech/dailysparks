@@ -68,8 +68,9 @@ const initialProfile: ParentProfile = {
     id: "student_123",
     parentId: "parent_123",
     studentName: "Katherine",
-    programme: "PYP",
-    programmeYear: 5,
+    programme: "MYP",
+    programmeYear: 3,
+    interestTags: ["Tech & Innovation", "Society & Culture"],
     goodnotesEmail: "katherine@goodnotes.email",
     goodnotesConnected: false,
     goodnotesVerifiedAt: null,
@@ -160,5 +161,36 @@ describe("DashboardForm", () => {
     expect(markup).toContain("text-[#0f172a]");
     expect(markup).toContain("placeholder:text-slate-300");
     expect(markup).toContain("caret-[#0f172a]");
+  });
+
+  test("soft-hides PYP from the public programme selector and shows MYP interest focus options", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardForm initialProfile={initialProfile} notionConfigured={true} />,
+    );
+
+    expect(markup).toContain("Interest focus");
+    expect(markup).toContain("Tech &amp; Innovation");
+    expect(markup).toContain("Society &amp; Culture");
+    expect(markup).not.toContain('<span class="text-base font-bold">PYP</span>');
+  });
+
+  test("shows a legacy-mode note when the existing profile is still on PYP", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardForm
+        initialProfile={{
+          ...initialProfile,
+          student: {
+            ...initialProfile.student,
+            programme: "PYP",
+            programmeYear: 5,
+            interestTags: [],
+          },
+        }}
+        notionConfigured={true}
+      />,
+    );
+
+    expect(markup).toContain("PYP legacy mode");
+    expect(markup).toContain("New public setup is now focused on MYP and DP");
   });
 });

@@ -117,21 +117,10 @@ function buildHistoryRecord(
 }
 
 describe("buildDailyBriefProgrammeCoverage", () => {
-  test("separates generated coverage, active audience coverage, and dispatch readiness", () => {
+  test("reports only the active MYP/DP programme coverage for the current product line", () => {
     const coverage = buildDailyBriefProgrammeCoverage({
       scheduledFor: "2026-04-05",
       profiles: [
-        buildProfile({
-          parent: {
-            id: "apac-pyp",
-            email: "apac-pyp@example.com",
-          },
-          student: {
-            parentId: "apac-pyp",
-            programme: "PYP",
-            studentName: "APAC PYP",
-          },
-        }),
         buildProfile({
           parent: {
             id: "apac-myp",
@@ -175,9 +164,6 @@ describe("buildDailyBriefProgrammeCoverage", () => {
       ],
     });
 
-    const apacPyp = coverage.find(
-      (row) => row.editorialCohort === "APAC" && row.programme === "PYP",
-    );
     const apacMyp = coverage.find(
       (row) => row.editorialCohort === "APAC" && row.programme === "MYP",
     );
@@ -185,12 +171,6 @@ describe("buildDailyBriefProgrammeCoverage", () => {
       (row) => row.editorialCohort === "APAC" && row.programme === "DP",
     );
 
-    expect(apacPyp).toMatchObject({
-      activeFamilyCount: 1,
-      dispatchableFamilyCount: 0,
-      status: "no_healthy_delivery_channel",
-      statusLabel: "No healthy delivery channel",
-    });
     expect(apacMyp).toMatchObject({
       activeFamilyCount: 1,
       dispatchableFamilyCount: 1,
@@ -204,5 +184,10 @@ describe("buildDailyBriefProgrammeCoverage", () => {
       status: "no_active_families",
       statusLabel: "No active families",
     });
+    expect(
+      coverage.some(
+        (row) => row.editorialCohort === "APAC" && row.programme === "PYP",
+      ),
+    ).toBe(false);
   });
 });

@@ -7,6 +7,7 @@ import {
   isProgramme,
   isValidProgrammeYear,
 } from "../../../lib/mvp-types";
+import { hasOnlyValidInterestTagsForProgramme } from "../../../lib/student-interest-taxonomy";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -15,6 +16,7 @@ type UpdateProfileBody = {
   goodnotesEmail?: unknown;
   programme?: unknown;
   programmeYear?: unknown;
+  interestTags?: unknown;
 };
 
 function unauthorized(message: string) {
@@ -57,6 +59,15 @@ function normalizeProgrammeYear(value: unknown) {
   return Number.NaN;
 }
 
+function normalizeInterestTags(value: unknown) {
+  return Array.isArray(value)
+    ? value
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+    : [];
+}
+
 function isValidEmail(value: string) {
   return EMAIL_REGEX.test(value);
 }
@@ -94,6 +105,7 @@ export async function PUT(request: Request) {
   const goodnotesEmail = normalizeEmail(body.goodnotesEmail);
   const programme = normalizeProgramme(body.programme);
   const programmeYear = normalizeProgrammeYear(body.programmeYear);
+  const interestTags = normalizeInterestTags(body.interestTags);
 
   if (!isProgramme(programme)) {
     return badRequest("Please select a valid IB programme.");
@@ -101,6 +113,12 @@ export async function PUT(request: Request) {
 
   if (!Number.isInteger(programmeYear) || !isValidProgrammeYear(programme, programmeYear)) {
     return badRequest("Please select a valid year for the chosen programme.");
+  }
+
+  if (!hasOnlyValidInterestTagsForProgramme(programme, interestTags)) {
+    return badRequest(
+      "Please choose interest focus areas that match the selected programme.",
+    );
   }
 
   if (goodnotesEmail && !isValidEmail(goodnotesEmail)) {
@@ -112,6 +130,7 @@ export async function PUT(request: Request) {
     goodnotesEmail,
     programme,
     programmeYear,
+    interestTags,
   });
 
   if (!profile) {

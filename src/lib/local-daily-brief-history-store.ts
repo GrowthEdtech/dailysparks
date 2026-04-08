@@ -184,7 +184,8 @@ function normalizeRenderAudit(
     renderer: normalizeReceiptRenderer(raw.renderer) ?? "typst",
     layoutVariant:
       raw.layoutVariant === "pyp-one-page" ||
-        raw.layoutVariant === "myp-compare"
+        raw.layoutVariant === "myp-bridge" ||
+        raw.layoutVariant === "dp-academic"
         ? raw.layoutVariant
         : "standard",
     pageCount: normalizeCount(raw.pageCount),

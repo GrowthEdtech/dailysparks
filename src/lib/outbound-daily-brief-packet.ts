@@ -1,5 +1,16 @@
 import type { DailyBriefEditorialCohort } from "./daily-brief-cohorts";
 import type { DailyBriefSourceReference } from "./daily-brief-history-schema";
+import {
+  getDailyBriefProgrammeContentModel,
+  getWeekendDeliveryPolicy,
+  type DailyBriefProductLayoutVariant,
+} from "./daily-brief-product-policy";
+import {
+  getDailyBriefProgrammeDiscussionFallbacks,
+  getDailyBriefProgrammeNotebookFallback,
+  normalizeDailyBriefReadingSectionsV2,
+} from "./daily-brief-content-normalizer";
+import type { Programme } from "./mvp-types";
 
 export type OutboundDailyBriefReadingSection = {
   title: string | null;
@@ -12,7 +23,9 @@ export type OutboundDailyBriefVocabularyItem = {
 };
 
 export type OutboundDailyBriefPacket = {
-  layoutVariant: "standard" | "pyp-one-page" | "myp-compare";
+  layoutVariant: DailyBriefProductLayoutVariant;
+  programme: Programme;
+  scheduledFor: string;
   eyebrow: string;
   title: string;
   metadataItems: string[];
@@ -74,8 +87,20 @@ type StructuredSectionKey =
   | "whatsHappening"
   | "whyDoesThisMatter"
   | "pictureIt"
+  | "globalContext"
+  | "compareOrConnect"
+  | "threeSentenceAbstract"
+  | "coreIssue"
+  | "claim"
+  | "counterpointOrEvidenceLimit"
+  | "whyThisMattersForIbThinking"
+  | "keyAcademicTerm"
   | "wordsToKnow"
   | "talkAboutItAtHome"
+  | "inquiryQuestion"
+  | "tokEssayPrompt"
+  | "notebookPrompt"
+  | "notebookCapture"
   | "bigIdea";
 
 const STRUCTURED_SECTION_DEFINITIONS: {
@@ -99,6 +124,46 @@ const STRUCTURED_SECTION_DEFINITIONS: {
     pattern: /picture it(?:\?|:)?/i,
   },
   {
+    key: "globalContext",
+    title: "Global context",
+    pattern: /global context(?:\?|:)?/i,
+  },
+  {
+    key: "compareOrConnect",
+    title: "Compare or connect",
+    pattern: /compare or connect(?:\?|:)?/i,
+  },
+  {
+    key: "threeSentenceAbstract",
+    title: "3-sentence abstract",
+    pattern: /3-sentence abstract(?:\?|:)?/i,
+  },
+  {
+    key: "coreIssue",
+    title: "Core issue",
+    pattern: /core issue(?:\?|:)?/i,
+  },
+  {
+    key: "claim",
+    title: "Claim",
+    pattern: /claim(?:\?|:)?/i,
+  },
+  {
+    key: "counterpointOrEvidenceLimit",
+    title: "Counterpoint or evidence limit",
+    pattern: /counterpoint or evidence limit(?:\?|:)?/i,
+  },
+  {
+    key: "whyThisMattersForIbThinking",
+    title: "Why this matters for IB thinking",
+    pattern: /why this matters for ib thinking(?:\?|:)?/i,
+  },
+  {
+    key: "keyAcademicTerm",
+    title: "Key academic term",
+    pattern: /key academic term(?:\?|:)?/i,
+  },
+  {
     key: "wordsToKnow",
     title: "Words to know",
     pattern: /words to know/i,
@@ -107,6 +172,26 @@ const STRUCTURED_SECTION_DEFINITIONS: {
     key: "talkAboutItAtHome",
     title: "Talk about it at home",
     pattern: /talk about it at home/i,
+  },
+  {
+    key: "inquiryQuestion",
+    title: "Inquiry question",
+    pattern: /inquiry question(?:\?|:)?/i,
+  },
+  {
+    key: "tokEssayPrompt",
+    title: "TOK \/ essay prompt",
+    pattern: /tok\s*\/\s*essay prompt(?:\?|:)?/i,
+  },
+  {
+    key: "notebookPrompt",
+    title: "Notebook prompt",
+    pattern: /notebook prompt(?:\?|:)?/i,
+  },
+  {
+    key: "notebookCapture",
+    title: "Notebook capture",
+    pattern: /notebook capture(?:\?|:)?/i,
   },
   {
     key: "bigIdea",
@@ -235,6 +320,12 @@ function parseDiscussionPrompts(value: string) {
   return splitDelimitedItems(value);
 }
 
+function parseSinglePrompt(value: string) {
+  const sanitized = sanitizePlainText(value);
+
+  return sanitized ? [sanitized] : [];
+}
+
 function splitSentences(value: string) {
   return sanitizePlainText(value)
     .split(/(?<=[.!?])\s+/)
@@ -272,7 +363,7 @@ function applyPypOnePagePolicyToReadingSections(
   }));
 }
 
-function applyMypComparePolicyToReadingSections(
+function applyMypBridgePolicyToReadingSections(
   sections: OutboundDailyBriefReadingSection[],
 ) {
   return sections.map((section) => ({
@@ -295,19 +386,31 @@ export function buildOutboundDailyBriefPacket(
   brief: OutboundDailyBriefPacketInput,
 ): OutboundDailyBriefPacket {
   const normalizedProgramme = brief.programme.toUpperCase();
-  const layoutVariant =
-    normalizedProgramme === "PYP"
-      ? "pyp-one-page"
-      : normalizedProgramme === "MYP"
-        ? "myp-compare"
-        : "standard";
+  const programme = normalizedProgramme as Programme;
+  const contentModel = getDailyBriefProgrammeContentModel(programme);
+  const weekendPolicy = getWeekendDeliveryPolicy(programme, brief.scheduledFor);
+  const layoutVariant = contentModel.layoutVariant;
   const structuredSections = extractStructuredSections(brief.briefMarkdown);
+  const primarySectionKeys =
+    programme === "MYP"
+      ? [
+          "whatsHappening",
+          "whyDoesThisMatter",
+          "globalContext",
+          "compareOrConnect",
+        ]
+      : programme === "DP"
+        ? [
+            "coreIssue",
+            "claim",
+            "counterpointOrEvidenceLimit",
+            "whyThisMattersForIbThinking",
+          ]
+        : ["whatsHappening", "whyDoesThisMatter", "pictureIt"];
   const readingSections = (
-    [
-      structuredSections.get("whatsHappening"),
-      structuredSections.get("whyDoesThisMatter"),
-      structuredSections.get("pictureIt"),
-    ].filter(Boolean) as { title: string; body: string }[]
+    primarySectionKeys
+      .map((key) => structuredSections.get(key as StructuredSectionKey))
+      .filter(Boolean) as { title: string; body: string }[]
   ).map((section) => ({
     title: section.title,
     body: section.body,
@@ -321,28 +424,44 @@ export function buildOutboundDailyBriefPacket(
             body: paragraph,
           }),
         );
-  const wordsToKnow = structuredSections.get("wordsToKnow");
-  const talkAtHome = structuredSections.get("talkAboutItAtHome");
-  const bigIdea = structuredSections.get("bigIdea");
-  const baseReadingSections = fallbackReadingSections;
+  const wordsToKnow =
+    programme === "DP"
+      ? structuredSections.get("keyAcademicTerm")
+      : structuredSections.get("wordsToKnow");
+  const talkAtHome =
+    programme === "MYP"
+      ? structuredSections.get("inquiryQuestion")
+      : programme === "DP"
+        ? structuredSections.get("tokEssayPrompt")
+        : structuredSections.get("talkAboutItAtHome");
+  const bigIdea =
+    programme === "MYP"
+      ? structuredSections.get("notebookPrompt")
+      : programme === "DP"
+        ? structuredSections.get("notebookCapture")
+        : structuredSections.get("bigIdea");
+  const baseReadingSections = normalizeDailyBriefReadingSectionsV2({
+    programme,
+    sections: fallbackReadingSections,
+    summary: brief.summary,
+  });
   const readingSectionsForLayout =
     layoutVariant === "pyp-one-page"
       ? applyPypOnePagePolicyToReadingSections(baseReadingSections)
-      : layoutVariant === "myp-compare"
-        ? applyMypComparePolicyToReadingSections(baseReadingSections)
+      : layoutVariant === "myp-bridge"
+        ? applyMypBridgePolicyToReadingSections(baseReadingSections)
       : baseReadingSections;
   const vocabularyItems = wordsToKnow ? parseVocabularyItems(wordsToKnow.body) : [];
   const discussionPrompts = talkAtHome
-    ? parseDiscussionPrompts(talkAtHome.body)
-    : [
-        "What feels most important in today's story?",
-        "Which detail would you like to understand more clearly?",
-        "How does this connect to your own world or experience?",
-      ];
+    ? programme === "MYP" || programme === "DP"
+      ? parseSinglePrompt(talkAtHome.body)
+      : parseDiscussionPrompts(talkAtHome.body)
+    : getDailyBriefProgrammeDiscussionFallbacks(programme);
+  const threeSentenceAbstract = structuredSections.get("threeSentenceAbstract");
   const topicTagsForLayout =
     layoutVariant === "pyp-one-page"
       ? brief.topicTags.slice(0, 4)
-      : layoutVariant === "myp-compare"
+      : layoutVariant === "myp-bridge"
         ? brief.topicTags.slice(0, 5)
         : brief.topicTags;
   const summaryBodyForLayout =
@@ -351,10 +470,15 @@ export function buildOutboundDailyBriefPacket(
           maxSentences: 2,
           maxCharacters: 180,
         })
-      : layoutVariant === "myp-compare"
+      : layoutVariant === "myp-bridge"
         ? truncateSentenceBudget(brief.summary, {
-            maxSentences: 2,
-            maxCharacters: 240,
+          maxSentences: 2,
+          maxCharacters: 240,
+        })
+      : layoutVariant === "dp-academic"
+        ? truncateSentenceBudget(threeSentenceAbstract?.body || brief.summary, {
+            maxSentences: 3,
+            maxCharacters: 320,
           })
       : brief.summary;
   const vocabularyItemsForLayout =
@@ -366,12 +490,20 @@ export function buildOutboundDailyBriefPacket(
             maxCharacters: 92,
           }),
         }))
-      : layoutVariant === "myp-compare"
+      : layoutVariant === "myp-bridge"
         ? vocabularyItems.slice(0, 3).map((item) => ({
             ...item,
             definition: truncateSentenceBudget(item.definition, {
               maxSentences: 1,
               maxCharacters: 120,
+            }),
+          }))
+      : layoutVariant === "dp-academic"
+        ? vocabularyItems.slice(0, 2).map((item) => ({
+            ...item,
+            definition: truncateSentenceBudget(item.definition, {
+              maxSentences: 1,
+              maxCharacters: 160,
             }),
           }))
       : vocabularyItems;
@@ -383,49 +515,78 @@ export function buildOutboundDailyBriefPacket(
             maxCharacters: 92,
           }),
         )
-      : layoutVariant === "myp-compare"
+      : layoutVariant === "myp-bridge"
         ? discussionPrompts.slice(0, 3).map((prompt) =>
             truncateSentenceBudget(prompt, {
               maxSentences: 1,
               maxCharacters: 110,
             }),
           )
+      : layoutVariant === "dp-academic"
+        ? discussionPrompts.slice(0, 2).map((prompt) =>
+            truncateSentenceBudget(prompt, {
+              maxSentences: 1,
+              maxCharacters: 160,
+            }),
+          )
       : discussionPrompts;
-  const bigIdeaBodyForLayout = bigIdea?.body
+  const fallbackNotebookBody = getDailyBriefProgrammeNotebookFallback(programme);
+  const resolvedBigIdeaBody = bigIdea?.body ?? fallbackNotebookBody;
+  const bigIdeaBodyForLayout = resolvedBigIdeaBody
     ? layoutVariant === "pyp-one-page"
-      ? truncateSentenceBudget(bigIdea.body, {
+      ? truncateSentenceBudget(resolvedBigIdeaBody, {
           maxSentences: 1,
         })
-      : layoutVariant === "myp-compare"
-        ? truncateSentenceBudget(bigIdea.body, {
+      : layoutVariant === "myp-bridge"
+        ? truncateSentenceBudget(resolvedBigIdeaBody, {
             maxSentences: 2,
-            maxCharacters: 180,
+            maxCharacters: 220,
           })
-      : bigIdea.body
+      : layoutVariant === "dp-academic"
+        ? truncateSentenceBudget(resolvedBigIdeaBody, {
+            maxSentences: 2,
+            maxCharacters: 220,
+          })
+      : resolvedBigIdeaBody
     : null;
+  const metadataItems = [
+    formatOutboundScheduledDateLabel(brief.scheduledFor),
+    `${brief.programme} edition`,
+    formatOutboundEditorialCohortEdition(brief.editorialCohort),
+  ];
+
+  if (weekendPolicy.mode !== "standard") {
+    metadataItems.push(weekendPolicy.label);
+  }
 
   return {
     layoutVariant,
+    programme,
+    scheduledFor: brief.scheduledFor,
     eyebrow: "Daily Sparks",
     title: brief.headline,
-    metadataItems: [
-      formatOutboundScheduledDateLabel(brief.scheduledFor),
-      `${brief.programme} edition`,
-      formatOutboundEditorialCohortEdition(brief.editorialCohort),
-    ],
-    summaryTitle: "Summary deck",
+    metadataItems,
+    summaryTitle: contentModel.summaryTitle,
     summaryBody: summaryBodyForLayout,
-    themesTitle: topicTagsForLayout.length > 0 ? "Theme focus" : null,
+    themesTitle:
+      topicTagsForLayout.length > 0 ? contentModel.themesTitle : null,
     themesBody:
       topicTagsForLayout.length > 0 ? topicTagsForLayout.join(", ") : null,
-    readingTitle: "Reading brief",
+    readingTitle: contentModel.readingTitle,
     readingSections: readingSectionsForLayout,
     readingParagraphs: flattenReadingSections(readingSectionsForLayout),
-    vocabularyTitle: wordsToKnow?.title ?? null,
+    vocabularyTitle:
+      wordsToKnow?.title ??
+      (vocabularyItemsForLayout.length > 0
+        ? contentModel.vocabularyFallbackTitle
+        : null),
     vocabularyItems: vocabularyItemsForLayout,
-    discussionTitle: talkAtHome?.title ?? "Discussion prompts",
+    discussionTitle:
+      talkAtHome?.title ?? contentModel.discussionFallbackTitle,
     discussionPrompts: discussionPromptsForLayout,
-    bigIdeaTitle: bigIdea?.title ?? null,
+    bigIdeaTitle:
+      bigIdea?.title ??
+      (bigIdeaBodyForLayout ? contentModel.bigIdeaFallbackTitle : null),
     bigIdeaBody: bigIdeaBodyForLayout,
     sourcesTitle: "Source references",
     sourceLines: brief.sourceReferences.map(

@@ -92,7 +92,11 @@ function compileTypstDocument(compiler: TypstCompilerLike, source: string) {
 
 export function getTypstHeadlineSize(
   headline: string,
-  layoutVariant: "standard" | "pyp-one-page" | "myp-compare" = "standard",
+  layoutVariant:
+    | "standard"
+    | "pyp-one-page"
+    | "myp-bridge"
+    | "dp-academic" = "standard",
 ) {
   const length = headline.trim().length;
 
@@ -108,7 +112,7 @@ export function getTypstHeadlineSize(
     return 20;
   }
 
-  if (layoutVariant === "myp-compare") {
+  if (layoutVariant === "myp-bridge") {
     if (length >= 96) {
       return 18;
     }
@@ -118,6 +122,18 @@ export function getTypstHeadlineSize(
     }
 
     return 20;
+  }
+
+  if (layoutVariant === "dp-academic") {
+    if (length >= 96) {
+      return 18;
+    }
+
+    if (length >= 64) {
+      return 20;
+    }
+
+    return 21;
   }
 
   if (length >= 96) {
@@ -154,7 +170,8 @@ export function buildOutboundDailyBriefTypstSource(
   const packet = buildOutboundDailyBriefPacket(brief);
   const headline = preventTypstHeadlineWidows(packet.title);
   const isPypOnePage = packet.layoutVariant === "pyp-one-page";
-  const isMypCompare = packet.layoutVariant === "myp-compare";
+  const isMypBridge = packet.layoutVariant === "myp-bridge";
+  const isDpAcademic = packet.layoutVariant === "dp-academic";
   const headlineSize = getTypstHeadlineSize(headline, packet.layoutVariant);
   const metadataItems = packet.metadataItems
     .map((item) => `#pill(${escapeTypstString(item)})`)
@@ -193,14 +210,14 @@ export function buildOutboundDailyBriefTypstSource(
 `
       : "";
   const standardThemeBlock =
-    !isPypOnePage && !isMypCompare && packet.themesTitle && packet.themesBody
+    !isPypOnePage && !isMypBridge && !isDpAcademic && packet.themesTitle && packet.themesBody
       ? `
 #v(12pt)
 #section-card(${escapeTypstString(packet.themesTitle)}, ${escapeTypstString(packet.themesBody)}, fill-color: pale-gold, border-color: gold-border, label-color: gold)
 `
       : "";
   const mypThemeBlock =
-    isMypCompare && packet.themesTitle && packet.themesBody
+    isMypBridge && packet.themesTitle && packet.themesBody
       ? `#section-card(${escapeTypstString(packet.themesTitle)}, ${escapeTypstString(packet.themesBody)}, fill-color: pale-gold, border-color: gold-border, label-color: gold)`
       : "";
   const mypVocabularyBody = packet.vocabularyItems
@@ -244,7 +261,7 @@ ${compactSourceLine}
 `
       : "";
   const standardTeachingBlocks =
-    !isPypOnePage && !isMypCompare
+    !isPypOnePage && !isMypBridge && !isDpAcademic
       ? `
 ${
   packet.vocabularyTitle && packet.vocabularyItems.length > 0
@@ -289,7 +306,7 @@ ${
 `
       : "";
   const mypCompareBlocks =
-    isMypCompare
+    isMypBridge
       ? `
 #grid(
   columns: (1.15fr, 0.85fr),
@@ -354,23 +371,23 @@ ${
   width: 100%,
   fill: rgb("#fcfeff"),
   stroke: (paint: soft-border, thickness: 1pt),
-  inset: ${isPypOnePage ? "18pt" : isMypCompare ? "20pt" : "22pt"},
+  inset: ${isPypOnePage ? "18pt" : isMypBridge ? "20pt" : "22pt"},
   radius: 18pt,
 )[
   #text(size: ${isPypOnePage ? "8.5pt" : "9pt"}, weight: "semibold", fill: gold)[#label]
   #v(${isPypOnePage ? "6pt" : "8pt"})
   #set par(leading: ${isPypOnePage ? "1.16em" : "1.2em"})
-  #text(size: ${isPypOnePage ? "12.4pt" : isMypCompare ? "12.6pt" : "13.2pt"}, fill: ink)[#body]
+  #text(size: ${isPypOnePage ? "12.4pt" : isMypBridge ? "12.6pt" : isDpAcademic ? "12.9pt" : "13.2pt"}, fill: ink)[#body]
 ]
 
 #let reading-block(title, body) = [
   #if title != "" [
-    #text(size: ${isPypOnePage ? "11.4pt" : isMypCompare ? "11.8pt" : "12.5pt"}, weight: "semibold", fill: ink)[#title]
+    #text(size: ${isPypOnePage ? "11.4pt" : isMypBridge ? "11.8pt" : isDpAcademic ? "12.1pt" : "12.5pt"}, weight: "semibold", fill: ink)[#title]
     #v(3pt)
   ]
-  #set par(leading: ${isPypOnePage ? "1.1em" : isMypCompare ? "1.14em" : "1.18em"})
-  #text(size: ${isPypOnePage ? "10.3pt" : isMypCompare ? "10.8pt" : "11.35pt"}, fill: secondary)[#body]
-  #v(${isPypOnePage ? "8pt" : isMypCompare ? "12pt" : "14pt"})
+  #set par(leading: ${isPypOnePage ? "1.1em" : isMypBridge ? "1.14em" : isDpAcademic ? "1.17em" : "1.18em"})
+  #text(size: ${isPypOnePage ? "10.3pt" : isMypBridge ? "10.8pt" : isDpAcademic ? "11.05pt" : "11.35pt"}, fill: secondary)[#body]
+  #v(${isPypOnePage ? "8pt" : isMypBridge ? "12pt" : isDpAcademic ? "13pt" : "14pt"})
 ]
 
 #let vocab-item(term, definition) = [
@@ -413,26 +430,26 @@ ${
   #text(size: ${isPypOnePage ? "7pt" : "8.5pt"}, weight: "semibold", fill: gold)[#${escapeTypstString(packet.eyebrow)}]
   #v(${isPypOnePage ? "2pt" : "4pt"})
   #text(size: ${headlineSize}pt, weight: "bold", fill: ink)[#${escapeTypstString(headline)}]
-  #v(${isPypOnePage ? "5pt" : isMypCompare ? "8pt" : "10pt"})
+  #v(${isPypOnePage ? "5pt" : isMypBridge ? "8pt" : isDpAcademic ? "9pt" : "10pt"})
   #grid(columns: (auto, auto, auto), gutter: 8pt,[
         ${metadataItems}
   ])
 ]
 
-#v(${isPypOnePage ? "7pt" : isMypCompare ? "10pt" : "12pt"})
+#v(${isPypOnePage ? "7pt" : isMypBridge ? "10pt" : isDpAcademic ? "11pt" : "12pt"})
 #standfirst-card(${escapeTypstString(packet.summaryTitle)}, ${escapeTypstString(packet.summaryBody)})
 ${compactThemeBlock}
 ${standardThemeBlock}
 
-#v(${isPypOnePage ? "10pt" : isMypCompare ? "14pt" : "16pt"})
-#text(size: ${isPypOnePage ? "17pt" : isMypCompare ? "20pt" : "22pt"}, weight: "bold", fill: ink)[#${escapeTypstString(packet.readingTitle)}]
-#v(${isPypOnePage ? "6pt" : isMypCompare ? "10pt" : "12pt"})
+#v(${isPypOnePage ? "10pt" : isMypBridge ? "14pt" : isDpAcademic ? "15pt" : "16pt"})
+#text(size: ${isPypOnePage ? "17pt" : isMypBridge ? "20pt" : isDpAcademic ? "21pt" : "22pt"}, weight: "bold", fill: ink)[#${escapeTypstString(packet.readingTitle)}]
+#v(${isPypOnePage ? "6pt" : isMypBridge ? "10pt" : isDpAcademic ? "11pt" : "12pt"})
 ${readingBlocks}
 ${pypTeachingBlocks}
 ${standardTeachingBlocks}
 ${mypCompareBlocks}
 
-${!isPypOnePage && !isMypCompare
+${!isPypOnePage && !isMypBridge && !isDpAcademic
   ? `#v(12pt)
 #rect(
   width: 100%,
@@ -450,7 +467,7 @@ ${!isPypOnePage && !isMypCompare
 #line(length: 100%, stroke: (paint: soft-border, thickness: 1pt))
 #v(8pt)
 #text(size: 11pt, weight: "semibold", fill: ink)[#${escapeTypstString(packet.footerSignature)}]`
-  : isMypCompare
+  : isMypBridge || isDpAcademic
     ? `#v(12pt)
 #rect(
   width: 100%,

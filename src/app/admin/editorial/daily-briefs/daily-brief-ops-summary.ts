@@ -220,7 +220,7 @@ export function buildDailyBriefOpsSummary({
   ).length;
   const mypPagePolicyAuditedBriefCount = mypProductionBriefs.filter(
     (entry) =>
-      entry.renderAudit?.pagePolicyLabel === "MYP two-page target" &&
+      entry.renderAudit?.pagePolicyLabel === "MYP bridge 2-page target" &&
       entry.renderAudit?.pagePolicyPageCountLimit === 2,
   ).length;
   const mypPagePolicyCompliantBriefCount = mypProductionBriefs.filter(

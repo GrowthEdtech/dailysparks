@@ -196,10 +196,10 @@ describe("buildDailyBriefOpsSummary", () => {
         failureReason: "",
         renderAudit: {
           renderer: "typst",
-          layoutVariant: "myp-compare",
+          layoutVariant: "myp-bridge",
           pageCount: 2,
           onePageCompliant: null,
-          pagePolicyLabel: "MYP two-page target",
+          pagePolicyLabel: "MYP bridge 2-page target",
           pagePolicyPageCountLimit: 2,
           pagePolicyCompliant: true,
           auditedAt: "2026-04-03T09:05:00.000Z",

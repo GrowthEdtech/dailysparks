@@ -148,9 +148,9 @@ function getMypPlan(): WeeklyPlan {
       },
     ],
     sunday: {
-      label: "Sunday Special",
-      theme: "Deep-dive reading and discussion prompt",
-      note: "A longer weekend brief that encourages slower reading and reflection.",
+      label: "Vision day",
+      theme: "Global context, culture, and future-facing curiosity",
+      note: "A wider-angle weekend brief designed to broaden perspective through global culture, future-facing technology, and inquiry.",
     },
   };
 }
@@ -199,9 +199,9 @@ function getDpPlan(): WeeklyPlan {
       },
     ],
     sunday: {
-      label: "Sunday Special",
-      theme: "TOK or extended reading special",
-      note: "A slower, more demanding reading designed for reflection and synthesis.",
+      label: "TOK day",
+      theme: "Ethics, knowledge questions, and interdisciplinary controversy",
+      note: "A slower weekend brief designed to surface knowledge questions, evidence limits, and TOK-style reflection.",
     },
   };
 }

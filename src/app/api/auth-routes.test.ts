@@ -164,8 +164,8 @@ describe("auth routes", () => {
 
     expect(response.status).toBe(200);
     expect(body.parent.email).toBe("parent@example.com");
-    expect(body.student.programme).toBe("PYP");
-    expect(body.student.programmeYear).toBe(5);
+    expect(body.student.programme).toBe("MYP");
+    expect(body.student.programmeYear).toBe(3);
     expect(body.student.studentName).toBe("Student");
     expect(response.headers.get("set-cookie")).toContain(
       `${SESSION_COOKIE_NAME}=${encodeURIComponent("firebase-session-cookie")}`,
@@ -269,6 +269,9 @@ describe("auth routes", () => {
 
     expect(response.status).toBe(200);
     expect(body.student.studentName).toBe("Student");
+    expect(body.student.programme).toBe("MYP");
+    expect(body.student.programmeYear).toBe(3);
+    expect(body.student.interestTags).toEqual([]);
   });
 
   test("rejects invalid profile updates", async () => {
@@ -337,6 +340,7 @@ describe("auth routes", () => {
           goodnotesEmail: "katherine@goodnotes.email",
           programme: "DP",
           programmeYear: 2,
+          interestTags: ["TOK", "Law"],
         }),
       }),
     );
@@ -347,6 +351,55 @@ describe("auth routes", () => {
     expect(body.student.studentName).toBe("Katherine");
     expect(body.student.programme).toBe("DP");
     expect(body.student.programmeYear).toBe(2);
+    expect(body.student.interestTags).toEqual(["TOK", "Law"]);
+  });
+
+  test("rejects invalid interest tags for the selected programme", async () => {
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    const response = await updateProfile(
+      new Request("http://localhost:3000/api/profile", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+        body: JSON.stringify({
+          studentName: "Katherine",
+          programme: "MYP",
+          programmeYear: 3,
+          interestTags: ["TOK"],
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.message).toMatch(/interest|focus/i);
   });
 
   test("updates and returns the parent delivery timing preferences", async () => {

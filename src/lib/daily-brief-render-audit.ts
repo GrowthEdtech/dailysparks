@@ -27,13 +27,16 @@ export async function buildDailyBriefRenderAudit({
   const pagePolicyLabel =
     packet.layoutVariant === "pyp-one-page"
       ? "PYP one-page"
-      : packet.layoutVariant === "myp-compare"
-        ? "MYP two-page target"
+      : packet.layoutVariant === "myp-bridge"
+        ? "MYP bridge 2-page target"
+        : packet.layoutVariant === "dp-academic"
+          ? "DP academic 2-page target"
         : null;
   const pagePolicyPageCountLimit =
     packet.layoutVariant === "pyp-one-page"
       ? 1
-      : packet.layoutVariant === "myp-compare"
+      : packet.layoutVariant === "myp-bridge" ||
+          packet.layoutVariant === "dp-academic"
         ? 2
         : null;
   const pagePolicyCompliant =

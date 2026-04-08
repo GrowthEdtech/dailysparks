@@ -2,6 +2,11 @@ import {
   DAILY_SPARKS_REPETITION_POLICY,
   getEditorialProgrammeProfile,
 } from "./editorial-policy";
+import {
+  getDailyBriefProgrammeContentModel,
+  getWeekendDeliveryPolicy,
+} from "./daily-brief-product-policy";
+import { getEditoriallyActiveProgrammes } from "./programme-availability-policy";
 import { getDefaultAiConnectionWithSecret } from "./ai-connection-store";
 import { generateOpenAiCompatibleText } from "./ai-runtime";
 import {
@@ -15,7 +20,7 @@ import type {
 } from "./daily-brief-history-schema";
 import { hasCompleteDailyBriefRoutingKey } from "./daily-brief-history-schema";
 import { selectTopicWithPolicy } from "./daily-brief-selection-policy";
-import { IB_PROGRAMMES, type Programme } from "./mvp-types";
+import type { Programme } from "./mvp-types";
 import {
   buildResolvedPromptPreview, getActivePromptPolicy,
 } from "./prompt-policy-store";
@@ -128,9 +133,16 @@ function buildGenerationUserPrompt(
   programme: Programme,
   scheduledFor: string,
 ) {
+  const contentModel = getDailyBriefProgrammeContentModel(programme);
+  const weekendPolicy = getWeekendDeliveryPolicy(programme, scheduledFor);
+
   return [
     `Scheduled date: ${scheduledFor}`,
     `Programme: ${programme}`,
+    `Programme learning model: ${contentModel.tierLabel}`,
+    `Required section order: ${contentModel.requiredSectionOrder.join(" -> ")}`,
+    `Weekend delivery mode: ${weekendPolicy.label}`,
+    `Weekend framing note: ${weekendPolicy.promptNote}`,
     `Topic cluster: ${selectedTopic.clusterKey}`,
     `Primary headline: ${selectedTopic.headline}`,
     `Cluster summary: ${selectedTopic.summary}`,
@@ -258,7 +270,7 @@ export async function generateDailyBriefDrafts(
   options: GenerateDailyBriefDraftsOptions,
 ): Promise<DailyBriefGenerationResult> {
   const editorialCohort = options.editorialCohort ?? "APAC";
-  const editorialProgrammes = [...IB_PROGRAMMES];
+  const editorialProgrammes = getEditoriallyActiveProgrammes();
 
   const promptPolicy = options.promptPolicy ?? (await getActivePromptPolicy());
 
