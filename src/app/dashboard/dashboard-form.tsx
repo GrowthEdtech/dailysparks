@@ -9,6 +9,9 @@ import AccountMenu from "../../components/account-menu";
 import GoodnotesDeliveryCard from "../../components/goodnotes-delivery-card";
 import NotionSyncCard from "../../components/notion-sync-card";
 import { getBillingSummary } from "../../lib/billing";
+import type {
+  DailyBriefNotebookEntryRecord,
+} from "../../lib/daily-brief-notebook-store";
 import {
   DEFAULT_COUNTRY_CODE,
   DEFAULT_DELIVERY_TIME_ZONE,
@@ -37,6 +40,17 @@ import { getProgrammeStageSummary, getWeeklyPlan } from "../../lib/weekly-plan";
 type DashboardFormProps = {
   initialProfile: ParentProfile;
   notionConfigured: boolean;
+  notebookItems?: DailyBriefNotebookEntryRecord[];
+  notebookSuggestion?: {
+    briefId: string;
+    scheduledFor: string;
+    headline: string;
+    knowledgeBankTitle: string;
+    entries: Array<{
+      title: string;
+      body: string;
+    }>;
+  } | null;
 };
 
 type RouteMessage = {
@@ -61,6 +75,8 @@ function hasMeaningfulStudentName(studentName: string) {
 export default function DashboardForm({
   initialProfile,
   notionConfigured,
+  notebookItems = [],
+  notebookSuggestion = null,
 }: DashboardFormProps) {
   const router = useRouter();
   const [studentName, setStudentName] = useState(
@@ -103,6 +119,9 @@ export default function DashboardForm({
   const [deliverySuccessMessage, setDeliverySuccessMessage] = useState("");
   const [isSavingDeliveryPreferences, setIsSavingDeliveryPreferences] =
     useState(false);
+  const [notebookErrorMessage, setNotebookErrorMessage] = useState("");
+  const [notebookSuccessMessage, setNotebookSuccessMessage] = useState("");
+  const [isSavingNotebook, setIsSavingNotebook] = useState(false);
   const hasAppliedBrowserDeliveryDetection = useRef(false);
   const [isPending, startTransition] = useTransition();
 
@@ -121,6 +140,8 @@ export default function DashboardForm({
     savedCountryCode !== DEFAULT_COUNTRY_CODE ||
     savedDeliveryTimeZone !== DEFAULT_DELIVERY_TIME_ZONE ||
     savedPreferredDeliveryLocalTime !== DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME;
+  const hasNotebookSuggestion = notebookSuggestion !== null;
+  const recentNotebookItems = notebookItems.slice(0, 6);
 
   useEffect(() => {
     if (hasAppliedBrowserDeliveryDetection.current) {
@@ -315,6 +336,65 @@ export default function DashboardForm({
     }
   }
 
+  async function handleSaveNotebook() {
+    if (!notebookSuggestion) {
+      return;
+    }
+
+    setNotebookErrorMessage("");
+    setNotebookSuccessMessage("");
+    setIsSavingNotebook(true);
+
+    try {
+      const response = await fetch("/api/notebook/save", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          briefId: notebookSuggestion.briefId,
+        }),
+      });
+
+      const body = (await response.json().catch(() => null)) as
+        | {
+            message?: string;
+            savedCount?: number;
+            dedupedCount?: number;
+          }
+        | null;
+
+      if (!response.ok) {
+        setNotebookErrorMessage(
+          body?.message ?? "We could not save this brief to the notebook.",
+        );
+        setIsSavingNotebook(false);
+        return;
+      }
+
+      if ((body?.savedCount ?? 0) > 0) {
+        setNotebookSuccessMessage(
+          `Saved ${body?.savedCount} notebook ${
+            body?.savedCount === 1 ? "entry" : "entries"
+          }.`,
+        );
+      } else {
+        setNotebookSuccessMessage(
+          body?.message ?? "This brief is already in the notebook.",
+        );
+      }
+
+      setIsSavingNotebook(false);
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      setNotebookErrorMessage("We could not reach the local API. Please try again.");
+      setIsSavingNotebook(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <header className="w-full rounded-b-[32px] bg-[#0f172a] px-6 py-6 text-white shadow-md">
@@ -407,6 +487,119 @@ export default function DashboardForm({
                 <p className="mt-1 text-sm leading-6 text-slate-600">
                   {weeklyPlan.sunday.note}
                 </p>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm lg:p-7">
+              <div className="mb-4 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-[#0f172a]" />
+                <h2 className="text-lg font-bold text-[#0f172a]">Notebook</h2>
+              </div>
+              <p className="text-sm leading-6 text-slate-500">
+                Save reusable ideas from the latest brief into a growing MYP or DP
+                notebook your family can return to later.
+              </p>
+
+              {hasNotebookSuggestion ? (
+                <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                        Latest brief
+                      </p>
+                      <p className="mt-2 text-sm font-bold text-[#0f172a]">
+                        {notebookSuggestion.headline}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
+                      {notebookSuggestion.scheduledFor}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {notebookSuggestion.entries.map((entry) => (
+                      <div
+                        key={entry.title}
+                        className="rounded-2xl border border-white bg-white px-4 py-3"
+                      >
+                        <p className="text-sm font-semibold text-[#0f172a]">
+                          {entry.title}
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          {entry.body}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {notebookErrorMessage ? (
+                    <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {notebookErrorMessage}
+                    </p>
+                  ) : null}
+
+                  {notebookSuccessMessage ? (
+                    <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                      {notebookSuccessMessage}
+                    </p>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={handleSaveNotebook}
+                    disabled={isSavingNotebook || isPending}
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSavingNotebook || isPending
+                      ? "Saving..."
+                      : "Save today's notes"}
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
+                  <p className="text-sm leading-6 text-slate-600">
+                    Once your latest published brief is ready, Daily Sparks will
+                    surface structured notebook entries here for quick saving.
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  Saved notebook entries
+                </p>
+                {recentNotebookItems.length > 0 ? (
+                  <div className="mt-3 space-y-3">
+                    {recentNotebookItems.map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-[#0f172a]">
+                              {entry.title}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                              {entry.sourceScheduledFor} · {entry.programme}
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                            {entry.knowledgeBankTitle}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                          {entry.body}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm leading-6 text-slate-500">
+                    Saved notebook entries will appear here after your first save.
+                  </p>
+                )}
               </div>
             </section>
           </div>

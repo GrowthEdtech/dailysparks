@@ -4,6 +4,7 @@ import { describe, expect, test, vi } from "vitest";
 
 import type { ParentProfile } from "../../lib/mvp-types";
 import DashboardForm from "./dashboard-form";
+import type { DailyBriefNotebookEntryRecord } from "../../lib/daily-brief-notebook-store";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -81,6 +82,45 @@ const initialProfile: ParentProfile = {
     createdAt: "2026-04-01T00:00:00.000Z",
     updatedAt: "2026-04-01T00:00:00.000Z",
   },
+};
+
+const notebookItems: DailyBriefNotebookEntryRecord[] = [
+  {
+    id: "notebook-1",
+    parentId: "parent_123",
+    parentEmail: "parent@example.com",
+    studentId: "student_123",
+    programme: "MYP",
+    entryType: "inquiry-notebook",
+    title: "Inquiry notebook",
+    body: "Which cleanup plan would feel fairest, and what evidence would help you defend that choice?",
+    knowledgeBankTitle: "Inquiry notebook",
+    sourceBriefId: "brief-1",
+    sourceScheduledFor: "2026-04-08",
+    sourceHeadline: "Students compare coastal cleanup plans",
+    topicTags: ["civic planning", "sustainability"],
+    interestTags: ["Tech & Innovation", "Society & Culture"],
+    savedSource: "dashboard",
+    savedAt: "2026-04-08T01:00:00.000Z",
+    createdAt: "2026-04-08T01:00:00.000Z",
+  },
+];
+
+const notebookSuggestion = {
+  briefId: "brief-1",
+  scheduledFor: "2026-04-08",
+  headline: "Students compare coastal cleanup plans",
+  knowledgeBankTitle: "Inquiry notebook",
+  entries: [
+    {
+      title: "Inquiry notebook",
+      body: "Which cleanup plan would feel fairest, and what evidence would help you defend that choice?",
+    },
+    {
+      title: "Global context note",
+      body: "Coastal cleanup decisions affect communities, public budgets, and environmental recovery.",
+    },
+  ],
 };
 
 describe("DashboardForm", () => {
@@ -192,5 +232,23 @@ describe("DashboardForm", () => {
 
     expect(markup).toContain("PYP legacy mode");
     expect(markup).toContain("New public setup is now focused on MYP and DP");
+  });
+
+  test("renders a notebook section with the latest saveable brief and saved entries", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardForm
+        initialProfile={initialProfile}
+        notionConfigured={true}
+        notebookItems={notebookItems}
+        notebookSuggestion={notebookSuggestion}
+      />,
+    );
+
+    expect(markup).toContain("Notebook");
+    expect(markup).toContain("Save today&#x27;s notes");
+    expect(markup).toContain("Students compare coastal cleanup plans");
+    expect(markup).toContain("Saved notebook entries");
+    expect(markup).toContain("Inquiry notebook");
+    expect(markup).toContain("Global context note");
   });
 });

@@ -2,7 +2,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import DashboardForm from "./dashboard-form";
+import { listDailyBriefHistory } from "../../lib/daily-brief-history-store";
+import { buildDailyBriefKnowledgeBank } from "../../lib/daily-brief-knowledge-bank";
+import { listDailyBriefNotebookEntries } from "../../lib/daily-brief-notebook-store";
 import { getProfileByEmail } from "../../lib/mvp-store";
+import { buildOutboundDailyBriefPacket } from "../../lib/outbound-daily-brief-packet";
 import { isNotionConfigured } from "../../lib/notion-config";
 import { getSessionFromCookieStore } from "../../lib/session";
 
@@ -20,10 +24,36 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  const [latestBrief] = await listDailyBriefHistory({
+    programme: profile.student.programme,
+    recordKind: "production",
+    status: "published",
+  });
+  const notebookItems = await listDailyBriefNotebookEntries({
+    parentId: profile.parent.id,
+    limit: 8,
+  });
+  const notebookSuggestion = latestBrief
+    ? (() => {
+        const packet = buildOutboundDailyBriefPacket(latestBrief);
+        const knowledgeBank = buildDailyBriefKnowledgeBank(packet);
+
+        return {
+          briefId: latestBrief.id,
+          scheduledFor: latestBrief.scheduledFor,
+          headline: latestBrief.headline,
+          knowledgeBankTitle: knowledgeBank.title,
+          entries: knowledgeBank.entries,
+        };
+      })()
+    : null;
+
   return (
     <DashboardForm
       initialProfile={profile}
       notionConfigured={isNotionConfigured()}
+      notebookItems={notebookItems}
+      notebookSuggestion={notebookSuggestion}
     />
   );
 }
