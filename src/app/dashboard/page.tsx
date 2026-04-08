@@ -34,11 +34,12 @@ export default async function DashboardPage() {
     parentId: profile.parent.id,
     limit: 100,
   });
-  const [latestWeeklyRecap] = await listDailyBriefNotebookWeeklyRecaps({
+  const weeklyRecapHistory = await listDailyBriefNotebookWeeklyRecaps({
     parentId: profile.parent.id,
     programme: profile.student.programme,
-    limit: 1,
+    limit: 12,
   });
+  const latestWeeklyRecap = weeklyRecapHistory[0] ?? null;
   const notebookSuggestion = latestBrief
     ? (() => {
         const packet = buildOutboundDailyBriefPacket(latestBrief);
@@ -59,7 +60,8 @@ export default async function DashboardPage() {
       initialProfile={profile}
       notionConfigured={isNotionConfigured()}
       notebookItems={notebookItems}
-      weeklyRecapRecord={latestWeeklyRecap ?? null}
+      weeklyRecapRecord={latestWeeklyRecap}
+      weeklyRecapHistory={weeklyRecapHistory}
       notebookSuggestion={notebookSuggestion}
     />
   );

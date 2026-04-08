@@ -72,6 +72,7 @@ function normalizeRecap(
       raw?.programme === "MYP" || raw?.programme === "DP" || raw?.programme === "PYP"
         ? raw.programme
         : "MYP",
+    generationSource: raw?.generationSource === "scheduled" ? "scheduled" : "manual",
     weekKey: normalizeString(raw?.weekKey),
     weekLabel: normalizeString(raw?.weekLabel),
     title: normalizeString(raw?.title),
@@ -121,6 +122,16 @@ function normalizeRecap(
     notionLastSyncedAt: normalizeString(raw?.notionLastSyncedAt) || null,
     notionLastSyncPageId: normalizeString(raw?.notionLastSyncPageId) || null,
     notionLastSyncPageUrl: normalizeString(raw?.notionLastSyncPageUrl) || null,
+    emailLastSentAt: normalizeString(raw?.emailLastSentAt) || null,
+    emailLastStatus:
+      raw?.emailLastStatus === "pending" ||
+      raw?.emailLastStatus === "sent" ||
+      raw?.emailLastStatus === "skipped" ||
+      raw?.emailLastStatus === "failed"
+        ? raw.emailLastStatus
+        : null,
+    emailLastMessageId: normalizeString(raw?.emailLastMessageId) || null,
+    emailLastErrorMessage: normalizeString(raw?.emailLastErrorMessage) || null,
     createdAt: normalizeString(raw?.createdAt) || timestamp,
     updatedAt: normalizeString(raw?.updatedAt) || timestamp,
   };

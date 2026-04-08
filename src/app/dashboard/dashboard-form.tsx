@@ -56,12 +56,19 @@ import {
   type NotebookSortOrder,
   resolveSelectedNotebookEntry,
 } from "./notebook-workspace";
+import {
+  buildWeeklyRecapHistoryPreview,
+  getWeeklyRecapEmailStatusLabel,
+  getWeeklyRecapNotionStatusLabel,
+  resolveSelectedWeeklyRecap,
+} from "./weekly-recap-history";
 
 type DashboardFormProps = {
   initialProfile: ParentProfile;
   notionConfigured: boolean;
   notebookItems?: DailyBriefNotebookEntryRecord[];
   weeklyRecapRecord?: DailyBriefNotebookWeeklyRecapRecord | null;
+  weeklyRecapHistory?: DailyBriefNotebookWeeklyRecapRecord[];
   notebookSuggestion?: {
     briefId: string;
     scheduledFor: string;
@@ -98,6 +105,7 @@ export default function DashboardForm({
   notionConfigured,
   notebookItems = [],
   weeklyRecapRecord = null,
+  weeklyRecapHistory = [],
   notebookSuggestion = null,
 }: DashboardFormProps) {
   const router = useRouter();
@@ -173,6 +181,9 @@ export default function DashboardForm({
   const [savingRetrievalPromptId, setSavingRetrievalPromptId] = useState<string | null>(
     null,
   );
+  const [selectedWeeklyRecapId, setSelectedWeeklyRecapId] = useState<string | null>(
+    weeklyRecapHistory[0]?.id ?? null,
+  );
   const hasAppliedBrowserDeliveryDetection = useRef(false);
   const [isPending, startTransition] = useTransition();
   const deferredNotebookSearchQuery = useDeferredValue(notebookSearchQuery);
@@ -224,6 +235,10 @@ export default function DashboardForm({
     selectedNotebookEntryId,
   );
   const authoredNotebookEntryTypes = getDailyBriefAuthoredEntryTypes(programme);
+  const selectedWeeklyRecap = resolveSelectedWeeklyRecap(
+    weeklyRecapHistory,
+    selectedWeeklyRecapId,
+  );
 
   useEffect(() => {
     if (hasAppliedBrowserDeliveryDetection.current) {
@@ -708,6 +723,150 @@ export default function DashboardForm({
     }
   }
 
+  function renderWeeklyRecapHistory() {
+    if (weeklyRecapHistory.length === 0) {
+      return null;
+    }
+
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Recap history
+            </p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">
+              Revisit earlier weekly summaries, retrieval prompts, and sync evidence.
+            </p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+            {weeklyRecapHistory.length} saved
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+          <div className="space-y-3">
+            {weeklyRecapHistory.map((record) => {
+              const isSelected = selectedWeeklyRecap?.id === record.id;
+
+              return (
+                <button
+                  key={record.id}
+                  type="button"
+                  onClick={() => setSelectedWeeklyRecapId(record.id)}
+                  className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                    isSelected
+                      ? "border-[#0f172a] bg-slate-50 shadow-sm"
+                      : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[#0f172a]">
+                        {record.weekLabel}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        {record.title}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                      View recap details
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    {buildWeeklyRecapHistoryPreview(record)}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedWeeklyRecap ? (
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[#0f172a]">
+                    {selectedWeeklyRecap.weekLabel}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    {selectedWeeklyRecap.totalEntries} entries · {selectedWeeklyRecap.authoredCount} authored
+                  </p>
+                </div>
+                <span className="rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  {selectedWeeklyRecap.generationSource === "scheduled"
+                    ? "Scheduled"
+                    : "Manual"}
+                </span>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-white bg-white px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Week in review
+                </p>
+                <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                  {selectedWeeklyRecap.summaryLines.map((line) => (
+                    <li key={line}>- {line}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-2xl border border-white bg-white px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Email delivery
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    {getWeeklyRecapEmailStatusLabel(selectedWeeklyRecap)}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white bg-white px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    Notion sync
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    {getWeeklyRecapNotionStatusLabel(selectedWeeklyRecap)}
+                  </p>
+                  {selectedWeeklyRecap.notionLastSyncPageUrl ? (
+                    <a
+                      href={selectedWeeklyRecap.notionLastSyncPageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex text-sm font-semibold text-[#0f172a] underline-offset-4 hover:underline"
+                    >
+                      Open in Notion
+                    </a>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-white bg-white px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                  Retrieval progress
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-700">
+                  {selectedWeeklyRecap.retrievalResponses.length} of{" "}
+                  {selectedWeeklyRecap.retrievalPrompts.length} prompts answered
+                </p>
+                {selectedWeeklyRecap.topTags.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {selectedWeeklyRecap.topTags.map((tag) => (
+                      <span
+                        key={`${selectedWeeklyRecap.id}-${tag}`}
+                        className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <header className="w-full rounded-b-[32px] bg-[#0f172a] px-6 py-6 text-white shadow-md">
@@ -1172,6 +1331,8 @@ export default function DashboardForm({
                         ? "Syncing..."
                         : "Sync weekly recap to Notion"}
                     </button>
+
+                    {renderWeeklyRecapHistory()}
                   </div>
                 ) : (
                   <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
@@ -1180,6 +1341,8 @@ export default function DashboardForm({
                     </p>
                   </div>
                 )}
+
+                {!weeklyRecap ? renderWeeklyRecapHistory() : null}
               </div>
 
               <div className="mt-5">

@@ -10,6 +10,8 @@ import type {
 } from "./daily-brief-notebook-weekly-recap-store-types";
 import type {
   DailyBriefNotebookWeeklyRecapRecord,
+  DailyBriefNotebookWeeklyRecapEmailStatus,
+  DailyBriefNotebookWeeklyRecapGenerationSource,
   DailyBriefNotebookWeeklyRecapResponseRecord,
 } from "./daily-brief-notebook-weekly-recap-store-schema";
 import type { Programme } from "./mvp-types";
@@ -24,6 +26,7 @@ type SaveDailyBriefNotebookWeeklyRecapInput = {
   studentId: string;
   programme: Programme;
   recap: DailyBriefNotebookWeeklyRecap;
+  generationSource?: DailyBriefNotebookWeeklyRecapGenerationSource;
 };
 
 type SaveDailyBriefNotebookWeeklyRecapResult = {
@@ -126,6 +129,7 @@ export async function saveDailyBriefNotebookWeeklyRecap(
     parentId: normalizeString(input.parentId),
     parentEmail: normalizeString(input.parentEmail).toLowerCase(),
     studentId: normalizeString(input.studentId),
+    generationSource: input.generationSource ?? existingRecord?.generationSource ?? "manual",
     retrievalResponses: sortResponsesInPromptOrder(
       existingRecord?.retrievalResponses ?? [],
       input.recap.retrievalPrompts,
@@ -133,6 +137,10 @@ export async function saveDailyBriefNotebookWeeklyRecap(
     notionLastSyncedAt: existingRecord?.notionLastSyncedAt ?? null,
     notionLastSyncPageId: existingRecord?.notionLastSyncPageId ?? null,
     notionLastSyncPageUrl: existingRecord?.notionLastSyncPageUrl ?? null,
+    emailLastSentAt: existingRecord?.emailLastSentAt ?? null,
+    emailLastStatus: existingRecord?.emailLastStatus ?? null,
+    emailLastMessageId: existingRecord?.emailLastMessageId ?? null,
+    emailLastErrorMessage: existingRecord?.emailLastErrorMessage ?? null,
     createdAt: existingRecord?.createdAt ?? timestamp,
     updatedAt: timestamp,
   };
@@ -232,6 +240,38 @@ export async function updateDailyBriefNotebookWeeklyRecapNotionSync(
     notionLastSyncedAt: input.notionLastSyncedAt,
     notionLastSyncPageId: input.notionLastSyncPageId,
     notionLastSyncPageUrl: input.notionLastSyncPageUrl,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function updateDailyBriefNotebookWeeklyRecapEmailDelivery(
+  input: {
+    parentId: string;
+    programme: Programme;
+    weekKey: string;
+    emailLastSentAt: string | null;
+    emailLastStatus: DailyBriefNotebookWeeklyRecapEmailStatus;
+    emailLastMessageId?: string | null;
+    emailLastErrorMessage?: string | null;
+  },
+) {
+  const store = getDailyBriefNotebookWeeklyRecapStore();
+  const existingRecord = await getDailyBriefNotebookWeeklyRecap({
+    parentId: input.parentId,
+    programme: input.programme,
+    weekKey: input.weekKey,
+  });
+
+  if (!existingRecord) {
+    return null;
+  }
+
+  return store.upsertRecap({
+    ...existingRecord,
+    emailLastSentAt: input.emailLastSentAt,
+    emailLastStatus: input.emailLastStatus,
+    emailLastMessageId: input.emailLastMessageId ?? null,
+    emailLastErrorMessage: input.emailLastErrorMessage ?? null,
     updatedAt: new Date().toISOString(),
   });
 }

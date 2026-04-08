@@ -146,6 +146,67 @@ const notebookSuggestion = {
   ],
 };
 
+const weeklyRecapHistory = [
+  {
+    id: "weekly-recap-2",
+    parentId: "parent_123",
+    parentEmail: "parent@example.com",
+    studentId: "student_123",
+    programme: "MYP" as const,
+    weekKey: "2026-04-06",
+    weekLabel: "Apr 6 – Apr 12",
+    title: "MYP weekly recap",
+    totalEntries: 3,
+    systemCount: 2,
+    authoredCount: 1,
+    topTags: ["Tech & Innovation", "Society & Culture"],
+    summaryLines: ["This week leaned most on Inquiry notebook thinking."],
+    entryTypeBreakdown: [],
+    highlights: [],
+    retrievalPrompts: [],
+    retrievalResponses: [],
+    generationSource: "scheduled" as const,
+    notionLastSyncedAt: "2026-04-12T10:00:00.000Z",
+    notionLastSyncPageId: "notion-page-1",
+    notionLastSyncPageUrl: "https://www.notion.so/notion-page-1",
+    emailLastSentAt: "2026-04-12T10:10:00.000Z",
+    emailLastStatus: "sent" as const,
+    emailLastMessageId: "message-1",
+    emailLastErrorMessage: null,
+    createdAt: "2026-04-12T10:00:00.000Z",
+    updatedAt: "2026-04-12T10:00:00.000Z",
+  },
+  {
+    id: "weekly-recap-1",
+    parentId: "parent_123",
+    parentEmail: "parent@example.com",
+    studentId: "student_123",
+    programme: "MYP" as const,
+    weekKey: "2026-03-30",
+    weekLabel: "Mar 30 – Apr 5",
+    title: "MYP weekly recap",
+    totalEntries: 2,
+    systemCount: 2,
+    authoredCount: 0,
+    topTags: ["Society & Culture"],
+    summaryLines: ["This week leaned most on Global context note thinking."],
+    entryTypeBreakdown: [],
+    highlights: [],
+    retrievalPrompts: [],
+    retrievalResponses: [],
+    generationSource: "manual" as const,
+    notionLastSyncedAt: null,
+    notionLastSyncPageId: null,
+    notionLastSyncPageUrl: null,
+    emailLastSentAt: null,
+    emailLastStatus: "skipped" as const,
+    emailLastMessageId: null,
+    emailLastErrorMessage: "Weekly recap email is not configured.",
+    createdAt: "2026-04-05T10:00:00.000Z",
+    updatedAt: "2026-04-05T10:00:00.000Z",
+  },
+];
+
 describe("DashboardForm", () => {
   test("uses a wide desktop container and two-column layout instead of mobile-only stacking", () => {
     const markup = renderToStaticMarkup(
@@ -264,6 +325,7 @@ describe("DashboardForm", () => {
         notionConfigured={true}
         notebookItems={notebookItems}
         notebookSuggestion={notebookSuggestion}
+        weeklyRecapHistory={weeklyRecapHistory}
       />,
     );
 
@@ -287,5 +349,11 @@ describe("DashboardForm", () => {
     expect(markup).toContain("Save weekly recap");
     expect(markup).toContain("Save response");
     expect(markup).toContain("Sync weekly recap to Notion");
+    expect(markup).toContain("Recap history");
+    expect(markup).toContain("Apr 6 – Apr 12");
+    expect(markup).toContain("Mar 30 – Apr 5");
+    expect(markup).toContain("View recap details");
+    expect(markup).toContain("Email delivery");
+    expect(markup).toContain("Synced to Notion");
   });
 });
