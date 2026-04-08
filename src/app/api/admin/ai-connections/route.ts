@@ -6,6 +6,7 @@ import {
 } from "../../../../lib/ai-connection-store";
 import {
   AI_CONNECTION_PROVIDER_TYPES,
+  buildVertexAiOpenAiBaseUrl,
   type AiConnectionProviderType,
 } from "../../../../lib/ai-connection-schema";
 import {
@@ -24,6 +25,9 @@ type AiConnectionRequestBody = {
   active?: unknown;
   isDefault?: unknown;
   notes?: unknown;
+  vertexProjectId?: unknown;
+  vertexLocation?: unknown;
+  serviceAccountEmail?: unknown;
 };
 
 function unauthorized(message: string) {
@@ -99,33 +103,59 @@ export async function POST(request: Request) {
     return adminCheck.errorResponse;
   }
 
-  if (!isAiConnectionEncryptionConfigured()) {
-    return serviceUnavailable("AI connection encryption is not configured yet.");
-  }
-
   const body = (await request.json().catch(() => null)) as
     | AiConnectionRequestBody
     | null;
-  const name = normalizeString(body?.name);
   const providerType = normalizeProviderType(body?.providerType);
+
+  if (
+    providerType === "openai-compatible" &&
+    !isAiConnectionEncryptionConfigured()
+  ) {
+    return serviceUnavailable("AI connection encryption is not configured yet.");
+  }
+  const name = normalizeString(body?.name);
   const baseUrl = normalizeString(body?.baseUrl);
   const defaultModel = normalizeString(body?.defaultModel);
   const apiKey = normalizeString(body?.apiKey);
   const notes = normalizeString(body?.notes);
+  const vertexProjectId = normalizeString(body?.vertexProjectId);
+  const vertexLocation = normalizeString(body?.vertexLocation);
+  const serviceAccountEmail = normalizeString(body?.serviceAccountEmail);
 
-  if (!name || !providerType || !baseUrl || !defaultModel || !apiKey) {
+  if (!name || !providerType || !defaultModel) {
     return badRequest("Please submit a valid AI connection.");
+  }
+
+  if (
+    providerType === "openai-compatible" &&
+    (!baseUrl || !apiKey)
+  ) {
+    return badRequest("Please submit a valid AI connection.");
+  }
+
+  if (
+    providerType === "vertex-openai-compatible" &&
+    (!vertexProjectId || !vertexLocation)
+  ) {
+    return badRequest("Please submit a valid Vertex AI connection.");
   }
 
   const connection = await createAiConnection({
     name,
     providerType,
-    baseUrl,
+    baseUrl:
+      providerType === "vertex-openai-compatible"
+        ? buildVertexAiOpenAiBaseUrl(vertexProjectId, vertexLocation)
+        : baseUrl,
     defaultModel,
     apiKey,
     active: normalizeBoolean(body?.active),
     isDefault: normalizeBoolean(body?.isDefault),
     notes,
+    vertexProjectId,
+    vertexLocation,
+    serviceAccountEmail,
   });
 
   return Response.json({ connection });
@@ -147,29 +177,97 @@ export async function PUT(request: Request) {
     return badRequest("Please choose an AI connection to update.");
   }
 
-  if (body?.apiKey !== undefined && !isAiConnectionEncryptionConfigured()) {
-    return serviceUnavailable("AI connection encryption is not configured yet.");
+  const existingConnections = await listAiConnections();
+  const existingConnection = existingConnections.find((connection) => connection.id === id);
+
+  if (!existingConnection) {
+    return Response.json(
+      { message: "We could not find that AI connection." },
+      { status: 404 },
+    );
   }
 
-  const providerType =
+  const requestedProviderType =
     body?.providerType !== undefined
       ? normalizeProviderType(body.providerType)
       : undefined;
 
-  if (body?.providerType !== undefined && !providerType) {
+  if (
+    body?.providerType !== undefined &&
+    !requestedProviderType
+  ) {
     return badRequest("Please choose a supported AI provider type.");
+  }
+
+  const effectiveProviderType =
+    requestedProviderType ?? existingConnection.providerType;
+
+  if (
+    effectiveProviderType === "openai-compatible" &&
+    body?.apiKey !== undefined &&
+    !isAiConnectionEncryptionConfigured()
+  ) {
+    return serviceUnavailable("AI connection encryption is not configured yet.");
+  }
+
+  const normalizedBaseUrl =
+    body?.baseUrl !== undefined ? normalizeString(body.baseUrl) : undefined;
+  const normalizedDefaultModel =
+    body?.defaultModel !== undefined
+      ? normalizeString(body.defaultModel)
+      : undefined;
+  const normalizedApiKey =
+    body?.apiKey !== undefined ? normalizeString(body.apiKey) : undefined;
+  const normalizedVertexProjectId =
+    body?.vertexProjectId !== undefined
+      ? normalizeString(body.vertexProjectId)
+      : undefined;
+  const normalizedVertexLocation =
+    body?.vertexLocation !== undefined
+      ? normalizeString(body.vertexLocation)
+      : undefined;
+  const normalizedServiceAccountEmail =
+    body?.serviceAccountEmail !== undefined
+      ? normalizeString(body.serviceAccountEmail)
+      : undefined;
+  const effectiveVertexProjectId =
+    normalizedVertexProjectId ?? existingConnection.vertexProjectId ?? "";
+  const effectiveVertexLocation =
+    normalizedVertexLocation ?? existingConnection.vertexLocation ?? "";
+
+  if (
+    effectiveProviderType === "openai-compatible" &&
+    requestedProviderType === "openai-compatible" &&
+    normalizedBaseUrl !== undefined &&
+    !normalizedBaseUrl
+  ) {
+    return badRequest("Please submit a valid AI connection.");
+  }
+
+  if (
+    effectiveProviderType === "vertex-openai-compatible" &&
+    (!effectiveVertexProjectId || !effectiveVertexLocation)
+  ) {
+    return badRequest("Please submit a valid Vertex AI connection.");
   }
 
   const updateInput = {
     ...(body?.name !== undefined ? { name: normalizeString(body.name) } : {}),
-    ...(providerType ? { providerType } : {}),
-    ...(body?.baseUrl !== undefined
-      ? { baseUrl: normalizeString(body.baseUrl) }
+    ...(requestedProviderType ? { providerType: requestedProviderType } : {}),
+    ...(effectiveProviderType === "vertex-openai-compatible"
+      ? {
+          baseUrl: buildVertexAiOpenAiBaseUrl(
+            effectiveVertexProjectId,
+            effectiveVertexLocation,
+          ),
+        }
+      : normalizedBaseUrl !== undefined
+        ? { baseUrl: normalizedBaseUrl }
+        : {}),
+    ...(normalizedDefaultModel !== undefined
+      ? { defaultModel: normalizedDefaultModel }
       : {}),
-    ...(body?.defaultModel !== undefined
-      ? { defaultModel: normalizeString(body.defaultModel) }
-      : {}),
-    ...(body?.apiKey !== undefined ? { apiKey: normalizeString(body.apiKey) } : {}),
+    ...(normalizedApiKey !== undefined ? { apiKey: normalizedApiKey } : {}),
     ...(body?.active !== undefined
       ? { active: normalizeBoolean(body.active) }
       : {}),
@@ -177,16 +275,18 @@ export async function PUT(request: Request) {
       ? { isDefault: normalizeBoolean(body.isDefault) }
       : {}),
     ...(body?.notes !== undefined ? { notes: normalizeString(body.notes) } : {}),
+    ...(normalizedVertexProjectId !== undefined
+      ? { vertexProjectId: normalizedVertexProjectId }
+      : {}),
+    ...(normalizedVertexLocation !== undefined
+      ? { vertexLocation: normalizedVertexLocation }
+      : {}),
+    ...(normalizedServiceAccountEmail !== undefined
+      ? { serviceAccountEmail: normalizedServiceAccountEmail }
+      : {}),
   };
 
   const connection = await updateAiConnection(id, updateInput);
-
-  if (!connection) {
-    return Response.json(
-      { message: "We could not find that AI connection." },
-      { status: 404 },
-    );
-  }
 
   return Response.json({ connection });
 }

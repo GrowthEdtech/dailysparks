@@ -18,6 +18,8 @@ const PRIMARY_ROTATED_TEST_API_KEY = "test-key-backup-87654321";
 const FIRST_DEFAULT_TEST_API_KEY = "test-key-primary-12345678";
 const SECONDARY_TEST_API_KEY = "test-key-backup-12345678";
 const DISPOSABLE_TEST_API_KEY = "test-key-disposable-12345678";
+const VERTEX_SERVICE_ACCOUNT_EMAIL =
+  "automation-agent@gen-lang-client-0586185740.iam.gserviceaccount.com";
 let tempDirectory = "";
 
 beforeEach(async () => {
@@ -155,5 +157,39 @@ describe("ai connection store", () => {
   test("returns null when no default AI connection exists", async () => {
     expect(await getDefaultAiConnection()).toBeNull();
     expect(await getDefaultAiConnectionWithSecret()).toBeNull();
+  });
+
+  test("creates a Vertex AI connection without an API key and derives its endpoint", async () => {
+    const createdConnection = await createAiConnection({
+      name: "Vertex Gemini",
+      providerType: "vertex-openai-compatible",
+      baseUrl: "",
+      defaultModel: "google/gemini-3.1-pro-preview",
+      apiKey: "",
+      active: true,
+      isDefault: true,
+      notes: "Primary Gemini connection.",
+      vertexProjectId: "gen-lang-client-0586185740",
+      vertexLocation: "global",
+      serviceAccountEmail: VERTEX_SERVICE_ACCOUNT_EMAIL,
+    });
+    const defaultConnectionWithSecret = await getDefaultAiConnectionWithSecret();
+
+    expect(createdConnection.hasApiKey).toBe(false);
+    expect(createdConnection.apiKeyPreview).toBe("");
+    expect(createdConnection.baseUrl).toBe(
+      "https://aiplatform.googleapis.com/v1/projects/gen-lang-client-0586185740/locations/global/endpoints/openapi",
+    );
+    expect(createdConnection.vertexProjectId).toBe("gen-lang-client-0586185740");
+    expect(createdConnection.vertexLocation).toBe("global");
+    expect(createdConnection.serviceAccountEmail).toBe(
+      VERTEX_SERVICE_ACCOUNT_EMAIL,
+    );
+    expect(defaultConnectionWithSecret?.providerType).toBe(
+      "vertex-openai-compatible",
+    );
+    expect(
+      (defaultConnectionWithSecret as Record<string, unknown> | null)?.apiKey,
+    ).toBeUndefined();
   });
 });

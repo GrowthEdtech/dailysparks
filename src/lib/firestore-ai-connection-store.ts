@@ -16,8 +16,8 @@ function normalizeBoolean(value: unknown) {
 }
 
 function normalizeProviderType(value: unknown): AiConnectionProviderType {
-  return normalizeString(value) === "openai-compatible"
-    ? "openai-compatible"
+  return normalizeString(value) === "vertex-openai-compatible"
+    ? "vertex-openai-compatible"
     : "openai-compatible";
 }
 
@@ -39,6 +39,9 @@ function normalizeConnectionRecord(
     active: normalizeBoolean(raw?.active),
     isDefault: normalizeBoolean(raw?.isDefault),
     notes: normalizeString(raw?.notes),
+    vertexProjectId: normalizeString(raw?.vertexProjectId),
+    vertexLocation: normalizeString(raw?.vertexLocation),
+    serviceAccountEmail: normalizeString(raw?.serviceAccountEmail),
     createdAt: normalizeString(raw?.createdAt) || timestamp,
     updatedAt: normalizeString(raw?.updatedAt) || timestamp,
   };

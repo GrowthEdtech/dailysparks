@@ -4,8 +4,11 @@ import { BrainCircuit, Save, Star, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import {
+  buildVertexAiOpenAiBaseUrl,
   DEFAULT_AI_CONNECTION_BASE_URL,
   DEFAULT_AI_CONNECTION_MODEL,
+  DEFAULT_VERTEX_AI_LOCATION,
+  DEFAULT_VERTEX_AI_MODEL,
   type AiConnectionProviderType,
   type AiConnectionRecord,
 } from "../../../lib/ai-connection-schema";
@@ -23,6 +26,9 @@ type ConnectionFormState = {
   isDefault: boolean;
   notes: string;
   apiKey: string;
+  vertexProjectId: string;
+  vertexLocation: string;
+  serviceAccountEmail: string;
 };
 
 const DEFAULT_CREATE_FORM: ConnectionFormState = {
@@ -34,7 +40,58 @@ const DEFAULT_CREATE_FORM: ConnectionFormState = {
   isDefault: false,
   notes: "",
   apiKey: "",
+  vertexProjectId: "",
+  vertexLocation: DEFAULT_VERTEX_AI_LOCATION,
+  serviceAccountEmail: "",
 };
+
+function isVertexProvider(providerType: AiConnectionProviderType) {
+  return providerType === "vertex-openai-compatible";
+}
+
+function getProviderLabel(providerType: AiConnectionProviderType) {
+  return providerType === "vertex-openai-compatible"
+    ? "Vertex AI (Google Cloud)"
+    : "OpenAI-compatible";
+}
+
+function withProviderDefaults(
+  current: ConnectionFormState,
+  providerType: AiConnectionProviderType,
+): ConnectionFormState {
+  if (providerType === "vertex-openai-compatible") {
+    return {
+      ...current,
+      providerType,
+      defaultModel:
+        current.providerType === providerType && current.defaultModel.trim()
+          ? current.defaultModel
+          : DEFAULT_VERTEX_AI_MODEL,
+      baseUrl:
+        current.vertexProjectId.trim() && current.vertexLocation.trim()
+          ? buildVertexAiOpenAiBaseUrl(
+              current.vertexProjectId,
+              current.vertexLocation,
+            )
+          : "",
+      apiKey: "",
+      vertexLocation: current.vertexLocation || DEFAULT_VERTEX_AI_LOCATION,
+    };
+  }
+
+  return {
+    ...current,
+    providerType,
+    baseUrl:
+      current.providerType === providerType && current.baseUrl.trim()
+        ? current.baseUrl
+        : DEFAULT_AI_CONNECTION_BASE_URL,
+    defaultModel:
+      current.providerType === providerType && current.defaultModel.trim()
+        ? current.defaultModel
+        : DEFAULT_AI_CONNECTION_MODEL,
+  };
+}
 
 function toConnectionFormState(connection: AiConnectionRecord): ConnectionFormState {
   return {
@@ -46,19 +103,38 @@ function toConnectionFormState(connection: AiConnectionRecord): ConnectionFormSt
     isDefault: connection.isDefault,
     notes: connection.notes,
     apiKey: "",
+    vertexProjectId: connection.vertexProjectId ?? "",
+    vertexLocation: connection.vertexLocation ?? DEFAULT_VERTEX_AI_LOCATION,
+    serviceAccountEmail: connection.serviceAccountEmail ?? "",
   };
 }
 
 function toRequestBody(connection: ConnectionFormState) {
+  const vertexProvider = isVertexProvider(connection.providerType);
+
   return {
     name: connection.name,
     providerType: connection.providerType,
-    baseUrl: connection.baseUrl,
+    baseUrl: vertexProvider
+      ? buildVertexAiOpenAiBaseUrl(
+          connection.vertexProjectId,
+          connection.vertexLocation,
+        )
+      : connection.baseUrl,
     defaultModel: connection.defaultModel,
     active: connection.active,
     isDefault: connection.isDefault,
     notes: connection.notes,
-    ...(connection.apiKey.trim() ? { apiKey: connection.apiKey } : {}),
+    ...(vertexProvider
+      ? {
+          vertexProjectId: connection.vertexProjectId,
+          vertexLocation: connection.vertexLocation,
+          serviceAccountEmail: connection.serviceAccountEmail,
+        }
+      : {}),
+    ...(!vertexProvider && connection.apiKey.trim()
+      ? { apiKey: connection.apiKey }
+      : {}),
   };
 }
 
@@ -263,9 +339,10 @@ export default function AiConnectionsPanel({
             AI connections
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-            Register the OpenAI-compatible endpoints Daily Sparks can use later for
-            generation. Store multiple connections, mask API keys after save, and
-            choose which connection should be the active default.
+            Register the AI connections Daily Sparks can use for generation. Keep
+            multiple connections, choose one active default, and switch between
+            relay-backed GPT and Google Cloud Vertex AI without losing rollback
+            options.
           </p>
         </div>
 
@@ -319,30 +396,118 @@ export default function AiConnectionsPanel({
               className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
               value={createDraft.providerType}
               onChange={(event) =>
-                setCreateDraft((current) => ({
-                  ...current,
-                  providerType: event.target.value as AiConnectionProviderType,
-                }))
+                setCreateDraft((current) =>
+                  withProviderDefaults(
+                    current,
+                    event.target.value as AiConnectionProviderType,
+                  ),
+                )
               }
             >
               <option value="openai-compatible">OpenAI-compatible</option>
+              <option value="vertex-openai-compatible">
+                Vertex AI (Google Cloud)
+              </option>
             </select>
           </label>
 
-          <label className="flex flex-col gap-2">
-            <span className="text-sm font-semibold text-slate-700">Base URL</span>
-            <input
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
-              value={createDraft.baseUrl}
-              onChange={(event) =>
-                setCreateDraft((current) => ({
-                  ...current,
-                  baseUrl: event.target.value,
-                }))
-              }
-              placeholder={DEFAULT_AI_CONNECTION_BASE_URL}
-            />
-          </label>
+          {isVertexProvider(createDraft.providerType) ? (
+            <>
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  Google Cloud project ID
+                </span>
+                <input
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={createDraft.vertexProjectId}
+                  onChange={(event) =>
+                    setCreateDraft((current) => ({
+                      ...current,
+                      vertexProjectId: event.target.value,
+                      baseUrl:
+                        event.target.value.trim() &&
+                        current.vertexLocation.trim()
+                          ? buildVertexAiOpenAiBaseUrl(
+                              event.target.value,
+                              current.vertexLocation,
+                            )
+                          : "",
+                    }))
+                  }
+                  placeholder="gen-lang-client-0586185740"
+                />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  Location
+                </span>
+                <input
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={createDraft.vertexLocation}
+                  onChange={(event) =>
+                    setCreateDraft((current) => ({
+                      ...current,
+                      vertexLocation: event.target.value,
+                      baseUrl:
+                        current.vertexProjectId.trim() &&
+                        event.target.value.trim()
+                          ? buildVertexAiOpenAiBaseUrl(
+                              current.vertexProjectId,
+                              event.target.value,
+                            )
+                          : "",
+                    }))
+                  }
+                  placeholder={DEFAULT_VERTEX_AI_LOCATION}
+                />
+              </label>
+
+              <label className="flex flex-col gap-2 md:col-span-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  Service account email
+                </span>
+                <input
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={createDraft.serviceAccountEmail}
+                  onChange={(event) =>
+                    setCreateDraft((current) => ({
+                      ...current,
+                      serviceAccountEmail: event.target.value,
+                    }))
+                  }
+                  placeholder="automation-agent@project.iam.gserviceaccount.com"
+                />
+              </label>
+
+              <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 md:col-span-2">
+                <p className="font-semibold">Google Cloud managed auth</p>
+                <p className="mt-1 text-sky-800">
+                  Vertex uses ADC and optional service-account impersonation. No
+                  static API key will be stored for this connection.
+                </p>
+                <p className="mt-2 break-all text-xs text-sky-700">
+                  Endpoint preview:{" "}
+                  {createDraft.baseUrl || "Provide project ID and location to derive the Vertex endpoint."}
+                </p>
+              </div>
+            </>
+          ) : (
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-semibold text-slate-700">Base URL</span>
+              <input
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                value={createDraft.baseUrl}
+                onChange={(event) =>
+                  setCreateDraft((current) => ({
+                    ...current,
+                    baseUrl: event.target.value,
+                  }))
+                }
+                placeholder={DEFAULT_AI_CONNECTION_BASE_URL}
+              />
+            </label>
+          )}
 
           <label className="flex flex-col gap-2">
             <span className="text-sm font-semibold text-slate-700">
@@ -361,22 +526,24 @@ export default function AiConnectionsPanel({
             />
           </label>
 
-          <label className="flex flex-col gap-2 md:col-span-2">
-            <span className="text-sm font-semibold text-slate-700">API key</span>
-            <input
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
-              value={createDraft.apiKey}
-              onChange={(event) =>
-                setCreateDraft((current) => ({
-                  ...current,
-                  apiKey: event.target.value,
-                }))
-              }
-              type="password"
-              placeholder="Paste a fresh API key"
-              autoComplete="off"
-            />
-          </label>
+          {isVertexProvider(createDraft.providerType) ? null : (
+            <label className="flex flex-col gap-2 md:col-span-2">
+              <span className="text-sm font-semibold text-slate-700">API key</span>
+              <input
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                value={createDraft.apiKey}
+                onChange={(event) =>
+                  setCreateDraft((current) => ({
+                    ...current,
+                    apiKey: event.target.value,
+                  }))
+                }
+                type="password"
+                placeholder="Paste a fresh API key"
+                autoComplete="off"
+              />
+            </label>
+          )}
 
           <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700">
             <input
@@ -425,7 +592,15 @@ export default function AiConnectionsPanel({
         <button
           type="button"
           onClick={handleCreate}
-          disabled={isCreating || !createDraft.name.trim() || !createDraft.apiKey.trim()}
+          disabled={
+            isCreating ||
+            !createDraft.name.trim() ||
+            !createDraft.defaultModel.trim() ||
+            (isVertexProvider(createDraft.providerType)
+              ? !createDraft.vertexProjectId.trim() ||
+                !createDraft.vertexLocation.trim()
+              : !createDraft.apiKey.trim() || !createDraft.baseUrl.trim())
+          }
           className="mt-5 inline-flex items-center gap-2 rounded-full bg-[#0f172a] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Save className="h-4 w-4" />
@@ -469,12 +644,30 @@ export default function AiConnectionsPanel({
                     {connection.baseUrl.replace(/^https?:\/\//, "")}
                   </p>
                   <p className="mt-2 text-sm font-medium text-slate-700">
+                    Provider: {getProviderLabel(connection.providerType)}
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-slate-700">
                     Model: {connection.defaultModel}
                   </p>
                   <p className="mt-2 text-sm text-slate-500">
                     API key:{" "}
                     {connection.hasApiKey ? connection.apiKeyPreview : "No key saved"}
                   </p>
+                  {isVertexProvider(connection.providerType) ? (
+                    <>
+                      <p className="mt-2 text-sm text-slate-500">
+                        Google Cloud project:{" "}
+                        {connection.vertexProjectId || "Not configured"}
+                      </p>
+                      <p className="mt-2 text-sm text-slate-500">
+                        Service account:{" "}
+                        {connection.serviceAccountEmail || "Use current runtime identity"}
+                      </p>
+                      <p className="mt-2 text-sm text-sky-700">
+                        Google Cloud managed auth
+                      </p>
+                    </>
+                  ) : null}
                 </div>
 
                 <div className="flex gap-2">
@@ -522,31 +715,116 @@ export default function AiConnectionsPanel({
                     className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
                     value={draft.providerType}
                     onChange={(event) =>
-                      updateDraftConnection(connection.id, (current) => ({
-                        ...current,
-                        providerType: event.target.value as AiConnectionProviderType,
-                      }))
+                      updateDraftConnection(connection.id, (current) =>
+                        withProviderDefaults(
+                          current,
+                          event.target.value as AiConnectionProviderType,
+                        ),
+                      )
                     }
                   >
                     <option value="openai-compatible">OpenAI-compatible</option>
+                    <option value="vertex-openai-compatible">
+                      Vertex AI (Google Cloud)
+                    </option>
                   </select>
                 </label>
 
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm font-semibold text-slate-700">
-                    Base URL
-                  </span>
-                  <input
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
-                    value={draft.baseUrl}
-                    onChange={(event) =>
-                      updateDraftConnection(connection.id, (current) => ({
-                        ...current,
-                        baseUrl: event.target.value,
-                      }))
-                    }
-                  />
-                </label>
+                {isVertexProvider(draft.providerType) ? (
+                  <>
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-semibold text-slate-700">
+                        Google Cloud project ID
+                      </span>
+                      <input
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                        value={draft.vertexProjectId}
+                        onChange={(event) =>
+                          updateDraftConnection(connection.id, (current) => ({
+                            ...current,
+                            vertexProjectId: event.target.value,
+                            baseUrl:
+                              event.target.value.trim() &&
+                              current.vertexLocation.trim()
+                                ? buildVertexAiOpenAiBaseUrl(
+                                    event.target.value,
+                                    current.vertexLocation,
+                                  )
+                                : "",
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-semibold text-slate-700">
+                        Location
+                      </span>
+                      <input
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                        value={draft.vertexLocation}
+                        onChange={(event) =>
+                          updateDraftConnection(connection.id, (current) => ({
+                            ...current,
+                            vertexLocation: event.target.value,
+                            baseUrl:
+                              current.vertexProjectId.trim() &&
+                              event.target.value.trim()
+                                ? buildVertexAiOpenAiBaseUrl(
+                                    current.vertexProjectId,
+                                    event.target.value,
+                                  )
+                                : "",
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <label className="flex flex-col gap-2 md:col-span-2">
+                      <span className="text-sm font-semibold text-slate-700">
+                        Service account email
+                      </span>
+                      <input
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                        value={draft.serviceAccountEmail}
+                        onChange={(event) =>
+                          updateDraftConnection(connection.id, (current) => ({
+                            ...current,
+                            serviceAccountEmail: event.target.value,
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900 md:col-span-2">
+                      <p className="font-semibold">Google Cloud managed auth</p>
+                      <p className="mt-1 text-sky-800">
+                        This Vertex connection uses ADC and optional
+                        service-account impersonation. No API key is stored here.
+                      </p>
+                      <p className="mt-2 break-all text-xs text-sky-700">
+                        Endpoint preview:{" "}
+                        {draft.baseUrl || "Provide project ID and location to derive the Vertex endpoint."}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-semibold text-slate-700">
+                      Base URL
+                    </span>
+                    <input
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                      value={draft.baseUrl}
+                      onChange={(event) =>
+                        updateDraftConnection(connection.id, (current) => ({
+                          ...current,
+                          baseUrl: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                )}
 
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-semibold text-slate-700">
@@ -564,24 +842,26 @@ export default function AiConnectionsPanel({
                   />
                 </label>
 
-                <label className="flex flex-col gap-2 md:col-span-2">
-                  <span className="text-sm font-semibold text-slate-700">
-                    Replace API key
-                  </span>
-                  <input
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
-                    value={draft.apiKey}
-                    onChange={(event) =>
-                      updateDraftConnection(connection.id, (current) => ({
-                        ...current,
-                        apiKey: event.target.value,
-                      }))
-                    }
-                    type="password"
-                    placeholder="Leave blank to keep the current key"
-                    autoComplete="off"
-                  />
-                </label>
+                {isVertexProvider(draft.providerType) ? null : (
+                  <label className="flex flex-col gap-2 md:col-span-2">
+                    <span className="text-sm font-semibold text-slate-700">
+                      Replace API key
+                    </span>
+                    <input
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                      value={draft.apiKey}
+                      onChange={(event) =>
+                        updateDraftConnection(connection.id, (current) => ({
+                          ...current,
+                          apiKey: event.target.value,
+                        }))
+                      }
+                      type="password"
+                      placeholder="Leave blank to keep the current key"
+                      autoComplete="off"
+                    />
+                  </label>
+                )}
 
                 <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
                   <input

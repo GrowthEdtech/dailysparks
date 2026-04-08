@@ -8,7 +8,11 @@ import {
   updateGeoMachineReadabilityStatus,
 } from "./geo-machine-readability-store";
 import type { GeoMachineReadabilityStatusRecord } from "./geo-machine-readability-schema";
-import { type RuntimeAiConnection, getDefaultAiConnectionWithSecret } from "./ai-connection-store";
+import {
+  type RuntimeAiConnection,
+  type RuntimeAiConnectionWithProvider,
+  getDefaultAiConnectionWithSecret,
+} from "./ai-connection-store";
 import { generateOpenAiCompatibleText } from "./ai-runtime";
 import { listGeoPrompts } from "./geo-prompt-store";
 import type { GeoEngineType, GeoPromptRecord } from "./geo-prompt-schema";
@@ -234,7 +238,7 @@ function buildDeveloperPrompt(baseUrl: string) {
 }
 
 async function executeOpenAiCompatibleEngine(
-  connection: RuntimeAiConnection,
+  connection: RuntimeAiConnectionWithProvider,
   queryVariant: string,
   baseUrl: string,
   fetchImpl: typeof fetch,

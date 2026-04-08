@@ -20,6 +20,25 @@ const initialConnections: AiConnectionRecord[] = [
     createdAt: "2026-04-02T00:00:00.000Z",
     updatedAt: "2026-04-02T00:00:00.000Z",
   },
+  {
+    id: "vertex-gemini",
+    name: "Vertex Gemini",
+    providerType: "vertex-openai-compatible",
+    baseUrl:
+      "https://aiplatform.googleapis.com/v1/projects/gen-lang-client-0586185740/locations/global/endpoints/openapi",
+    defaultModel: "google/gemini-3.1-pro-preview",
+    apiKeyPreview: "",
+    hasApiKey: false,
+    active: true,
+    isDefault: false,
+    notes: "Default Gemini connection.",
+    vertexProjectId: "gen-lang-client-0586185740",
+    vertexLocation: "global",
+    serviceAccountEmail:
+      "automation-agent@gen-lang-client-0586185740.iam.gserviceaccount.com",
+    createdAt: "2026-04-09T00:00:00.000Z",
+    updatedAt: "2026-04-09T00:00:00.000Z",
+  },
 ];
 
 describe("AiConnectionsPanel", () => {
@@ -33,5 +52,11 @@ describe("AiConnectionsPanel", () => {
     expect(markup).toContain("gpt-5.4");
     expect(markup).toContain("••••••••e225");
     expect(markup).toContain("Default");
+    expect(markup).toContain("Vertex AI (Google Cloud)");
+    expect(markup).toContain("Google Cloud managed auth");
+    expect(markup).toContain("gen-lang-client-0586185740");
+    expect(markup).toContain(
+      "automation-agent@gen-lang-client-0586185740.iam.gserviceaccount.com",
+    );
   });
 });

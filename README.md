@@ -115,9 +115,12 @@ DAILY_SPARKS_PROMPT_POLICY_STORE_PATH=/absolute/path/to/prompt-policies.json
 The same admin area now also includes an `AI connections` registry for future generation infrastructure. This module supports:
 
 - multiple OpenAI-compatible connection profiles
+- multiple Vertex AI (Google Cloud) connection profiles
 - one active default connection
-- editable base URL and default model
-- masked API key previews after save
+- editable relay base URL and default model
+- Vertex project / location / service-account configuration
+- masked API key previews after save for relay-backed connections
+- Google-managed auth for Vertex connections without storing a static API key
 
 For local-only testing, you can override the AI registry path with:
 
@@ -125,7 +128,9 @@ For local-only testing, you can override the AI registry path with:
 DAILY_SPARKS_AI_CONNECTION_STORE_PATH=/absolute/path/to/ai-connections.json
 ```
 
-API keys are encrypted on the server before they are persisted. The admin UI never re-displays the full stored key after save.
+Relay-backed API keys are encrypted on the server before they are persisted. The admin UI never re-displays the full stored key after save.
+
+Vertex AI connections use Google Cloud ADC at runtime. If a service-account email is configured for a Vertex connection, the running service must be able to impersonate that target principal.
 
 The editorial admin now also includes a dedicated `Prompt Policy` workspace for:
 

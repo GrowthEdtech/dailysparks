@@ -1,11 +1,13 @@
-import type { RuntimeAiConnection } from "./ai-connection-store";
+import type { RuntimeAiConnectionWithProvider } from "./ai-connection-store";
+import { getVertexAccessToken } from "./vertex-ai-auth";
 
 export type OpenAiCompatibleTextGenerationInput = {
-  connection: RuntimeAiConnection;
+  connection: RuntimeAiConnectionWithProvider;
   developerPrompt: string;
   userPrompt: string;
   fetchImpl?: typeof fetch;
   signal?: AbortSignal;
+  getVertexAccessToken?: typeof getVertexAccessToken;
 };
 
 export type OpenAiCompatibleTextGenerationResult = {
@@ -47,13 +49,19 @@ export async function generateOpenAiCompatibleText(
   input: OpenAiCompatibleTextGenerationInput,
 ): Promise<OpenAiCompatibleTextGenerationResult> {
   const fetchImpl = input.fetchImpl ?? fetch;
+  const authorizationToken =
+    input.connection.providerType === "vertex-openai-compatible"
+      ? await (input.getVertexAccessToken ?? getVertexAccessToken)(
+          input.connection,
+        )
+      : input.connection.apiKey;
   const response = await fetchImpl(
     `${trimTrailingSlash(input.connection.baseUrl)}/chat/completions`,
     {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        authorization: `Bearer ${input.connection.apiKey}`,
+        authorization: `Bearer ${authorizationToken}`,
       },
       signal: input.signal,
       body: JSON.stringify({

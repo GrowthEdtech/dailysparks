@@ -4,7 +4,11 @@ import {
   encryptAiConnectionApiKey,
   getAiConnectionEncryptionSecret,
 } from "./ai-connection-crypto";
-import type { AiConnectionRecord } from "./ai-connection-schema";
+import type {
+  AiConnectionProviderType,
+  AiConnectionRecord,
+} from "./ai-connection-schema";
+import { buildVertexAiOpenAiBaseUrl } from "./ai-connection-schema";
 import { firestoreAiConnectionStore } from "./firestore-ai-connection-store";
 import { localAiConnectionStore } from "./local-ai-connection-store";
 import type {
@@ -40,31 +44,87 @@ function sanitizeAiConnectionRecord(
     active: connection.active,
     isDefault: connection.isDefault,
     notes: connection.notes,
+    vertexProjectId: connection.vertexProjectId,
+    vertexLocation: connection.vertexLocation,
+    serviceAccountEmail: connection.serviceAccountEmail,
     createdAt: connection.createdAt,
     updatedAt: connection.updatedAt,
   };
 }
 
-export type RuntimeAiConnection = AiConnectionRecord & {
+export type RuntimeOpenAiCompatibleConnection = AiConnectionRecord & {
+  providerType: "openai-compatible";
   apiKey: string;
 };
+
+export type RuntimeAiConnection = RuntimeOpenAiCompatibleConnection;
+
+export type RuntimeVertexAiConnection = AiConnectionRecord & {
+  providerType: "vertex-openai-compatible";
+};
+
+export type RuntimeAiConnectionWithProvider =
+  | RuntimeOpenAiCompatibleConnection
+  | RuntimeVertexAiConnection;
+
+function buildConnectionBaseUrl(
+  providerType: AiConnectionProviderType,
+  input: Pick<
+    CreateAiConnectionInput,
+    "baseUrl" | "vertexLocation" | "vertexProjectId"
+  >,
+) {
+  if (providerType === "vertex-openai-compatible") {
+    return buildVertexAiOpenAiBaseUrl(
+      input.vertexProjectId ?? "",
+      input.vertexLocation ?? "",
+    );
+  }
+
+  return input.baseUrl.trim();
+}
 
 function buildStoredAiConnection(
   input: CreateAiConnectionInput,
 ): StoredAiConnectionRecord {
+  const timestamp = new Date().toISOString();
+  const nextBaseUrl = buildConnectionBaseUrl(input.providerType, input);
+  const nextVertexProjectId = input.vertexProjectId?.trim() || "";
+  const nextVertexLocation = input.vertexLocation?.trim() || "";
+  const nextServiceAccountEmail = input.serviceAccountEmail?.trim() || "";
+
+  if (input.providerType === "vertex-openai-compatible") {
+    return {
+      id: crypto.randomUUID(),
+      name: input.name.trim(),
+      providerType: input.providerType,
+      baseUrl: nextBaseUrl,
+      defaultModel: input.defaultModel.trim(),
+      apiKeyCiphertext: "",
+      apiKeyPreview: "",
+      hasApiKey: false,
+      active: input.active,
+      isDefault: input.isDefault,
+      notes: input.notes.trim(),
+      vertexProjectId: nextVertexProjectId,
+      vertexLocation: nextVertexLocation,
+      serviceAccountEmail: nextServiceAccountEmail,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+  }
+
   const encryptionSecret = getAiConnectionEncryptionSecret();
 
   if (!encryptionSecret) {
     throw new Error("AI connection encryption secret is not configured.");
   }
 
-  const timestamp = new Date().toISOString();
-
   return {
     id: crypto.randomUUID(),
     name: input.name.trim(),
     providerType: input.providerType,
-    baseUrl: input.baseUrl.trim(),
+    baseUrl: nextBaseUrl,
     defaultModel: input.defaultModel.trim(),
     apiKeyCiphertext: encryptAiConnectionApiKey(encryptionSecret, input.apiKey),
     apiKeyPreview: buildAiConnectionApiKeyPreview(input.apiKey),
@@ -72,6 +132,9 @@ function buildStoredAiConnection(
     active: input.active,
     isDefault: input.isDefault,
     notes: input.notes.trim(),
+    vertexProjectId: nextVertexProjectId,
+    vertexLocation: nextVertexLocation,
+    serviceAccountEmail: nextServiceAccountEmail,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -94,12 +157,8 @@ export async function getDefaultAiConnection() {
   return defaultConnection ? sanitizeAiConnectionRecord(defaultConnection) : null;
 }
 
-export async function getDefaultAiConnectionWithSecret(): Promise<RuntimeAiConnection | null> {
+export async function getDefaultAiConnectionWithSecret(): Promise<RuntimeAiConnectionWithProvider | null> {
   const encryptionSecret = getAiConnectionEncryptionSecret();
-
-  if (!encryptionSecret) {
-    return null;
-  }
 
   const store = getAiConnectionStore();
   const connections = await store.listConnections();
@@ -111,13 +170,21 @@ export async function getDefaultAiConnectionWithSecret(): Promise<RuntimeAiConne
     return null;
   }
 
+  if (defaultConnection.providerType === "vertex-openai-compatible") {
+    return sanitizeAiConnectionRecord(defaultConnection) as RuntimeVertexAiConnection;
+  }
+
+  if (!encryptionSecret) {
+    return null;
+  }
+
   return {
     ...sanitizeAiConnectionRecord(defaultConnection),
     apiKey: decryptAiConnectionApiKey(
       encryptionSecret,
       defaultConnection.apiKeyCiphertext,
     ),
-  };
+  } as RuntimeOpenAiCompatibleConnection;
 }
 
 export async function createAiConnection(input: CreateAiConnectionInput) {
@@ -165,29 +232,63 @@ export async function updateAiConnection(
 
   const nextConnection = await store.updateConnection(id, (connections, existing) => {
     const nextTimestamp = new Date().toISOString();
+    const nextProviderType = input.providerType ?? existing.providerType;
+    const nextVertexProjectId =
+      input.vertexProjectId !== undefined
+        ? input.vertexProjectId.trim()
+        : existing.vertexProjectId?.trim() ?? "";
+    const nextVertexLocation =
+      input.vertexLocation !== undefined
+        ? input.vertexLocation.trim()
+        : existing.vertexLocation?.trim() ?? "";
+    const nextServiceAccountEmail =
+      input.serviceAccountEmail !== undefined
+        ? input.serviceAccountEmail.trim()
+        : existing.serviceAccountEmail?.trim() ?? "";
+    const nextBaseUrl =
+      input.baseUrl !== undefined || nextProviderType === "vertex-openai-compatible"
+        ? buildConnectionBaseUrl(nextProviderType, {
+            baseUrl: input.baseUrl ?? existing.baseUrl,
+            vertexProjectId: nextVertexProjectId,
+            vertexLocation: nextVertexLocation,
+          })
+        : existing.baseUrl;
     const nextApiKeyCiphertext =
-      input.apiKey && encryptionSecret
+      nextProviderType === "openai-compatible" &&
+      input.apiKey &&
+      encryptionSecret
         ? encryptAiConnectionApiKey(encryptionSecret, input.apiKey)
-        : existing.apiKeyCiphertext;
+        : nextProviderType === "vertex-openai-compatible"
+          ? ""
+          : existing.apiKeyCiphertext;
     const nextApiKeyPreview =
-      input.apiKey && encryptionSecret
+      nextProviderType === "openai-compatible" &&
+      input.apiKey &&
+      encryptionSecret
         ? buildAiConnectionApiKeyPreview(input.apiKey)
-        : existing.apiKeyPreview;
+        : nextProviderType === "vertex-openai-compatible"
+          ? ""
+          : existing.apiKeyPreview;
     const nextHasApiKey =
-      input.apiKey && encryptionSecret ? true : existing.hasApiKey;
+      nextProviderType === "openai-compatible"
+        ? input.apiKey && encryptionSecret
+          ? true
+          : existing.hasApiKey
+        : false;
     const nextConnectionRecord: StoredAiConnectionRecord = {
       ...existing,
       ...(input.name !== undefined ? { name: input.name.trim() } : {}),
-      ...(input.providerType !== undefined
-        ? { providerType: input.providerType }
-        : {}),
-      ...(input.baseUrl !== undefined ? { baseUrl: input.baseUrl.trim() } : {}),
+      providerType: nextProviderType,
+      baseUrl: nextBaseUrl,
       ...(input.defaultModel !== undefined
         ? { defaultModel: input.defaultModel.trim() }
         : {}),
       ...(input.active !== undefined ? { active: input.active } : {}),
       ...(input.isDefault !== undefined ? { isDefault: input.isDefault } : {}),
       ...(input.notes !== undefined ? { notes: input.notes.trim() } : {}),
+      vertexProjectId: nextVertexProjectId,
+      vertexLocation: nextVertexLocation,
+      serviceAccountEmail: nextServiceAccountEmail,
       apiKeyCiphertext: nextApiKeyCiphertext,
       apiKeyPreview: nextApiKeyPreview,
       hasApiKey: nextHasApiKey,

@@ -16,6 +16,9 @@ export type CreateAiConnectionInput = {
   active: boolean;
   isDefault: boolean;
   notes: string;
+  vertexProjectId?: string;
+  vertexLocation?: string;
+  serviceAccountEmail?: string;
 };
 
 export type UpdateAiConnectionInput = Partial<

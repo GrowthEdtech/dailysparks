@@ -17,6 +17,8 @@ let tempDirectory = "";
 const validAdminSecret = "open-sesame";
 const CREATED_CONNECTION_TEST_API_KEY = "test-key-example-1234567890";
 const UPDATED_CONNECTION_TEST_API_KEY = "test-key-replaced-1234564321";
+const VERTEX_SERVICE_ACCOUNT_EMAIL =
+  "automation-agent@gen-lang-client-0586185740.iam.gserviceaccount.com";
 
 beforeEach(async () => {
   tempDirectory = await mkdtemp(
@@ -152,5 +154,44 @@ describe("AI connections admin route", () => {
 
     expect(deleteResponse.status).toBe(200);
     expect(deleteBody.success).toBe(true);
+  });
+
+  test("creates a Vertex AI connection without requiring an API key", async () => {
+    const cookie = await signIn();
+
+    const createResponse = await createAiConnectionRoute(
+      new Request("http://localhost:3000/api/admin/ai-connections", {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Vertex Gemini",
+          providerType: "vertex-openai-compatible",
+          defaultModel: "google/gemini-3.1-pro-preview",
+          active: true,
+          isDefault: true,
+          notes: "Default Gemini connection.",
+          vertexProjectId: "gen-lang-client-0586185740",
+          vertexLocation: "global",
+          serviceAccountEmail: VERTEX_SERVICE_ACCOUNT_EMAIL,
+        }),
+      }),
+    );
+    const createBody = await createResponse.json();
+
+    expect(createResponse.status).toBe(200);
+    expect(createBody.connection.hasApiKey).toBe(false);
+    expect(createBody.connection.vertexProjectId).toBe(
+      "gen-lang-client-0586185740",
+    );
+    expect(createBody.connection.vertexLocation).toBe("global");
+    expect(createBody.connection.serviceAccountEmail).toBe(
+      VERTEX_SERVICE_ACCOUNT_EMAIL,
+    );
+    expect(createBody.connection.baseUrl).toBe(
+      "https://aiplatform.googleapis.com/v1/projects/gen-lang-client-0586185740/locations/global/endpoints/openapi",
+    );
   });
 });
