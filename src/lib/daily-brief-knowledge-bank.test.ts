@@ -36,6 +36,24 @@ describe("daily brief knowledge bank", () => {
       "Inquiry question",
       "Notebook prompt",
     ]);
+    expect(knowledgeBank.entries).toEqual([
+      {
+        title: "Inquiry notebook",
+        body: "Which cleanup plan would feel fairest, and what evidence would help you defend that choice?",
+      },
+      {
+        title: "Global context note",
+        body: "Coastal cleanup decisions affect communities, public budgets, and environmental recovery.",
+      },
+      {
+        title: "Compare-connect note",
+        body: "One city may value speed, while another values resident voice and resilience.",
+      },
+      {
+        title: "Vocabulary",
+        body: "No structured vocabulary captured yet.",
+      },
+    ]);
   });
 
   test("builds an academic idea bank structure for DP", () => {
@@ -72,6 +90,24 @@ describe("daily brief knowledge bank", () => {
       "TOK / essay prompt",
       "Notebook capture",
     ]);
+    expect(knowledgeBank.entries).toEqual([
+      {
+        title: "Claim",
+        body: "Stronger regulation is justified when a tool can scale harm faster than existing oversight can respond.",
+      },
+      {
+        title: "Counterpoint",
+        body: "Regulation can overreach when the evidence base is still incomplete.",
+      },
+      {
+        title: "TOK prompt",
+        body: "When evidence is incomplete, how should societies decide whether caution is wiser than freedom to experiment?",
+      },
+      {
+        title: "Notebook capture",
+        body: "Note one claim supporting faster regulation and one evidence limit that weakens a simplistic policy response.",
+      },
+    ]);
   });
 
   test("normalizes a legacy MYP brief into inquiry-first capture prompts", () => {
@@ -100,6 +136,24 @@ describe("daily brief knowledge bank", () => {
     expect(knowledgeBank.capturePrompt).toBe(
       "What global context or system-level connection stands out most in this brief?",
     );
+    expect(knowledgeBank.entries).toEqual([
+      {
+        title: "Inquiry notebook",
+        body: "What global context or system-level connection stands out most in this brief?",
+      },
+      {
+        title: "Global context note",
+        body: "Students compare why ocean mapping helps scientists protect animals.",
+      },
+      {
+        title: "Compare-connect note",
+        body: "Students compare why ocean mapping helps scientists protect animals.",
+      },
+      {
+        title: "Vocabulary",
+        body: "No structured vocabulary captured yet.",
+      },
+    ]);
   });
 
   test("normalizes a legacy DP brief into academic capture prompts", () => {
@@ -128,5 +182,23 @@ describe("daily brief knowledge bank", () => {
     expect(knowledgeBank.capturePrompt).toBe(
       "Which claim in this brief feels strongest, and what evidence limit or counterpoint should you keep in view?",
     );
+    expect(knowledgeBank.entries).toEqual([
+      {
+        title: "Claim",
+        body: "Students evaluate why ocean evidence matters for policy decisions.",
+      },
+      {
+        title: "Counterpoint",
+        body: "Students evaluate why ocean evidence matters for policy decisions.",
+      },
+      {
+        title: "TOK prompt",
+        body: "Which claim in this brief feels strongest, and what evidence limit or counterpoint should you keep in view?",
+      },
+      {
+        title: "Notebook capture",
+        body: "Capture one arguable claim, one evidence limit, and one question you would test further.",
+      },
+    ]);
   });
 });

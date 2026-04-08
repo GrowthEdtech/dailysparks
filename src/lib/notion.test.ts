@@ -248,6 +248,12 @@ describe("notion delivery helpers", () => {
     );
     expect(JSON.stringify(body.children)).toContain("Inquiry notebook");
     expect(JSON.stringify(body.children)).toContain("What global context or system-level connection stands out most in this brief?");
+    expect(JSON.stringify(body.children)).toContain("Global context note");
+    expect(JSON.stringify(body.children)).toContain("Compare-connect note");
+    expect(JSON.stringify(body.children)).toContain("Vocabulary");
+    expect(JSON.stringify(body.children)).toContain(
+      "No structured vocabulary captured yet.",
+    );
     expect(result).toEqual({
       pageId: "page-123",
       pageUrl: "https://www.notion.so/page-123",

@@ -219,6 +219,11 @@ describe("DailyBriefDetailPage", () => {
     expect(markup).toContain("Cooling centre");
     expect(markup).toContain("Inquiry question");
     expect(markup).toContain("Notebook prompt");
+    expect(markup).toContain("Knowledge bank v1");
+    expect(markup).toContain("Inquiry notebook");
+    expect(markup).toContain("Global context note");
+    expect(markup).toContain("Compare-connect note");
+    expect(markup).toContain("Vocabulary");
     expect(markup).toContain("Focus areas");
     expect(markup).toContain("Pipeline timeline");
     expect(markup).toContain("Render audit");

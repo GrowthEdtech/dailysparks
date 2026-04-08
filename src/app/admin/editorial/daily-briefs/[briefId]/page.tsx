@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { buildDailyBriefKnowledgeBank } from "../../../../../lib/daily-brief-knowledge-bank";
 import { getDailyBriefHistoryEntry } from "../../../../../lib/daily-brief-history-store";
 import {
   getDailyBriefRendererPolicyLabel,
@@ -70,6 +71,7 @@ export default async function DailyBriefDetailPage({
   }
 
   const preview = buildOutboundDailyBriefPacket(entry);
+  const knowledgeBank = buildDailyBriefKnowledgeBank(preview);
   const currentRendererPolicy = resolveDailyBriefRendererPolicy({
     selectedMode: "auto",
     programme: entry.programme,
@@ -320,6 +322,33 @@ export default async function DailyBriefDetailPage({
                 </p>
               </section>
             ) : null}
+
+            <section className="rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">
+                Knowledge bank v1
+              </p>
+              <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+                {knowledgeBank.title}
+              </p>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                {knowledgeBank.capturePrompt}
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {knowledgeBank.entries.map((entry) => (
+                  <div
+                    key={`${entry.title}-${entry.body}`}
+                    className="rounded-[20px] border border-[#d9e4f2] bg-slate-50 px-4 py-4"
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      {entry.title}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">
+                      {entry.body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
 
             <section className="rounded-[24px] border border-[#d9e4f2] bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#64748b]">

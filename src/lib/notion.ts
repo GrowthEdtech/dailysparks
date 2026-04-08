@@ -288,15 +288,15 @@ function buildNotionBriefPageChildren(
   children.push(toNotionParagraphBlock(knowledgeBank.title));
   children.push(toNotionParagraphBlock(knowledgeBank.capturePrompt));
 
-  for (const section of knowledgeBank.sections) {
+  for (const entry of knowledgeBank.entries) {
     children.push({
       object: "block",
       type: "heading_3",
       heading_3: {
-        rich_text: toPlainRichText(section.title),
+        rich_text: toPlainRichText(entry.title),
       },
     });
-    children.push(toNotionParagraphBlock(section.body));
+    children.push(toNotionParagraphBlock(entry.body));
   }
 
   return children;
