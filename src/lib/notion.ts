@@ -3,6 +3,9 @@ import { Buffer } from "node:buffer";
 import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
 import { buildDailyBriefKnowledgeBank } from "./daily-brief-knowledge-bank";
 import type { DailyBriefKnowledgeBankSection } from "./daily-brief-knowledge-bank";
+import type {
+  DailyBriefNotebookWeeklyRecap,
+} from "./daily-brief-notebook-weekly-recap";
 import type { ParentProfile } from "./mvp-types";
 import type { NotionConnectionSecretRecord } from "./mvp-types";
 import { clearNotionConnectionSecret, getNotionConnectionSecret, setNotionConnectionSecret } from "./notion-connection-store";
@@ -362,6 +365,106 @@ function buildNotionNotebookPageChildren(
 
     for (const tag of brief.topicTags) {
       children.push(toNotionBulletedListItemBlock(tag));
+    }
+  }
+
+  return children;
+}
+
+function buildDailySparksWeeklyRecapId(recap: DailyBriefNotebookWeeklyRecap) {
+  return `daily-sparks-weekly-recap-${recap.programme.toLowerCase()}-${recap.weekKey}`;
+}
+
+function buildNotionWeeklyRecapPageChildren(
+  recap: DailyBriefNotebookWeeklyRecap,
+): NotionBlock[] {
+  const children: NotionBlock[] = [
+    {
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: toPlainRichText("Week in review"),
+      },
+    },
+  ];
+
+  for (const line of recap.summaryLines) {
+    children.push(toNotionBulletedListItemBlock(line));
+  }
+
+  if (recap.topTags.length > 0) {
+    children.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: toPlainRichText("Focus areas"),
+      },
+    });
+
+    for (const tag of recap.topTags) {
+      children.push(toNotionBulletedListItemBlock(tag));
+    }
+  }
+
+  if (recap.entryTypeBreakdown.length > 0) {
+    children.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: toPlainRichText("Entry mix"),
+      },
+    });
+
+    for (const entry of recap.entryTypeBreakdown) {
+      children.push(
+        toNotionBulletedListItemBlock(`${entry.label}: ${entry.count}`),
+      );
+    }
+  }
+
+  if (recap.retrievalPrompts.length > 0) {
+    children.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: toPlainRichText("Retrieval prompts"),
+      },
+    });
+
+    for (const prompt of recap.retrievalPrompts) {
+      children.push({
+        object: "block",
+        type: "heading_3",
+        heading_3: {
+          rich_text: toPlainRichText(prompt.title),
+        },
+      });
+      children.push(
+        toNotionParagraphBlock(
+          `${prompt.prompt} Source: ${prompt.sourceHeadline}.`,
+        ),
+      );
+    }
+  }
+
+  if (recap.highlights.length > 0) {
+    children.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: toPlainRichText("Notebook highlights"),
+      },
+    });
+
+    for (const highlight of recap.highlights) {
+      children.push({
+        object: "block",
+        type: "heading_3",
+        heading_3: {
+          rich_text: toPlainRichText(highlight.title),
+        },
+      });
+      children.push(toNotionParagraphBlock(highlight.body));
     }
   }
 
@@ -1003,6 +1106,93 @@ export async function createNotionNotebookEntriesPage(
   return {
     pageId,
     pageUrl,
+  };
+}
+
+export async function createNotionNotebookWeeklyRecapPage(
+  profile: ParentProfile,
+  recap: DailyBriefNotebookWeeklyRecap,
+): Promise<NotionTestSyncResult> {
+  const active = await getActiveAccessToken(profile.parent.id);
+
+  if (!active) {
+    throw new Error("Notion is not connected.");
+  }
+
+  if (!profile.parent.notionDatabaseId) {
+    throw new Error("Notion archive has not been created yet.");
+  }
+
+  const config = getNotionConfig();
+  const pageResult = await notionJsonRequest<Record<string, unknown>>(
+    `${config!.apiBaseUrl}/pages`,
+    {
+      method: "POST",
+      headers: getNotionHeaders(active.accessToken),
+      body: JSON.stringify({
+        parent: profile.parent.notionDataSourceId
+          ? {
+              type: "data_source_id",
+              data_source_id: profile.parent.notionDataSourceId,
+            }
+          : {
+              type: "database_id",
+              database_id: profile.parent.notionDatabaseId,
+            },
+        properties: {
+          Title: {
+            title: toPlainRichText(recap.title),
+          },
+          Date: {
+            date: {
+              start: recap.weekKey,
+            },
+          },
+          Programme: {
+            select: {
+              name: recap.programme,
+            },
+          },
+          "Brief type": {
+            select: {
+              name: "Weekly Recap",
+            },
+          },
+          Theme: {
+            rich_text: toPlainRichText(recap.topTags.join(", ")),
+          },
+          Summary: {
+            rich_text: toPlainRichText(recap.summaryLines.join(" ")),
+          },
+          Prompt: {
+            rich_text: toPlainRichText(
+              recap.retrievalPrompts[0]?.prompt ??
+                "Which notebook idea should your family revisit next?",
+            ),
+          },
+          Student: {
+            rich_text: toPlainRichText(profile.student.studentName),
+          },
+          Status: {
+            select: {
+              name: "Synced",
+            },
+          },
+          "Daily Sparks ID": {
+            rich_text: toPlainRichText(buildDailySparksWeeklyRecapId(recap)),
+          },
+        },
+        children: buildNotionWeeklyRecapPageChildren(recap),
+      }),
+    },
+  );
+
+  return {
+    pageId: typeof pageResult.id === "string" ? pageResult.id : "",
+    pageUrl:
+      typeof pageResult.url === "string" && pageResult.url.trim()
+        ? pageResult.url
+        : null,
   };
 }
 

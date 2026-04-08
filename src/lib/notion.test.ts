@@ -7,7 +7,11 @@ import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
 import type { ParentProfile } from "./mvp-types";
 import { encryptNotionToken } from "./notion-crypto";
 import { setNotionConnectionSecret } from "./notion-connection-store";
-import { createNotionBriefPage, createNotionNotebookEntriesPage } from "./notion";
+import {
+  createNotionBriefPage,
+  createNotionNotebookEntriesPage,
+  createNotionNotebookWeeklyRecapPage,
+} from "./notion";
 
 const ORIGINAL_ENV = { ...process.env };
 const fetchMock = vi.fn<typeof fetch>();
@@ -331,6 +335,107 @@ describe("notion delivery helpers", () => {
     expect(result).toEqual({
       pageId: "page-456",
       pageUrl: "https://www.notion.so/page-456",
+    });
+  });
+
+  test("creates a Notion page from a weekly notebook recap", async () => {
+    const profile = createProfile();
+
+    await setNotionConnectionSecret({
+      parentId: profile.parent.id,
+      accessTokenCiphertext: encryptNotionToken(
+        "test-encryption-secret",
+        "secret-access-token",
+      ),
+      refreshTokenCiphertext: null,
+      workspaceId: "workspace-123",
+      botId: "bot-123",
+      expiresAt: null,
+      createdAt: "2026-04-02T00:00:00.000Z",
+      updatedAt: "2026-04-02T00:00:00.000Z",
+    });
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: "page-789",
+          url: "https://www.notion.so/page-789",
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await createNotionNotebookWeeklyRecapPage(profile, {
+      programme: "DP",
+      weekKey: "2026-04-06",
+      weekLabel: "Apr 6 – Apr 12",
+      title: "DP weekly notebook recap",
+      totalEntries: 3,
+      systemCount: 2,
+      authoredCount: 1,
+      topTags: ["TOK", "AI", "Ethics"],
+      summaryLines: [
+        "You captured 3 notebook entries this week, including 1 note in your own words.",
+        "Your strongest focus areas were TOK, AI, and Ethics.",
+      ],
+      entryTypeBreakdown: [
+        { entryType: "claim", label: "Claim", count: 1 },
+        { entryType: "tok-prompt", label: "TOK prompt", count: 1 },
+      ],
+      highlights: [
+        {
+          entryId: "entry-1",
+          title: "Claim",
+          body: "Stronger regulation is justified when public harm can scale faster than oversight.",
+          entryType: "claim",
+          entryOrigin: "system",
+          sourceHeadline: "Governments debate whether AI regulation can keep up",
+          updatedAt: "2026-04-07T09:00:00.000Z",
+        },
+      ],
+      retrievalPrompts: [
+        {
+          entryId: "entry-2",
+          title: "TOK prompt",
+          prompt:
+            "Has your answer to this TOK prompt shifted? Which perspective would you add now?",
+          entryType: "tok-prompt",
+          sourceHeadline: "Governments debate whether AI regulation can keep up",
+        },
+      ],
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [requestUrl, requestInit] = fetchMock.mock.calls[0]!;
+    expect(requestUrl).toBe("https://api.notion.com/v1/pages");
+    expect(requestInit?.method).toBe("POST");
+
+    const body = JSON.parse(String(requestInit?.body)) as {
+      properties: Record<string, unknown>;
+      children: Array<Record<string, unknown>>;
+    };
+
+    expect(body.properties.Title).toEqual({
+      title: [
+        {
+          type: "text",
+          text: {
+            content: "DP weekly notebook recap",
+          },
+        },
+      ],
+    });
+    expect(body.properties["Brief type"]).toEqual({
+      select: {
+        name: "Weekly Recap",
+      },
+    });
+    expect(JSON.stringify(body.children)).toContain("Retrieval prompts");
+    expect(JSON.stringify(body.children)).toContain("Has your answer to this TOK prompt shifted?");
+    expect(JSON.stringify(body.children)).toContain("Week in review");
+    expect(result).toEqual({
+      pageId: "page-789",
+      pageUrl: "https://www.notion.so/page-789",
     });
   });
 });

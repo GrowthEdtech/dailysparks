@@ -13,6 +13,9 @@ import type {
   DailyBriefNotebookEntryRecord,
 } from "../../lib/daily-brief-notebook-store";
 import {
+  buildDailyBriefNotebookWeeklyRecap,
+} from "../../lib/daily-brief-notebook-weekly-recap";
+import {
   getDailyBriefAuthoredEntryTypes,
   getDailyBriefNotebookEntryLabel,
 } from "../../lib/daily-brief-notebook-schema";
@@ -151,6 +154,9 @@ export default function DashboardForm({
   const [notebookEntryErrorMessage, setNotebookEntryErrorMessage] = useState("");
   const [notebookEntrySuccessMessage, setNotebookEntrySuccessMessage] = useState("");
   const [isSavingNotebookEntry, setIsSavingNotebookEntry] = useState(false);
+  const [weeklyRecapErrorMessage, setWeeklyRecapErrorMessage] = useState("");
+  const [weeklyRecapSuccessMessage, setWeeklyRecapSuccessMessage] = useState("");
+  const [isSyncingWeeklyRecap, setIsSyncingWeeklyRecap] = useState(false);
   const hasAppliedBrowserDeliveryDetection = useRef(false);
   const [isPending, startTransition] = useTransition();
   const deferredNotebookSearchQuery = useDeferredValue(notebookSearchQuery);
@@ -172,6 +178,11 @@ export default function DashboardForm({
     savedPreferredDeliveryLocalTime !== DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME;
   const hasNotebookSuggestion = notebookSuggestion !== null;
   const notebookLibraryItems = notebookItems.slice(0, 40);
+  const weeklyRecap = buildDailyBriefNotebookWeeklyRecap({
+    entries: notebookItems,
+    programme,
+    asOf: notebookItems[0]?.updatedAt,
+  });
   const notebookFilterOptions = buildNotebookFilterOptions(notebookLibraryItems);
   const notebookTagOptions = buildNotebookTagOptions(notebookLibraryItems);
   const visibleNotebookItems = applyNotebookWorkspaceFilters(notebookLibraryItems, {
@@ -509,6 +520,61 @@ export default function DashboardForm({
     }
   }
 
+  async function handleSyncWeeklyRecap() {
+    if (!weeklyRecap) {
+      return;
+    }
+
+    setWeeklyRecapErrorMessage("");
+    setWeeklyRecapSuccessMessage("");
+    setIsSyncingWeeklyRecap(true);
+
+    try {
+      const response = await fetch("/api/notebook/weekly-recap/sync", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          asOf: notebookItems[0]?.updatedAt,
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as
+        | {
+            message?: string;
+            notionSync?: {
+              status?: string;
+              message?: string;
+            };
+          }
+        | null;
+
+      if (!response.ok) {
+        setWeeklyRecapErrorMessage(
+          body?.message ?? "We could not sync this weekly recap right now.",
+        );
+        setIsSyncingWeeklyRecap(false);
+        return;
+      }
+
+      setWeeklyRecapSuccessMessage(
+        body?.notionSync?.status === "synced"
+          ? body?.message ?? "Weekly recap synced to Notion."
+          : body?.notionSync?.message ?? body?.message ?? "Weekly recap is ready.",
+      );
+      setIsSyncingWeeklyRecap(false);
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      setWeeklyRecapErrorMessage(
+        "We could not reach the local API. Please try again.",
+      );
+      setIsSyncingWeeklyRecap(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <header className="w-full rounded-b-[32px] bg-[#0f172a] px-6 py-6 text-white shadow-md">
@@ -747,6 +813,159 @@ export default function DashboardForm({
                   </p>
                 </div>
               )}
+
+              <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      Weekly notebook recap
+                    </p>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">
+                      Turn this week&apos;s saved notes into a short recap and a few retrieval prompts worth revisiting.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    {weeklyRecap?.weekLabel ?? "No active week yet"}
+                  </span>
+                </div>
+
+                {weeklyRecap ? (
+                  <div className="mt-4 space-y-4">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Entries this week
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-[#0f172a]">
+                          {weeklyRecap.totalEntries}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Your own notes
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-[#0f172a]">
+                          {weeklyRecap.authoredCount}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Saved brief notes
+                        </p>
+                        <p className="mt-2 text-2xl font-bold text-[#0f172a]">
+                          {weeklyRecap.systemCount}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        Week in review
+                      </p>
+                      <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                        {weeklyRecap.summaryLines.map((line) => (
+                          <li key={line}>- {line}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Focus tags
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {weeklyRecap.topTags.length > 0 ? (
+                            weeklyRecap.topTags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600"
+                              >
+                                {tag}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-sm text-slate-500">
+                              Save a few more notes to build tag coverage.
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Entry mix
+                        </p>
+                        <div className="mt-3 space-y-2">
+                          {weeklyRecap.entryTypeBreakdown.map((entry) => (
+                            <div
+                              key={entry.entryType}
+                              className="flex items-center justify-between gap-3 rounded-2xl bg-white px-3 py-2 text-sm text-slate-700"
+                            >
+                              <span>{entry.label}</span>
+                              <span className="font-semibold text-[#0f172a]">
+                                {entry.count}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Retrieval prompts
+                        </p>
+                        <div className="mt-3 space-y-3">
+                          {weeklyRecap.retrievalPrompts.map((prompt) => (
+                            <div
+                              key={prompt.entryId}
+                              className="rounded-2xl border border-white bg-white px-4 py-3"
+                            >
+                              <p className="text-sm font-semibold text-[#0f172a]">
+                                {prompt.title}
+                              </p>
+                              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                {prompt.sourceHeadline}
+                              </p>
+                              <p className="mt-2 text-sm leading-6 text-slate-700">
+                                {prompt.prompt}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {weeklyRecapErrorMessage ? (
+                      <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {weeklyRecapErrorMessage}
+                      </p>
+                    ) : null}
+
+                    {weeklyRecapSuccessMessage ? (
+                      <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                        {weeklyRecapSuccessMessage}
+                      </p>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={handleSyncWeeklyRecap}
+                      disabled={isSyncingWeeklyRecap || isPending || !notionConfigured}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Send className="h-4 w-4" />
+                      {isSyncingWeeklyRecap || isPending
+                        ? "Syncing..."
+                        : "Sync weekly recap to Notion"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-sm leading-6 text-slate-600">
+                      Save a few notebook entries this week and Daily Sparks will turn them into a recap with retrieval prompts here.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               <div className="mt-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
