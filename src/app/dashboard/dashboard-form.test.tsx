@@ -92,6 +92,7 @@ const notebookItems: DailyBriefNotebookEntryRecord[] = [
     studentId: "student_123",
     programme: "MYP",
     entryType: "inquiry-notebook",
+    entryOrigin: "system",
     title: "Inquiry notebook",
     body: "Which cleanup plan would feel fairest, and what evidence would help you defend that choice?",
     knowledgeBankTitle: "Inquiry notebook",
@@ -103,6 +104,7 @@ const notebookItems: DailyBriefNotebookEntryRecord[] = [
     savedSource: "dashboard",
     savedAt: "2026-04-08T01:00:00.000Z",
     createdAt: "2026-04-08T01:00:00.000Z",
+    updatedAt: "2026-04-08T01:00:00.000Z",
   },
   {
     id: "notebook-2",
@@ -111,6 +113,7 @@ const notebookItems: DailyBriefNotebookEntryRecord[] = [
     studentId: "student_123",
     programme: "MYP",
     entryType: "global-context-note",
+    entryOrigin: "system",
     title: "Global context note",
     body: "Coastal cleanup decisions affect communities, public budgets, and environmental recovery.",
     knowledgeBankTitle: "Inquiry notebook",
@@ -122,6 +125,7 @@ const notebookItems: DailyBriefNotebookEntryRecord[] = [
     savedSource: "dashboard",
     savedAt: "2026-04-08T01:00:00.000Z",
     createdAt: "2026-04-08T01:00:00.000Z",
+    updatedAt: "2026-04-08T01:00:00.000Z",
   },
 ];
 
@@ -268,10 +272,15 @@ describe("DashboardForm", () => {
     expect(markup).toContain("Students compare coastal cleanup plans");
     expect(markup).toContain("Saved notebook entries");
     expect(markup).toContain("Filter notebook");
+    expect(markup).toContain("Search notebook");
+    expect(markup).toContain("Sort by");
+    expect(markup).toContain("Filter tags");
     expect(markup).toContain("All notes (2)");
     expect(markup).toContain("Notebook detail");
     expect(markup).toContain("Source brief");
     expect(markup).toContain("Topic tags");
     expect(markup).toContain("Interest tags");
+    expect(markup).toContain("Write your own note");
+    expect(markup).toContain("Save reflection");
   });
 });

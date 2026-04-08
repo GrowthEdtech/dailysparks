@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
 import { BookOpen, Clock3, CreditCard, Save, Send } from "lucide-react";
 
 import AccountMenu from "../../components/account-menu";
@@ -12,6 +12,10 @@ import { getBillingSummary } from "../../lib/billing";
 import type {
   DailyBriefNotebookEntryRecord,
 } from "../../lib/daily-brief-notebook-store";
+import {
+  getDailyBriefAuthoredEntryTypes,
+  getDailyBriefNotebookEntryLabel,
+} from "../../lib/daily-brief-notebook-schema";
 import {
   DEFAULT_COUNTRY_CODE,
   DEFAULT_DELIVERY_TIME_ZONE,
@@ -38,9 +42,12 @@ import {
 import { getProgrammeStageSummary, getWeeklyPlan } from "../../lib/weekly-plan";
 import {
   ALL_NOTEBOOK_FILTER_ID,
+  ALL_NOTEBOOK_TAG_FILTER_ID,
+  applyNotebookWorkspaceFilters,
   buildNotebookEntryPreview,
   buildNotebookFilterOptions,
-  filterNotebookEntries,
+  buildNotebookTagOptions,
+  type NotebookSortOrder,
   resolveSelectedNotebookEntry,
 } from "./notebook-workspace";
 
@@ -130,11 +137,23 @@ export default function DashboardForm({
   const [notebookSuccessMessage, setNotebookSuccessMessage] = useState("");
   const [isSavingNotebook, setIsSavingNotebook] = useState(false);
   const [notebookFilterId, setNotebookFilterId] = useState(ALL_NOTEBOOK_FILTER_ID);
+  const [notebookTagFilter, setNotebookTagFilter] = useState(ALL_NOTEBOOK_TAG_FILTER_ID);
+  const [notebookSearchQuery, setNotebookSearchQuery] = useState("");
+  const [notebookSortOrder, setNotebookSortOrder] =
+    useState<NotebookSortOrder>("newest");
   const [selectedNotebookEntryId, setSelectedNotebookEntryId] = useState<string | null>(
     notebookItems[0]?.id ?? null,
   );
+  const [notebookEntryType, setNotebookEntryType] = useState(
+    getDailyBriefAuthoredEntryTypes(initialProfile.student.programme)[0] ?? "generic-note",
+  );
+  const [notebookEntryBody, setNotebookEntryBody] = useState("");
+  const [notebookEntryErrorMessage, setNotebookEntryErrorMessage] = useState("");
+  const [notebookEntrySuccessMessage, setNotebookEntrySuccessMessage] = useState("");
+  const [isSavingNotebookEntry, setIsSavingNotebookEntry] = useState(false);
   const hasAppliedBrowserDeliveryDetection = useRef(false);
   const [isPending, startTransition] = useTransition();
+  const deferredNotebookSearchQuery = useDeferredValue(notebookSearchQuery);
 
   const billingSummary = getBillingSummary(initialProfile.parent);
   const weeklyPlan = getWeeklyPlan(programme, programmeYear);
@@ -154,14 +173,18 @@ export default function DashboardForm({
   const hasNotebookSuggestion = notebookSuggestion !== null;
   const notebookLibraryItems = notebookItems.slice(0, 40);
   const notebookFilterOptions = buildNotebookFilterOptions(notebookLibraryItems);
-  const visibleNotebookItems = filterNotebookEntries(
-    notebookLibraryItems,
-    notebookFilterId,
-  );
+  const notebookTagOptions = buildNotebookTagOptions(notebookLibraryItems);
+  const visibleNotebookItems = applyNotebookWorkspaceFilters(notebookLibraryItems, {
+    entryTypeFilterId: notebookFilterId,
+    searchQuery: deferredNotebookSearchQuery,
+    tagFilter: notebookTagFilter,
+    sortOrder: notebookSortOrder,
+  });
   const selectedNotebookEntry = resolveSelectedNotebookEntry(
     visibleNotebookItems,
     selectedNotebookEntryId,
   );
+  const authoredNotebookEntryTypes = getDailyBriefAuthoredEntryTypes(programme);
 
   useEffect(() => {
     if (hasAppliedBrowserDeliveryDetection.current) {
@@ -231,6 +254,9 @@ export default function DashboardForm({
     setProgrammeYear(getDefaultProgrammeYear(nextProgramme));
     setInterestTags((current) =>
       sanitizeInterestTagsForProgramme(nextProgramme, current),
+    );
+    setNotebookEntryType(
+      getDailyBriefAuthoredEntryTypes(nextProgramme)[0] ?? "generic-note",
     );
   }
 
@@ -381,6 +407,10 @@ export default function DashboardForm({
             message?: string;
             savedCount?: number;
             dedupedCount?: number;
+            notionSync?: {
+              status?: string;
+              message?: string;
+            };
           }
         | null;
 
@@ -394,9 +424,13 @@ export default function DashboardForm({
 
       if ((body?.savedCount ?? 0) > 0) {
         setNotebookSuccessMessage(
-          `Saved ${body?.savedCount} notebook ${
-            body?.savedCount === 1 ? "entry" : "entries"
-          }.`,
+          body?.notionSync?.status === "synced"
+            ? `Saved ${body?.savedCount} notebook ${
+                body?.savedCount === 1 ? "entry" : "entries"
+              } and synced them to Notion.`
+            : `Saved ${body?.savedCount} notebook ${
+                body?.savedCount === 1 ? "entry" : "entries"
+              }.`,
         );
       } else {
         setNotebookSuccessMessage(
@@ -412,6 +446,66 @@ export default function DashboardForm({
     } catch {
       setNotebookErrorMessage("We could not reach the local API. Please try again.");
       setIsSavingNotebook(false);
+    }
+  }
+
+  async function handleSaveNotebookEntry() {
+    if (!notebookSuggestion) {
+      return;
+    }
+
+    setNotebookEntryErrorMessage("");
+    setNotebookEntrySuccessMessage("");
+    setIsSavingNotebookEntry(true);
+
+    try {
+      const response = await fetch("/api/notebook/entry", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          briefId: notebookSuggestion.briefId,
+          entryType: notebookEntryType,
+          body: notebookEntryBody,
+        }),
+      });
+
+      const body = (await response.json().catch(() => null)) as
+        | {
+            message?: string;
+            wasUpdate?: boolean;
+            notionSync?: {
+              status?: string;
+              message?: string;
+            };
+          }
+        | null;
+
+      if (!response.ok) {
+        setNotebookEntryErrorMessage(
+          body?.message ?? "We could not save this notebook reflection.",
+        );
+        setIsSavingNotebookEntry(false);
+        return;
+      }
+
+      setNotebookEntrySuccessMessage(
+        body?.notionSync?.status === "synced"
+          ? `${body?.message ?? "Notebook reflection saved."} Notion has been updated too.`
+          : body?.message ?? "Notebook reflection saved.",
+      );
+      setNotebookEntryBody("");
+      setIsSavingNotebookEntry(false);
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      setNotebookEntryErrorMessage(
+        "We could not reach the local API. Please try again.",
+      );
+      setIsSavingNotebookEntry(false);
     }
   }
 
@@ -575,6 +669,75 @@ export default function DashboardForm({
                       ? "Saving..."
                       : "Save today's notes"}
                   </button>
+
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                          Write your own note
+                        </p>
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Capture one short idea in your own words so this brief becomes something your family can revisit.
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                        {programme}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+                      <label className="space-y-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Notebook section
+                        </span>
+                        <select
+                          value={notebookEntryType}
+                          onChange={(event) => setNotebookEntryType(event.target.value as typeof notebookEntryType)}
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                        >
+                          {authoredNotebookEntryTypes.map((entryType) => (
+                            <option key={entryType} value={entryType}>
+                              {getDailyBriefNotebookEntryLabel(entryType)}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="space-y-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Your note
+                        </span>
+                        <textarea
+                          value={notebookEntryBody}
+                          onChange={(event) => setNotebookEntryBody(event.target.value)}
+                          rows={4}
+                          placeholder="Write 1–3 sentences you want to keep."
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f172a]"
+                        />
+                      </label>
+                    </div>
+
+                    {notebookEntryErrorMessage ? (
+                      <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {notebookEntryErrorMessage}
+                      </p>
+                    ) : null}
+
+                    {notebookEntrySuccessMessage ? (
+                      <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                        {notebookEntrySuccessMessage}
+                      </p>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={handleSaveNotebookEntry}
+                      disabled={isSavingNotebookEntry || isPending || notebookEntryBody.trim().length === 0}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Save className="h-4 w-4" />
+                      {isSavingNotebookEntry || isPending ? "Saving..." : "Save reflection"}
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
@@ -591,6 +754,54 @@ export default function DashboardForm({
                 </p>
                 {notebookLibraryItems.length > 0 ? (
                   <div className="mt-3 space-y-4">
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_220px_220px]">
+                      <label className="space-y-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Search notebook
+                        </span>
+                        <input
+                          type="search"
+                          value={notebookSearchQuery}
+                          onChange={(event) => setNotebookSearchQuery(event.target.value)}
+                          placeholder="Search notes, briefs, or tags"
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f172a]"
+                        />
+                      </label>
+                      <label className="space-y-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Sort by
+                        </span>
+                        <select
+                          value={notebookSortOrder}
+                          onChange={(event) =>
+                            setNotebookSortOrder(event.target.value as NotebookSortOrder)
+                          }
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                        >
+                          <option value="newest">Newest first</option>
+                          <option value="oldest">Oldest first</option>
+                          <option value="title">Title A–Z</option>
+                        </select>
+                      </label>
+                      <label className="space-y-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          Filter tags
+                        </span>
+                        <select
+                          value={notebookTagFilter}
+                          onChange={(event) => setNotebookTagFilter(event.target.value)}
+                          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                        >
+                          <option value={ALL_NOTEBOOK_TAG_FILTER_ID}>All tags</option>
+                          {notebookTagOptions.map((tag) => (
+                            <option key={tag} value={tag}>
+                              {tag}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                         Filter notebook
@@ -635,14 +846,14 @@ export default function DashboardForm({
                                 }`}
                               >
                                 <div className="flex flex-wrap items-start justify-between gap-3">
-                                  <div>
-                                    <p className="text-sm font-semibold text-[#0f172a]">
-                                      {entry.title}
-                                    </p>
-                                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                                      {entry.sourceScheduledFor} · {entry.programme}
-                                    </p>
-                                  </div>
+                                <div>
+                                  <p className="text-sm font-semibold text-[#0f172a]">
+                                    {entry.title}
+                                  </p>
+                                  <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                      {entry.sourceScheduledFor} · {entry.programme} · {entry.entryOrigin === "authored" ? "Your note" : "Saved brief"}
+                                  </p>
+                                </div>
                                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                                     {entry.knowledgeBankTitle}
                                   </span>
@@ -681,7 +892,7 @@ export default function DashboardForm({
                                   Saved on
                                 </dt>
                                 <dd className="mt-1 text-slate-700">
-                                  {selectedNotebookEntry.sourceScheduledFor}
+                                  {selectedNotebookEntry.updatedAt}
                                 </dd>
                               </div>
                               <div>

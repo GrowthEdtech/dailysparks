@@ -31,7 +31,7 @@ export default async function DashboardPage() {
   });
   const notebookItems = await listDailyBriefNotebookEntries({
     parentId: profile.parent.id,
-    limit: 8,
+    limit: 100,
   });
   const notebookSuggestion = latestBrief
     ? (() => {

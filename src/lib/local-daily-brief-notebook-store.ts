@@ -3,7 +3,9 @@ import path from "node:path";
 
 import type {
   DailyBriefNotebookEntryRecord,
+  DailyBriefNotebookEntryOrigin,
   DailyBriefNotebookEntryType,
+  DailyBriefNotebookSavedSource,
 } from "./daily-brief-notebook-schema";
 import {
   DAILY_BRIEF_NOTEBOOK_ENTRY_TYPES,
@@ -48,6 +50,14 @@ function normalizeEntryType(value: unknown): DailyBriefNotebookEntryType {
     : "generic-note";
 }
 
+function normalizeEntryOrigin(value: unknown): DailyBriefNotebookEntryOrigin {
+  return value === "authored" ? "authored" : "system";
+}
+
+function normalizeSavedSource(value: unknown): DailyBriefNotebookSavedSource {
+  return value === "reflection" ? "reflection" : "dashboard";
+}
+
 function normalizeEntry(
   raw: Partial<DailyBriefNotebookEntryRecord> | undefined,
 ): DailyBriefNotebookEntryRecord {
@@ -63,6 +73,7 @@ function normalizeEntry(
         ? raw.programme
         : "MYP",
     entryType: normalizeEntryType(raw?.entryType),
+    entryOrigin: normalizeEntryOrigin(raw?.entryOrigin),
     title: normalizeString(raw?.title),
     body: normalizeString(raw?.body),
     knowledgeBankTitle: normalizeString(raw?.knowledgeBankTitle),
@@ -71,9 +82,14 @@ function normalizeEntry(
     sourceHeadline: normalizeString(raw?.sourceHeadline),
     topicTags: normalizeStringArray(raw?.topicTags),
     interestTags: normalizeStringArray(raw?.interestTags),
-    savedSource: "dashboard",
+    savedSource: normalizeSavedSource(raw?.savedSource),
     savedAt: normalizeString(raw?.savedAt) || timestamp,
     createdAt: normalizeString(raw?.createdAt) || timestamp,
+    updatedAt:
+      normalizeString(raw?.updatedAt) ||
+      normalizeString(raw?.savedAt) ||
+      normalizeString(raw?.createdAt) ||
+      timestamp,
   };
 }
 
@@ -120,7 +136,9 @@ async function writeStore(store: LocalDailyBriefNotebookStoreData) {
 }
 
 function sortEntries(entries: DailyBriefNotebookEntryRecord[]) {
-  return [...entries].sort((left, right) => right.savedAt.localeCompare(left.savedAt));
+  return [...entries].sort((left, right) =>
+    right.updatedAt.localeCompare(left.updatedAt),
+  );
 }
 
 function matchesFilters(
@@ -136,6 +154,10 @@ function matchesFilters(
   }
 
   if (filters.programme && entry.programme !== filters.programme) {
+    return false;
+  }
+
+  if (filters.entryOrigin && entry.entryOrigin !== filters.entryOrigin) {
     return false;
   }
 
@@ -158,6 +180,23 @@ export const localDailyBriefNotebookStore: DailyBriefNotebookStore = {
     const store = await readStore();
     const normalized = normalizeEntry(record);
     store.entries.push(normalized);
+    await writeStore(store);
+    return normalized;
+  },
+
+  async upsertEntry(record) {
+    const store = await readStore();
+    const normalized = normalizeEntry(record);
+    const existingIndex = store.entries.findIndex(
+      (entry) => entry.id === normalized.id,
+    );
+
+    if (existingIndex >= 0) {
+      store.entries[existingIndex] = normalized;
+    } else {
+      store.entries.push(normalized);
+    }
+
     await writeStore(store);
     return normalized;
   },

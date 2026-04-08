@@ -3,8 +3,10 @@ import { describe, expect, test } from "vitest";
 import type { DailyBriefNotebookEntryRecord } from "../../lib/daily-brief-notebook-store";
 import {
   ALL_NOTEBOOK_FILTER_ID,
+  applyNotebookWorkspaceFilters,
   buildNotebookEntryPreview,
   buildNotebookFilterOptions,
+  buildNotebookTagOptions,
   filterNotebookEntries,
   resolveSelectedNotebookEntry,
 } from "./notebook-workspace";
@@ -17,6 +19,7 @@ const entries: DailyBriefNotebookEntryRecord[] = [
     studentId: "student-1",
     programme: "MYP",
     entryType: "inquiry-notebook",
+    entryOrigin: "system",
     title: "Inquiry notebook",
     body: "Which cleanup plan would feel fairest, and what evidence would help you defend that choice?",
     knowledgeBankTitle: "Inquiry notebook",
@@ -28,6 +31,7 @@ const entries: DailyBriefNotebookEntryRecord[] = [
     savedSource: "dashboard",
     savedAt: "2026-04-08T01:00:00.000Z",
     createdAt: "2026-04-08T01:00:00.000Z",
+    updatedAt: "2026-04-08T01:00:00.000Z",
   },
   {
     id: "entry-2",
@@ -36,6 +40,7 @@ const entries: DailyBriefNotebookEntryRecord[] = [
     studentId: "student-1",
     programme: "MYP",
     entryType: "global-context-note",
+    entryOrigin: "system",
     title: "Global context note",
     body: "Coastal cleanup decisions affect communities, public budgets, and environmental recovery.",
     knowledgeBankTitle: "Inquiry notebook",
@@ -47,6 +52,7 @@ const entries: DailyBriefNotebookEntryRecord[] = [
     savedSource: "dashboard",
     savedAt: "2026-04-08T01:00:00.000Z",
     createdAt: "2026-04-08T01:00:00.000Z",
+    updatedAt: "2026-04-08T01:00:00.000Z",
   },
   {
     id: "entry-3",
@@ -55,6 +61,7 @@ const entries: DailyBriefNotebookEntryRecord[] = [
     studentId: "student-1",
     programme: "DP",
     entryType: "tok-prompt",
+    entryOrigin: "system",
     title: "TOK prompt",
     body: "When evidence is incomplete, how should societies decide whether caution is wiser than freedom to experiment?",
     knowledgeBankTitle: "Academic idea bank",
@@ -66,6 +73,7 @@ const entries: DailyBriefNotebookEntryRecord[] = [
     savedSource: "dashboard",
     savedAt: "2026-04-09T01:00:00.000Z",
     createdAt: "2026-04-09T01:00:00.000Z",
+    updatedAt: "2026-04-09T01:00:00.000Z",
   },
 ];
 
@@ -119,5 +127,36 @@ describe("notebook workspace helpers", () => {
     expect(buildNotebookEntryPreview(entries[0]!)).toBe(
       "Which cleanup plan would feel fairest, and what evidence would help you defend that choice?",
     );
+  });
+
+  test("builds a combined tag list from topic and interest tags", () => {
+    expect(buildNotebookTagOptions(entries)).toEqual([
+      "AI",
+      "civic planning",
+      "Ethics",
+      "sustainability",
+      "Tech & Innovation",
+      "TOK",
+    ]);
+  });
+
+  test("applies search, tag, and sort controls to notebook entries", () => {
+    expect(
+      applyNotebookWorkspaceFilters(entries, {
+        entryTypeFilterId: ALL_NOTEBOOK_FILTER_ID,
+        searchQuery: "cleanup",
+        tagFilter: "sustainability",
+        sortOrder: "oldest",
+      }).map((entry) => entry.id),
+    ).toEqual(["entry-1", "entry-2"]);
+
+    expect(
+      applyNotebookWorkspaceFilters(entries, {
+        entryTypeFilterId: ALL_NOTEBOOK_FILTER_ID,
+        searchQuery: "tok",
+        tagFilter: "all",
+        sortOrder: "title",
+      }).map((entry) => entry.id),
+    ).toEqual(["entry-3"]);
   });
 });

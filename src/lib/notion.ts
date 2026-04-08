@@ -2,6 +2,7 @@ import { Buffer } from "node:buffer";
 
 import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
 import { buildDailyBriefKnowledgeBank } from "./daily-brief-knowledge-bank";
+import type { DailyBriefKnowledgeBankSection } from "./daily-brief-knowledge-bank";
 import type { ParentProfile } from "./mvp-types";
 import type { NotionConnectionSecretRecord } from "./mvp-types";
 import { clearNotionConnectionSecret, getNotionConnectionSecret, setNotionConnectionSecret } from "./notion-connection-store";
@@ -128,6 +129,16 @@ function getNotionHeaders(accessToken: string) {
 
 function buildDailySparksBriefId(brief: GeneratedDailyBriefDraft) {
   return `daily-sparks-${brief.programme.toLowerCase()}-${brief.scheduledFor}`;
+}
+
+function buildDailySparksNotebookId(
+  brief: Pick<GeneratedDailyBriefDraft, "programme" | "scheduledFor" | "headline">,
+) {
+  return `daily-sparks-notebook-${brief.programme.toLowerCase()}-${brief.scheduledFor}-${brief.headline
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48)}`;
 }
 
 function toPlainRichText(content: string) {
@@ -297,6 +308,61 @@ function buildNotionBriefPageChildren(
       },
     });
     children.push(toNotionParagraphBlock(entry.body));
+  }
+
+  return children;
+}
+
+function buildNotionNotebookPageChildren(
+  brief: Pick<
+    GeneratedDailyBriefDraft,
+    "headline" | "summary" | "scheduledFor" | "programme" | "topicTags"
+  >,
+  entries: DailyBriefKnowledgeBankSection[],
+): NotionBlock[] {
+  const children: NotionBlock[] = [
+    {
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: toPlainRichText("Notebook entries"),
+      },
+    },
+  ];
+
+  for (const entry of entries) {
+    children.push({
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: toPlainRichText(entry.title),
+      },
+    });
+    children.push(toNotionParagraphBlock(entry.body));
+  }
+
+  children.push({
+    object: "block",
+    type: "heading_2",
+    heading_2: {
+      rich_text: toPlainRichText("Source brief"),
+    },
+  });
+  children.push(toNotionParagraphBlock(brief.headline));
+  children.push(toNotionParagraphBlock(brief.summary));
+
+  if (brief.topicTags.length > 0) {
+    children.push({
+      object: "block",
+      type: "heading_3",
+      heading_3: {
+        rich_text: toPlainRichText("Topic tags"),
+      },
+    });
+
+    for (const tag of brief.topicTags) {
+      children.push(toNotionBulletedListItemBlock(tag));
+    }
   }
 
   return children;
@@ -829,6 +895,101 @@ export async function createNotionBriefPage(
           },
         },
         children: buildNotionBriefPageChildren(brief),
+      }),
+    },
+  );
+
+  const pageId = typeof pageResult.id === "string" ? pageResult.id : "";
+  const pageUrl =
+    typeof pageResult.url === "string" && pageResult.url.trim()
+      ? pageResult.url
+      : null;
+
+  return {
+    pageId,
+    pageUrl,
+  };
+}
+
+export async function createNotionNotebookEntriesPage(
+  profile: ParentProfile,
+  brief: Pick<
+    GeneratedDailyBriefDraft,
+    "headline" | "summary" | "scheduledFor" | "programme" | "topicTags"
+  >,
+  entries: DailyBriefKnowledgeBankSection[],
+): Promise<NotionTestSyncResult> {
+  const active = await getActiveAccessToken(profile.parent.id);
+
+  if (!active) {
+    throw new Error("Notion is not connected.");
+  }
+
+  if (!profile.parent.notionDatabaseId) {
+    throw new Error("Notion archive has not been created yet.");
+  }
+
+  const config = getNotionConfig();
+  const pageResult = await notionJsonRequest<Record<string, unknown>>(
+    `${config!.apiBaseUrl}/pages`,
+    {
+      method: "POST",
+      headers: getNotionHeaders(active.accessToken),
+      body: JSON.stringify({
+        parent: profile.parent.notionDataSourceId
+          ? {
+              type: "data_source_id",
+              data_source_id: profile.parent.notionDataSourceId,
+            }
+          : {
+              type: "database_id",
+              database_id: profile.parent.notionDatabaseId,
+            },
+        properties: {
+          Title: {
+            title: toPlainRichText(`${brief.headline} notebook`),
+          },
+          Date: {
+            date: {
+              start: brief.scheduledFor,
+            },
+          },
+          Programme: {
+            select: {
+              name: brief.programme,
+            },
+          },
+          "Brief type": {
+            select: {
+              name: "Notebook Entry",
+            },
+          },
+          Theme: {
+            rich_text: toPlainRichText(brief.topicTags.join(", ")),
+          },
+          Summary: {
+            rich_text: toPlainRichText(
+              entries.length === 1
+                ? entries[0]!.body
+                : `${entries.length} notebook entries saved from the parent dashboard.`,
+            ),
+          },
+          Prompt: {
+            rich_text: toPlainRichText(entries[0]?.title ?? "Notebook entry"),
+          },
+          Student: {
+            rich_text: toPlainRichText(profile.student.studentName),
+          },
+          Status: {
+            select: {
+              name: "Synced",
+            },
+          },
+          "Daily Sparks ID": {
+            rich_text: toPlainRichText(buildDailySparksNotebookId(brief)),
+          },
+        },
+        children: buildNotionNotebookPageChildren(brief, entries),
       }),
     },
   );

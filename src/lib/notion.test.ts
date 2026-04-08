@@ -7,7 +7,7 @@ import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
 import type { ParentProfile } from "./mvp-types";
 import { encryptNotionToken } from "./notion-crypto";
 import { setNotionConnectionSecret } from "./notion-connection-store";
-import { createNotionBriefPage } from "./notion";
+import { createNotionBriefPage, createNotionNotebookEntriesPage } from "./notion";
 
 const ORIGINAL_ENV = { ...process.env };
 const fetchMock = vi.fn<typeof fetch>();
@@ -257,6 +257,80 @@ describe("notion delivery helpers", () => {
     expect(result).toEqual({
       pageId: "page-123",
       pageUrl: "https://www.notion.so/page-123",
+    });
+  });
+
+  test("creates a Notion page from saved notebook entries", async () => {
+    const profile = createProfile();
+    const brief = createGeneratedBrief();
+
+    await setNotionConnectionSecret({
+      parentId: profile.parent.id,
+      accessTokenCiphertext: encryptNotionToken(
+        "test-encryption-secret",
+        "secret-access-token",
+      ),
+      refreshTokenCiphertext: null,
+      workspaceId: "workspace-123",
+      botId: "bot-123",
+      expiresAt: null,
+      createdAt: "2026-04-02T00:00:00.000Z",
+      updatedAt: "2026-04-02T00:00:00.000Z",
+    });
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: "page-456",
+          url: "https://www.notion.so/page-456",
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const result = await createNotionNotebookEntriesPage(profile, brief, [
+      {
+        title: "Claim",
+        body: "Faster regulation is justified when public harm can scale faster than oversight.",
+      },
+      {
+        title: "TOK prompt",
+        body: "How should societies reason when evidence is incomplete but the stakes are high?",
+      },
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [requestUrl, requestInit] = fetchMock.mock.calls[0]!;
+    expect(requestUrl).toBe("https://api.notion.com/v1/pages");
+    expect(requestInit?.method).toBe("POST");
+
+    const body = JSON.parse(String(requestInit?.body)) as {
+      properties: Record<string, unknown>;
+      children: Array<Record<string, unknown>>;
+    };
+
+    expect(body.properties.Title).toEqual({
+      title: [
+        {
+          type: "text",
+          text: {
+            content: "MYP ocean mapping brief notebook",
+          },
+        },
+      ],
+    });
+    expect(body.properties["Brief type"]).toEqual({
+      select: {
+        name: "Notebook Entry",
+      },
+    });
+    expect(JSON.stringify(body.children)).toContain("Notebook entries");
+    expect(JSON.stringify(body.children)).toContain("Claim");
+    expect(JSON.stringify(body.children)).toContain("TOK prompt");
+    expect(JSON.stringify(body.children)).toContain("Source brief");
+    expect(result).toEqual({
+      pageId: "page-456",
+      pageUrl: "https://www.notion.so/page-456",
     });
   });
 });

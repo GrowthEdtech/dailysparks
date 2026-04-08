@@ -5,6 +5,7 @@ import path from "node:path";
 
 import {
   listDailyBriefNotebookEntries,
+  saveDailyBriefNotebookAuthoredEntry,
   saveDailyBriefNotebookEntries,
 } from "./daily-brief-notebook-store";
 
@@ -100,6 +101,65 @@ describe("daily brief notebook store", () => {
         sourceHeadline: "Students compare city cleanup plans",
         programme: "MYP",
         knowledgeBankTitle: "Inquiry notebook",
+      }),
+    );
+  });
+
+  test("upserts a user-authored notebook entry for the same brief and entry type", async () => {
+    const firstSave = await saveDailyBriefNotebookAuthoredEntry({
+      parentId: "parent-1",
+      parentEmail: "parent@example.com",
+      studentId: "student-1",
+      programme: "DP",
+      interestTags: ["TOK", "Philosophy"],
+      briefId: "brief-2",
+      scheduledFor: "2026-04-09",
+      headline: "Governments debate whether AI regulation can keep up",
+      topicTags: ["AI", "Ethics"],
+      knowledgeBankTitle: "Academic idea bank",
+      entryType: "tok-prompt",
+      body: "I think incomplete evidence makes this a strong TOK case because certainty is exactly what's missing.",
+    });
+
+    expect(firstSave.wasUpdate).toBe(false);
+    expect(firstSave.entry).toEqual(
+      expect.objectContaining({
+        programme: "DP",
+        entryType: "tok-prompt",
+        title: "TOK prompt",
+        savedSource: "reflection",
+        entryOrigin: "authored",
+      }),
+    );
+
+    const secondSave = await saveDailyBriefNotebookAuthoredEntry({
+      parentId: "parent-1",
+      parentEmail: "parent@example.com",
+      studentId: "student-1",
+      programme: "DP",
+      interestTags: ["TOK", "Philosophy"],
+      briefId: "brief-2",
+      scheduledFor: "2026-04-09",
+      headline: "Governments debate whether AI regulation can keep up",
+      topicTags: ["AI", "Ethics"],
+      knowledgeBankTitle: "Academic idea bank",
+      entryType: "tok-prompt",
+      body: "I would compare precaution with freedom to experiment before deciding which response is more justified.",
+    });
+
+    expect(secondSave.wasUpdate).toBe(true);
+    expect(secondSave.entry.body).toContain("precaution");
+
+    const entries = await listDailyBriefNotebookEntries({
+      parentId: "parent-1",
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toEqual(
+      expect.objectContaining({
+        entryOrigin: "authored",
+        entryType: "tok-prompt",
+        body: "I would compare precaution with freedom to experiment before deciding which response is more justified.",
       }),
     );
   });
