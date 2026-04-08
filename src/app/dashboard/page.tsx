@@ -5,6 +5,7 @@ import DashboardForm from "./dashboard-form";
 import { listDailyBriefHistory } from "../../lib/daily-brief-history-store";
 import { buildDailyBriefKnowledgeBank } from "../../lib/daily-brief-knowledge-bank";
 import { listDailyBriefNotebookEntries } from "../../lib/daily-brief-notebook-store";
+import { listDailyBriefNotebookWeeklyRecaps } from "../../lib/daily-brief-notebook-weekly-recap-store";
 import { getProfileByEmail } from "../../lib/mvp-store";
 import { buildOutboundDailyBriefPacket } from "../../lib/outbound-daily-brief-packet";
 import { isNotionConfigured } from "../../lib/notion-config";
@@ -33,6 +34,11 @@ export default async function DashboardPage() {
     parentId: profile.parent.id,
     limit: 100,
   });
+  const [latestWeeklyRecap] = await listDailyBriefNotebookWeeklyRecaps({
+    parentId: profile.parent.id,
+    programme: profile.student.programme,
+    limit: 1,
+  });
   const notebookSuggestion = latestBrief
     ? (() => {
         const packet = buildOutboundDailyBriefPacket(latestBrief);
@@ -53,6 +59,7 @@ export default async function DashboardPage() {
       initialProfile={profile}
       notionConfigured={isNotionConfigured()}
       notebookItems={notebookItems}
+      weeklyRecapRecord={latestWeeklyRecap ?? null}
       notebookSuggestion={notebookSuggestion}
     />
   );

@@ -6,6 +6,9 @@ import type { DailyBriefKnowledgeBankSection } from "./daily-brief-knowledge-ban
 import type {
   DailyBriefNotebookWeeklyRecap,
 } from "./daily-brief-notebook-weekly-recap";
+import type {
+  DailyBriefNotebookWeeklyRecapRecord,
+} from "./daily-brief-notebook-weekly-recap-store";
 import type { ParentProfile } from "./mvp-types";
 import type { NotionConnectionSecretRecord } from "./mvp-types";
 import { clearNotionConnectionSecret, getNotionConnectionSecret, setNotionConnectionSecret } from "./notion-connection-store";
@@ -371,12 +374,14 @@ function buildNotionNotebookPageChildren(
   return children;
 }
 
-function buildDailySparksWeeklyRecapId(recap: DailyBriefNotebookWeeklyRecap) {
+function buildDailySparksWeeklyRecapId(
+  recap: DailyBriefNotebookWeeklyRecap | DailyBriefNotebookWeeklyRecapRecord,
+) {
   return `daily-sparks-weekly-recap-${recap.programme.toLowerCase()}-${recap.weekKey}`;
 }
 
 function buildNotionWeeklyRecapPageChildren(
-  recap: DailyBriefNotebookWeeklyRecap,
+  recap: DailyBriefNotebookWeeklyRecap | DailyBriefNotebookWeeklyRecapRecord,
 ): NotionBlock[] {
   const children: NotionBlock[] = [
     {
@@ -444,6 +449,28 @@ function buildNotionWeeklyRecapPageChildren(
           `${prompt.prompt} Source: ${prompt.sourceHeadline}.`,
         ),
       );
+    }
+  }
+
+  if ("retrievalResponses" in recap && recap.retrievalResponses.length > 0) {
+    children.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: toPlainRichText("Retrieval responses"),
+      },
+    });
+
+    for (const response of recap.retrievalResponses) {
+      children.push({
+        object: "block",
+        type: "heading_3",
+        heading_3: {
+          rich_text: toPlainRichText(response.title),
+        },
+      });
+      children.push(toNotionParagraphBlock(response.response));
+      children.push(toNotionParagraphBlock(`Prompt: ${response.prompt}`));
     }
   }
 
@@ -1111,7 +1138,7 @@ export async function createNotionNotebookEntriesPage(
 
 export async function createNotionNotebookWeeklyRecapPage(
   profile: ParentProfile,
-  recap: DailyBriefNotebookWeeklyRecap,
+  recap: DailyBriefNotebookWeeklyRecap | DailyBriefNotebookWeeklyRecapRecord,
 ): Promise<NotionTestSyncResult> {
   const active = await getActiveAccessToken(profile.parent.id);
 

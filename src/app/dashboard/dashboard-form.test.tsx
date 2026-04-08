@@ -284,6 +284,8 @@ describe("DashboardForm", () => {
     expect(markup).toContain("Save reflection");
     expect(markup).toContain("Weekly notebook recap");
     expect(markup).toContain("Retrieval prompts");
+    expect(markup).toContain("Save weekly recap");
+    expect(markup).toContain("Save response");
     expect(markup).toContain("Sync weekly recap to Notion");
   });
 });

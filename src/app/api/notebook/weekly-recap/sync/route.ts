@@ -3,6 +3,11 @@ import {
   buildDailyBriefNotebookWeeklyRecap,
 } from "../../../../../lib/daily-brief-notebook-weekly-recap";
 import {
+  getDailyBriefNotebookWeeklyRecap,
+  saveDailyBriefNotebookWeeklyRecap,
+  updateDailyBriefNotebookWeeklyRecapNotionSync,
+} from "../../../../../lib/daily-brief-notebook-weekly-recap-store";
+import {
   syncNotebookWeeklyRecapToNotion,
 } from "../../../../../lib/daily-brief-notebook-notion-sync";
 import { getProfileByEmail } from "../../../../../lib/mvp-store";
@@ -44,14 +49,41 @@ export async function POST(request: Request) {
     );
   }
 
-  const notionSync = await syncNotebookWeeklyRecapToNotion(profile, recap);
+  const persistedRecap = (
+    await saveDailyBriefNotebookWeeklyRecap({
+      parentId: profile.parent.id,
+      parentEmail: profile.parent.email,
+      studentId: profile.student.id,
+      programme: profile.student.programme,
+      recap,
+    })
+  ).record;
+  const notionSync = await syncNotebookWeeklyRecapToNotion(profile, persistedRecap);
+
+  if (notionSync.status === "synced") {
+    await updateDailyBriefNotebookWeeklyRecapNotionSync({
+      parentId: profile.parent.id,
+      programme: profile.student.programme,
+      weekKey: persistedRecap.weekKey,
+      notionLastSyncedAt: new Date().toISOString(),
+      notionLastSyncPageId: notionSync.pageId,
+      notionLastSyncPageUrl: notionSync.pageUrl,
+    });
+  }
+
+  const refreshedRecap =
+    (await getDailyBriefNotebookWeeklyRecap({
+      parentId: profile.parent.id,
+      programme: profile.student.programme,
+      weekKey: persistedRecap.weekKey,
+    })) ?? persistedRecap;
 
   return Response.json({
     message:
       notionSync.status === "synced"
         ? "Weekly recap synced to Notion."
         : notionSync.message,
-    recap,
+    recap: refreshedRecap,
     notionSync,
   });
 }

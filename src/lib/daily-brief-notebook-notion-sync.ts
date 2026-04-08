@@ -3,6 +3,7 @@ import { updateParentNotionConnection } from "./mvp-store";
 import type { ParentProfile } from "./mvp-types";
 import type { DailyBriefKnowledgeBankSection } from "./daily-brief-knowledge-bank";
 import type { DailyBriefNotebookWeeklyRecap } from "./daily-brief-notebook-weekly-recap";
+import type { DailyBriefNotebookWeeklyRecapRecord } from "./daily-brief-notebook-weekly-recap-store";
 import { createNotionNotebookWeeklyRecapPage } from "./notion";
 
 type NotebookSyncBrief = {
@@ -84,7 +85,7 @@ export async function syncNotebookEntriesToNotion(
 
 export async function syncNotebookWeeklyRecapToNotion(
   profile: ParentProfile,
-  recap: DailyBriefNotebookWeeklyRecap,
+  recap: DailyBriefNotebookWeeklyRecap | DailyBriefNotebookWeeklyRecapRecord,
 ): Promise<DailyBriefNotebookNotionSyncResult> {
   if (!hasNotionArchive(profile)) {
     return {

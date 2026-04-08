@@ -12,6 +12,9 @@ import { getBillingSummary } from "../../lib/billing";
 import type {
   DailyBriefNotebookEntryRecord,
 } from "../../lib/daily-brief-notebook-store";
+import type {
+  DailyBriefNotebookWeeklyRecapRecord,
+} from "../../lib/daily-brief-notebook-weekly-recap-store";
 import {
   buildDailyBriefNotebookWeeklyRecap,
 } from "../../lib/daily-brief-notebook-weekly-recap";
@@ -58,6 +61,7 @@ type DashboardFormProps = {
   initialProfile: ParentProfile;
   notionConfigured: boolean;
   notebookItems?: DailyBriefNotebookEntryRecord[];
+  weeklyRecapRecord?: DailyBriefNotebookWeeklyRecapRecord | null;
   notebookSuggestion?: {
     briefId: string;
     scheduledFor: string;
@@ -93,6 +97,7 @@ export default function DashboardForm({
   initialProfile,
   notionConfigured,
   notebookItems = [],
+  weeklyRecapRecord = null,
   notebookSuggestion = null,
 }: DashboardFormProps) {
   const router = useRouter();
@@ -157,6 +162,17 @@ export default function DashboardForm({
   const [weeklyRecapErrorMessage, setWeeklyRecapErrorMessage] = useState("");
   const [weeklyRecapSuccessMessage, setWeeklyRecapSuccessMessage] = useState("");
   const [isSyncingWeeklyRecap, setIsSyncingWeeklyRecap] = useState(false);
+  const [isSavingWeeklyRecap, setIsSavingWeeklyRecap] = useState(false);
+  const [retrievalResponseDrafts, setRetrievalResponseDrafts] = useState<
+    Record<string, string>
+  >({});
+  const [retrievalResponseErrorMessage, setRetrievalResponseErrorMessage] =
+    useState("");
+  const [retrievalResponseSuccessMessage, setRetrievalResponseSuccessMessage] =
+    useState("");
+  const [savingRetrievalPromptId, setSavingRetrievalPromptId] = useState<string | null>(
+    null,
+  );
   const hasAppliedBrowserDeliveryDetection = useRef(false);
   const [isPending, startTransition] = useTransition();
   const deferredNotebookSearchQuery = useDeferredValue(notebookSearchQuery);
@@ -178,11 +194,23 @@ export default function DashboardForm({
     savedPreferredDeliveryLocalTime !== DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME;
   const hasNotebookSuggestion = notebookSuggestion !== null;
   const notebookLibraryItems = notebookItems.slice(0, 40);
-  const weeklyRecap = buildDailyBriefNotebookWeeklyRecap({
+  const generatedWeeklyRecap = buildDailyBriefNotebookWeeklyRecap({
     entries: notebookItems,
     programme,
     asOf: notebookItems[0]?.updatedAt,
   });
+  const activeWeeklyRecapRecord =
+    weeklyRecapRecord &&
+    (!generatedWeeklyRecap || weeklyRecapRecord.weekKey === generatedWeeklyRecap.weekKey)
+      ? weeklyRecapRecord
+      : null;
+  const weeklyRecap = generatedWeeklyRecap ?? activeWeeklyRecapRecord;
+  const persistedRetrievalResponseDrafts = Object.fromEntries(
+    (activeWeeklyRecapRecord?.retrievalResponses ?? []).map((response) => [
+      response.promptEntryId,
+      response.response,
+    ]),
+  );
   const notebookFilterOptions = buildNotebookFilterOptions(notebookLibraryItems);
   const notebookTagOptions = buildNotebookTagOptions(notebookLibraryItems);
   const visibleNotebookItems = applyNotebookWorkspaceFilters(notebookLibraryItems, {
@@ -575,6 +603,111 @@ export default function DashboardForm({
     }
   }
 
+  async function handleSaveWeeklyRecap() {
+    if (!weeklyRecap) {
+      return;
+    }
+
+    setWeeklyRecapErrorMessage("");
+    setWeeklyRecapSuccessMessage("");
+    setRetrievalResponseErrorMessage("");
+    setRetrievalResponseSuccessMessage("");
+    setIsSavingWeeklyRecap(true);
+
+    try {
+      const response = await fetch("/api/notebook/weekly-recap/save", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          asOf: notebookItems[0]?.updatedAt,
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as
+        | {
+            message?: string;
+          }
+        | null;
+
+      if (!response.ok) {
+        setWeeklyRecapErrorMessage(
+          body?.message ?? "We could not save this weekly recap right now.",
+        );
+        setIsSavingWeeklyRecap(false);
+        return;
+      }
+
+      setWeeklyRecapSuccessMessage(body?.message ?? "Weekly recap saved.");
+      setIsSavingWeeklyRecap(false);
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      setWeeklyRecapErrorMessage(
+        "We could not reach the local API. Please try again.",
+      );
+      setIsSavingWeeklyRecap(false);
+    }
+  }
+
+  async function handleSaveRetrievalResponse(promptEntryId: string) {
+    const responseBody = retrievalResponseDrafts[promptEntryId]?.trim() ?? "";
+
+    if (!responseBody) {
+      setRetrievalResponseErrorMessage("Add a short response before saving.");
+      setRetrievalResponseSuccessMessage("");
+      return;
+    }
+
+    setRetrievalResponseErrorMessage("");
+    setRetrievalResponseSuccessMessage("");
+    setSavingRetrievalPromptId(promptEntryId);
+
+    try {
+      const response = await fetch("/api/notebook/weekly-recap/response", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          weekKey: weeklyRecap?.weekKey,
+          asOf: notebookItems[0]?.updatedAt,
+          promptEntryId,
+          response: responseBody,
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as
+        | {
+            message?: string;
+          }
+        | null;
+
+      if (!response.ok) {
+        setRetrievalResponseErrorMessage(
+          body?.message ?? "We could not save that retrieval response right now.",
+        );
+        setSavingRetrievalPromptId(null);
+        return;
+      }
+
+      setRetrievalResponseSuccessMessage(
+        body?.message ?? "Retrieval response saved.",
+      );
+      setSavingRetrievalPromptId(null);
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      setRetrievalResponseErrorMessage(
+        "We could not reach the local API. Please try again.",
+      );
+      setSavingRetrievalPromptId(null);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <header className="w-full rounded-b-[32px] bg-[#0f172a] px-6 py-6 text-white shadow-md">
@@ -911,22 +1044,22 @@ export default function DashboardForm({
 
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                          Retrieval prompts
+                          Notebook highlights
                         </p>
                         <div className="mt-3 space-y-3">
-                          {weeklyRecap.retrievalPrompts.map((prompt) => (
+                          {weeklyRecap.highlights.map((highlight) => (
                             <div
-                              key={prompt.entryId}
+                              key={highlight.entryId}
                               className="rounded-2xl border border-white bg-white px-4 py-3"
                             >
                               <p className="text-sm font-semibold text-[#0f172a]">
-                                {prompt.title}
+                                {highlight.title}
                               </p>
                               <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                                {prompt.sourceHeadline}
+                                {highlight.sourceHeadline}
                               </p>
                               <p className="mt-2 text-sm leading-6 text-slate-700">
-                                {prompt.prompt}
+                                {highlight.body}
                               </p>
                             </div>
                           ))}
@@ -945,6 +1078,88 @@ export default function DashboardForm({
                         {weeklyRecapSuccessMessage}
                       </p>
                     ) : null}
+
+                    {retrievalResponseErrorMessage ? (
+                      <p className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {retrievalResponseErrorMessage}
+                      </p>
+                    ) : null}
+
+                    {retrievalResponseSuccessMessage ? (
+                      <p className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                        {retrievalResponseSuccessMessage}
+                      </p>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={handleSaveWeeklyRecap}
+                      disabled={isSavingWeeklyRecap || isPending}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Save className="h-4 w-4" />
+                      {isSavingWeeklyRecap || isPending
+                        ? "Saving..."
+                        : "Save weekly recap"}
+                    </button>
+
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                        Retrieval prompts
+                      </p>
+                      <div className="mt-3 space-y-3">
+                        {weeklyRecap.retrievalPrompts.map((prompt) => (
+                          <div
+                            key={prompt.entryId}
+                            className="rounded-2xl border border-white bg-white px-4 py-3"
+                          >
+                            <p className="text-sm font-semibold text-[#0f172a]">
+                              {prompt.title}
+                            </p>
+                            <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                              {prompt.sourceHeadline}
+                            </p>
+                            <p className="mt-2 text-sm leading-6 text-slate-700">
+                              {prompt.prompt}
+                            </p>
+                            <label className="mt-3 block space-y-2">
+                              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                Your response
+                              </span>
+                              <textarea
+                                rows={3}
+                                value={
+                                  retrievalResponseDrafts[prompt.entryId] ??
+                                  persistedRetrievalResponseDrafts[prompt.entryId] ??
+                                  ""
+                                }
+                                onChange={(event) =>
+                                  setRetrievalResponseDrafts((current) => ({
+                                    ...current,
+                                    [prompt.entryId]: event.target.value,
+                                  }))
+                                }
+                                placeholder="Write 1–3 sentences to revisit this prompt."
+                                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f172a]"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => handleSaveRetrievalResponse(prompt.entryId)}
+                              disabled={
+                                savingRetrievalPromptId === prompt.entryId || isPending
+                              }
+                              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              <Save className="h-4 w-4" />
+                              {savingRetrievalPromptId === prompt.entryId || isPending
+                                ? "Saving..."
+                                : "Save response"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
                     <button
                       type="button"
