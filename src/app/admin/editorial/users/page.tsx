@@ -29,6 +29,7 @@ import { getActivationDashboardSummary } from "./activation-funnel-summary";
 import { getGrowthReconciliationSummary } from "../../../../lib/growth-reconciliation";
 import { buildPlannedNotificationOpsQueue } from "../../../../lib/planned-notification-ops";
 import PlannedNotificationOpsQueue from "./planned-notification-ops-queue";
+import UsersMetricCard from "./users-metric-card";
 
 type UsersAdminPageProps = {
   searchParams: Promise<{
@@ -87,32 +88,21 @@ export default async function UsersAdminPage({
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[31rem]">
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Total families
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {allProfiles.length}
-            </p>
-          </div>
-
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Active / trial
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {statusCounts.active + statusCounts.trial_active}
-            </p>
-          </div>
-
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Needs activation reminder
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {reminderDueCount}
-            </p>
-          </div>
+          <UsersMetricCard
+            label="Total families"
+            value={allProfiles.length}
+            className="bg-slate-50/80"
+          />
+          <UsersMetricCard
+            label="Active / trial"
+            value={statusCounts.active + statusCounts.trial_active}
+            className="bg-slate-50/80"
+          />
+          <UsersMetricCard
+            label="Needs activation reminder"
+            value={reminderDueCount}
+            className="bg-slate-50/80"
+          />
         </div>
       </div>
 
@@ -214,17 +204,12 @@ export default async function UsersAdminPage({
                 count: activationSummary.counts.paid_activated,
               },
             ].map((card) => (
-              <div
+              <UsersMetricCard
                 key={card.key}
-                className="rounded-[24px] border border-slate-200 bg-white px-4 py-4"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  {card.label}
-                </p>
-                <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-                  {card.count}
-                </p>
-              </div>
+                label={card.label}
+                value={card.count}
+                className="bg-white"
+              />
             ))}
           </div>
         </section>
@@ -234,30 +219,21 @@ export default async function UsersAdminPage({
             Recent reminder evidence
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Reminder runs
-              </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-                {activationSummary.reminderEvidence.totalRuns}
-              </p>
-            </div>
-            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Sent
-              </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-                {activationSummary.reminderEvidence.sentRuns}
-              </p>
-            </div>
-            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                Failed
-              </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-                {activationSummary.reminderEvidence.failedRuns}
-              </p>
-            </div>
+            <UsersMetricCard
+              label="Reminder runs"
+              value={activationSummary.reminderEvidence.totalRuns}
+              className="bg-white"
+            />
+            <UsersMetricCard
+              label="Sent"
+              value={activationSummary.reminderEvidence.sentRuns}
+              className="bg-white"
+            />
+            <UsersMetricCard
+              label="Failed"
+              value={activationSummary.reminderEvidence.failedRuns}
+              className="bg-white"
+            />
           </div>
 
           {activationSummary.attentionProfiles.length > 0 ? (
@@ -311,38 +287,26 @@ export default async function UsersAdminPage({
         </div>
 
         <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Trials expiring soon
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {reconciliationSummary.trialsExpiringSoonWithoutFirstBrief.count}
-            </p>
-          </div>
-          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Active without dispatchable channel
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {reconciliationSummary.activeWithoutDispatchableChannel.count}
-            </p>
-          </div>
-          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Active without first brief
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {reconciliationSummary.activeWithoutFirstSuccessfulDelivery.count}
-            </p>
-          </div>
-          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Reminder failures blocking activation
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {reconciliationSummary.reminderFailuresBlockingActivation.count}
-            </p>
-          </div>
+          <UsersMetricCard
+            label="Trials expiring soon"
+            value={reconciliationSummary.trialsExpiringSoonWithoutFirstBrief.count}
+            className="bg-white"
+          />
+          <UsersMetricCard
+            label="Active without dispatchable channel"
+            value={reconciliationSummary.activeWithoutDispatchableChannel.count}
+            className="bg-white"
+          />
+          <UsersMetricCard
+            label="Active without first brief"
+            value={reconciliationSummary.activeWithoutFirstSuccessfulDelivery.count}
+            className="bg-white"
+          />
+          <UsersMetricCard
+            label="Reminder failures blocking activation"
+            value={reconciliationSummary.reminderFailuresBlockingActivation.count}
+            className="bg-white"
+          />
         </div>
       </section>
 
@@ -367,39 +331,24 @@ export default async function UsersAdminPage({
         </div>
 
         <div className="mt-4 grid gap-3 lg:grid-cols-3">
-          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Trial ending active
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {plannedNotificationSummary.trialEnding.actionableCount}
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              {plannedNotificationSummary.trialEnding.dedupedCount} deduped
-            </p>
-          </div>
-          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Billing updates pending
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {plannedNotificationSummary.billingStatus.actionableCount}
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              {plannedNotificationSummary.billingStatus.dedupedCount} deduped
-            </p>
-          </div>
-          <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Delivery support active
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {plannedNotificationSummary.deliverySupport.actionableCount}
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              {plannedNotificationSummary.deliverySupport.dedupedCount} deduped
-            </p>
-          </div>
+          <UsersMetricCard
+            label="Trial ending active"
+            value={plannedNotificationSummary.trialEnding.actionableCount}
+            detail={`${plannedNotificationSummary.trialEnding.dedupedCount} deduped`}
+            className="bg-white"
+          />
+          <UsersMetricCard
+            label="Billing updates pending"
+            value={plannedNotificationSummary.billingStatus.actionableCount}
+            detail={`${plannedNotificationSummary.billingStatus.dedupedCount} deduped`}
+            className="bg-white"
+          />
+          <UsersMetricCard
+            label="Delivery support active"
+            value={plannedNotificationSummary.deliverySupport.actionableCount}
+            detail={`${plannedNotificationSummary.deliverySupport.dedupedCount} deduped`}
+            className="bg-white"
+          />
         </div>
       </section>
 

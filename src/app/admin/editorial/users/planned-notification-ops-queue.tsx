@@ -7,6 +7,7 @@ import type {
   PlannedNotificationOpsQueueItem,
   PlannedNotificationOpsQueueSummary,
 } from "../../../../lib/planned-notification-ops";
+import UsersMetricCard from "./users-metric-card";
 
 type PlannedNotificationOpsQueueProps = {
   items: PlannedNotificationOpsQueueItem[];
@@ -325,17 +326,12 @@ export default function PlannedNotificationOpsQueue({
 
       <div className="mt-4 grid gap-3 lg:grid-cols-5">
         {queueCards.map((card) => (
-          <div
+          <UsersMetricCard
             key={card.label}
-            className="rounded-[24px] border border-slate-200 bg-white px-4 py-4"
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              {card.label}
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-[#0f172a]">
-              {card.count}
-            </p>
-          </div>
+            label={card.label}
+            value={card.count}
+            className="bg-white"
+          />
         ))}
       </div>
 
@@ -352,17 +348,14 @@ export default function PlannedNotificationOpsQueue({
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {agingCards.map((card) => (
-              <div
+              <UsersMetricCard
                 key={card.label}
-                className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3"
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                  {card.label}
-                </p>
-                <p className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
-                  {card.count}
-                </p>
-              </div>
+                label={card.label}
+                value={card.count}
+                className="rounded-[20px] bg-slate-50"
+                minHeightClassName="min-h-[8rem]"
+                valueClassName="text-2xl"
+              />
             ))}
           </div>
         </div>

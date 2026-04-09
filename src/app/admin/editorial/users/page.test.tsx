@@ -153,6 +153,85 @@ describe("UsersAdminPage", () => {
     expect(markup).toContain("/admin/editorial/users/parent-1");
   });
 
+  test("uses tabular metric cards so dashboard counts stay visually aligned", async () => {
+    listParentProfilesMock.mockResolvedValue([
+      {
+        parent: {
+          id: "parent-1",
+          email: "parent@example.com",
+          fullName: "Parent Example",
+          countryCode: "US",
+          deliveryTimeZone: "America/Los_Angeles",
+          preferredDeliveryLocalTime: "18:30",
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
+          subscriptionStatus: "active",
+          subscriptionPlan: "yearly",
+          stripeCustomerId: "cus_123",
+          stripeSubscriptionId: "sub_123",
+          trialStartedAt: "2026-04-01T00:00:00.000Z",
+          trialEndsAt: "2026-04-08T00:00:00.000Z",
+          subscriptionActivatedAt: "2026-04-02T00:00:00.000Z",
+          subscriptionRenewalAt: "2026-05-02T00:00:00.000Z",
+          latestInvoiceId: null,
+          latestInvoiceNumber: null,
+          latestInvoiceStatus: null,
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: null,
+          latestInvoiceCurrency: null,
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: null,
+          latestInvoicePeriodEnd: null,
+          notionWorkspaceId: null,
+          notionWorkspaceName: null,
+          notionBotId: null,
+          notionDatabaseId: null,
+          notionDatabaseName: null,
+          notionDataSourceId: null,
+          notionAuthorizedAt: null,
+          notionLastSyncedAt: null,
+          notionLastSyncStatus: null,
+          notionLastSyncMessage: null,
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-02T03:00:00.000Z",
+        },
+        student: {
+          id: "student-1",
+          parentId: "parent-1",
+          studentName: "Katherine",
+          programme: "MYP",
+          programmeYear: 3,
+          goodnotesEmail: "katherine@goodnotes.email",
+          goodnotesConnected: true,
+          goodnotesVerifiedAt: "2026-04-02T00:00:00.000Z",
+          goodnotesLastTestSentAt: "2026-04-02T02:00:00.000Z",
+          goodnotesLastDeliveryStatus: "success",
+          goodnotesLastDeliveryMessage: "Ready.",
+          notionConnected: true,
+          createdAt: "2026-04-01T00:00:00.000Z",
+          updatedAt: "2026-04-02T03:00:00.000Z",
+        },
+      },
+    ]);
+
+    const markup = renderToStaticMarkup(
+      await UsersAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("tabular-nums");
+    expect(markup).toContain("min-h-[9.5rem]");
+  });
+
   test("renders expired trials as a separate business-facing user type", async () => {
     listParentProfilesMock.mockResolvedValue([
       {

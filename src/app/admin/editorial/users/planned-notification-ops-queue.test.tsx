@@ -64,4 +64,27 @@ describe("PlannedNotificationOpsQueue", () => {
     expect(markup).toContain("Ops note");
     expect(markup).toContain("Save handoff");
   });
+
+  test("uses aligned metric cards for queue totals and SLA counts", () => {
+    const markup = renderToStaticMarkup(
+      <PlannedNotificationOpsQueue
+        summary={{
+          totalCount: 3,
+          pendingCount: 1,
+          retryDueCount: 1,
+          coolingDownCount: 0,
+          escalatedCount: 1,
+          dedupedCount: 0,
+          under24hCount: 1,
+          between24hAnd72hCount: 1,
+          over72hCount: 1,
+        }}
+        items={[]}
+      />,
+    );
+
+    expect(markup).toContain("tabular-nums");
+    expect(markup).toContain("min-h-[9.5rem]");
+    expect(markup).toContain("min-h-[8rem]");
+  });
 });
