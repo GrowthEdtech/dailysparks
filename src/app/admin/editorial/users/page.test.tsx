@@ -234,6 +234,20 @@ describe("UsersAdminPage", () => {
     expect(markup).toContain("min-h-[4.25rem]");
   });
 
+  test("uses a shared section header rhythm across summary panels", async () => {
+    listParentProfilesMock.mockResolvedValue([]);
+
+    const markup = renderToStaticMarkup(
+      await UsersAdminPage({
+        searchParams: Promise.resolve({}),
+      }),
+    );
+
+    expect(markup).toContain("min-h-[6.5rem]");
+    expect(markup).toContain("max-w-3xl");
+    expect(markup).toContain("md:flex-row md:items-start md:justify-between");
+  });
+
   test("renders expired trials as a separate business-facing user type", async () => {
     listParentProfilesMock.mockResolvedValue([
       {

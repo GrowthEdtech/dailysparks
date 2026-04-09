@@ -8,6 +8,7 @@ import type {
   PlannedNotificationOpsQueueSummary,
 } from "../../../../lib/planned-notification-ops";
 import UsersMetricCard from "./users-metric-card";
+import UsersSectionHeader from "./users-section-header";
 
 type PlannedNotificationOpsQueueProps = {
   items: PlannedNotificationOpsQueueItem[];
@@ -307,22 +308,16 @@ export default function PlannedNotificationOpsQueue({
 
   return (
     <section className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            Notification ops queue
-          </p>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            Work the current notification backlog from one place. Automatic
-            sends respect retry cooldown and escalation rules; manual batch
-            actions can still override when ops needs to intervene.
-          </p>
-        </div>
-        <div className="text-sm text-slate-500">
-          <span className="font-semibold text-[#0f172a]">{summary.totalCount}</span>{" "}
-          queue item{summary.totalCount === 1 ? "" : "s"}
-        </div>
-      </div>
+      <UsersSectionHeader
+        eyebrow="Notification ops queue"
+        description="Work the current notification backlog from one place. Automatic sends respect retry cooldown and escalation rules; manual batch actions can still override when ops needs to intervene."
+        aside={
+          <>
+            <span className="font-semibold text-[#0f172a]">{summary.totalCount}</span>{" "}
+            queue item{summary.totalCount === 1 ? "" : "s"}
+          </>
+        }
+      />
 
       <div className="mt-4 grid gap-3 lg:grid-cols-5">
         {queueCards.map((card) => (
@@ -336,16 +331,12 @@ export default function PlannedNotificationOpsQueue({
       </div>
 
       <div className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Age / SLA
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              Work older unresolved items first. Anything older than 72 hours
-              should be treated as a queue breach until ops clears it.
-            </p>
-          </div>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <UsersSectionHeader
+            eyebrow="Age / SLA"
+            description="Work older unresolved items first. Anything older than 72 hours should be treated as a queue breach until ops clears it."
+            className="flex-1"
+          />
           <div className="grid gap-3 sm:grid-cols-3">
             {agingCards.map((card) => (
               <UsersMetricCard

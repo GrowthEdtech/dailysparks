@@ -30,6 +30,7 @@ import { getGrowthReconciliationSummary } from "../../../../lib/growth-reconcili
 import { buildPlannedNotificationOpsQueue } from "../../../../lib/planned-notification-ops";
 import PlannedNotificationOpsQueue from "./planned-notification-ops-queue";
 import UsersMetricCard from "./users-metric-card";
+import UsersSectionHeader from "./users-section-header";
 
 type UsersAdminPageProps = {
   searchParams: Promise<{
@@ -150,31 +151,26 @@ export default async function UsersAdminPage({
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
         <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                Activation funnel
-              </p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                These counts show how many visible families have truly crossed
-                each milestone, not just signed in.
-              </p>
-            </div>
-            <div className="text-right text-sm text-slate-500">
-              <p>
-                <span className="font-semibold text-[#0f172a]">
-                  {activationSummary.stuckCount}
-                </span>{" "}
-                stuck in activation
-              </p>
-              <p>
-                <span className="font-semibold text-[#0f172a]">
-                  {activationSummary.paidButNotDeliveredCount}
-                </span>{" "}
-                paid without first brief
-              </p>
-            </div>
-          </div>
+          <UsersSectionHeader
+            eyebrow="Activation funnel"
+            description="These counts show how many visible families have truly crossed each milestone, not just signed in."
+            aside={
+              <>
+                <p>
+                  <span className="font-semibold text-[#0f172a]">
+                    {activationSummary.stuckCount}
+                  </span>{" "}
+                  stuck in activation
+                </p>
+                <p>
+                  <span className="font-semibold text-[#0f172a]">
+                    {activationSummary.paidButNotDeliveredCount}
+                  </span>{" "}
+                  paid without first brief
+                </p>
+              </>
+            }
+          />
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             {[
@@ -215,9 +211,7 @@ export default async function UsersAdminPage({
         </section>
 
         <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            Recent reminder evidence
-          </p>
+          <UsersSectionHeader eyebrow="Recent reminder evidence" />
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
             <UsersMetricCard
               label="Reminder runs"
@@ -268,23 +262,18 @@ export default async function UsersAdminPage({
       </div>
 
       <section className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Growth reconciliation
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              A once-daily ops view of revenue and first-delivery gaps that still
-              need intervention.
-            </p>
-          </div>
-          <div className="text-sm text-slate-500">
-            <span className="font-semibold text-[#0f172a]">
-              {reconciliationSummary.checkedProfileCount}
-            </span>{" "}
-            families checked
-          </div>
-        </div>
+        <UsersSectionHeader
+          eyebrow="Growth reconciliation"
+          description="A once-daily ops view of revenue and first-delivery gaps that still need intervention."
+          aside={
+            <>
+              <span className="font-semibold text-[#0f172a]">
+                {reconciliationSummary.checkedProfileCount}
+              </span>{" "}
+              families checked
+            </>
+          }
+        />
 
         <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
           <UsersMetricCard
@@ -311,24 +300,18 @@ export default async function UsersAdminPage({
       </section>
 
       <section className="mt-6 rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Notification operations
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              A live view of planned parent-inbox notifications, including
-              which families still need an email and which cases are already
-              deduped against the latest state.
-            </p>
-          </div>
-          <div className="text-sm text-slate-500">
-            <span className="font-semibold text-[#0f172a]">
-              {visibleProfiles.length}
-            </span>{" "}
-            families in current view
-          </div>
-        </div>
+        <UsersSectionHeader
+          eyebrow="Notification operations"
+          description="A live view of planned parent-inbox notifications, including which families still need an email and which cases are already deduped against the latest state."
+          aside={
+            <>
+              <span className="font-semibold text-[#0f172a]">
+                {visibleProfiles.length}
+              </span>{" "}
+              families in current view
+            </>
+          }
+        />
 
         <div className="mt-4 grid gap-3 lg:grid-cols-3">
           <UsersMetricCard

@@ -86,5 +86,7 @@ describe("PlannedNotificationOpsQueue", () => {
     expect(markup).toContain("tabular-nums");
     expect(markup).toContain("min-h-[9.5rem]");
     expect(markup).toContain("min-h-[8rem]");
+    expect(markup).toContain("min-h-[6.5rem]");
+    expect(markup).toContain("text-right");
   });
 });
