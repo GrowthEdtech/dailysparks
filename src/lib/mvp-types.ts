@@ -155,7 +155,7 @@ export type UpdateStudentPreferencesInput = {
   programme: Programme;
   programmeYear: number;
   interestTags?: string[];
-  goodnotesEmail: string;
+  goodnotesEmail?: string;
 };
 
 export type UpdateStudentGoodnotesInput = {

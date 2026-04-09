@@ -259,6 +259,45 @@ describe("mvp store", () => {
     expect(updated?.student.interestTags).toEqual(["TOK", "Law"]);
   });
 
+  test("preserves verified Goodnotes delivery when preferences update omits Goodnotes email", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-09T08:00:00.000Z"));
+
+    await getOrCreateParentProfile({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      studentName: "Katherine",
+    });
+
+    await updateStudentGoodnotesDelivery("parent@example.com", {
+      goodnotesEmail: "katherine@goodnotes.email",
+      goodnotesConnected: true,
+      goodnotesVerifiedAt: "2026-04-08T09:00:00.000Z",
+      goodnotesLastTestSentAt: "2026-04-08T09:00:00.000Z",
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Welcome note sent to Goodnotes.",
+    });
+
+    const updated = await updateStudentPreferences("parent@example.com", {
+      studentName: "Katherine Sparks",
+      programme: "DP",
+      programmeYear: 1,
+      interestTags: ["TOK", "Law"],
+    });
+
+    expect(updated?.student.studentName).toBe("Katherine Sparks");
+    expect(updated?.student.programme).toBe("DP");
+    expect(updated?.student.programmeYear).toBe(1);
+    expect(updated?.student.goodnotesEmail).toBe("katherine@goodnotes.email");
+    expect(updated?.student.goodnotesConnected).toBe(true);
+    expect(updated?.student.goodnotesVerifiedAt).toBe("2026-04-08T09:00:00.000Z");
+    expect(updated?.student.goodnotesLastTestSentAt).toBe("2026-04-08T09:00:00.000Z");
+    expect(updated?.student.goodnotesLastDeliveryStatus).toBe("success");
+    expect(updated?.student.goodnotesLastDeliveryMessage).toBe(
+      "Welcome note sent to Goodnotes.",
+    );
+  });
+
   test("updates parent delivery locale preferences and persists them", async () => {
     await getOrCreateParentProfile({
       email: "parent@example.com",

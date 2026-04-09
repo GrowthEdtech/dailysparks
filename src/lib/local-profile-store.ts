@@ -797,7 +797,6 @@ export const localProfileStore: ProfileStore = {
       return null;
     }
 
-    const nextGoodnotesEmail = input.goodnotesEmail.trim().toLowerCase();
     const nextInterestTags = sanitizeInterestTagsForProgramme(
       input.programme,
       input.interestTags ?? [],
@@ -808,15 +807,19 @@ export const localProfileStore: ProfileStore = {
     student.programmeYear = input.programmeYear;
     student.interestTags = nextInterestTags;
 
-    if (student.goodnotesEmail !== nextGoodnotesEmail) {
-      student.goodnotesEmail = nextGoodnotesEmail;
-      student.goodnotesConnected = false;
-      student.goodnotesVerifiedAt = null;
-      student.goodnotesLastTestSentAt = null;
-      student.goodnotesLastDeliveryStatus = nextGoodnotesEmail ? "idle" : null;
-      student.goodnotesLastDeliveryMessage = nextGoodnotesEmail
-        ? "Goodnotes destination saved. Send a welcome note to confirm this destination."
-        : null;
+    if (input.goodnotesEmail !== undefined) {
+      const nextGoodnotesEmail = input.goodnotesEmail.trim().toLowerCase();
+
+      if (student.goodnotesEmail !== nextGoodnotesEmail) {
+        student.goodnotesEmail = nextGoodnotesEmail;
+        student.goodnotesConnected = false;
+        student.goodnotesVerifiedAt = null;
+        student.goodnotesLastTestSentAt = null;
+        student.goodnotesLastDeliveryStatus = nextGoodnotesEmail ? "idle" : null;
+        student.goodnotesLastDeliveryMessage = nextGoodnotesEmail
+          ? "Goodnotes destination saved. Send a welcome note to confirm this destination."
+          : null;
+      }
     }
 
     const now = new Date().toISOString();

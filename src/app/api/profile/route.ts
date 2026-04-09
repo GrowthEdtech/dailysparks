@@ -102,7 +102,13 @@ export async function PUT(request: Request) {
   }
 
   const studentName = normalizeString(body.studentName);
-  const goodnotesEmail = normalizeEmail(body.goodnotesEmail);
+  const hasGoodnotesEmail = Object.prototype.hasOwnProperty.call(
+    body,
+    "goodnotesEmail",
+  );
+  const goodnotesEmail = hasGoodnotesEmail
+    ? normalizeEmail(body.goodnotesEmail)
+    : undefined;
   const programme = normalizeProgramme(body.programme);
   const programmeYear = normalizeProgrammeYear(body.programmeYear);
   const interestTags = normalizeInterestTags(body.interestTags);

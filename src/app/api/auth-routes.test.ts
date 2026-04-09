@@ -354,6 +354,87 @@ describe("auth routes", () => {
     expect(body.student.interestTags).toEqual(["TOK", "Law"]);
   });
 
+  test("preserves verified Goodnotes delivery when the profile update changes learning stage", async () => {
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+    verifySessionCookieMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+    });
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    await updateGoodnotes(
+      new Request("http://localhost:3000/api/goodnotes", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+        body: JSON.stringify({
+          goodnotesEmail: "katherine",
+        }),
+      }),
+    );
+
+    const testResponse = await sendGoodnotesTest(
+      new Request("http://localhost:3000/api/goodnotes/test", {
+        method: "POST",
+        headers: {
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+      }),
+    );
+
+    const testBody = await testResponse.json();
+
+    expect(testResponse.status).toBe(200);
+    expect(testBody.student.goodnotesConnected).toBe(true);
+    expect(testBody.student.goodnotesEmail).toBe("katherine@goodnotes.email");
+
+    const response = await updateProfile(
+      new Request("http://localhost:3000/api/profile", {
+        method: "PUT",
+        headers: {
+          "content-type": "application/json",
+          cookie: `${SESSION_COOKIE_NAME}=firebase-session-cookie`,
+        },
+        body: JSON.stringify({
+          studentName: "Katherine",
+          programme: "DP",
+          programmeYear: 1,
+          interestTags: ["TOK", "Law"],
+        }),
+      }),
+    );
+
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.student.programme).toBe("DP");
+    expect(body.student.programmeYear).toBe(1);
+    expect(body.student.goodnotesEmail).toBe("katherine@goodnotes.email");
+    expect(body.student.goodnotesConnected).toBe(true);
+    expect(body.student.goodnotesVerifiedAt).toBeTruthy();
+    expect(body.student.goodnotesLastDeliveryStatus).toBe("success");
+  });
+
   test("rejects invalid interest tags for the selected programme", async () => {
     verifyIdTokenMock.mockResolvedValue({
       uid: "firebase-parent-1",
