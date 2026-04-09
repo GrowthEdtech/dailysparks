@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 
 import { signInWithGooglePopup, signOutFirebaseClientSession } from "../../lib/firebase-client";
@@ -38,10 +37,8 @@ function getGoogleLoginErrorMessage(error: unknown) {
 }
 
 export default function LoginForm() {
-  const router = useRouter();
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   async function handleGoogleLogin() {
     setErrorMessage("");
@@ -69,12 +66,8 @@ export default function LoginForm() {
         return;
       }
 
-      await signOutFirebaseClientSession().catch(() => undefined);
-
-      startTransition(() => {
-        router.push("/dashboard");
-        router.refresh();
-      });
+      void signOutFirebaseClientSession().catch(() => undefined);
+      window.location.assign("/opening-dashboard");
     } catch (error) {
       setErrorMessage(getGoogleLoginErrorMessage(error));
       setIsSubmitting(false);
@@ -115,12 +108,10 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={handleGoogleLogin}
-              disabled={isSubmitting || isPending}
+              disabled={isSubmitting}
               className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#fbbf24] px-5 py-4 text-base font-bold text-[#0f172a] shadow-lg shadow-[#fbbf24]/30 transition hover:bg-[#f59e0b] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting || isPending
-                ? "Opening dashboard..."
-                : "Continue with Google"}
+              {isSubmitting ? "Opening dashboard..." : "Continue with Google"}
               <ArrowRight className="h-5 w-5" />
             </button>
           </div>
