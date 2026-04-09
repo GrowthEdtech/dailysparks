@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -10,6 +11,15 @@ import { getProfileByEmail } from "../../lib/mvp-store";
 import { buildOutboundDailyBriefPacket } from "../../lib/outbound-daily-brief-packet";
 import { isNotionConfigured } from "../../lib/notion-config";
 import { getSessionFromCookieStore } from "../../lib/session";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Manage your Daily Sparks reading workflow and notebook.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function DashboardPage() {
   const session = await getSessionFromCookieStore(await cookies());

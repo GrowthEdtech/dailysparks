@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 
-import Home from "./page";
+import Home, { metadata as homeMetadata } from "./page";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -91,6 +91,16 @@ describe("informational pages", () => {
     expect(markup).not.toContain("P5 to MYP");
   });
 
+  test("home page metadata targets current public search intent", () => {
+    expect(homeMetadata.title).toBe("IB MYP + DP Reading Support for Families");
+    expect(homeMetadata.description).toBe(
+      "Daily Sparks helps IB families build calmer MYP and DP reading habits with Goodnotes delivery, Notion archive, notebook capture, and weekly recaps.",
+    );
+    expect(homeMetadata.alternates).toEqual({
+      canonical: "/",
+    });
+  });
+
   test("home page illustration reflects the reading workspace workflow", async () => {
     const markup = renderToStaticMarkup(await Home());
 
@@ -102,6 +112,17 @@ describe("informational pages", () => {
     expect(markup).toContain("Weekly recap");
     expect(markup).not.toContain("Wait until you see their first analysis.");
     expect(markup).not.toContain("💻");
+  });
+
+  test("home page primary CTA elements link to crawlable destinations", async () => {
+    const markup = renderToStaticMarkup(await Home());
+
+    expect(markup).toContain('href="/login"');
+    expect(markup).toContain('href="/about"');
+    expect(markup).toContain("Start 7-Day Free Trial");
+    expect(markup).toContain("See Sample Brief");
+    expect(markup).toContain("Set Up Your Reading Loop");
+    expect(markup).toContain("Claim 7-Day Free Trial");
   });
 
   test.each(informationalPages)(

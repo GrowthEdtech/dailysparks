@@ -6,9 +6,12 @@ import {
 } from "../informational-page-shell";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | Daily Sparks",
+  title: "Terms of Service",
   description:
     "Terms governing access to Daily Sparks, including account use, subscriptions, integrations, and acceptable use.",
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 export default function TermsPage() {

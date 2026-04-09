@@ -8,16 +8,35 @@ import {
   ChevronDown,
   Smartphone,
 } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import HomePricingSection from "./home-pricing-section";
 import HomeReadingWorkspaceIllustration from "./home-reading-workspace-illustration";
 import LandingIntegrationsSection from "./landing-integrations-section";
 import { siteFooterLinks } from "./site-footer-links";
+import { siteUrl } from "./site-config";
 import { DEFAULT_PRICING_MARKET } from "../lib/pricing-market";
 import {
   landingFaqItems,
 } from "./home-content";
+
+export const metadata: Metadata = {
+  title: "IB MYP + DP Reading Support for Families",
+  description:
+    "Daily Sparks helps IB families build calmer MYP and DP reading habits with Goodnotes delivery, Notion archive, notebook capture, and weekly recaps.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "IB MYP + DP Reading Support for Families",
+    description:
+      "Daily Sparks helps IB families build calmer MYP and DP reading habits with Goodnotes delivery, Notion archive, notebook capture, and weekly recaps.",
+    url: siteUrl,
+    siteName: "Daily Sparks",
+    type: "website",
+  },
+};
 
 export default async function Home() {
   return (
@@ -60,12 +79,18 @@ export default async function Home() {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-          <button className="bg-[#fbbf24] text-[#0f172a] px-10 py-5 rounded-2xl font-bold text-lg hover:scale-105 transition-all shadow-xl shadow-[#fbbf24]/20 flex items-center justify-center gap-2 group">
+          <Link
+            href="/login"
+            className="bg-[#fbbf24] text-[#0f172a] px-10 py-5 rounded-2xl font-bold text-lg hover:scale-105 transition-all shadow-xl shadow-[#fbbf24]/20 flex items-center justify-center gap-2 group"
+          >
             Start 7-Day Free Trial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </button>
-          <button className="bg-white/5 border border-white/10 text-white px-10 py-5 rounded-2xl font-bold text-lg hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+          </Link>
+          <Link
+            href="/about"
+            className="bg-white/5 border border-white/10 text-white px-10 py-5 rounded-2xl font-bold text-lg hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+          >
             See Sample Brief
-          </button>
+          </Link>
         </div>
 
         {/* 社交證明 Social Proof */}
@@ -211,9 +236,12 @@ export default async function Home() {
               </div>
             </div>
             
-            <button className="bg-[#0f172a] text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:translate-x-2 transition-transform shadow-xl">
+            <Link
+              href="/login"
+              className="inline-flex bg-[#0f172a] text-white px-8 py-4 rounded-xl font-bold items-center gap-2 hover:translate-x-2 transition-transform shadow-xl"
+            >
               Set Up Your Reading Loop <ArrowRight className="w-5 h-5" />
-            </button>
+            </Link>
           </div>
           
           <div className="flex-1 bg-slate-100 rounded-[48px] p-4 relative group">
@@ -259,9 +287,12 @@ export default async function Home() {
           </div>
           
           <div className="flex justify-center">
-            <button className="bg-[#fbbf24] text-[#0f172a] px-12 py-5 rounded-2xl font-black text-xl hover:scale-110 active:scale-95 transition-all shadow-2xl shadow-[#fbbf24]/20">
+            <Link
+              href="/login"
+              className="bg-[#fbbf24] text-[#0f172a] px-12 py-5 rounded-2xl font-black text-xl hover:scale-110 active:scale-95 transition-all shadow-2xl shadow-[#fbbf24]/20"
+            >
               Claim 7-Day Free Trial
-            </button>
+            </Link>
           </div>
 
           <div className="pt-20 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">

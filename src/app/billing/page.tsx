@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -5,6 +6,15 @@ import BillingForm from "./billing-form";
 import { getProfileByEmail } from "../../lib/mvp-store";
 import { DEFAULT_PRICING_MARKET } from "../../lib/pricing-market";
 import { getSessionFromCookieStore } from "../../lib/session";
+
+export const metadata: Metadata = {
+  title: "Billing",
+  description: "Manage your Daily Sparks subscription and billing settings.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default async function BillingPage() {
   const cookieStore = await cookies();

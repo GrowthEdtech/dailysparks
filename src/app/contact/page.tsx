@@ -6,9 +6,12 @@ import {
 } from "../informational-page-shell";
 
 export const metadata: Metadata = {
-  title: "Contact Daily Sparks",
+  title: "Contact",
   description:
-    "How to contact Daily Sparks for support, billing, privacy, and partnership questions.",
+    "Contact Daily Sparks for support with IB reading setup, Goodnotes delivery, Notion sync, billing, privacy, or partnerships.",
+  alternates: {
+    canonical: "/contact",
+  },
 };
 
 const contactTopics = [

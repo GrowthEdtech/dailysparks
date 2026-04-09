@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import RootLayout, { metadata } from "./layout";
 
 const iconVersion = "2026-04-02-2";
+const baseUrl = "https://dailysparks.geledtech.com";
 
 describe("root layout metadata", () => {
   test("declares the full site icon set and web manifest", () => {
@@ -16,6 +17,20 @@ describe("root layout metadata", () => {
       apple: [{ url: `/apple-icon.png?v=${iconVersion}`, type: "image/png" }],
     });
     expect(metadata.manifest).toBe(`/site.webmanifest?v=${iconVersion}`);
+  });
+
+  test("declares search-facing site metadata defaults", () => {
+    expect(metadata.metadataBase?.toString()).toBe(`${baseUrl}/`);
+    expect(metadata.title).toEqual({
+      default: "Daily Sparks | IB MYP + DP Reading Support",
+      template: "%s | Daily Sparks",
+    });
+    expect(metadata.description).toBe(
+      "Daily Sparks helps IB families build calmer reading habits for MYP and DP with Goodnotes delivery, Notion archive, and weekly recap support.",
+    );
+    expect(metadata.alternates).toEqual({
+      canonical: "/",
+    });
   });
 
   test("renders baseline Organization JSON-LD for machine-readability", () => {
@@ -30,5 +45,6 @@ describe("root layout metadata", () => {
     expect(markup).toContain("application/ld+json");
     expect(markup).toContain("Growth Education Limited");
     expect(markup).toContain("Daily Sparks");
+    expect(markup).toContain("WebSite");
   });
 });

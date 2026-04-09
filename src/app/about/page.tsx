@@ -6,9 +6,12 @@ import {
 } from "../informational-page-shell";
 
 export const metadata: Metadata = {
-  title: "About Daily Sparks",
+  title: "About",
   description:
-    "Learn what Daily Sparks is for, how it fits into family reading routines, and why it pairs Goodnotes with Notion.",
+    "Learn how Daily Sparks supports IB MYP and DP family reading routines with Goodnotes delivery, Notion archive, and calmer academic habits.",
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export default function AboutPage() {

@@ -6,9 +6,12 @@ import {
 } from "../informational-page-shell";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Daily Sparks",
+  title: "Privacy Policy",
   description:
     "How Daily Sparks handles family account data, student profile details, integrations, and support requests.",
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 export default function PrivacyPage() {
