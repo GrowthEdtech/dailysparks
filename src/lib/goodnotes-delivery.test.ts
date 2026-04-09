@@ -177,9 +177,9 @@ describe("goodnotes delivery", () => {
     expect(note).toMatchObject({
       eyebrow: "Growth Education Limited",
       title: "Welcome to Daily Sparks",
-      confirmationTitle: "Goodnotes destination confirmed",
+      confirmationTitle: "Setup confirmed",
       expectationsTitle: "What to expect",
-      weeklyRhythmTitle: "Reading rhythm",
+      weeklyRhythmTitle: "Weekly rhythm",
       nextStepsTitle: "Your next steps",
       signature: "Growth Education Limited",
     });

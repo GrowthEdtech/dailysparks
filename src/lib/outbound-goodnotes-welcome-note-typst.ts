@@ -125,7 +125,7 @@ function buildWelcomeNoteTypstSource(note: GoodnotesWelcomeNote) {
   fill: fill-color,
   stroke: (paint: border-color, thickness: 1pt),
   inset: inset,
-)[body]
+)[#body]
 
 #let detail-line(line) = block(
   above: 0pt,

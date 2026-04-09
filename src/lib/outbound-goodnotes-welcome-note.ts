@@ -29,8 +29,8 @@ export function buildGoodnotesWelcomeNote(
   return {
     eyebrow: "Growth Education Limited",
     title: "Welcome to Daily Sparks",
-    intro: `Hello ${profile.parent.fullName}, your Goodnotes destination is confirmed and ready for delivery. From your first Daily Sparks packet onward, each reading brief will arrive directly in ${profile.student.studentName}'s Goodnotes flow.`,
-    confirmationTitle: "Goodnotes destination confirmed",
+    intro: `Hello ${profile.parent.fullName}, your Goodnotes destination is confirmed and ready for delivery. Starting with your first Daily Sparks packet, each reading brief will arrive directly in ${profile.student.studentName}'s Goodnotes flow.`,
+    confirmationTitle: "Setup confirmed",
     confirmationBody:
       "Daily Sparks is now ready to place each reading brief into your family's Goodnotes rhythm with calm, dependable delivery.",
     detailLines: [
@@ -40,7 +40,7 @@ export function buildGoodnotesWelcomeNote(
     ],
     expectationsTitle: "What to expect",
     expectationsBody: stageSummary.description,
-    weeklyRhythmTitle: "Reading rhythm",
+    weeklyRhythmTitle: "Weekly rhythm",
     weeklyRhythmBody: weeklyPlan.description,
     nextStepsTitle: "Your next steps",
     nextSteps: [

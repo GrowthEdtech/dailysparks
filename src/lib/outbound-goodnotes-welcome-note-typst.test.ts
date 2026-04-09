@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 import {
   buildGoodnotesWelcomeNoteTypstSource,
   renderGoodnotesWelcomeNoteTypst,
 } from "./outbound-goodnotes-welcome-note-typst";
+import { buildGoodnotesWelcomeNote } from "./outbound-goodnotes-welcome-note";
 import { countPdfPages } from "./pdf-page-count";
 import type { ParentProfile } from "./mvp-types";
+import { configurePdfJsNodeRuntime } from "./pdfjs-node";
 
 function createProfile(): ParentProfile {
   return {
@@ -65,6 +68,10 @@ function createProfile(): ParentProfile {
   };
 }
 
+function normalizePdfText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
 describe("outbound goodnotes welcome note typst", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -79,9 +86,9 @@ describe("outbound goodnotes welcome note typst", () => {
     const source = buildGoodnotesWelcomeNoteTypstSource(createProfile());
 
     expect(source).toContain("Welcome to Daily Sparks");
-    expect(source).toContain("Goodnotes destination confirmed");
+    expect(source).toContain("Setup confirmed");
     expect(source).toContain("What to expect");
-    expect(source).toContain("Reading rhythm");
+    expect(source).toContain("Weekly rhythm");
     expect(source).toContain("Your next steps");
     expect(source).toContain("Growth Education Limited");
   });
@@ -99,6 +106,45 @@ describe("outbound goodnotes welcome note typst", () => {
     expect(Buffer.from(result.pdf).subarray(0, 4).toString()).toBe("%PDF");
       expect(pageCount).toBe(1);
       expect(result.pageCount).toBe(1);
+    },
+    15000,
+  );
+
+  test(
+    "renders the welcome note panels with note content instead of placeholder labels",
+    async () => {
+      const profile = createProfile();
+      const note = buildGoodnotesWelcomeNote(profile);
+      const result = await renderGoodnotesWelcomeNoteTypst(profile);
+      const { standardFontDataUrl } = configurePdfJsNodeRuntime();
+      const loadingTask = getDocument({
+        data: new Uint8Array(result.pdf),
+        useWorkerFetch: false,
+        isEvalSupported: false,
+        standardFontDataUrl: standardFontDataUrl ?? undefined,
+      });
+      const document = await loadingTask.promise;
+
+      try {
+        const page = await document.getPage(1);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item) => ("str" in item ? item.str : ""))
+          .join("\n");
+        const normalizedPageText = normalizePdfText(pageText);
+
+        expect(normalizedPageText).toContain(note.confirmationTitle);
+        expect(normalizedPageText).toContain(
+          normalizePdfText(note.confirmationBody),
+        );
+        expect(normalizedPageText).toContain(note.weeklyRhythmTitle);
+        expect(normalizedPageText).toContain(
+          normalizePdfText(note.weeklyRhythmBody),
+        );
+        expect(normalizedPageText).not.toContain("body");
+      } finally {
+        await document.destroy();
+      }
     },
     15000,
   );
