@@ -19,5 +19,17 @@ describe("UsersMetricCard", () => {
     expect(markup).toContain("tabular-nums");
     expect(markup).toContain("justify-between");
     expect(markup).toContain("min-h-[9.5rem]");
+    expect(markup).toContain("min-h-[3.25rem]");
+    expect(markup).toContain("min-h-[4.25rem]");
+    expect(markup).toContain("min-h-[1.25rem]");
+  });
+
+  test("reserves the detail row even when a metric has no secondary text", () => {
+    const markup = renderToStaticMarkup(
+      <UsersMetricCard label="Total families" value={5} />,
+    );
+
+    expect(markup).toContain(">5<");
+    expect(markup).toContain("min-h-[1.25rem]");
   });
 });

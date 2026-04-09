@@ -27,20 +27,22 @@ export default function UsersMetricCard({
         className,
       )}
     >
-      <p className="text-xs font-semibold uppercase leading-5 tracking-[0.18em] text-slate-400">
+      <p className="min-h-[3.25rem] text-xs font-semibold uppercase leading-5 tracking-[0.18em] text-slate-400">
         {label}
       </p>
 
-      <div className="mt-4">
+      <div className="mt-4 flex min-h-[4.25rem] flex-col justify-start">
         <p
           className={joinClasses(
-            "font-bold tracking-tight tabular-nums text-[#0f172a]",
+            "font-bold leading-none tracking-tight tabular-nums text-[#0f172a]",
             valueClassName,
           )}
         >
           {value}
         </p>
-        {detail ? <p className="mt-2 text-sm text-slate-500">{detail}</p> : null}
+        <div className="mt-2 min-h-[1.25rem]">
+          {detail ? <p className="text-sm text-slate-500">{detail}</p> : null}
+        </div>
       </div>
     </div>
   );

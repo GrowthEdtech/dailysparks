@@ -230,6 +230,8 @@ describe("UsersAdminPage", () => {
 
     expect(markup).toContain("tabular-nums");
     expect(markup).toContain("min-h-[9.5rem]");
+    expect(markup).toContain("min-h-[3.25rem]");
+    expect(markup).toContain("min-h-[4.25rem]");
   });
 
   test("renders expired trials as a separate business-facing user type", async () => {
