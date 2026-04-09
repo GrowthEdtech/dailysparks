@@ -11,6 +11,10 @@ import type {
   OperationsHealthNotificationsSummary,
   OperationsHealthRunStatus,
 } from "./operations-health-run-schema";
+import {
+  getEditoriallyActiveProgrammes,
+  isProgrammeEditoriallyActive,
+} from "./programme-availability-policy";
 
 export type OperationsHealthSnapshot = {
   runDate: string;
@@ -21,8 +25,6 @@ export type OperationsHealthSnapshot = {
   billing: OperationsHealthBillingSummary;
   alerts: OperationsHealthAlert[];
 };
-
-const EXPECTED_PROGRAMMES_PER_DAY = 3;
 
 function countGeoTimeouts(notes: string) {
   const matches = notes.match(/timed out after/gi);
@@ -55,10 +57,11 @@ export function buildOperationsHealthSnapshot(input: {
     (entry) =>
       entry.recordKind === "production" &&
       entry.routingKeyIncomplete !== true &&
-      entry.scheduledFor === input.runDate,
+      entry.scheduledFor === input.runDate &&
+      isProgrammeEditoriallyActive(entry.programme),
   );
   const expectedProductionCount =
-    DAILY_BRIEF_EDITORIAL_COHORTS.length * EXPECTED_PROGRAMMES_PER_DAY;
+    DAILY_BRIEF_EDITORIAL_COHORTS.length * getEditoriallyActiveProgrammes().length;
   const generatedCount = dailyBriefHistory.length;
   const approvedCount = dailyBriefHistory.filter(
     (entry) => entry.status === "approved" || entry.status === "published",

@@ -7,13 +7,17 @@ import {
   getOrCreateParentProfile,
   updateStudentPreferences,
   updateParentNotionConnection,
+  updateParentSubscription,
 } from "./mvp-store";
 import { saveDailyBriefNotebookEntries } from "./daily-brief-notebook-store";
 import {
   getDailyBriefNotebookWeeklyRecap,
   saveDailyBriefNotebookWeeklyRecapResponse,
 } from "./daily-brief-notebook-weekly-recap-store";
-import { deliverNotebookWeeklyRecapForProfile } from "./daily-brief-notebook-weekly-recap-delivery";
+import {
+  deliverNotebookWeeklyRecapForProfile,
+  runScheduledNotebookWeeklyRecapDelivery,
+} from "./daily-brief-notebook-weekly-recap-delivery";
 
 const {
   syncNotebookWeeklyRecapToNotionMock,
@@ -225,5 +229,172 @@ describe("deliverNotebookWeeklyRecapForProfile", () => {
     expect(result.status).toBe("skipped");
     expect(syncNotebookWeeklyRecapToNotionMock).not.toHaveBeenCalled();
     expect(sendDailyBriefNotebookWeeklyRecapEmailMock).not.toHaveBeenCalled();
+  });
+
+  test("counts weekly recap email failures separately from skipped sends", async () => {
+    const profile = await getOrCreateParentProfile({
+      email: "email-fail@example.com",
+      fullName: "Email Fail Parent",
+      studentName: "Morgan",
+    });
+    await updateStudentPreferences("email-fail@example.com", {
+      studentName: "Morgan",
+      programme: "DP",
+      programmeYear: 1,
+      goodnotesEmail: "morgan@goodnotes.email",
+      interestTags: ["TOK"],
+    });
+    const entitledProfile = await updateParentSubscription("email-fail@example.com", {
+      subscriptionStatus: "active",
+    });
+    await saveDailyBriefNotebookEntries({
+      parentId: profile.parent.id,
+      parentEmail: profile.parent.email,
+      studentId: profile.student.id,
+      programme: "DP",
+      interestTags: ["TOK"],
+      briefId: "brief-email-fail",
+      scheduledFor: "2026-04-10",
+      headline: "A difficult question about evidence",
+      topicTags: ["Evidence"],
+      knowledgeBankTitle: "Academic idea bank",
+      entries: [{ title: "Claim", body: "Evidence can mislead when context is missing." }],
+    });
+    sendDailyBriefNotebookWeeklyRecapEmailMock.mockRejectedValueOnce(
+      new Error("SMTP offline"),
+    );
+    syncNotebookWeeklyRecapToNotionMock.mockResolvedValue({
+      status: "skipped",
+      message: "Notion archive is not connected for weekly recap sync.",
+    });
+
+    const summary = await runScheduledNotebookWeeklyRecapDelivery({
+      asOf: "2026-04-12T10:00:00.000Z",
+      profiles: [
+        {
+          ...(entitledProfile ?? profile),
+          student: {
+            ...(entitledProfile?.student ?? profile.student),
+            programme: "DP",
+            programmeYear: 1,
+            interestTags: ["TOK"],
+          },
+        },
+      ],
+    });
+    expect(summary.generatedCount).toBe(1);
+    expect(summary.emailSentCount).toBe(0);
+    expect(summary.emailSkippedCount).toBe(0);
+    expect(summary.emailFailedCount).toBe(1);
+    expect(summary.failedCount).toBe(1);
+    expect(summary.results).toEqual([
+      expect.objectContaining({
+        status: "failed",
+        note: "SMTP offline",
+      }),
+    ]);
+  });
+
+  test("scheduled delivery skips editorials that are not currently entitled for automated access", async () => {
+    const activeProfile = await getOrCreateParentProfile({
+      email: "active-weekly@example.com",
+      fullName: "Active Weekly Parent",
+      studentName: "Avery",
+    });
+    await updateStudentPreferences("active-weekly@example.com", {
+      studentName: "Avery",
+      programme: "MYP",
+      programmeYear: 2,
+      goodnotesEmail: "avery@goodnotes.email",
+      interestTags: ["Tech & Innovation"],
+    });
+    const entitledActiveProfile = await updateParentSubscription("active-weekly@example.com", {
+      subscriptionStatus: "active",
+    });
+    await saveDailyBriefNotebookEntries({
+      parentId: activeProfile.parent.id,
+      parentEmail: activeProfile.parent.email,
+      studentId: activeProfile.student.id,
+      programme: "MYP",
+      interestTags: ["Tech & Innovation"],
+      briefId: "brief-active",
+      scheduledFor: "2026-04-10",
+      headline: "Students test future transport ideas",
+      topicTags: ["Innovation"],
+      knowledgeBankTitle: "Inquiry notebook",
+      entries: [{ title: "Inquiry question", body: "What trade-offs matter most?" }],
+    });
+
+    const canceledProfile = await getOrCreateParentProfile({
+      email: "canceled-weekly@example.com",
+      fullName: "Canceled Weekly Parent",
+      studentName: "Riley",
+    });
+    await updateStudentPreferences("canceled-weekly@example.com", {
+      studentName: "Riley",
+      programme: "DP",
+      programmeYear: 1,
+      goodnotesEmail: "riley@goodnotes.email",
+      interestTags: ["TOK"],
+    });
+    await updateParentSubscription("canceled-weekly@example.com", {
+      subscriptionStatus: "canceled",
+    });
+    await saveDailyBriefNotebookEntries({
+      parentId: canceledProfile.parent.id,
+      parentEmail: canceledProfile.parent.email,
+      studentId: canceledProfile.student.id,
+      programme: "DP",
+      interestTags: ["TOK"],
+      briefId: "brief-canceled",
+      scheduledFor: "2026-04-10",
+      headline: "A policy argument for later review",
+      topicTags: ["Policy"],
+      knowledgeBankTitle: "Academic idea bank",
+      entries: [{ title: "Claim", body: "A canceled family should not get scheduled recap mail." }],
+    });
+
+    sendDailyBriefNotebookWeeklyRecapEmailMock.mockResolvedValue({
+      messageId: "weekly-email-active",
+      subject: "Your Daily Sparks weekly recap is ready",
+    });
+    syncNotebookWeeklyRecapToNotionMock.mockResolvedValue({
+      status: "skipped",
+      message: "Notion archive is not connected for weekly recap sync.",
+    });
+
+    const summary = await runScheduledNotebookWeeklyRecapDelivery({
+      asOf: "2026-04-12T10:00:00.000Z",
+      profiles: [
+        {
+          ...(entitledActiveProfile ?? activeProfile),
+          student: {
+            ...(entitledActiveProfile?.student ?? activeProfile.student),
+            programme: "MYP",
+            programmeYear: 2,
+            interestTags: ["Tech & Innovation"],
+          },
+        },
+        {
+          ...canceledProfile,
+          parent: {
+            ...canceledProfile.parent,
+            subscriptionStatus: "canceled",
+          },
+          student: {
+            ...canceledProfile.student,
+            programme: "DP",
+            programmeYear: 1,
+            interestTags: ["TOK"],
+          },
+        },
+      ],
+    });
+    expect(summary.checkedCount).toBe(1);
+    expect(summary.generatedCount).toBe(1);
+    expect(summary.results).toHaveLength(1);
+    expect(summary.results[0]).toEqual(
+      expect.objectContaining({ parentEmail: "active-weekly@example.com" }),
+    );
   });
 });

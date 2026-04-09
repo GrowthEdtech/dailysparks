@@ -43,6 +43,7 @@ describe("internal weekly recap delivery route", () => {
       notionSyncedCount: 2,
       emailSentCount: 3,
       emailSkippedCount: 0,
+      emailFailedCount: 0,
       failedCount: 0,
       results: [],
     });

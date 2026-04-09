@@ -140,4 +140,34 @@ describe("buildDailyBriefNotebookWeeklyRecap", () => {
 
     expect(recap).toBeNull();
   });
+
+  test("uses Hong Kong week boundaries instead of raw UTC dates", () => {
+    const recap = buildDailyBriefNotebookWeeklyRecap({
+      entries: [
+        {
+          ...entries[0]!,
+          id: "hk-entry-in-week",
+          updatedAt: "2026-04-12T15:30:00.000Z",
+          savedAt: "2026-04-12T15:30:00.000Z",
+          createdAt: "2026-04-12T15:30:00.000Z",
+        },
+        {
+          ...entries[1]!,
+          id: "hk-entry-next-week",
+          updatedAt: "2026-04-12T16:30:00.000Z",
+          savedAt: "2026-04-12T16:30:00.000Z",
+          createdAt: "2026-04-12T16:30:00.000Z",
+        },
+      ],
+      programme: "DP",
+      asOf: "2026-04-12T10:00:00.000Z",
+    });
+
+    expect(recap).not.toBeNull();
+    expect(recap?.weekKey).toBe("2026-04-06");
+    expect(recap?.totalEntries).toBe(1);
+    expect(recap?.highlights).toEqual([
+      expect.objectContaining({ entryId: "hk-entry-in-week" }),
+    ]);
+  });
 });

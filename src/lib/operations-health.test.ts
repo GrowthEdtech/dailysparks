@@ -263,9 +263,9 @@ describe("buildOperationsHealthSnapshot", () => {
     });
 
     expect(snapshot.status).toBe("critical");
-    expect(snapshot.dailyBrief.expectedProductionCount).toBe(9);
-    expect(snapshot.dailyBrief.generatedCount).toBe(4);
-    expect(snapshot.dailyBrief.missingProductionCount).toBe(5);
+    expect(snapshot.dailyBrief.expectedProductionCount).toBe(6);
+    expect(snapshot.dailyBrief.generatedCount).toBe(3);
+    expect(snapshot.dailyBrief.missingProductionCount).toBe(3);
     expect(snapshot.dailyBrief.retryCandidateCount).toBe(1);
     expect(snapshot.dailyBrief.blockedCanaryCount).toBe(1);
     expect(snapshot.notifications.escalatedCount).toBe(1);

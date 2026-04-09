@@ -71,6 +71,7 @@ const RETRIEVAL_PROMPT_TEMPLATES: Partial<
       "Which part of this capture could become an essay or discussion example?",
   },
 };
+const HONG_KONG_UTC_OFFSET_MS = 8 * 60 * 60 * 1000;
 
 function resolveAnchorDate(entries: DailyBriefNotebookEntryRecord[], asOf?: string | Date) {
   if (asOf) {
@@ -88,32 +89,51 @@ function resolveAnchorDate(entries: DailyBriefNotebookEntryRecord[], asOf?: stri
   return new Date(getEntryTimestamp(sortedEntries[0]!));
 }
 
+function toHongKongClock(date: Date) {
+  return new Date(date.getTime() + HONG_KONG_UTC_OFFSET_MS);
+}
+
+function fromHongKongClock(date: Date) {
+  return new Date(date.getTime() - HONG_KONG_UTC_OFFSET_MS);
+}
+
+function formatHongKongDateKey(date: Date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
 function getEntryTimestamp(entry: DailyBriefNotebookEntryRecord) {
   return entry.updatedAt || entry.savedAt || entry.createdAt;
 }
 
 function getWeekWindow(anchorDate: Date) {
-  const normalizedDate = new Date(
+  const hongKongAnchorDate = toHongKongClock(anchorDate);
+  const normalizedHongKongDate = new Date(
     Date.UTC(
-      anchorDate.getUTCFullYear(),
-      anchorDate.getUTCMonth(),
-      anchorDate.getUTCDate(),
+      hongKongAnchorDate.getUTCFullYear(),
+      hongKongAnchorDate.getUTCMonth(),
+      hongKongAnchorDate.getUTCDate(),
     ),
   );
-  const day = normalizedDate.getUTCDay();
+  const day = normalizedHongKongDate.getUTCDay();
   const offset = day === 0 ? 6 : day - 1;
-  const weekStart = new Date(normalizedDate);
-  weekStart.setUTCDate(weekStart.getUTCDate() - offset);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
-  const nextWeekStart = new Date(weekStart);
-  nextWeekStart.setUTCDate(weekStart.getUTCDate() + 7);
+  const weekStartHongKong = new Date(normalizedHongKongDate);
+  weekStartHongKong.setUTCDate(weekStartHongKong.getUTCDate() - offset);
+  const weekEndHongKong = new Date(weekStartHongKong);
+  weekEndHongKong.setUTCDate(weekStartHongKong.getUTCDate() + 6);
+  const nextWeekStartHongKong = new Date(weekStartHongKong);
+  nextWeekStartHongKong.setUTCDate(weekStartHongKong.getUTCDate() + 7);
 
   return {
-    weekStart,
-    weekEnd,
-    nextWeekStart,
-    weekKey: weekStart.toISOString().slice(0, 10),
+    weekStart: fromHongKongClock(weekStartHongKong),
+    weekEnd: fromHongKongClock(weekEndHongKong),
+    nextWeekStart: fromHongKongClock(nextWeekStartHongKong),
+    weekKey: formatHongKongDateKey(weekStartHongKong),
+    weekLabelStart: weekStartHongKong,
+    weekLabelEnd: weekEndHongKong,
   };
 }
 
@@ -308,7 +328,13 @@ export function buildDailyBriefNotebookWeeklyRecap(
     (entry) => entry.programme === input.programme,
   );
   const anchorDate = resolveAnchorDate(relevantEntries, input.asOf);
-  const { weekStart, weekEnd, nextWeekStart, weekKey } = getWeekWindow(anchorDate);
+  const {
+    weekStart,
+    nextWeekStart,
+    weekKey,
+    weekLabelStart,
+    weekLabelEnd,
+  } = getWeekWindow(anchorDate);
   const weeklyEntries = relevantEntries.filter((entry) =>
     isWithinWeek(entry, weekStart, nextWeekStart),
   );
@@ -325,7 +351,7 @@ export function buildDailyBriefNotebookWeeklyRecap(
   return {
     programme: input.programme,
     weekKey,
-    weekLabel: formatWeekLabel(weekStart, weekEnd),
+    weekLabel: formatWeekLabel(weekLabelStart, weekLabelEnd),
     title: `${input.programme} weekly notebook recap`,
     totalEntries: weeklyEntries.length,
     systemCount,

@@ -20,6 +20,7 @@ import {
 import { listParentProfiles } from "./mvp-store";
 import type { ParentProfile } from "./mvp-types";
 import { isProgrammeEditoriallyActive } from "./programme-availability-policy";
+import { hasAutomatedDeliverySubscription } from "./delivery-eligibility";
 
 type WeeklyRecapDeliverySource = "manual" | "scheduled";
 
@@ -56,6 +57,7 @@ export type ScheduledNotebookWeeklyRecapDeliverySummary = {
   notionSyncedCount: number;
   emailSentCount: number;
   emailSkippedCount: number;
+  emailFailedCount: number;
   failedCount: number;
   results: Array<{
     parentId: string;
@@ -249,16 +251,20 @@ export async function runScheduledNotebookWeeklyRecapDelivery(input: {
   profiles?: ParentProfile[];
 } = {}): Promise<ScheduledNotebookWeeklyRecapDeliverySummary> {
   const profiles = input.profiles ?? (await listParentProfiles());
-  const activeProfiles = profiles.filter((profile) =>
-    isProgrammeEditoriallyActive(profile.student.programme),
+  const asOfDate = new Date(input.asOf ?? new Date());
+  const activeProfiles = profiles.filter(
+    (profile) =>
+      isProgrammeEditoriallyActive(profile.student.programme) &&
+      hasAutomatedDeliverySubscription(profile.parent, asOfDate),
   );
-  const asOf = new Date(input.asOf ?? new Date()).toISOString();
+  const asOf = asOfDate.toISOString();
   const results: ScheduledNotebookWeeklyRecapDeliverySummary["results"] = [];
   let generatedCount = 0;
   let skippedNoEntriesCount = 0;
   let notionSyncedCount = 0;
   let emailSentCount = 0;
   let emailSkippedCount = 0;
+  let emailFailedCount = 0;
   let failedCount = 0;
 
   for (const profile of activeProfiles) {
@@ -292,21 +298,43 @@ export async function runScheduledNotebookWeeklyRecapDelivery(input: {
 
       if (result.emailDelivery.status === "sent") {
         emailSentCount += 1;
-      } else {
-        emailSkippedCount += 1;
+        results.push({
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          programme: profile.student.programme,
+          status: "generated",
+          weekKey: result.record.weekKey,
+          note: "Weekly recap generated and emailed.",
+        });
+        continue;
       }
 
-      results.push({
-        parentId: profile.parent.id,
-        parentEmail: profile.parent.email,
-        programme: profile.student.programme,
-        status: "generated",
-        weekKey: result.record.weekKey,
-        note:
-          result.emailDelivery.status === "sent"
-            ? "Weekly recap generated and emailed."
-            : result.emailDelivery.reason ?? "Weekly recap generated.",
-      });
+      if (result.emailDelivery.status === "failed") {
+        emailFailedCount += 1;
+        failedCount += 1;
+        results.push({
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          programme: profile.student.programme,
+          status: "failed",
+          weekKey: result.record.weekKey,
+          note: result.emailDelivery.reason ?? "Weekly recap email failed.",
+        });
+        continue;
+      }
+
+      if (result.emailDelivery.status === "skipped") {
+        emailSkippedCount += 1;
+        results.push({
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          programme: profile.student.programme,
+          status: "generated",
+          weekKey: result.record.weekKey,
+          note: result.emailDelivery.reason ?? "Weekly recap generated.",
+        });
+        continue;
+      }
     } catch (error) {
       failedCount += 1;
       results.push({
@@ -331,6 +359,7 @@ export async function runScheduledNotebookWeeklyRecapDelivery(input: {
     notionSyncedCount,
     emailSentCount,
     emailSkippedCount,
+    emailFailedCount,
     failedCount,
     results,
   };
