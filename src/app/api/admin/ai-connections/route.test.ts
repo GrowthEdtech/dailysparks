@@ -194,4 +194,114 @@ describe("AI connections admin route", () => {
       "https://aiplatform.googleapis.com/v1/projects/gen-lang-client-0586185740/locations/global/endpoints/openapi",
     );
   });
+
+  test("rejects switching a connection to openai-compatible without a fresh base URL and API key", async () => {
+    const cookie = await signIn();
+    const createResponse = await createAiConnectionRoute(
+      new Request("http://localhost:3000/api/admin/ai-connections", {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Vertex Gemini",
+          providerType: "vertex-openai-compatible",
+          defaultModel: "google/gemini-3.1-pro-preview",
+          active: true,
+          isDefault: true,
+          notes: "Default Gemini connection.",
+          vertexProjectId: "gen-lang-client-0586185740",
+          vertexLocation: "global",
+          serviceAccountEmail: VERTEX_SERVICE_ACCOUNT_EMAIL,
+        }),
+      }),
+    );
+    const createBody = await createResponse.json();
+
+    const updateResponse = await updateAiConnectionRoute(
+      new Request("http://localhost:3000/api/admin/ai-connections", {
+        method: "PUT",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: createBody.connection.id,
+          providerType: "openai-compatible",
+          defaultModel: "gpt-5.4",
+          baseUrl: "https://relay.nf.video/v1",
+        }),
+      }),
+    );
+    const updateBody = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(400);
+    expect(updateBody.message).toMatch(/api key/i);
+  });
+
+  test("saves fallback connection relationships for admins", async () => {
+    const cookie = await signIn();
+    const primaryResponse = await createAiConnectionRoute(
+      new Request("http://localhost:3000/api/admin/ai-connections", {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "NF Relay",
+          providerType: "openai-compatible",
+          baseUrl: "https://relay.nf.video/v1",
+          defaultModel: "gpt-5.4",
+          apiKey: CREATED_CONNECTION_TEST_API_KEY,
+          active: true,
+          isDefault: true,
+          notes: "Primary relay connection.",
+        }),
+      }),
+    );
+    const fallbackResponse = await createAiConnectionRoute(
+      new Request("http://localhost:3000/api/admin/ai-connections", {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Vertex Gemini",
+          providerType: "vertex-openai-compatible",
+          defaultModel: "google/gemini-3.1-pro-preview",
+          active: true,
+          isDefault: false,
+          notes: "Fallback Gemini connection.",
+          vertexProjectId: "gen-lang-client-0586185740",
+          vertexLocation: "global",
+          serviceAccountEmail: VERTEX_SERVICE_ACCOUNT_EMAIL,
+        }),
+      }),
+    );
+    const primaryBody = await primaryResponse.json();
+    const fallbackBody = await fallbackResponse.json();
+
+    const updateResponse = await updateAiConnectionRoute(
+      new Request("http://localhost:3000/api/admin/ai-connections", {
+        method: "PUT",
+        headers: {
+          cookie,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: primaryBody.connection.id,
+          fallbackConnectionId: fallbackBody.connection.id,
+        }),
+      }),
+    );
+    const updateBody = await updateResponse.json();
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateBody.connection.fallbackConnectionId).toBe(
+      fallbackBody.connection.id,
+    );
+  });
 });

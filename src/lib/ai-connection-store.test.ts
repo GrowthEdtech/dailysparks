@@ -9,6 +9,7 @@ import {
   getDefaultAiConnection,
   getDefaultAiConnectionWithSecret,
   listAiConnections,
+  recordAiConnectionTestResult,
   updateAiConnection,
 } from "./ai-connection-store";
 
@@ -191,5 +192,54 @@ describe("ai connection store", () => {
     expect(
       (defaultConnectionWithSecret as Record<string, unknown> | null)?.apiKey,
     ).toBeUndefined();
+  });
+
+  test("persists fallback configuration and health telemetry", async () => {
+    const fallback = await createAiConnection({
+      name: "NF Relay",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: PRIMARY_TEST_API_KEY,
+      active: true,
+      isDefault: false,
+      notes: "Fallback relay.",
+    });
+    const primary = await createAiConnection({
+      name: "Vertex Gemini",
+      providerType: "vertex-openai-compatible",
+      baseUrl: "",
+      defaultModel: "google/gemini-3.1-pro-preview",
+      apiKey: "",
+      active: true,
+      isDefault: true,
+      notes: "Primary Gemini connection.",
+      vertexProjectId: "gen-lang-client-0586185740",
+      vertexLocation: "global",
+      serviceAccountEmail: VERTEX_SERVICE_ACCOUNT_EMAIL,
+    });
+
+    await updateAiConnection(primary.id, {
+      fallbackConnectionId: fallback.id,
+    });
+    await recordAiConnectionTestResult(primary.id, {
+      status: "success",
+      latencyMs: 812,
+      model: "google/gemini-3.1-pro-preview",
+      errorMessage: "",
+      testedAt: "2026-04-09T08:00:00.000Z",
+    });
+
+    const listedConnections = await listAiConnections();
+    const refreshedPrimary = listedConnections.find(
+      (connection) => connection.id === primary.id,
+    );
+
+    expect(refreshedPrimary?.fallbackConnectionId).toBe(fallback.id);
+    expect(refreshedPrimary?.lastTestStatus).toBe("success");
+    expect(refreshedPrimary?.lastTestLatencyMs).toBe(812);
+    expect(refreshedPrimary?.lastTestModel).toBe(
+      "google/gemini-3.1-pro-preview",
+    );
   });
 });

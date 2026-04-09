@@ -1,6 +1,9 @@
 import { describe, expect, test, vi } from "vitest";
 
-import { generateOpenAiCompatibleText } from "./ai-runtime";
+import {
+  generateOpenAiCompatibleText,
+  generateTextWithConnectionPolicy,
+} from "./ai-runtime";
 
 describe("ai runtime", () => {
   test("uses the stored API key for openai-compatible connections", async () => {
@@ -86,6 +89,84 @@ describe("ai runtime", () => {
         headers: expect.objectContaining({
           authorization: "Bearer vertex-token",
         }),
+      }),
+    );
+  });
+
+  test("falls back to the backup connection when the primary connection fails", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        json: async () => ({}),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          model: "gpt-5.4",
+          choices: [{ message: { content: "Recovered with fallback" } }],
+        }),
+      });
+    const recordRuntimeResult = vi.fn();
+
+    const result = await generateTextWithConnectionPolicy({
+      primaryConnection: {
+        id: "vertex-default",
+        name: "Vertex Gemini",
+        providerType: "vertex-openai-compatible",
+        baseUrl:
+          "https://aiplatform.googleapis.com/v1/projects/gen-lang-client-0586185740/locations/global/endpoints/openapi",
+        defaultModel: "google/gemini-3.1-pro-preview",
+        apiKeyPreview: "",
+        hasApiKey: false,
+        active: true,
+        isDefault: true,
+        notes: "",
+        vertexProjectId: "gen-lang-client-0586185740",
+        vertexLocation: "global",
+        serviceAccountEmail:
+          "automation-agent@gen-lang-client-0586185740.iam.gserviceaccount.com",
+        createdAt: "2026-04-09T00:00:00.000Z",
+        updatedAt: "2026-04-09T00:00:00.000Z",
+      },
+      fallbackConnection: {
+        id: "relay-fallback",
+        name: "NF Relay",
+        providerType: "openai-compatible",
+        baseUrl: "https://relay.nf.video/v1",
+        defaultModel: "gpt-5.4",
+        apiKeyPreview: "••••••••7890",
+        hasApiKey: true,
+        active: true,
+        isDefault: false,
+        notes: "",
+        createdAt: "2026-04-09T00:00:00.000Z",
+        updatedAt: "2026-04-09T00:00:00.000Z",
+        apiKey: "relay-key",
+      },
+      developerPrompt: "developer",
+      userPrompt: "user",
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getVertexAccessToken: vi.fn().mockResolvedValue("vertex-token"),
+      recordRuntimeResult,
+    });
+
+    expect(result.text).toBe("Recovered with fallback");
+    expect(result.connectionUsed.id).toBe("relay-fallback");
+    expect(result.fallbackUsed).toBe(true);
+    expect(recordRuntimeResult).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        connectionId: "vertex-default",
+        status: "failed",
+      }),
+    );
+    expect(recordRuntimeResult).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        connectionId: "relay-fallback",
+        status: "fallback-succeeded",
       }),
     );
   });

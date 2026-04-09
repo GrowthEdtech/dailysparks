@@ -11,9 +11,11 @@ import type { GeoMachineReadabilityStatusRecord } from "./geo-machine-readabilit
 import {
   type RuntimeAiConnection,
   type RuntimeAiConnectionWithProvider,
-  getDefaultAiConnectionWithSecret,
 } from "./ai-connection-store";
-import { generateOpenAiCompatibleText } from "./ai-runtime";
+import {
+  generateOpenAiCompatibleText,
+  generateTextWithDefaultAiConnectionPolicy,
+} from "./ai-runtime";
 import { listGeoPrompts } from "./geo-prompt-store";
 import type { GeoEngineType, GeoPromptRecord } from "./geo-prompt-schema";
 import { createGeoVisibilityLog } from "./geo-visibility-log-store";
@@ -460,22 +462,29 @@ async function executeDefaultEngineCheck(
           "Google AI Overviews does not expose a programmable monitoring API in this phase.",
       };
     case "chatgpt-search": {
-      const connection = await getDefaultAiConnectionWithSecret();
+      try {
+        const result = await generateTextWithDefaultAiConnectionPolicy({
+          developerPrompt: buildDeveloperPrompt(input.baseUrl),
+          userPrompt: `Search query: ${input.queryVariant}\nDoes Daily Sparks appear as a useful recommendation for this intent?`,
+          fetchImpl,
+          signal: input.signal,
+        });
 
-      if (!connection) {
         return {
-          outcome: "skipped",
-          reason: "No default AI connection is configured for ChatGPT monitoring.",
+          outcome: "success",
+          engineModel: result.model,
+          responseText: result.text,
+          citationUrls: extractUrls(result.text),
+        };
+      } catch (error) {
+        return {
+          outcome: "failed",
+          reason:
+            error instanceof Error
+              ? error.message
+              : "OpenAI-compatible engine failed.",
         };
       }
-
-      return executeOpenAiCompatibleEngine(
-        connection,
-        input.queryVariant,
-        input.baseUrl,
-        fetchImpl,
-        input.signal,
-      );
     }
     case "perplexity": {
       const connection = buildPerplexityConnection();

@@ -25,6 +25,7 @@ type AiConnectionRequestBody = {
   active?: unknown;
   isDefault?: unknown;
   notes?: unknown;
+  fallbackConnectionId?: unknown;
   vertexProjectId?: unknown;
   vertexLocation?: unknown;
   serviceAccountEmail?: unknown;
@@ -122,6 +123,7 @@ export async function POST(request: Request) {
   const vertexProjectId = normalizeString(body?.vertexProjectId);
   const vertexLocation = normalizeString(body?.vertexLocation);
   const serviceAccountEmail = normalizeString(body?.serviceAccountEmail);
+  const fallbackConnectionId = normalizeString(body?.fallbackConnectionId);
 
   if (!name || !providerType || !defaultModel) {
     return badRequest("Please submit a valid AI connection.");
@@ -136,9 +138,18 @@ export async function POST(request: Request) {
 
   if (
     providerType === "vertex-openai-compatible" &&
-    (!vertexProjectId || !vertexLocation)
+    (!vertexProjectId || !vertexLocation || !serviceAccountEmail)
   ) {
     return badRequest("Please submit a valid Vertex AI connection.");
+  }
+
+  if (
+    fallbackConnectionId &&
+    !(await listAiConnections()).some(
+      (connection) => connection.id === fallbackConnectionId,
+    )
+  ) {
+    return badRequest("Please choose a valid fallback AI connection.");
   }
 
   const connection = await createAiConnection({
@@ -153,6 +164,7 @@ export async function POST(request: Request) {
     active: normalizeBoolean(body?.active),
     isDefault: normalizeBoolean(body?.isDefault),
     notes,
+    fallbackConnectionId,
     vertexProjectId,
     vertexLocation,
     serviceAccountEmail,
@@ -230,25 +242,47 @@ export async function PUT(request: Request) {
     body?.serviceAccountEmail !== undefined
       ? normalizeString(body.serviceAccountEmail)
       : undefined;
+  const normalizedFallbackConnectionId =
+    body?.fallbackConnectionId !== undefined
+      ? normalizeString(body.fallbackConnectionId)
+      : undefined;
   const effectiveVertexProjectId =
     normalizedVertexProjectId ?? existingConnection.vertexProjectId ?? "";
   const effectiveVertexLocation =
     normalizedVertexLocation ?? existingConnection.vertexLocation ?? "";
+  const effectiveServiceAccountEmail =
+    normalizedServiceAccountEmail ?? existingConnection.serviceAccountEmail ?? "";
 
   if (
     effectiveProviderType === "openai-compatible" &&
     requestedProviderType === "openai-compatible" &&
-    normalizedBaseUrl !== undefined &&
-    !normalizedBaseUrl
+    (!normalizedBaseUrl || !normalizedApiKey)
   ) {
-    return badRequest("Please submit a valid AI connection.");
+    return badRequest(
+      "Please submit a valid OpenAI-compatible connection with a fresh API key.",
+    );
   }
 
   if (
     effectiveProviderType === "vertex-openai-compatible" &&
-    (!effectiveVertexProjectId || !effectiveVertexLocation)
+    (!effectiveVertexProjectId ||
+      !effectiveVertexLocation ||
+      !effectiveServiceAccountEmail)
   ) {
     return badRequest("Please submit a valid Vertex AI connection.");
+  }
+
+  if (normalizedFallbackConnectionId && normalizedFallbackConnectionId === id) {
+    return badRequest("A connection cannot fall back to itself.");
+  }
+
+  if (
+    normalizedFallbackConnectionId &&
+    !existingConnections.some(
+      (connection) => connection.id === normalizedFallbackConnectionId,
+    )
+  ) {
+    return badRequest("Please choose a valid fallback AI connection.");
   }
 
   const updateInput = {
@@ -275,6 +309,9 @@ export async function PUT(request: Request) {
       ? { isDefault: normalizeBoolean(body.isDefault) }
       : {}),
     ...(body?.notes !== undefined ? { notes: normalizeString(body.notes) } : {}),
+    ...(normalizedFallbackConnectionId !== undefined
+      ? { fallbackConnectionId: normalizedFallbackConnectionId }
+      : {}),
     ...(normalizedVertexProjectId !== undefined
       ? { vertexProjectId: normalizedVertexProjectId }
       : {}),

@@ -17,6 +17,16 @@ const initialConnections: AiConnectionRecord[] = [
     active: true,
     isDefault: true,
     notes: "Primary relay connection.",
+    fallbackConnectionId: "vertex-gemini",
+    lastTestStatus: "success",
+    lastTestLatencyMs: 840,
+    lastTestModel: "gpt-5.4",
+    lastRuntimeStatus: "fallback-succeeded",
+    runtimeSuccessCount: 12,
+    runtimeFailureCount: 1,
+    runtimeFallbackCount: 2,
+    recentDailyBriefUsageCount: 6,
+    recentDailyBriefLastUsedAt: "2026-04-09T08:00:00.000Z",
     createdAt: "2026-04-02T00:00:00.000Z",
     updatedAt: "2026-04-02T00:00:00.000Z",
   },
@@ -32,6 +42,12 @@ const initialConnections: AiConnectionRecord[] = [
     active: true,
     isDefault: false,
     notes: "Default Gemini connection.",
+    lastRuntimeStatus: "success",
+    runtimeSuccessCount: 8,
+    runtimeFailureCount: 0,
+    runtimeFallbackCount: 0,
+    recentDailyBriefUsageCount: 3,
+    recentDailyBriefLastUsedAt: "2026-04-09T06:00:00.000Z",
     vertexProjectId: "gen-lang-client-0586185740",
     vertexLocation: "global",
     serviceAccountEmail:
@@ -58,5 +74,9 @@ describe("AiConnectionsPanel", () => {
     expect(markup).toContain(
       "automation-agent@gen-lang-client-0586185740.iam.gserviceaccount.com",
     );
+    expect(markup).toContain("Test connection");
+    expect(markup).toContain("Fallback connection");
+    expect(markup).toContain("Recent Daily Brief usage");
+    expect(markup).toContain("12 runtime successes");
   });
 });

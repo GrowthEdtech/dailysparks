@@ -26,6 +26,7 @@ type ConnectionFormState = {
   isDefault: boolean;
   notes: string;
   apiKey: string;
+  fallbackConnectionId: string;
   vertexProjectId: string;
   vertexLocation: string;
   serviceAccountEmail: string;
@@ -40,6 +41,7 @@ const DEFAULT_CREATE_FORM: ConnectionFormState = {
   isDefault: false,
   notes: "",
   apiKey: "",
+  fallbackConnectionId: "",
   vertexProjectId: "",
   vertexLocation: DEFAULT_VERTEX_AI_LOCATION,
   serviceAccountEmail: "",
@@ -103,6 +105,7 @@ function toConnectionFormState(connection: AiConnectionRecord): ConnectionFormSt
     isDefault: connection.isDefault,
     notes: connection.notes,
     apiKey: "",
+    fallbackConnectionId: connection.fallbackConnectionId ?? "",
     vertexProjectId: connection.vertexProjectId ?? "",
     vertexLocation: connection.vertexLocation ?? DEFAULT_VERTEX_AI_LOCATION,
     serviceAccountEmail: connection.serviceAccountEmail ?? "",
@@ -125,6 +128,7 @@ function toRequestBody(connection: ConnectionFormState) {
     active: connection.active,
     isDefault: connection.isDefault,
     notes: connection.notes,
+    fallbackConnectionId: connection.fallbackConnectionId,
     ...(vertexProvider
       ? {
           vertexProjectId: connection.vertexProjectId,
@@ -157,6 +161,7 @@ export default function AiConnectionsPanel({
   const [isCreating, setIsCreating] = useState(false);
   const [savingConnectionId, setSavingConnectionId] = useState("");
   const [deletingConnectionId, setDeletingConnectionId] = useState("");
+  const [testingConnectionId, setTestingConnectionId] = useState("");
 
   const activeCountBadge = useMemo(
     () => `${connections.filter((connection) => connection.active).length} active`,
@@ -176,6 +181,13 @@ export default function AiConnectionsPanel({
           ),
       ),
     }));
+  }
+
+  function getConnectionName(connectionId: string) {
+    return (
+      connections.find((connection) => connection.id === connectionId)?.name ??
+      "Not configured"
+    );
   }
 
   async function handleCreate() {
@@ -325,6 +337,68 @@ export default function AiConnectionsPanel({
     } catch {
       setErrorMessage("We could not delete this AI connection right now.");
       setDeletingConnectionId("");
+    }
+  }
+
+  async function handleTestConnection(connectionId: string) {
+    setErrorMessage("");
+    setSuccessMessage("");
+    setTestingConnectionId(connectionId);
+
+    try {
+      const response = await fetch("/api/admin/ai-connections/test", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          id: connectionId,
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as
+        | {
+            result?: {
+              status: "success" | "failed";
+              latencyMs: number;
+              model?: string;
+              errorMessage?: string;
+              connection?: AiConnectionRecord;
+            };
+            message?: string;
+          }
+        | null;
+
+      if (!response.ok || !body?.result) {
+        setErrorMessage(body?.message ?? "We could not test this AI connection.");
+        setTestingConnectionId("");
+        return;
+      }
+
+      const result = body.result;
+
+      const nextConnection = result.connection;
+
+      if (nextConnection) {
+        setConnections((currentConnections) =>
+          currentConnections.map((connection) =>
+            connection.id === connectionId ? nextConnection : connection,
+          ),
+        );
+        setDraftsById((currentDrafts) => ({
+          ...currentDrafts,
+          [connectionId]: toConnectionFormState(nextConnection),
+        }));
+      }
+
+      setSuccessMessage(
+        result.status === "success"
+          ? `Connection test passed in ${result.latencyMs}ms.`
+          : `Connection test failed in ${result.latencyMs}ms.`,
+      );
+      setTestingConnectionId("");
+    } catch {
+      setErrorMessage("We could not test this AI connection right now.");
+      setTestingConnectionId("");
     }
   }
 
@@ -587,6 +661,29 @@ export default function AiConnectionsPanel({
               placeholder="What this connection is intended for."
             />
           </label>
+
+          <label className="flex flex-col gap-2">
+            <span className="text-sm font-semibold text-slate-700">
+              Fallback connection
+            </span>
+            <select
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+              value={createDraft.fallbackConnectionId}
+              onChange={(event) =>
+                setCreateDraft((current) => ({
+                  ...current,
+                  fallbackConnectionId: event.target.value,
+                }))
+              }
+            >
+              <option value="">No fallback</option>
+              {connections.map((connection) => (
+                <option key={connection.id} value={connection.id}>
+                  {connection.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <button
@@ -613,6 +710,7 @@ export default function AiConnectionsPanel({
           const draft = draftsById[connection.id] ?? toConnectionFormState(connection);
           const isSaving = savingConnectionId === connection.id;
           const isDeleting = deletingConnectionId === connection.id;
+          const isTesting = testingConnectionId === connection.id;
 
           return (
             <article
@@ -653,6 +751,12 @@ export default function AiConnectionsPanel({
                     API key:{" "}
                     {connection.hasApiKey ? connection.apiKeyPreview : "No key saved"}
                   </p>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Fallback connection:{" "}
+                    {connection.fallbackConnectionId
+                      ? getConnectionName(connection.fallbackConnectionId)
+                      : "No fallback configured"}
+                  </p>
                   {isVertexProvider(connection.providerType) ? (
                     <>
                       <p className="mt-2 text-sm text-slate-500">
@@ -668,13 +772,43 @@ export default function AiConnectionsPanel({
                       </p>
                     </>
                   ) : null}
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    <p className="font-semibold text-slate-800">Connection health</p>
+                    <p className="mt-1">
+                      Last test: {connection.lastTestStatus ?? "Not tested yet"}
+                      {connection.lastTestLatencyMs
+                        ? ` · ${connection.lastTestLatencyMs}ms`
+                        : ""}
+                    </p>
+                    <p className="mt-1">
+                      Last runtime: {connection.lastRuntimeStatus ?? "No runtime yet"}
+                    </p>
+                    <p className="mt-1">
+                      {connection.runtimeSuccessCount ?? 0} runtime successes ·{" "}
+                      {connection.runtimeFailureCount ?? 0} failures ·{" "}
+                      {connection.runtimeFallbackCount ?? 0} fallbacks
+                    </p>
+                    <p className="mt-1">
+                      Recent Daily Brief usage:{" "}
+                      {connection.recentDailyBriefUsageCount ?? 0}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex gap-2">
                   <button
                     type="button"
+                    onClick={() => handleTestConnection(connection.id)}
+                    disabled={isSaving || isDeleting || isTesting}
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <BrainCircuit className="h-4 w-4" />
+                    {isTesting ? "Testing..." : "Test connection"}
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => handleSave(connection.id)}
-                    disabled={isSaving || isDeleting}
+                    disabled={isSaving || isDeleting || isTesting}
                     className="inline-flex items-center gap-2 rounded-full bg-[#0f172a] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Save className="h-4 w-4" />
@@ -683,7 +817,7 @@ export default function AiConnectionsPanel({
                   <button
                     type="button"
                     onClick={() => handleDelete(connection.id)}
-                    disabled={isSaving || isDeleting}
+                    disabled={isSaving || isDeleting || isTesting}
                     className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-white px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -903,6 +1037,31 @@ export default function AiConnectionsPanel({
                       }))
                     }
                   />
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-semibold text-slate-700">
+                    Fallback connection
+                  </span>
+                  <select
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                    value={draft.fallbackConnectionId}
+                    onChange={(event) =>
+                      updateDraftConnection(connection.id, (current) => ({
+                        ...current,
+                        fallbackConnectionId: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">No fallback</option>
+                    {connections
+                      .filter((candidate) => candidate.id !== connection.id)
+                      .map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>
+                          {candidate.name}
+                        </option>
+                      ))}
+                  </select>
                 </label>
               </div>
             </article>

@@ -2,12 +2,12 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const { listAiConnectionsMock } = vi.hoisted(() => ({
-  listAiConnectionsMock: vi.fn(),
+const { listAiConnectionsWithOpsSummaryMock } = vi.hoisted(() => ({
+  listAiConnectionsWithOpsSummaryMock: vi.fn(),
 }));
 
 vi.mock("../../../../lib/ai-connection-store", () => ({
-  listAiConnections: listAiConnectionsMock,
+  listAiConnectionsWithOpsSummary: listAiConnectionsWithOpsSummaryMock,
 }));
 
 vi.mock("../ai-connections-panel", () => ({
@@ -22,11 +22,11 @@ import EditorialAiConnectionsPage from "./page";
 
 describe("EditorialAiConnectionsPage", () => {
   beforeEach(() => {
-    listAiConnectionsMock.mockReset();
+    listAiConnectionsWithOpsSummaryMock.mockReset();
   });
 
   test("renders the AI connections panel with fetched connections", async () => {
-    listAiConnectionsMock.mockResolvedValue([
+    listAiConnectionsWithOpsSummaryMock.mockResolvedValue([
       { id: "nf-relay", name: "NF Relay" },
     ]);
 

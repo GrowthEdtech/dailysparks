@@ -8,8 +8,7 @@ import {
   getWeekendDeliveryPolicy,
 } from "./daily-brief-product-policy";
 import { getEditoriallyActiveProgrammes } from "./programme-availability-policy";
-import { getDefaultAiConnectionWithSecret } from "./ai-connection-store";
-import { generateOpenAiCompatibleText } from "./ai-runtime";
+import { generateTextWithDefaultAiConnectionPolicy } from "./ai-runtime";
 import {
   type DailyBriefEditorialCohort,
 } from "./daily-brief-cohorts";
@@ -279,12 +278,6 @@ export async function generateDailyBriefDrafts(
     throw new Error("No active prompt policy is configured.");
   }
 
-  const aiConnection = await getDefaultAiConnectionWithSecret();
-
-  if (!aiConnection) {
-    throw new Error("No default AI connection is configured.");
-  }
-
   const historyEntries = options.historyEntries ?? (await listDailyBriefHistory());
   const candidates =
     options.candidates ?? (await ingestEditorialSourceCandidates({ now: options.now }));
@@ -345,8 +338,7 @@ export async function generateDailyBriefDrafts(
       buildDailyBriefRuntimeContract(programme, options.scheduledFor),
     ].join("\n");
     const programmeProfile = getEditorialProgrammeProfile(programme);
-    const aiResult = await generateOpenAiCompatibleText({
-      connection: aiConnection,
+    const aiResult = await generateTextWithDefaultAiConnectionPolicy({
       developerPrompt: resolvedPrompt,
       userPrompt: [
         buildGenerationUserPrompt(selectedTopic, programme, options.scheduledFor),
@@ -383,8 +375,8 @@ export async function generateDailyBriefDrafts(
       blockedTopics: selectionDecision.selectionAudit.blockedTopics,
       topicTags: generatedPayload.topicTags,
       sourceReferences: selectedTopic.sourceReferences,
-      aiConnectionId: aiConnection.id,
-      aiConnectionName: aiConnection.name,
+      aiConnectionId: aiResult.connectionUsed.id,
+      aiConnectionName: aiResult.connectionUsed.name,
       aiModel: aiResult.model,
       promptPolicyId: promptPolicy.id,
       promptVersionLabel: promptPolicy.versionLabel,

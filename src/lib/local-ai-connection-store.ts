@@ -55,9 +55,57 @@ function normalizeConnectionRecord(
     active: normalizeBoolean(raw?.active),
     isDefault: normalizeBoolean(raw?.isDefault),
     notes: normalizeString(raw?.notes),
+    fallbackConnectionId: normalizeString(raw?.fallbackConnectionId),
     vertexProjectId: normalizeString(raw?.vertexProjectId),
     vertexLocation: normalizeString(raw?.vertexLocation),
     serviceAccountEmail: normalizeString(raw?.serviceAccountEmail),
+    lastTestedAt: normalizeString(raw?.lastTestedAt) || null,
+    lastTestStatus:
+      normalizeString(raw?.lastTestStatus) === "success" ||
+      normalizeString(raw?.lastTestStatus) === "failed"
+        ? (normalizeString(raw?.lastTestStatus) as "success" | "failed")
+        : null,
+    lastTestLatencyMs:
+      typeof raw?.lastTestLatencyMs === "number" &&
+      Number.isFinite(raw.lastTestLatencyMs)
+        ? raw.lastTestLatencyMs
+        : null,
+    lastTestModel: normalizeString(raw?.lastTestModel) || null,
+    lastTestErrorMessage: normalizeString(raw?.lastTestErrorMessage) || null,
+    lastRuntimeAt: normalizeString(raw?.lastRuntimeAt) || null,
+    lastRuntimeStatus:
+      normalizeString(raw?.lastRuntimeStatus) === "success" ||
+      normalizeString(raw?.lastRuntimeStatus) === "failed" ||
+      normalizeString(raw?.lastRuntimeStatus) === "fallback-succeeded"
+        ? (normalizeString(raw?.lastRuntimeStatus) as
+            | "success"
+            | "failed"
+            | "fallback-succeeded")
+        : null,
+    lastRuntimeLatencyMs:
+      typeof raw?.lastRuntimeLatencyMs === "number" &&
+      Number.isFinite(raw.lastRuntimeLatencyMs)
+        ? raw.lastRuntimeLatencyMs
+        : null,
+    lastRuntimeModel: normalizeString(raw?.lastRuntimeModel) || null,
+    lastRuntimeErrorMessage:
+      normalizeString(raw?.lastRuntimeErrorMessage) || null,
+    runtimeSuccessCount:
+      typeof raw?.runtimeSuccessCount === "number" &&
+      Number.isFinite(raw.runtimeSuccessCount)
+        ? raw.runtimeSuccessCount
+        : 0,
+    runtimeFailureCount:
+      typeof raw?.runtimeFailureCount === "number" &&
+      Number.isFinite(raw.runtimeFailureCount)
+        ? raw.runtimeFailureCount
+        : 0,
+    runtimeFallbackCount:
+      typeof raw?.runtimeFallbackCount === "number" &&
+      Number.isFinite(raw.runtimeFallbackCount)
+        ? raw.runtimeFallbackCount
+        : 0,
+    lastFallbackAt: normalizeString(raw?.lastFallbackAt) || null,
     createdAt: normalizeString(raw?.createdAt) || timestamp,
     updatedAt: normalizeString(raw?.updatedAt) || timestamp,
   };

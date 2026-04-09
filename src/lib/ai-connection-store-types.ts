@@ -16,6 +16,7 @@ export type CreateAiConnectionInput = {
   active: boolean;
   isDefault: boolean;
   notes: string;
+  fallbackConnectionId?: string;
   vertexProjectId?: string;
   vertexLocation?: string;
   serviceAccountEmail?: string;

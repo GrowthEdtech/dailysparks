@@ -1,8 +1,8 @@
 import AiConnectionsPanel from "../ai-connections-panel";
-import { listAiConnections } from "../../../../lib/ai-connection-store";
+import { listAiConnectionsWithOpsSummary } from "../../../../lib/ai-connection-store";
 
 export default async function EditorialAiConnectionsPage() {
-  const aiConnections = await listAiConnections();
+  const aiConnections = await listAiConnectionsWithOpsSummary();
 
   return <AiConnectionsPanel initialConnections={aiConnections} />;
 }
