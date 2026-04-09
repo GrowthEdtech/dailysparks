@@ -53,6 +53,41 @@ const informationalPages = [
     expectedTitle: "Contact Daily Sparks",
     expectedDetail: "info@geledtech.com",
   },
+  {
+    href: "/ib-myp-reading-support",
+    label: "IB MYP Reading Support",
+    loader: () => import("./ib-myp-reading-support/page"),
+    expectedTitle: "IB MYP Reading Support",
+    expectedDetail: "bridge reading",
+  },
+  {
+    href: "/ib-dp-reading-and-writing-support",
+    label: "IB DP Reading and Writing Support",
+    loader: () => import("./ib-dp-reading-and-writing-support/page"),
+    expectedTitle: "IB DP Reading and Writing Support",
+    expectedDetail: "academic framing",
+  },
+  {
+    href: "/goodnotes-workflow-for-ib-students",
+    label: "Goodnotes Workflow for IB Students",
+    loader: () => import("./goodnotes-workflow-for-ib-students/page"),
+    expectedTitle: "Goodnotes Workflow for IB Students",
+    expectedDetail: "direct student delivery",
+  },
+  {
+    href: "/notion-archive-for-ib-families",
+    label: "Notion Archive for IB Families",
+    loader: () => import("./notion-archive-for-ib-families/page"),
+    expectedTitle: "Notion Archive for IB Families",
+    expectedDetail: "weekly recaps",
+  },
+  {
+    href: "/myp-vs-dp-reading-model",
+    label: "MYP vs DP Reading Model",
+    loader: () => import("./myp-vs-dp-reading-model/page"),
+    expectedTitle: "MYP vs DP Reading Model",
+    expectedDetail: "inquiry vs argument",
+  },
 ] as const;
 
 describe("informational pages", () => {
@@ -123,6 +158,16 @@ describe("informational pages", () => {
     expect(markup).toContain("See Sample Brief");
     expect(markup).toContain("Set Up Your Reading Loop");
     expect(markup).toContain("Claim 7-Day Free Trial");
+
+    for (const href of [
+      "/ib-myp-reading-support",
+      "/ib-dp-reading-and-writing-support",
+      "/goodnotes-workflow-for-ib-students",
+      "/notion-archive-for-ib-families",
+      "/myp-vs-dp-reading-model",
+    ]) {
+      expect(markup).toContain(`href="${href}"`);
+    }
   });
 
   test.each(informationalPages)(
@@ -140,4 +185,19 @@ describe("informational pages", () => {
       );
     },
   );
+
+  test("about and contact pages link into the public SEO page cluster", async () => {
+    const aboutModule = await import("./about/page");
+    const contactModule = await import("./contact/page");
+    const aboutMarkup = renderToStaticMarkup(<aboutModule.default />);
+    const contactMarkup = renderToStaticMarkup(<contactModule.default />);
+
+    expect(aboutMarkup).toContain('href="/ib-myp-reading-support"');
+    expect(aboutMarkup).toContain('href="/ib-dp-reading-and-writing-support"');
+    expect(aboutMarkup).toContain('href="/myp-vs-dp-reading-model"');
+
+    expect(contactMarkup).toContain('href="/goodnotes-workflow-for-ib-students"');
+    expect(contactMarkup).toContain('href="/notion-archive-for-ib-families"');
+    expect(contactMarkup).toContain('href="/myp-vs-dp-reading-model"');
+  });
 });

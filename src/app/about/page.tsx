@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import {
   InformationalPageShell,
@@ -55,6 +56,44 @@ export default function AboutPage() {
           on practical education workflows that are easier to maintain in real
           family routines.
         </p>
+      </InfoSection>
+
+      <InfoSection title="Explore the programme guides">
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              href: "/ib-myp-reading-support",
+              title: "IB MYP Reading Support",
+              detail:
+                "See how MYP bridge reading, global context, and inquiry prompts fit together.",
+            },
+            {
+              href: "/ib-dp-reading-and-writing-support",
+              title: "IB DP Reading and Writing Support",
+              detail:
+                "See how DP briefs turn daily reading into academic framing, claim, and TOK-style thinking.",
+            },
+            {
+              href: "/myp-vs-dp-reading-model",
+              title: "MYP vs DP Reading Model",
+              detail:
+                "Compare inquiry-driven MYP reading with argument-driven DP reading in one view.",
+            },
+          ].map((guide) => (
+            <Link
+              key={guide.href}
+              href={guide.href}
+              className="rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-5 shadow-[0_18px_42px_-36px_rgba(15,23,42,0.22)] transition-transform hover:-translate-y-0.5"
+            >
+              <h3 className="text-lg font-bold tracking-[-0.02em] text-[#0f172a]">
+                {guide.title}
+              </h3>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                {guide.detail}
+              </p>
+            </Link>
+          ))}
+        </div>
       </InfoSection>
     </InformationalPageShell>
   );

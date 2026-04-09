@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import {
   InformationalPageShell,
@@ -91,6 +92,44 @@ export default function ContactPage() {
           If your question is about privacy or data removal, please clearly state
           the request and the account email involved so we can handle it safely.
         </p>
+      </InfoSection>
+
+      <InfoSection title="Helpful setup guides">
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            {
+              href: "/goodnotes-workflow-for-ib-students",
+              title: "Goodnotes Workflow for IB Students",
+              detail:
+                "Read how direct student delivery fits a calmer handwriting-friendly routine.",
+            },
+            {
+              href: "/notion-archive-for-ib-families",
+              title: "Notion Archive for IB Families",
+              detail:
+                "See how families keep briefs, notebook entries, and weekly recaps searchable.",
+            },
+            {
+              href: "/myp-vs-dp-reading-model",
+              title: "MYP vs DP Reading Model",
+              detail:
+                "Compare the stage-specific learning loops before asking for setup help.",
+            },
+          ].map((guide) => (
+            <Link
+              key={guide.href}
+              href={guide.href}
+              className="rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-5 shadow-[0_18px_42px_-36px_rgba(15,23,42,0.22)] transition-transform hover:-translate-y-0.5"
+            >
+              <h3 className="text-lg font-bold tracking-[-0.02em] text-[#0f172a]">
+                {guide.title}
+              </h3>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                {guide.detail}
+              </p>
+            </Link>
+          ))}
+        </div>
       </InfoSection>
     </InformationalPageShell>
   );

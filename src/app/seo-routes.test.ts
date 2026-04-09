@@ -12,7 +12,18 @@ describe("SEO route outputs", () => {
     expect(rules.rules).toEqual([
       {
         userAgent: "*",
-        allow: ["/", "/about", "/contact", "/privacy", "/terms"],
+        allow: [
+          "/",
+          "/about",
+          "/contact",
+          "/privacy",
+          "/terms",
+          "/ib-myp-reading-support",
+          "/ib-dp-reading-and-writing-support",
+          "/goodnotes-workflow-for-ib-students",
+          "/notion-archive-for-ib-families",
+          "/myp-vs-dp-reading-model",
+        ],
         disallow: ["/admin", "/api", "/billing", "/dashboard", "/login"],
       },
     ]);
@@ -44,6 +55,31 @@ describe("SEO route outputs", () => {
         url: "https://dailysparks.geledtech.com/terms",
         changeFrequency: "yearly",
         priority: 0.3,
+      },
+      {
+        url: "https://dailysparks.geledtech.com/ib-myp-reading-support",
+        changeFrequency: "monthly",
+        priority: 0.8,
+      },
+      {
+        url: "https://dailysparks.geledtech.com/ib-dp-reading-and-writing-support",
+        changeFrequency: "monthly",
+        priority: 0.8,
+      },
+      {
+        url: "https://dailysparks.geledtech.com/goodnotes-workflow-for-ib-students",
+        changeFrequency: "monthly",
+        priority: 0.7,
+      },
+      {
+        url: "https://dailysparks.geledtech.com/notion-archive-for-ib-families",
+        changeFrequency: "monthly",
+        priority: 0.7,
+      },
+      {
+        url: "https://dailysparks.geledtech.com/myp-vs-dp-reading-model",
+        changeFrequency: "monthly",
+        priority: 0.8,
       },
     ]);
   });

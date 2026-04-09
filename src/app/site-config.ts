@@ -30,4 +30,29 @@ export const publicCanonicalRoutes = [
     changeFrequency: "yearly" as const,
     priority: 0.3,
   },
+  {
+    href: "/ib-myp-reading-support",
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  },
+  {
+    href: "/ib-dp-reading-and-writing-support",
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  },
+  {
+    href: "/goodnotes-workflow-for-ib-students",
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  },
+  {
+    href: "/notion-archive-for-ib-families",
+    changeFrequency: "monthly" as const,
+    priority: 0.7,
+  },
+  {
+    href: "/myp-vs-dp-reading-model",
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  },
 ] as const;

@@ -14,6 +14,7 @@ import Link from "next/link";
 import HomePricingSection from "./home-pricing-section";
 import HomeReadingWorkspaceIllustration from "./home-reading-workspace-illustration";
 import LandingIntegrationsSection from "./landing-integrations-section";
+import { getPublicSeoGuides } from "./public-seo-pages-content";
 import { siteFooterLinks } from "./site-footer-links";
 import { siteUrl } from "./site-config";
 import { DEFAULT_PRICING_MARKET } from "../lib/pricing-market";
@@ -39,6 +40,8 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
+  const publicSeoGuides = getPublicSeoGuides();
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-[#f8fafc] selection:bg-[#fbbf24] selection:text-[#0f172a]">
       {/* 導航欄 Navbar */}
@@ -205,6 +208,45 @@ export default async function Home() {
       </section>
 
       {/* --- Section 4: How it Works --- */}
+      <section className="bg-[#111827] px-6 py-20">
+        <div className="mx-auto max-w-7xl space-y-10">
+          <div className="max-w-3xl space-y-4">
+            <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#fbbf24]">
+              Explore The Reading Model
+            </p>
+            <h2 className="text-3xl font-extrabold tracking-[-0.04em] text-white md:text-5xl">
+              Public guides for the exact family workflow you are comparing.
+            </h2>
+            <p className="text-base leading-8 text-slate-300 md:text-lg">
+              These pages break out the MYP bridge-reading model, the DP
+              academic loop, the Goodnotes student workflow, the Notion family
+              archive, and the difference between MYP and DP reading support.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
+            {publicSeoGuides.map((guide) => (
+              <Link
+                key={guide.href}
+                href={guide.href}
+                className="rounded-[28px] border border-white/10 bg-white/5 p-6 transition-transform hover:-translate-y-1 hover:bg-white/[0.08]"
+              >
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#fbbf24]">
+                  Guide
+                </p>
+                <h3 className="mt-3 text-xl font-bold tracking-[-0.03em] text-white">
+                  {guide.title}
+                </h3>
+                <p className="mt-3 text-sm leading-7 text-slate-300">
+                  {guide.description}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- Section 5: How it Works --- */}
       <section className="bg-white text-[#0f172a] py-24 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16">
           <div className="flex-1 space-y-8">
