@@ -59,6 +59,8 @@ const informationalPages = [
     loader: () => import("./ib-myp-reading-support/page"),
     expectedTitle: "IB MYP Reading Support",
     expectedDetail: "bridge reading",
+    expectedCta: "Compare MYP and DP reading",
+    expectedComparisonLink: "/myp-vs-dp-reading-model",
   },
   {
     href: "/ib-dp-reading-and-writing-support",
@@ -66,6 +68,8 @@ const informationalPages = [
     loader: () => import("./ib-dp-reading-and-writing-support/page"),
     expectedTitle: "IB DP Reading and Writing Support",
     expectedDetail: "academic framing",
+    expectedCta: "Compare MYP and DP reading",
+    expectedComparisonLink: "/myp-vs-dp-reading-model",
   },
   {
     href: "/goodnotes-workflow-for-ib-students",
@@ -73,6 +77,8 @@ const informationalPages = [
     loader: () => import("./goodnotes-workflow-for-ib-students/page"),
     expectedTitle: "Goodnotes Workflow for IB Students",
     expectedDetail: "direct student delivery",
+    expectedCta: "See the family archive layer",
+    expectedComparisonLink: "/notion-archive-for-ib-families",
   },
   {
     href: "/notion-archive-for-ib-families",
@@ -80,6 +86,8 @@ const informationalPages = [
     loader: () => import("./notion-archive-for-ib-families/page"),
     expectedTitle: "Notion Archive for IB Families",
     expectedDetail: "weekly recaps",
+    expectedCta: "See the student delivery layer",
+    expectedComparisonLink: "/goodnotes-workflow-for-ib-students",
   },
   {
     href: "/myp-vs-dp-reading-model",
@@ -87,6 +95,8 @@ const informationalPages = [
     loader: () => import("./myp-vs-dp-reading-model/page"),
     expectedTitle: "MYP vs DP Reading Model",
     expectedDetail: "inquiry vs argument",
+    expectedCta: "Open the MYP guide",
+    expectedComparisonLink: "/ib-myp-reading-support",
   },
 ] as const;
 
@@ -172,7 +182,13 @@ describe("informational pages", () => {
 
   test.each(informationalPages)(
     "$label page renders substantive content",
-    async ({ loader, expectedTitle, expectedDetail }) => {
+    async ({
+      loader,
+      expectedTitle,
+      expectedDetail,
+      expectedCta,
+      expectedComparisonLink,
+    }) => {
       const pageModule = await loader();
       const Page = pageModule.default;
       const markup = renderToStaticMarkup(<Page />);
@@ -183,6 +199,11 @@ describe("informational pages", () => {
       expect(markup).toContain(
         "Daily Sparks is a parent-facing reading workflow by Growth Education Limited.",
       );
+      if (expectedCta && expectedComparisonLink) {
+        expect(markup).toContain("If your family is comparing options");
+        expect(markup).toContain(expectedCta);
+        expect(markup).toContain(`href="${expectedComparisonLink}"`);
+      }
     },
   );
 

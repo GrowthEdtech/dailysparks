@@ -20,10 +20,22 @@ type PublicSeoGuide = {
     helps: string[];
     workflow: string[];
   };
+  comparison: {
+    title: string;
+    detail: string;
+    options: {
+      href: string;
+      label: string;
+      detail: string;
+    }[];
+  };
   relatedPages: string[];
   cta: {
     href: string;
     label: string;
+    supportingNote: string;
+    secondaryHref: string;
+    secondaryLabel: string;
   };
 };
 
@@ -54,6 +66,25 @@ const publicSeoGuideList = [
         "Saved notebook items preserve inquiry notes, global context reflections, compare-connect thinking, and vocabulary for later reuse.",
       ],
     },
+    comparison: {
+      title: "If your family is comparing options",
+      detail:
+        "MYP works best when the learner still needs bridge reading, global context, and inquiry momentum before heavier academic argument becomes the daily norm.",
+      options: [
+        {
+          href: "/myp-vs-dp-reading-model",
+          label: "Compare MYP and DP reading",
+          detail:
+            "See where inquiry, compare-connect moves, and argument structure separate by stage.",
+        },
+        {
+          href: "/ib-dp-reading-and-writing-support",
+          label: "See the DP version",
+          detail:
+            "Compare this bridge-reading loop with the more academic DP framing model.",
+        },
+      ],
+    },
     relatedPages: [
       "/ib-dp-reading-and-writing-support",
       "/myp-vs-dp-reading-model",
@@ -62,6 +93,10 @@ const publicSeoGuideList = [
     cta: {
       href: "/login",
       label: "Start the MYP reading loop",
+      supportingNote:
+        "Choose this path if your family wants calmer reading volume, visible context building, and a stronger inquiry habit.",
+      secondaryHref: "/myp-vs-dp-reading-model",
+      secondaryLabel: "Compare MYP and DP reading",
     },
   },
   {
@@ -90,6 +125,25 @@ const publicSeoGuideList = [
         "Retrieval prompts and weekly recap loops help prior reading turn into future writing material.",
       ],
     },
+    comparison: {
+      title: "If your family is comparing options",
+      detail:
+        "DP works best when the learner needs daily reading to become reusable academic material: abstract framing, claim building, counterpoint, and TOK-style prompts.",
+      options: [
+        {
+          href: "/myp-vs-dp-reading-model",
+          label: "Compare MYP and DP reading",
+          detail:
+            "See exactly where MYP inquiry support ends and DP argument support begins.",
+        },
+        {
+          href: "/ib-myp-reading-support",
+          label: "See the MYP version",
+          detail:
+            "Compare this academic loop with the lighter bridge-reading model used in MYP.",
+        },
+      ],
+    },
     relatedPages: [
       "/ib-myp-reading-support",
       "/myp-vs-dp-reading-model",
@@ -98,6 +152,10 @@ const publicSeoGuideList = [
     cta: {
       href: "/login",
       label: "Start the DP reading loop",
+      supportingNote:
+        "Choose this path if your family wants reading to feed directly into argument quality, writing confidence, and TOK-style reflection.",
+      secondaryHref: "/myp-vs-dp-reading-model",
+      secondaryLabel: "Compare MYP and DP reading",
     },
   },
   {
@@ -126,6 +184,25 @@ const publicSeoGuideList = [
         "Parents can still trace the same reading history through Notion archive and weekly recap signals.",
       ],
     },
+    comparison: {
+      title: "If your family is comparing options",
+      detail:
+        "Goodnotes is the student-facing layer. If you are deciding between student delivery and parent archive, Goodnotes handles the reading surface while Notion handles the family memory.",
+      options: [
+        {
+          href: "/notion-archive-for-ib-families",
+          label: "See the family archive layer",
+          detail:
+            "Compare the student-reading surface with the parent-facing archive and recap layer.",
+        },
+        {
+          href: "/myp-vs-dp-reading-model",
+          label: "See how MYP and DP differ",
+          detail:
+            "Compare what changes by learning stage while keeping the same delivery surface.",
+        },
+      ],
+    },
     relatedPages: [
       "/notion-archive-for-ib-families",
       "/ib-myp-reading-support",
@@ -134,6 +211,10 @@ const publicSeoGuideList = [
     cta: {
       href: "/contact",
       label: "Ask about Goodnotes setup",
+      supportingNote:
+        "Start here if the main question is how the student should receive and annotate the brief each day.",
+      secondaryHref: "/notion-archive-for-ib-families",
+      secondaryLabel: "See the family archive layer",
     },
   },
   {
@@ -162,6 +243,25 @@ const publicSeoGuideList = [
         "Retrieval prompts help older reading become active review instead of passive storage.",
       ],
     },
+    comparison: {
+      title: "If your family is comparing options",
+      detail:
+        "Notion is the family-facing layer. If you are deciding between archive and delivery, Notion keeps the long-term record while Goodnotes keeps the daily student reading experience calm.",
+      options: [
+        {
+          href: "/goodnotes-workflow-for-ib-students",
+          label: "See the student delivery layer",
+          detail:
+            "Compare the family archive with the student-facing reading and annotation surface.",
+        },
+        {
+          href: "/myp-vs-dp-reading-model",
+          label: "See how MYP and DP differ",
+          detail:
+            "Compare which notebook and recap habits matter most by learning stage.",
+        },
+      ],
+    },
     relatedPages: [
       "/goodnotes-workflow-for-ib-students",
       "/ib-dp-reading-and-writing-support",
@@ -170,6 +270,10 @@ const publicSeoGuideList = [
     cta: {
       href: "/contact",
       label: "Ask about Notion archive setup",
+      supportingNote:
+        "Start here if your main priority is preserving briefs, notebook entries, and weekly recap history in one searchable family system.",
+      secondaryHref: "/goodnotes-workflow-for-ib-students",
+      secondaryLabel: "See the student delivery layer",
     },
   },
   {
@@ -198,6 +302,25 @@ const publicSeoGuideList = [
         "Both loops still land in the same Goodnotes, Notion, notebook, and recap system for the family.",
       ],
     },
+    comparison: {
+      title: "If your family is comparing options",
+      detail:
+        "This page is best when the question is not which tool to connect, but which learning loop fits the current stage: inquiry and context for MYP, or argument and evidence for DP.",
+      options: [
+        {
+          href: "/ib-myp-reading-support",
+          label: "Open the MYP guide",
+          detail:
+            "See the bridge-reading model in full if your learner still benefits from structured inquiry support.",
+        },
+        {
+          href: "/ib-dp-reading-and-writing-support",
+          label: "Open the DP guide",
+          detail:
+            "See the academic reading and writing model in full if your learner needs argument-ready reading habits.",
+        },
+      ],
+    },
     relatedPages: [
       "/ib-myp-reading-support",
       "/ib-dp-reading-and-writing-support",
@@ -206,6 +329,10 @@ const publicSeoGuideList = [
     cta: {
       href: "/about",
       label: "See how the full workflow fits together",
+      supportingNote:
+        "Use this page when the family decision is about stage fit, then jump into the exact programme guide from here.",
+      secondaryHref: "/ib-myp-reading-support",
+      secondaryLabel: "Open the MYP guide",
     },
   },
 ] as const satisfies readonly PublicSeoGuide[];
@@ -290,6 +417,28 @@ export function PublicSeoGuidePage({
         </ul>
       </InfoSection>
 
+      <InfoSection title={guide.comparison.title}>
+        <div className="space-y-4">
+          <p>{guide.comparison.detail}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {guide.comparison.options.map((option) => (
+              <Link
+                key={option.href}
+                href={option.href}
+                className="rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-5 shadow-[0_18px_42px_-36px_rgba(15,23,42,0.22)] transition-transform hover:-translate-y-0.5 hover:border-slate-300"
+              >
+                <h3 className="text-lg font-bold tracking-[-0.02em] text-[#0f172a]">
+                  {option.label}
+                </h3>
+                <p className="mt-2 text-sm leading-7 text-slate-600">
+                  {option.detail}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </InfoSection>
+
       <InfoSection title="Related guides">
         <div className="grid gap-4 md:grid-cols-3">
           {guide.relatedPages.map((relatedHref) => {
@@ -319,15 +468,22 @@ export function PublicSeoGuidePage({
       <InfoSection title="Take the next step">
         <div className="rounded-[28px] border border-slate-200 bg-slate-50 px-6 py-6 shadow-[0_24px_56px_-42px_rgba(15,23,42,0.3)]">
           <p className="text-base text-slate-600">
-            Daily Sparks is built to make reading habits feel calmer, more
-            structured, and more reusable across the IB family workflow.
+            {guide.cta.supportingNote}
           </p>
-          <Link
-            href={guide.cta.href}
-            className="mt-5 inline-flex rounded-full bg-[#0f172a] px-6 py-3 text-sm font-bold uppercase tracking-[0.22em] text-white transition-transform hover:scale-[1.02]"
-          >
-            {guide.cta.label}
-          </Link>
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href={guide.cta.href}
+              className="inline-flex rounded-full bg-[#0f172a] px-6 py-3 text-sm font-bold uppercase tracking-[0.22em] text-white transition-transform hover:scale-[1.02]"
+            >
+              {guide.cta.label}
+            </Link>
+            <Link
+              href={guide.cta.secondaryHref}
+              className="inline-flex rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-bold uppercase tracking-[0.22em] text-[#0f172a] transition-transform hover:scale-[1.02]"
+            >
+              {guide.cta.secondaryLabel}
+            </Link>
+          </div>
         </div>
       </InfoSection>
     </InformationalPageShell>

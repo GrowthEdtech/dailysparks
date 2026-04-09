@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "seo:search-console-phase2": "node --import tsx ./scripts/search-console-phase2-report.ts",
     "sync:stripe-pricing": "node --import tsx ./scripts/sync-stripe-pricing.ts",
     "test": "vitest"
   },
