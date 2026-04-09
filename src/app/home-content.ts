@@ -57,20 +57,24 @@ export const landingIntegrationsFootnote =
 
 export const landingFaqItems = [
   {
-    q: "What age is Daily Sparks for?",
-    a: "We primarily target students aged 9 to 14 (P5 to MYP). The reading level is adjusted to provide desirable difficulty: challenging, but still accessible.",
+    q: "Who is Daily Sparks for?",
+    a: "Daily Sparks is now focused on IB learners in MYP and DP. New public setup no longer opens PYP, though existing PYP families can still access their legacy workflow.",
   },
   {
-    q: "How does the GoodNotes delivery work?",
-    a: "Every Goodnotes user has a unique destination email. Add your child's @goodnotes.email address in the dashboard and Daily Sparks sends each reading brief directly into that note-taking flow.",
+    q: "How are MYP and DP briefs different?",
+    a: "MYP briefs act as bridge reading: global context, compare-or-connect thinking, and inquiry prompts. DP briefs are more academic: abstract, claim, evidence limits, and TOK-style prompts.",
+  },
+  {
+    q: "How does Goodnotes delivery work?",
+    a: "Add the student's @goodnotes.email destination in the dashboard and Daily Sparks sends each brief straight into that handwriting-friendly reading flow.",
   },
   {
     q: "How does Notion sync work?",
-    a: "Connect your workspace, choose a parent page, and Daily Sparks creates an archive database for reading briefs, prompts, and reflections. It is designed as a searchable family record, not a student-facing task board.",
+    a: "Connect a parent workspace once and Daily Sparks builds a searchable archive for briefs, notebook entries, and weekly recaps.",
   },
   {
     q: "Do I need both GoodNotes and Notion?",
-    a: "No. Goodnotes is best when you want daily reading delivered straight to the student's iPad. Notion is best when you want a family archive. You can use either one on its own or combine both.",
+    a: "No. Goodnotes is best for direct student reading. Notion is best for family archiving. You can start with one and add the second later.",
   },
   {
     q: "Can I cancel anytime?",

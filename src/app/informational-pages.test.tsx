@@ -71,6 +71,26 @@ describe("informational pages", () => {
     expect(markup).not.toContain("IB PYP SCALE");
   });
 
+  test("home page copy reflects the MYP and DP product model", async () => {
+    const markup = renderToStaticMarkup(await Home());
+
+    expect(markup).toContain("Build MYP curiosity.");
+    expect(markup).toContain("Strengthen DP argument.");
+    expect(markup).toContain(
+      "MYP learners build inquiry and global-context habits.",
+    );
+    expect(markup).toContain(
+      "DP learners train academic framing, evidence handling, and TOK-style thinking.",
+    );
+    expect(markup).toContain("MYP bridge reading");
+    expect(markup).toContain("DP academic framing");
+    expect(markup).toContain("Set Up Your Reading Loop");
+    expect(markup).toContain("How are MYP and DP briefs different?");
+    expect(markup).not.toContain("TED-Talk Structure");
+    expect(markup).not.toContain("Every 09:00 UTC");
+    expect(markup).not.toContain("P5 to MYP");
+  });
+
   test.each(informationalPages)(
     "$label page renders substantive content",
     async ({ loader, expectedTitle, expectedDetail }) => {

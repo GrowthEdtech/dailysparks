@@ -30,17 +30,27 @@ describe("home content", () => {
     );
   });
 
-  test("expands the landing FAQ with integration setup questions", () => {
+  test("expands the landing FAQ with current MYP and DP setup guidance", () => {
     expect(landingFaqItems).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          q: "How does the GoodNotes delivery work?",
+          q: "How are MYP and DP briefs different?",
+        }),
+        expect.objectContaining({
+          q: "How does Goodnotes delivery work?",
         }),
         expect.objectContaining({
           q: "How does Notion sync work?",
         }),
         expect.objectContaining({
           q: "Do I need both GoodNotes and Notion?",
+        }),
+      ]),
+    );
+    expect(landingFaqItems).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          a: expect.stringContaining("P5 to MYP"),
         }),
       ]),
     );
