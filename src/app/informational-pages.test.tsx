@@ -91,6 +91,19 @@ describe("informational pages", () => {
     expect(markup).not.toContain("P5 to MYP");
   });
 
+  test("home page illustration reflects the reading workspace workflow", async () => {
+    const markup = renderToStaticMarkup(await Home());
+
+    expect(markup).toContain("Daily brief");
+    expect(markup).toContain("MYP inquiry lens");
+    expect(markup).toContain("DP claim builder");
+    expect(markup).toContain("Goodnotes delivery");
+    expect(markup).toContain("Notion archive");
+    expect(markup).toContain("Weekly recap");
+    expect(markup).not.toContain("Wait until you see their first analysis.");
+    expect(markup).not.toContain("💻");
+  });
+
   test.each(informationalPages)(
     "$label page renders substantive content",
     async ({ loader, expectedTitle, expectedDetail }) => {

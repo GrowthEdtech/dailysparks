@@ -11,6 +11,7 @@ import {
 import Link from "next/link";
 
 import HomePricingSection from "./home-pricing-section";
+import HomeReadingWorkspaceIllustration from "./home-reading-workspace-illustration";
 import LandingIntegrationsSection from "./landing-integrations-section";
 import { siteFooterLinks } from "./site-footer-links";
 import { DEFAULT_PRICING_MARKET } from "../lib/pricing-market";
@@ -216,13 +217,7 @@ export default async function Home() {
           </div>
           
           <div className="flex-1 bg-slate-100 rounded-[48px] p-4 relative group">
-            <div className="bg-[#0f172a] rounded-[42px] w-full aspect-square md:aspect-[4/5] flex items-center justify-center overflow-hidden shadow-2xl relative">
-               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/graphy.png')] opacity-20"></div>
-               <div className="relative text-center p-8">
-                  <div className="text-6xl mb-6 drop-shadow-lg group-hover:scale-110 transition-transform">💻</div>
-                  <h3 className="text-white text-2xl font-bold px-4">Wait until you see their first analysis.</h3>
-               </div>
-            </div>
+            <HomeReadingWorkspaceIllustration />
             {/* Decal */}
             <div className="absolute -bottom-6 -right-6 bg-[#fbbf24] text-[#0f172a] p-6 rounded-3xl shadow-xl transform rotate-3">
               <div className="font-bold text-2xl tracking-tighter">IB MYP · DP</div>
