@@ -1,4 +1,5 @@
 import type { ParentProfile } from "./mvp-types";
+import { getDailyBriefProgrammeWelcomeFocus } from "./daily-brief-product-policy";
 import { getProgrammeStageSummary, getWeeklyPlan } from "./weekly-plan";
 
 export type GoodnotesWelcomeNote = {
@@ -8,6 +9,11 @@ export type GoodnotesWelcomeNote = {
   confirmationTitle: string;
   confirmationBody: string;
   detailLines: string[];
+  programmeBadge: string;
+  focusTitle: string;
+  focusBody: string;
+  focusPoints: string[];
+  focusTone: "bridge" | "academic" | "legacy";
   expectationsTitle: string;
   expectationsBody: string;
   weeklyRhythmTitle: string;
@@ -21,10 +27,32 @@ export function buildGoodnotesWelcomeNote(
   profile: ParentProfile,
 ): GoodnotesWelcomeNote {
   const stageSummary = getProgrammeStageSummary(profile.student.programme);
+  const focus = getDailyBriefProgrammeWelcomeFocus(profile.student.programme);
   const weeklyPlan = getWeeklyPlan(
     profile.student.programme,
     profile.student.programmeYear,
   );
+  const expectationsBody = profile.student.programme === "DP"
+    ? "DP packets help students read for argument, evidence, and reflective academic thinking."
+    : profile.student.programme === "MYP"
+      ? "MYP packets help students read with context, comparison, and structured reflection."
+      : stageSummary.description;
+  const weeklyRhythmBody = profile.student.programme === "DP"
+    ? "Weekdays build argument-led reading. TOK day widens the week through ethics and knowledge questions."
+    : profile.student.programme === "MYP"
+      ? "Weekdays build structured reading. Vision day widens the week through global context and curiosity."
+      : `${weeklyPlan.description} ${weeklyPlan.sunday.label} keeps the week anchored in ${weeklyPlan.sunday.theme.toLowerCase()}.`;
+  const nextSteps = profile.student.programme === "DP"
+    ? [
+        "Watch for your first Daily Sparks brief to arrive in this Goodnotes destination.",
+        "After reading, save one claim, counterpoint, or TOK idea.",
+        "If your setup changes, you can update this destination from the dashboard at any time.",
+      ]
+    : [
+        "Watch for your first Daily Sparks brief to arrive in this Goodnotes destination.",
+        "After reading, save one context or compare-connect idea.",
+        "If your setup changes, you can update this destination from the dashboard at any time.",
+      ];
 
   return {
     eyebrow: "Growth Education Limited",
@@ -38,16 +66,17 @@ export function buildGoodnotesWelcomeNote(
       `Goodnotes destination: ${profile.student.goodnotesEmail}`,
       `Prepared for: ${profile.student.studentName}`,
     ],
+    programmeBadge: focus.programmeBadge,
+    focusTitle: focus.focusTitle,
+    focusBody: focus.focusBody,
+    focusPoints: focus.focusPoints,
+    focusTone: focus.focusTone,
     expectationsTitle: "What to expect",
-    expectationsBody: stageSummary.description,
+    expectationsBody,
     weeklyRhythmTitle: "Weekly rhythm",
-    weeklyRhythmBody: weeklyPlan.description,
+    weeklyRhythmBody,
     nextStepsTitle: "Your next steps",
-    nextSteps: [
-      "Watch for your first Daily Sparks brief to arrive in this Goodnotes destination.",
-      "Use each packet as a calm reading moment, with space for parent-child discussion after the story.",
-      "If your setup changes, you can update this destination from the dashboard at any time.",
-    ],
+    nextSteps,
     signature: "Growth Education Limited",
   };
 }

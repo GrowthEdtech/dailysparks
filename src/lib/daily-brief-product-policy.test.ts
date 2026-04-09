@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 import {
   buildDailyBriefRuntimeContract,
   getDailyBriefProgrammeContentModel,
+  getDailyBriefProgrammeWelcomeFocus,
   getWeekendDeliveryPolicy,
 } from "./daily-brief-product-policy";
 
@@ -27,6 +28,25 @@ describe("daily brief product policy", () => {
     expect(model.discussionFallbackTitle).toBe("TOK / essay prompt");
     expect(model.bigIdeaFallbackTitle).toBe("Notebook capture");
     expect(model.knowledgeBankTitle).toBe("Academic idea bank");
+  });
+
+  test("returns distinct welcome-note focus metadata for MYP and DP", () => {
+    const mypFocus = getDailyBriefProgrammeWelcomeFocus("MYP");
+    const dpFocus = getDailyBriefProgrammeWelcomeFocus("DP");
+
+    expect(mypFocus.programmeBadge).toBe("MYP · Bridge tier");
+    expect(mypFocus.focusPoints).toEqual([
+      "Global context connections",
+      "Compare-or-connect thinking",
+      "Inquiry notebook captures",
+    ]);
+
+    expect(dpFocus.programmeBadge).toBe("DP · Academic tier");
+    expect(dpFocus.focusPoints).toEqual([
+      "Abstract and core issue framing",
+      "Claim and counterpoint thinking",
+      "TOK and essay notebook capture",
+    ]);
   });
 
   test("uses vision-day framing for MYP weekends and TOK-day framing for DP weekends", () => {

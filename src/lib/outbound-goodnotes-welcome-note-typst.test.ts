@@ -10,7 +10,9 @@ import { countPdfPages } from "./pdf-page-count";
 import type { ParentProfile } from "./mvp-types";
 import { configurePdfJsNodeRuntime } from "./pdfjs-node";
 
-function createProfile(): ParentProfile {
+function createProfile(
+  overrides: Partial<ParentProfile["student"]> = {},
+): ParentProfile {
   return {
     parent: {
       id: "parent-1",
@@ -64,6 +66,7 @@ function createProfile(): ParentProfile {
       notionConnected: false,
       createdAt: "2026-04-01T00:00:00.000Z",
       updatedAt: "2026-04-01T00:00:00.000Z",
+      ...overrides,
     },
   };
 }
@@ -87,6 +90,8 @@ describe("outbound goodnotes welcome note typst", () => {
 
     expect(source).toContain("Welcome to Daily Sparks");
     expect(source).toContain("Setup confirmed");
+    expect(source).toContain("Reading focus");
+    expect(source).toContain("Bridge tier");
     expect(source).toContain("What to expect");
     expect(source).toContain("Weekly rhythm");
     expect(source).toContain("Your next steps");
@@ -106,6 +111,44 @@ describe("outbound goodnotes welcome note typst", () => {
     expect(Buffer.from(result.pdf).subarray(0, 4).toString()).toBe("%PDF");
       expect(pageCount).toBe(1);
       expect(result.pageCount).toBe(1);
+    },
+    15000,
+  );
+
+  test(
+    "renders a DP-specific focus card within the shared welcome note layout",
+    async () => {
+      const profile = createProfile({
+        programme: "DP",
+        programmeYear: 1,
+      });
+      const note = buildGoodnotesWelcomeNote(profile);
+      const result = await renderGoodnotesWelcomeNoteTypst(profile);
+      const { standardFontDataUrl } = configurePdfJsNodeRuntime();
+      const loadingTask = getDocument({
+        data: new Uint8Array(result.pdf),
+        useWorkerFetch: false,
+        isEvalSupported: false,
+        standardFontDataUrl: standardFontDataUrl ?? undefined,
+      });
+      const document = await loadingTask.promise;
+
+      try {
+        const page = await document.getPage(1);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item) => ("str" in item ? item.str : ""))
+          .join("\n");
+        const normalizedPageText = normalizePdfText(pageText);
+
+        expect(normalizedPageText).toContain(note.programmeBadge);
+        expect(normalizedPageText).toContain(note.focusTitle);
+        for (const point of note.focusPoints) {
+          expect(normalizedPageText).toContain(point);
+        }
+      } finally {
+        await document.destroy();
+      }
     },
     15000,
   );

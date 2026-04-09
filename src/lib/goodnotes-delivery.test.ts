@@ -35,7 +35,9 @@ import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
 
 const ORIGINAL_ENV = { ...process.env };
 
-function createProfile(): ParentProfile {
+function createProfile(
+  overrides: Partial<ParentProfile["student"]> = {},
+): ParentProfile {
   return {
     parent: {
       id: "parent-1",
@@ -89,6 +91,7 @@ function createProfile(): ParentProfile {
       notionConnected: false,
       createdAt: "2026-04-01T00:00:00.000Z",
       updatedAt: "2026-04-01T00:00:00.000Z",
+      ...overrides,
     },
   };
 }
@@ -183,12 +186,36 @@ describe("goodnotes delivery", () => {
       nextStepsTitle: "Your next steps",
       signature: "Growth Education Limited",
     });
+    expect(note.programmeBadge).toBe("MYP · Bridge tier");
+    expect(note.focusTitle).toBe("Reading focus");
+    expect(note.focusPoints).toEqual([
+      "Global context connections",
+      "Compare-or-connect thinking",
+      "Inquiry notebook captures",
+    ]);
     expect(note.intro).toContain("Goodnotes destination is confirmed");
     expect(note.detailLines).toEqual([
       "Programme: MYP Year 3",
       "Goodnotes destination: katherine@goodnotes.email",
       "Prepared for: Katherine",
     ]);
+  });
+
+  test("builds a distinct DP focus payload inside the shared welcome-note skeleton", () => {
+    const note = buildGoodnotesWelcomeNote(
+      createProfile({
+        programme: "DP",
+        programmeYear: 1,
+      }),
+    );
+
+    expect(note.programmeBadge).toBe("DP · Academic tier");
+    expect(note.focusPoints).toEqual([
+      "Abstract and core issue framing",
+      "Claim and counterpoint thinking",
+      "TOK and essay notebook capture",
+    ]);
+    expect(note.weeklyRhythmBody).toContain("TOK day");
   });
 
   test("reports when SMTP delivery is configured", () => {

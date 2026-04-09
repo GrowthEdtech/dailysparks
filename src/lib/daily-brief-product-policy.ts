@@ -30,6 +30,14 @@ export type DailyBriefWeekendPolicy = {
   promptNote: string;
 };
 
+export type DailyBriefProgrammeWelcomeFocus = {
+  programmeBadge: string;
+  focusTitle: string;
+  focusBody: string;
+  focusPoints: string[];
+  focusTone: "bridge" | "academic" | "legacy";
+};
+
 function getProgrammeRuntimeIntentNotes(programme: Programme) {
   if (programme === "MYP") {
     return [
@@ -148,6 +156,53 @@ function isWeekend(scheduledFor: string) {
 
 export function getDailyBriefProgrammeContentModel(programme: Programme) {
   return PROGRAMME_CONTENT_MODELS[programme];
+}
+
+export function getDailyBriefProgrammeWelcomeFocus(
+  programme: Programme,
+): DailyBriefProgrammeWelcomeFocus {
+  if (programme === "MYP") {
+    return {
+      programmeBadge: "MYP · Bridge tier",
+      focusTitle: "Reading focus",
+      focusBody:
+        "Each MYP packet bridges reading into context, comparison, and short inquiry reflection.",
+      focusPoints: [
+        "Global context connections",
+        "Compare-or-connect thinking",
+        "Inquiry notebook captures",
+      ],
+      focusTone: "bridge",
+    };
+  }
+
+  if (programme === "DP") {
+    return {
+      programmeBadge: "DP · Academic tier",
+      focusTitle: "Reading focus",
+      focusBody:
+        "Each DP packet moves from summary into argument, evidence limits, and reusable academic thinking.",
+      focusPoints: [
+        "Abstract and core issue framing",
+        "Claim and counterpoint thinking",
+        "TOK and essay notebook capture",
+      ],
+      focusTone: "academic",
+    };
+  }
+
+  return {
+    programmeBadge: "PYP · Legacy tier",
+    focusTitle: "Reading focus",
+    focusBody:
+      "Each PYP packet keeps reading gentle, curiosity-led, and easy to discuss together at home.",
+    focusPoints: [
+      "Theme-led family reading",
+      "Gentle discussion prompts",
+      "Curiosity notebook moments",
+    ],
+    focusTone: "legacy",
+  };
 }
 
 export function getWeekendDeliveryPolicy(

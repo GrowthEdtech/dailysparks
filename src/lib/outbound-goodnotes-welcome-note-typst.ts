@@ -101,14 +101,37 @@ function buildNextSteps(steps: string[]) {
     .join("\n");
 }
 
+function buildFocusPoints(points: string[]) {
+  return escapeTypstString(points.join(" • "));
+}
+
 function buildWelcomeNoteTypstSource(note: GoodnotesWelcomeNote) {
   const detailLines = buildDetailLines(note.detailLines);
+  const focusPoints = buildFocusPoints(note.focusPoints);
   const nextSteps = buildNextSteps(note.nextSteps);
+  const focusFill =
+    note.focusTone === "bridge"
+      ? "#eef8f5"
+      : note.focusTone === "academic"
+        ? "#fdf7ea"
+        : "#f5f7fb";
+  const focusBorder =
+    note.focusTone === "bridge"
+      ? "#cfe8df"
+      : note.focusTone === "academic"
+        ? "#ecdcb8"
+        : "#d9e4f2";
+  const focusAccent =
+    note.focusTone === "bridge"
+      ? "#0f766e"
+      : note.focusTone === "academic"
+        ? "#9a6700"
+        : "#475569";
 
   return `
-#set page(width: 595pt, height: 842pt, margin: 40pt, fill: rgb("#fffdfa"))
-#set text(size: 11pt, fill: rgb("#475569"))
-#set par(justify: false, leading: 1.34em)
+#set page(width: 595pt, height: 842pt, margin: 34pt, fill: rgb("#fffdfa"))
+#set text(size: 10.6pt, fill: rgb("#475569"))
+#set par(justify: false, leading: 1.28em)
 
 #let ink = rgb("#0f172a")
 #let secondary = rgb("#475569")
@@ -118,8 +141,11 @@ function buildWelcomeNoteTypstSource(note: GoodnotesWelcomeNote) {
 #let pale-gold = rgb("#fdf7ea")
 #let soft-border = rgb("#d9e4f2")
 #let gold-border = rgb("#f1dfb9")
+#let focus-fill = rgb("${focusFill}")
+#let focus-border = rgb("${focusBorder}")
+#let focus-accent = rgb("${focusAccent}")
 
-#let panel(body, fill-color: white, border-color: soft-border, inset: 18pt) = rect(
+#let panel(body, fill-color: white, border-color: soft-border, inset: 16pt) = rect(
   width: 100%,
   radius: 20pt,
   fill: fill-color,
@@ -129,14 +155,14 @@ function buildWelcomeNoteTypstSource(note: GoodnotesWelcomeNote) {
 
 #let detail-line(line) = block(
   above: 0pt,
-  below: 6pt,
+  below: 4pt,
 )[
   #text(size: 10pt, fill: secondary)[#line]
 ]
 
 #let step-line(line) = block(
   above: 0pt,
-  below: 8pt,
+  below: 6pt,
 )[
   #grid(
     columns: (10pt, 1fr),
@@ -154,53 +180,69 @@ function buildWelcomeNoteTypstSource(note: GoodnotesWelcomeNote) {
   #panel(
     [
       #text(size: 8.4pt, weight: "semibold", fill: gold)[#${escapeTypstString(note.eyebrow)}]
-      #v(10pt)
-      #text(size: 28pt, weight: "bold", fill: ink)[#${escapeTypstString(note.title)}]
-      #v(10pt)
-      #text(size: 11.4pt, fill: secondary)[#${escapeTypstString(note.intro)}]
+      #v(8pt)
+      #text(size: 25pt, weight: "bold", fill: ink)[#${escapeTypstString(note.title)}]
+      #v(8pt)
+      #text(size: 10.8pt, fill: secondary)[#${escapeTypstString(note.intro)}]
     ],
     fill-color: pale-blue,
   )
 
-  #v(14pt)
+  #v(10pt)
 
   #panel(
     [
-      #text(size: 17pt, weight: "bold", fill: ink)[#${escapeTypstString(note.confirmationTitle)}]
+      #text(size: 16pt, weight: "bold", fill: ink)[#${escapeTypstString(note.confirmationTitle)}]
+      #v(6pt)
+      #text(size: 10.1pt, fill: secondary)[#${escapeTypstString(note.confirmationBody)}]
       #v(8pt)
-      #text(size: 10.5pt, fill: secondary)[#${escapeTypstString(note.confirmationBody)}]
-      #v(10pt)
       ${detailLines}
     ],
   )
 
-  #v(12pt)
-
-  #text(size: 16pt, weight: "bold", fill: ink)[#${escapeTypstString(note.expectationsTitle)}]
-  #v(6pt)
-  #text(size: 10.6pt, fill: secondary)[#${escapeTypstString(note.expectationsBody)}]
-
-  #v(12pt)
+  #v(10pt)
 
   #panel(
     [
-      #text(size: 16pt, weight: "bold", fill: ink)[#${escapeTypstString(note.weeklyRhythmTitle)}]
+      #text(size: 8.6pt, weight: "semibold", fill: focus-accent)[#${escapeTypstString(note.programmeBadge)}]
       #v(6pt)
-      #text(size: 10.6pt, fill: secondary)[#${escapeTypstString(note.weeklyRhythmBody)}]
+      #text(size: 16pt, weight: "bold", fill: ink)[#${escapeTypstString(note.focusTitle)}]
+      #v(5pt)
+      #text(size: 10pt, fill: secondary)[#${escapeTypstString(note.focusBody)}]
+      #v(7pt)
+      #text(size: 9.6pt, weight: "semibold", fill: focus-accent)[#${focusPoints}]
+    ],
+    fill-color: focus-fill,
+    border-color: focus-border,
+  )
+
+  #v(10pt)
+
+  #text(size: 15pt, weight: "bold", fill: ink)[#${escapeTypstString(note.expectationsTitle)}]
+  #v(5pt)
+  #text(size: 10pt, fill: secondary)[#${escapeTypstString(note.expectationsBody)}]
+
+  #v(10pt)
+
+  #panel(
+    [
+      #text(size: 15pt, weight: "bold", fill: ink)[#${escapeTypstString(note.weeklyRhythmTitle)}]
+      #v(5pt)
+      #text(size: 10pt, fill: secondary)[#${escapeTypstString(note.weeklyRhythmBody)}]
     ],
     fill-color: pale-gold,
     border-color: gold-border,
   )
 
-  #v(12pt)
+  #v(10pt)
 
-  #text(size: 16pt, weight: "bold", fill: ink)[#${escapeTypstString(note.nextStepsTitle)}]
-  #v(8pt)
+  #text(size: 15pt, weight: "bold", fill: ink)[#${escapeTypstString(note.nextStepsTitle)}]
+  #v(6pt)
   ${nextSteps}
 
-  #v(10pt)
-  #line(length: 100%, stroke: (paint: soft-border, thickness: 1pt))
   #v(8pt)
+  #line(length: 100%, stroke: (paint: soft-border, thickness: 1pt))
+  #v(6pt)
   #text(size: 10pt, fill: secondary)[With care,]
   #v(4pt)
   #text(size: 11pt, weight: "semibold", fill: ink)[#${escapeTypstString(note.signature)}]
