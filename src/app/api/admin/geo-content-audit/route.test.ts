@@ -70,5 +70,8 @@ describe("geo content audit admin route", () => {
     expect(response.status).toBe(200);
     expect(body.result.summary).toBeTypeOf("string");
     expect(body.result.atomicAnswerCoverage.totalSections).toBeGreaterThan(0);
+    expect(body.result.rankability.score).toBeTypeOf("number");
+    expect(body.result.citationReadiness.score).toBeTypeOf("number");
+    expect(body.result.biasResistance.score).toBeTypeOf("number");
   });
 });

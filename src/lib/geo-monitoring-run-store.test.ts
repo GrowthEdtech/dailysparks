@@ -63,6 +63,9 @@ describe("geo-monitoring-run-store", () => {
 
     expect(runs).toHaveLength(1);
     expect(runs[0]?.id).toBe(run.id);
+    expect(runs[0]?.rankabilityScore).toBe(0);
+    expect(runs[0]?.citationReadinessScore).toBe(0);
+    expect(runs[0]?.biasResistanceScore).toBe(0);
     expect(runs[0]?.engineBreakdown[0]?.engine).toBe("chatgpt-search");
   });
 });

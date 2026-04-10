@@ -71,6 +71,9 @@ describe("GeoCopilotPanel", () => {
     expect(markup).toContain("Machine-readability layer");
     expect(markup).toContain("Content optimization copilot");
     expect(markup).toContain("Content page structure suggestions");
+    expect(markup).toContain("Rankability");
+    expect(markup).toContain("Citation readiness");
+    expect(markup).toContain("Bias resistance");
     expect(markup).toContain("Run GEO audit");
   });
 });
