@@ -76,16 +76,16 @@ const initialProfile: ParentProfile = {
 };
 
 describe("BillingForm", () => {
-  test("uses a desktop-responsive two-column shell on wide screens", () => {
+  test("uses a wider three-card desktop billing board on large screens", () => {
     const markup = renderToStaticMarkup(
       <BillingForm initialProfile={initialProfile} initialPricingMarket="intl" />,
     );
 
-    expect(markup).toContain("max-w-6xl");
-    expect(markup).toContain(
+    expect(markup).toContain("max-w-7xl");
+    expect(markup).toContain("xl:grid-cols-3");
+    expect(markup).not.toContain(
       "xl:grid-cols-[minmax(18rem,0.78fr)_minmax(0,1.22fr)]",
     );
-    expect(markup).toContain("xl:sticky xl:top-8");
-    expect(markup).toContain("xl:grid-cols-2");
+    expect(markup).not.toContain("xl:sticky xl:top-8");
   });
 });

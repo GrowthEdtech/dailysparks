@@ -14,13 +14,11 @@ import {
 
 describe("billing layout styles", () => {
   test("expands the page shell for desktop billing layouts", () => {
-    expect(BILLING_HEADER_SHELL_CLASSNAME).toContain("max-w-6xl");
-    expect(BILLING_MAIN_SHELL_CLASSNAME).toContain("max-w-6xl");
-    expect(BILLING_CONTENT_GRID_CLASSNAME).toContain(
-      "xl:grid-cols-[minmax(18rem,0.78fr)_minmax(0,1.22fr)]",
-    );
-    expect(BILLING_SUMMARY_COLUMN_CLASSNAME).toContain("xl:sticky");
-    expect(BILLING_PLAN_GRID_CLASSNAME).toContain("xl:grid-cols-2");
+    expect(BILLING_HEADER_SHELL_CLASSNAME).toContain("max-w-7xl");
+    expect(BILLING_MAIN_SHELL_CLASSNAME).toContain("max-w-7xl");
+    expect(BILLING_CONTENT_GRID_CLASSNAME).toContain("xl:grid-cols-3");
+    expect(BILLING_SUMMARY_COLUMN_CLASSNAME).not.toContain("xl:sticky");
+    expect(BILLING_PLAN_GRID_CLASSNAME).not.toContain("xl:grid-cols-2");
   });
 });
 
