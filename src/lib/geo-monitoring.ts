@@ -8,6 +8,7 @@ import {
   updateGeoMachineReadabilityStatus,
 } from "./geo-machine-readability-store";
 import type { GeoMachineReadabilityStatusRecord } from "./geo-machine-readability-schema";
+import { auditGeoContent } from "./geo-content-audit";
 import {
   type RuntimeAiConnection,
   type RuntimeAiConnectionWithProvider,
@@ -82,6 +83,7 @@ type MachineReadabilityAssessment = {
   ssrStatus: GeoMachineReadabilityStatusRecord["ssrStatus"];
   jsonLdStatus: GeoMachineReadabilityStatusRecord["jsonLdStatus"];
   notes: string;
+  auditSourceText: string;
 };
 
 function getGeoMonitoringBaseUrl() {
@@ -145,6 +147,15 @@ function buildMachineReadabilityNotes(checks: Array<[string, boolean, string]>) 
     .filter(([, passed]) => !passed)
     .map(([label, , reason]) => `${label}: ${reason}`)
     .join(" | ");
+}
+
+function stripHtmlForGeoAudit(value: string) {
+  return value
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 async function fetchText(
@@ -228,6 +239,14 @@ async function assessMachineReadability(
         home.ok ? "Organization JSON-LD missing" : `status ${home.status || "fetch error"}`,
       ],
     ]),
+    auditSourceText: [
+      "## llms.txt",
+      llmsTxt.text,
+      "## llms-full.txt",
+      llmsFullTxt.text,
+      "## Homepage SSR",
+      stripHtmlForGeoAudit(home.text),
+    ].join("\n\n"),
   };
 }
 
@@ -862,6 +881,13 @@ export async function runGeoMonitoring(
     notes: machineReadabilityAssessment.notes,
     lastCheckedAt: startedAt,
   });
+  const sourcePackAudit = auditGeoContent({
+    title: "Daily Sparks machine-readable GEO source pack",
+    headings: "## llms.txt\n## llms-full.txt\n## Homepage SSR",
+    body: machineReadabilityAssessment.auditSourceText,
+    referenceNotes:
+      "Source: live Daily Sparks llms.txt, llms-full.txt, and homepage SSR snapshot.",
+  });
 
   for (const { prompt, queryVariant } of allExpandedQueries) {
     const enabledEngines = getEnabledGeoMonitoringEngines(prompt);
@@ -977,6 +1003,9 @@ export async function runGeoMonitoring(
     skippedCount,
     failedCount,
     machineReadabilityReadyCount,
+    rankabilityScore: sourcePackAudit.rankability.score,
+    citationReadinessScore: sourcePackAudit.citationReadiness.score,
+    biasResistanceScore: sourcePackAudit.biasResistance.score,
     notes: notes.join(" | "),
     startedAt,
     completedAt: new Date().toISOString(),

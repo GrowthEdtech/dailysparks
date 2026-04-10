@@ -22,6 +22,9 @@ export type CreateGeoMonitoringRunInput = {
   skippedCount: number;
   failedCount: number;
   machineReadabilityReadyCount: number;
+  rankabilityScore?: number;
+  citationReadinessScore?: number;
+  biasResistanceScore?: number;
   notes: string;
   startedAt: string;
   completedAt: string;
@@ -71,6 +74,9 @@ export async function createGeoMonitoringRun(input: CreateGeoMonitoringRunInput)
     machineReadabilityReadyCount: normalizeNumber(
       input.machineReadabilityReadyCount,
     ),
+    rankabilityScore: normalizeNumber(input.rankabilityScore ?? 0),
+    citationReadinessScore: normalizeNumber(input.citationReadinessScore ?? 0),
+    biasResistanceScore: normalizeNumber(input.biasResistanceScore ?? 0),
     notes: normalizeString(input.notes),
     startedAt: normalizeString(input.startedAt),
     completedAt: normalizeString(input.completedAt),

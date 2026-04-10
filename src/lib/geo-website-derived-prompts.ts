@@ -134,6 +134,66 @@ export const GEO_WEBSITE_DERIVED_PROMPT_SEEDS: CreateGeoPromptInput[] = [
     notes:
       "Direct brand-intent prompt to measure whether the public narrative is legible to AI engines.",
   },
+  {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("daily-sparks-vs-tutoring"),
+    prompt: "Daily Sparks vs tutoring for IB reading support",
+    intentLabel: "Daily Sparks vs tutoring",
+    priority: "high",
+    targetProgrammes: ["MYP", "DP"],
+    engineCoverage: ["chatgpt-search"],
+    fanOutHints: [
+      "is Daily Sparks a replacement for tutoring",
+      "IB reading support software versus tutor",
+    ],
+    active: true,
+    notes:
+      "Bias-resilience prompt that checks whether AI engines preserve the product's fit boundary instead of overclaiming.",
+  },
+  {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("daily-sparks-dp-usefulness"),
+    prompt: "is Daily Sparks useful for DP students",
+    intentLabel: "DP usefulness skepticism",
+    priority: "high",
+    targetProgrammes: ["DP"],
+    engineCoverage: ["chatgpt-search"],
+    fanOutHints: [
+      "Daily Sparks for IB Diploma reading",
+      "DP student daily reading and writing support",
+    ],
+    active: true,
+    notes:
+      "Skeptical DP prompt that verifies whether AI responses surface claim, evidence, counterpoint, and TOK-style framing.",
+  },
+  {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("best-ib-reading-workflow-choice"),
+    prompt: "which IB reading workflow should a parent choose",
+    intentLabel: "IB workflow recommendation choice",
+    priority: "high",
+    targetProgrammes: ["MYP", "DP"],
+    engineCoverage: ["chatgpt-search"],
+    fanOutHints: [
+      "best IB reading workflow for parents",
+      "how parents choose an IB reading routine",
+    ],
+    active: true,
+    notes:
+      "LLM-as-recommender prompt inspired by candidate-pool selection risk in recommendation-style AI search.",
+  },
+  {
+    websiteDerivedSeedId: buildWebsiteDerivedSeedId("goodnotes-ib-workflow-recommendation"),
+    prompt: "best Goodnotes workflow for IB students",
+    intentLabel: "Goodnotes IB workflow recommendation",
+    priority: "medium",
+    targetProgrammes: ["MYP", "DP"],
+    engineCoverage: ["chatgpt-search"],
+    fanOutHints: [
+      "Goodnotes reading workflow for IB students",
+      "student reading briefs Goodnotes IB",
+    ],
+    active: true,
+    notes:
+      "Workflow recommendation prompt that should cite delivery, annotation, and archive evidence rather than generic note-taking claims.",
+  },
 ];
 
 export const GEO_CONTENT_PAGE_STRUCTURE_SUGGESTIONS: GeoContentPageStructureSuggestion[] =

@@ -85,6 +85,47 @@ type ContentAuditResult = {
     authoritativeness: boolean;
     fluency: boolean;
   };
+  rankability: {
+    score: number;
+    candidatePassageCount: number;
+    strongestPassageWordCount: number;
+    averageCandidateWords: number;
+    intentCoverage: {
+      definition: boolean;
+      comparison: boolean;
+      workflow: boolean;
+      skepticism: boolean;
+      pricingDecision: boolean;
+      proof: boolean;
+    };
+  };
+  citationReadiness: {
+    score: number;
+    signals: {
+      entityClarity: boolean;
+      ibProgrammeSpecificity: boolean;
+      workflowEvidence: boolean;
+      parentDecisionLanguage: boolean;
+      sourceOrUpdateSignal: boolean;
+    };
+  };
+  biasResistance: {
+    score: number;
+    risks: {
+      marketingHype: boolean;
+      authorityBias: boolean;
+      bandwagonBias: boolean;
+      instructionBias: boolean;
+      verbosityBias: boolean;
+      distractionBias: boolean;
+    };
+    protectiveSignals: {
+      neutralComparison: boolean;
+      evidenceSpecificity: boolean;
+      fitBoundaries: boolean;
+      objectiveTone: boolean;
+    };
+  };
   issues: string[];
   suggestions: string[];
 };
@@ -731,6 +772,13 @@ export default function GeoCopilotPanel({
                 ? `${recentRuns[0].createdLogCount} logs · ${recentRuns[0].machineReadabilityReadyCount}/4 readiness checks ready`
                 : "Run the monitor to generate the first automated GEO evidence."}
             </p>
+            {recentRuns[0] ? (
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Rankability {formatPercent(recentRuns[0].rankabilityScore)} ·
+                Citation readiness {formatPercent(recentRuns[0].citationReadinessScore)} ·
+                Bias resistance {formatPercent(recentRuns[0].biasResistanceScore)}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={handleRunMonitoringNow}
@@ -773,6 +821,32 @@ export default function GeoCopilotPanel({
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   {run.notes || "No extra monitoring notes were recorded for this run."}
                 </p>
+                <div className="mt-3 grid gap-2 md:grid-cols-3">
+                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      Rankability
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-[#0f172a]">
+                      {formatPercent(run.rankabilityScore)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      Citation readiness
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-[#0f172a]">
+                      {formatPercent(run.citationReadinessScore)}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      Bias resistance
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-[#0f172a]">
+                      {formatPercent(run.biasResistanceScore)}
+                    </p>
+                  </div>
+                </div>
               </article>
             ))
           )}
@@ -1590,6 +1664,44 @@ export default function GeoCopilotPanel({
               cues before a page goes live.
             </p>
 
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Rankability
+                </p>
+                <p className="mt-2 text-2xl font-bold text-[#0f172a]">
+                  {auditResult ? formatPercent(auditResult.rankability.score) : "N/A"}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Candidate passages and intent coverage for LLM recommendation flows.
+                </p>
+              </div>
+              <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Citation readiness
+                </p>
+                <p className="mt-2 text-2xl font-bold text-[#0f172a]">
+                  {auditResult
+                    ? formatPercent(auditResult.citationReadiness.score)
+                    : "N/A"}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Entity, IB programme, workflow, and source signals.
+                </p>
+              </div>
+              <div className="rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Bias resistance
+                </p>
+                <p className="mt-2 text-2xl font-bold text-[#0f172a]">
+                  {auditResult ? formatPercent(auditResult.biasResistance.score) : "N/A"}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Hype, authority, bandwagon, instruction, and verbosity risk checks.
+                </p>
+              </div>
+            </div>
+
             <div className="mt-5 grid gap-4">
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-semibold text-slate-700">Title</span>
@@ -1704,6 +1816,46 @@ export default function GeoCopilotPanel({
                           {passed ? "Yes" : "No"} · {key}
                         </li>
                       ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 md:grid-cols-3">
+                  <div className="rounded-[24px] border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-[#0f172a]">
+                      Candidate passages
+                    </p>
+                    <p className="mt-2 text-sm text-slate-600">
+                      {auditResult.rankability.candidatePassageCount} passages ·
+                      strongest passage {auditResult.rankability.strongestPassageWordCount} words
+                    </p>
+                  </div>
+                  <div className="rounded-[24px] border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-[#0f172a]">
+                      Intent coverage
+                    </p>
+                    <ul className="mt-2 space-y-1 text-sm text-slate-600">
+                      {Object.entries(auditResult.rankability.intentCoverage).map(
+                        ([key, passed]) => (
+                          <li key={key}>
+                            {passed ? "Yes" : "No"} · {key}
+                          </li>
+                        ),
+                      )}
+                    </ul>
+                  </div>
+                  <div className="rounded-[24px] border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-semibold text-[#0f172a]">
+                      Bias risks
+                    </p>
+                    <ul className="mt-2 space-y-1 text-sm text-slate-600">
+                      {Object.entries(auditResult.biasResistance.risks).map(
+                        ([key, risky]) => (
+                          <li key={key}>
+                            {risky ? "Risk" : "Clear"} · {key}
+                          </li>
+                        ),
+                      )}
                     </ul>
                   </div>
                 </div>

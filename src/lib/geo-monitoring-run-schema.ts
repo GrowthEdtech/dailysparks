@@ -31,6 +31,9 @@ export type GeoMonitoringRunRecord = {
   skippedCount: number;
   failedCount: number;
   machineReadabilityReadyCount: number;
+  rankabilityScore: number;
+  citationReadinessScore: number;
+  biasResistanceScore: number;
   notes: string;
   startedAt: string;
   completedAt: string;

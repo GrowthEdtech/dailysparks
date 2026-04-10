@@ -79,6 +79,9 @@ function normalizeRunRecord(
     machineReadabilityReadyCount: normalizeNumber(
       raw?.machineReadabilityReadyCount,
     ),
+    rankabilityScore: normalizeNumber(raw?.rankabilityScore),
+    citationReadinessScore: normalizeNumber(raw?.citationReadinessScore),
+    biasResistanceScore: normalizeNumber(raw?.biasResistanceScore),
     notes: normalizeString(raw?.notes),
     startedAt: normalizeString(raw?.startedAt) || timestamp,
     completedAt: normalizeString(raw?.completedAt) || timestamp,

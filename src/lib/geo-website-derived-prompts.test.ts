@@ -7,7 +7,7 @@ import {
 
 describe("geo-website-derived-prompts", () => {
   test("defines the first batch of website-derived GEO prompt seeds", () => {
-    expect(GEO_WEBSITE_DERIVED_PROMPT_SEEDS).toHaveLength(8);
+    expect(GEO_WEBSITE_DERIVED_PROMPT_SEEDS).toHaveLength(12);
     expect(
       GEO_WEBSITE_DERIVED_PROMPT_SEEDS.some((prompt) =>
         /IB reading workflow for families/i.test(prompt.prompt),
@@ -15,6 +15,11 @@ describe("geo-website-derived-prompts", () => {
     ).toBe(true);
     expect(
       GEO_WEBSITE_DERIVED_PROMPT_SEEDS.every((prompt) => prompt.active),
+    ).toBe(true);
+    expect(
+      GEO_WEBSITE_DERIVED_PROMPT_SEEDS.some((prompt) =>
+        /vs tutoring/i.test(prompt.prompt),
+      ),
     ).toBe(true);
     expect(
       GEO_WEBSITE_DERIVED_PROMPT_SEEDS.every(
