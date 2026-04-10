@@ -20,6 +20,13 @@ describe("billing layout styles", () => {
     expect(BILLING_SUMMARY_COLUMN_CLASSNAME).not.toContain("xl:sticky");
     expect(BILLING_PLAN_GRID_CLASSNAME).not.toContain("xl:grid-cols-2");
   });
+
+  test("uses a more intentional desktop header and equal-height card rhythm", () => {
+    expect(BILLING_HEADER_SHELL_CLASSNAME).toContain("xl:items-center");
+    expect(BILLING_HEADER_SHELL_CLASSNAME).toContain("xl:min-h-[132px]");
+    expect(BILLING_CONTENT_GRID_CLASSNAME).toContain("xl:items-stretch");
+    expect(BILLING_SUMMARY_COLUMN_CLASSNAME).toContain("flex h-full flex-col");
+  });
 });
 
 describe("billing form secondary CTA styles", () => {

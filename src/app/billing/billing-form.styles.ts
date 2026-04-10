@@ -1,13 +1,13 @@
 export const BILLING_HEADER_SHELL_CLASSNAME =
-  "mx-auto flex w-full max-w-7xl items-start justify-between gap-4 md:gap-6";
+  "mx-auto flex w-full max-w-7xl items-start justify-between gap-4 md:gap-6 xl:min-h-[132px] xl:items-center xl:gap-10";
 
 export const BILLING_MAIN_SHELL_CLASSNAME =
   "mx-auto mt-6 w-full max-w-7xl px-4 md:mt-8 md:px-6";
 
 export const BILLING_CONTENT_GRID_CLASSNAME =
-  "grid gap-6 xl:grid-cols-3 xl:items-start";
+  "grid gap-6 xl:grid-cols-3 xl:items-stretch 2xl:gap-8";
 
-export const BILLING_SUMMARY_COLUMN_CLASSNAME = "h-full";
+export const BILLING_SUMMARY_COLUMN_CLASSNAME = "flex h-full flex-col";
 
 export const BILLING_PLAN_GRID_CLASSNAME = "space-y-6";
 

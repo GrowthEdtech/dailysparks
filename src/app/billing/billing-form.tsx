@@ -113,7 +113,7 @@ export default function BillingForm({
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <header className="w-full rounded-b-[32px] bg-[#0f172a] px-6 py-6 text-white shadow-md">
         <div className={BILLING_HEADER_SHELL_CLASSNAME}>
-          <div className="max-w-2xl">
+          <div className="max-w-2xl xl:max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#fbbf24]">
               Subscription
             </p>
@@ -122,7 +122,9 @@ export default function BillingForm({
               Choose the Daily Sparks subscription you want Stripe to activate for your family.
             </p>
           </div>
-          <AccountMenu fullName={parent.fullName} email={parent.email} />
+          <div className="shrink-0">
+            <AccountMenu fullName={parent.fullName} email={parent.email} />
+          </div>
         </div>
       </header>
 
@@ -196,13 +198,15 @@ export default function BillingForm({
               ) : null}
 
               {hasActiveStripeSubscription ? (
-                <button
-                  type="button"
-                  onClick={handleOpenPortal}
-                  className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-[#0f172a] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#1e293b]"
-                >
-                  Open Stripe billing portal
-                </button>
+                <div className="mt-auto pt-5">
+                  <button
+                    type="button"
+                    onClick={handleOpenPortal}
+                    className="inline-flex w-full items-center justify-center rounded-2xl bg-[#0f172a] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#1e293b]"
+                  >
+                    Open Stripe billing portal
+                  </button>
+                </div>
               ) : null}
             </section>
 
@@ -213,7 +217,7 @@ export default function BillingForm({
               return (
                 <section
                   key={plan.id}
-                  className={`rounded-3xl border p-6 shadow-sm transition ${
+                  className={`flex h-full flex-col rounded-3xl border p-6 shadow-sm transition ${
                     isSelected
                       ? "border-[#fbbf24] bg-[#fffaf0] shadow-[#fbbf24]/10"
                       : "border-slate-200 bg-white"
@@ -246,7 +250,7 @@ export default function BillingForm({
                     {plan.description}
                   </p>
 
-                  <ul className="mt-5 space-y-3">
+                  <ul className="mt-5 flex-1 space-y-3">
                     {plan.bullets.map((item) => (
                       <li
                         key={item}
@@ -258,33 +262,35 @@ export default function BillingForm({
                     ))}
                   </ul>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (hasActiveStripeSubscription) {
-                        void handleOpenPortal();
-                        return;
-                      }
+                  <div className="mt-auto pt-6">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (hasActiveStripeSubscription) {
+                          void handleOpenPortal();
+                          return;
+                        }
 
-                      void handleSelectPlan(plan.id);
-                    }}
-                    disabled={Boolean(pendingPlan)}
-                    className={`mt-6 inline-flex w-full items-center justify-center rounded-2xl px-5 py-4 text-sm font-bold transition ${
-                      hasActiveStripeSubscription
-                        ? "bg-slate-100 text-slate-500 hover:bg-slate-100"
-                        : isSelected
-                          ? "bg-[#0f172a] text-white"
-                          : "bg-[#fbbf24] text-[#0f172a] shadow-lg shadow-[#fbbf24]/20 hover:bg-[#f59e0b]"
-                    } disabled:cursor-not-allowed disabled:opacity-60`}
-                  >
-                    {isSaving
-                      ? "Opening Stripe..."
-                      : hasActiveStripeSubscription
-                        ? "Manage in Stripe portal"
-                        : isSelected
-                          ? "Continue with selected plan"
-                          : "Continue to Stripe"}
-                  </button>
+                        void handleSelectPlan(plan.id);
+                      }}
+                      disabled={Boolean(pendingPlan)}
+                      className={`inline-flex w-full items-center justify-center rounded-2xl px-5 py-4 text-sm font-bold transition ${
+                        hasActiveStripeSubscription
+                          ? "bg-slate-100 text-slate-500 hover:bg-slate-100"
+                          : isSelected
+                            ? "bg-[#0f172a] text-white"
+                            : "bg-[#fbbf24] text-[#0f172a] shadow-lg shadow-[#fbbf24]/20 hover:bg-[#f59e0b]"
+                      } disabled:cursor-not-allowed disabled:opacity-60`}
+                    >
+                      {isSaving
+                        ? "Opening Stripe..."
+                        : hasActiveStripeSubscription
+                          ? "Manage in Stripe portal"
+                          : isSelected
+                            ? "Continue with selected plan"
+                            : "Continue to Stripe"}
+                    </button>
+                  </div>
                 </section>
               );
             })}

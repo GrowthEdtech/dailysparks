@@ -88,4 +88,14 @@ describe("BillingForm", () => {
     );
     expect(markup).not.toContain("xl:sticky xl:top-8");
   });
+
+  test("uses flex-based desktop cards so plan actions align on a shared lower edge", () => {
+    const markup = renderToStaticMarkup(
+      <BillingForm initialProfile={initialProfile} initialPricingMarket="intl" />,
+    );
+
+    expect(markup).toContain("xl:items-stretch");
+    expect(markup).toContain("flex h-full flex-col");
+    expect(markup).toContain("mt-auto pt-6");
+  });
 });
