@@ -72,4 +72,29 @@ describe("root layout metadata", () => {
 
     process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = previousMeasurementId;
   });
+
+  test("renders Google Analytics bootstrap from the default site stream when env is missing", () => {
+    const previousMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+    delete process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        RootLayout,
+        undefined,
+        React.createElement("div", undefined, "hello"),
+      ),
+    );
+
+    expect(markup).toContain(
+      "https://www.googletagmanager.com/gtag/js?id=G-R5DPW78Q2Z",
+    );
+    expect(markup).toContain("gtag('config', 'G-R5DPW78Q2Z'");
+
+    if (previousMeasurementId === undefined) {
+      delete process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+      return;
+    }
+
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = previousMeasurementId;
+  });
 });

@@ -4,6 +4,15 @@ export const siteUrl =
 
 export const siteMetadataBase = new URL(siteUrl);
 
+export const defaultGoogleAnalyticsMeasurementId = "G-R5DPW78Q2Z";
+
+export function getSiteGoogleAnalyticsMeasurementId() {
+  return (
+  process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() ||
+    defaultGoogleAnalyticsMeasurementId
+  );
+}
+
 export const publicCanonicalRoutes = [
   {
     href: "/",
