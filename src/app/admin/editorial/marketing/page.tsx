@@ -50,8 +50,8 @@ export default async function MarketingAdminPage() {
     profiles,
     leads,
     referralInvites,
-    notebookEntryCount: notebookEntries.length,
-    weeklyRecapCount: weeklyRecaps.length,
+    notebookEntries,
+    weeklyRecaps,
   });
 
   return (
@@ -133,6 +133,11 @@ export default async function MarketingAdminPage() {
                 label: "First brief delivered",
                 value: summary.activation.firstBriefDelivered,
                 detail: "Families who have reached a real value moment",
+              },
+              {
+                label: "Paid activated",
+                value: summary.activation.paidActivated,
+                detail: "Trial families that crossed into an active paid subscription",
               },
               {
                 label: "Notebook entries",
@@ -220,7 +225,41 @@ export default async function MarketingAdminPage() {
         </section>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1fr]">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Acquisition sources
+          </p>
+          <div className="mt-4 space-y-3">
+            {summary.attribution.map((source) => (
+              <div
+                key={source.source}
+                className="rounded-[22px] border border-slate-200 bg-white px-4 py-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[#0f172a]">
+                      {source.label}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {source.profileCount} families · {source.trialStarted} trials ·{" "}
+                      {source.firstBriefDelivered} first briefs
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      Paid activated
+                    </p>
+                    <p className="mt-2 text-2xl font-bold tabular-nums text-[#0f172a]">
+                      {source.paidActivated}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
             Referral invites
@@ -255,6 +294,50 @@ export default async function MarketingAdminPage() {
             ) : (
               <div className="rounded-[22px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-slate-500">
                 Referral invite activity will appear here after the first family shares Daily Sparks.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Recent trial families
+          </p>
+          <div className="mt-4 space-y-3">
+            {summary.recentTrialProfiles.length > 0 ? (
+              summary.recentTrialProfiles.map((profile) => (
+                <div
+                  key={profile.parentId}
+                  className="rounded-[22px] border border-slate-200 bg-white px-4 py-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[#0f172a]">
+                        {profile.parentFullName}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {profile.parentEmail}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                      {profile.sourceLabel}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm text-slate-600">
+                    {profile.studentName} · {profile.programme} · {profile.notebookEntryCount} notebook entries ·{" "}
+                    {profile.weeklyRecapCount} weekly recaps
+                  </p>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Trial nurture{" "}
+                    {profile.trialConversionNurtureLastStatus
+                      ? `${profile.trialConversionNurtureLastStatus} · stage ${profile.trialConversionNurtureLastStage ?? "?"}`
+                      : "not started"}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-[22px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-slate-500">
+                Trial families will appear here once Daily Sparks starts accumulating recent first-brief activity.
               </div>
             )}
           </div>

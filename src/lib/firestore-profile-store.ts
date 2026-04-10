@@ -5,6 +5,7 @@ import type {
   ParentRecord,
   StudentRecord,
   SubscriptionPlan,
+  TrialConversionNurtureStatus,
   UpdateParentDeliveryPreferencesInput,
   UpdateParentGrowthMilestonesInput,
   UpdateParentNotificationEmailStateInput,
@@ -58,6 +59,12 @@ function normalizeGoodnotesStatus(value: unknown): GoodnotesDeliveryStatus | nul
 function normalizeOnboardingReminderStatus(
   value: unknown,
 ): OnboardingReminderStatus | null {
+  return value === "sent" || value === "failed" ? value : null;
+}
+
+function normalizeTrialConversionNurtureStatus(
+  value: unknown,
+): TrialConversionNurtureStatus | null {
   return value === "sent" || value === "failed" ? value : null;
 }
 
@@ -174,6 +181,33 @@ function normalizeParentRecord(
   const deliverySupportAlertLastResolvedReasonKey = normalizeNullableString(
     raw?.deliverySupportAlertLastResolvedReasonKey,
   );
+  const trialConversionNurtureCount =
+    typeof raw?.trialConversionNurtureCount === "number" &&
+    Number.isFinite(raw.trialConversionNurtureCount) &&
+    raw.trialConversionNurtureCount >= 0
+      ? raw.trialConversionNurtureCount
+      : 0;
+  const trialConversionNurtureLastAttemptAt = normalizeNullableString(
+    raw?.trialConversionNurtureLastAttemptAt,
+  );
+  const trialConversionNurtureLastSentAt = normalizeNullableString(
+    raw?.trialConversionNurtureLastSentAt,
+  );
+  const trialConversionNurtureLastStage =
+    typeof raw?.trialConversionNurtureLastStage === "number" &&
+    Number.isFinite(raw.trialConversionNurtureLastStage) &&
+    raw.trialConversionNurtureLastStage > 0
+      ? raw.trialConversionNurtureLastStage
+      : null;
+  const trialConversionNurtureLastStatus = normalizeTrialConversionNurtureStatus(
+    raw?.trialConversionNurtureLastStatus,
+  );
+  const trialConversionNurtureLastMessageId = normalizeNullableString(
+    raw?.trialConversionNurtureLastMessageId,
+  );
+  const trialConversionNurtureLastError = normalizeNullableString(
+    raw?.trialConversionNurtureLastError,
+  );
   const notionWorkspaceId = normalizeNullableString(raw?.notionWorkspaceId);
   const notionWorkspaceName = normalizeNullableString(raw?.notionWorkspaceName);
   const notionBotId = normalizeNullableString(raw?.notionBotId);
@@ -281,6 +315,13 @@ function normalizeParentRecord(
     deliverySupportAlertLastReasonKey,
     deliverySupportAlertLastResolvedAt,
     deliverySupportAlertLastResolvedReasonKey,
+    trialConversionNurtureCount,
+    trialConversionNurtureLastAttemptAt,
+    trialConversionNurtureLastSentAt,
+    trialConversionNurtureLastStage,
+    trialConversionNurtureLastStatus,
+    trialConversionNurtureLastMessageId,
+    trialConversionNurtureLastError,
     notionWorkspaceId,
     notionWorkspaceName,
     notionBotId,
@@ -1259,6 +1300,64 @@ export const firestoreProfileStore: ProfileStore = {
         typeof input.deliverySupportAlertLastResolvedReasonKey === "string" &&
         input.deliverySupportAlertLastResolvedReasonKey.trim()
           ? input.deliverySupportAlertLastResolvedReasonKey
+          : null;
+    }
+
+    if (input.trialConversionNurtureCount !== undefined) {
+      parent.trialConversionNurtureCount =
+        typeof input.trialConversionNurtureCount === "number" &&
+        Number.isFinite(input.trialConversionNurtureCount) &&
+        input.trialConversionNurtureCount >= 0
+          ? input.trialConversionNurtureCount
+          : 0;
+    }
+
+    if (input.trialConversionNurtureLastAttemptAt !== undefined) {
+      parent.trialConversionNurtureLastAttemptAt =
+        typeof input.trialConversionNurtureLastAttemptAt === "string" &&
+        input.trialConversionNurtureLastAttemptAt.trim()
+          ? input.trialConversionNurtureLastAttemptAt
+          : null;
+    }
+
+    if (input.trialConversionNurtureLastSentAt !== undefined) {
+      parent.trialConversionNurtureLastSentAt =
+        typeof input.trialConversionNurtureLastSentAt === "string" &&
+        input.trialConversionNurtureLastSentAt.trim()
+          ? input.trialConversionNurtureLastSentAt
+          : null;
+    }
+
+    if (input.trialConversionNurtureLastStage !== undefined) {
+      parent.trialConversionNurtureLastStage =
+        typeof input.trialConversionNurtureLastStage === "number" &&
+        Number.isFinite(input.trialConversionNurtureLastStage) &&
+        input.trialConversionNurtureLastStage > 0
+          ? input.trialConversionNurtureLastStage
+          : null;
+    }
+
+    if (input.trialConversionNurtureLastStatus !== undefined) {
+      parent.trialConversionNurtureLastStatus =
+        input.trialConversionNurtureLastStatus === "sent" ||
+        input.trialConversionNurtureLastStatus === "failed"
+          ? input.trialConversionNurtureLastStatus
+          : null;
+    }
+
+    if (input.trialConversionNurtureLastMessageId !== undefined) {
+      parent.trialConversionNurtureLastMessageId =
+        typeof input.trialConversionNurtureLastMessageId === "string" &&
+        input.trialConversionNurtureLastMessageId.trim()
+          ? input.trialConversionNurtureLastMessageId
+          : null;
+    }
+
+    if (input.trialConversionNurtureLastError !== undefined) {
+      parent.trialConversionNurtureLastError =
+        typeof input.trialConversionNurtureLastError === "string" &&
+        input.trialConversionNurtureLastError.trim()
+          ? input.trialConversionNurtureLastError
           : null;
     }
 

@@ -39,6 +39,7 @@ export const SUBSCRIPTION_PLANS = ["monthly", "yearly"] as const;
 export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number] | null;
 export type GoodnotesDeliveryStatus = "idle" | "success" | "failed";
 export type OnboardingReminderStatus = "sent" | "failed";
+export type TrialConversionNurtureStatus = "sent" | "failed";
 
 export function isSubscriptionPlan(
   value: string,
@@ -99,6 +100,13 @@ export type ParentRecord = {
   deliverySupportAlertLastReasonKey?: string | null;
   deliverySupportAlertLastResolvedAt?: string | null;
   deliverySupportAlertLastResolvedReasonKey?: string | null;
+  trialConversionNurtureCount?: number;
+  trialConversionNurtureLastAttemptAt?: string | null;
+  trialConversionNurtureLastSentAt?: string | null;
+  trialConversionNurtureLastStage?: number | null;
+  trialConversionNurtureLastStatus?: TrialConversionNurtureStatus | null;
+  trialConversionNurtureLastMessageId?: string | null;
+  trialConversionNurtureLastError?: string | null;
   notionWorkspaceId: string | null;
   notionWorkspaceName: string | null;
   notionBotId: string | null;
@@ -242,6 +250,13 @@ export type UpdateParentNotificationEmailStateInput = {
   deliverySupportAlertLastReasonKey?: string | null;
   deliverySupportAlertLastResolvedAt?: string | null;
   deliverySupportAlertLastResolvedReasonKey?: string | null;
+  trialConversionNurtureCount?: number;
+  trialConversionNurtureLastAttemptAt?: string | null;
+  trialConversionNurtureLastSentAt?: string | null;
+  trialConversionNurtureLastStage?: number | null;
+  trialConversionNurtureLastStatus?: TrialConversionNurtureStatus | null;
+  trialConversionNurtureLastMessageId?: string | null;
+  trialConversionNurtureLastError?: string | null;
 };
 
 export type NotionConnectionSecretRecord = {

@@ -53,7 +53,86 @@ describe("MarketingAdminPage", () => {
   });
 
   test("renders marketing funnel metrics and recent activity", async () => {
-    listParentProfilesMock.mockResolvedValue([]);
+    listParentProfilesMock.mockResolvedValue([
+      {
+        parent: {
+          id: "parent-1",
+          email: "lead@example.com",
+          fullName: "Lead Example",
+          countryCode: "HK",
+          deliveryTimeZone: "Asia/Hong_Kong",
+          preferredDeliveryLocalTime: "09:00",
+          firstAuthenticatedAt: "2026-04-10T00:00:00.000Z",
+          childProfileCompletedAt: "2026-04-10T00:05:00.000Z",
+          firstDispatchableChannelAt: "2026-04-10T00:10:00.000Z",
+          firstBriefDeliveredAt: "2026-04-10T00:20:00.000Z",
+          firstPaidAt: null,
+          onboardingReminderCount: 0,
+          onboardingReminderLastAttemptAt: null,
+          onboardingReminderLastSentAt: null,
+          onboardingReminderLastStage: null,
+          onboardingReminderLastStatus: null,
+          onboardingReminderLastMessageId: null,
+          onboardingReminderLastError: null,
+          subscriptionStatus: "trial",
+          subscriptionPlan: "monthly",
+          stripeCustomerId: null,
+          stripeSubscriptionId: null,
+          trialStartedAt: "2026-04-10T00:00:00.000Z",
+          trialEndsAt: "2026-04-17T00:00:00.000Z",
+          subscriptionActivatedAt: null,
+          subscriptionRenewalAt: null,
+          latestInvoiceId: null,
+          latestInvoiceNumber: null,
+          latestInvoiceStatus: null,
+          latestInvoiceHostedUrl: null,
+          latestInvoicePdfUrl: null,
+          latestInvoiceAmountPaid: null,
+          latestInvoiceCurrency: null,
+          latestInvoicePaidAt: null,
+          latestInvoicePeriodStart: null,
+          latestInvoicePeriodEnd: null,
+          trialConversionNurtureCount: 1,
+          trialConversionNurtureLastAttemptAt: "2026-04-11T00:00:00.000Z",
+          trialConversionNurtureLastSentAt: "2026-04-11T00:00:00.000Z",
+          trialConversionNurtureLastStage: 1,
+          trialConversionNurtureLastStatus: "sent",
+          trialConversionNurtureLastMessageId: "trial-message-1",
+          trialConversionNurtureLastError: null,
+          notionWorkspaceId: null,
+          notionWorkspaceName: null,
+          notionBotId: null,
+          notionDatabaseId: null,
+          notionDatabaseName: null,
+          notionDataSourceId: null,
+          notionAuthorizedAt: null,
+          notionLastSyncedAt: null,
+          notionLastSyncStatus: null,
+          notionLastSyncMessage: null,
+          notionLastSyncPageId: null,
+          notionLastSyncPageUrl: null,
+          createdAt: "2026-04-10T00:00:00.000Z",
+          updatedAt: "2026-04-11T00:00:00.000Z",
+        },
+        student: {
+          id: "student-1",
+          parentId: "parent-1",
+          studentName: "Theo",
+          programme: "DP",
+          programmeYear: 1,
+          interestTags: [],
+          goodnotesEmail: "theo@goodnotes.email",
+          goodnotesConnected: true,
+          goodnotesVerifiedAt: "2026-04-10T00:10:00.000Z",
+          goodnotesLastTestSentAt: null,
+          goodnotesLastDeliveryStatus: "success",
+          goodnotesLastDeliveryMessage: "Ready.",
+          notionConnected: false,
+          createdAt: "2026-04-10T00:00:00.000Z",
+          updatedAt: "2026-04-11T00:00:00.000Z",
+        },
+      },
+    ]);
     listMarketingLeadsMock.mockResolvedValue([
       {
         id: "lead-1",
@@ -116,6 +195,10 @@ describe("MarketingAdminPage", () => {
     expect(markup).toContain("Referral invites");
     expect(markup).toContain("Recent leads");
     expect(markup).toContain("Nurture");
+    expect(markup).toContain("Acquisition sources");
+    expect(markup).toContain("Paid activated");
+    expect(markup).toContain("Recent trial families");
+    expect(markup).toContain("Starter kit");
     expect(markup).toContain("lead@example.com");
     expect(markup).toContain("friend@example.com");
   });
