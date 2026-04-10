@@ -24,8 +24,15 @@ describe("marketing reporting summary", () => {
           deliveryMessageId: "lead-message-1",
           deliveryErrorMessage: null,
           deliveredAt: "2026-04-10T00:00:00.000Z",
+          nurtureEmailCount: 2,
+          nurtureLastAttemptAt: "2026-04-14T00:00:00.000Z",
+          nurtureLastSentAt: "2026-04-14T00:00:00.000Z",
+          nurtureLastStage: 2,
+          nurtureLastStatus: "sent",
+          nurtureLastMessageId: "nurture-message-2",
+          nurtureLastError: null,
           createdAt: "2026-04-10T00:00:00.000Z",
-          updatedAt: "2026-04-10T00:00:00.000Z",
+          updatedAt: "2026-04-14T00:00:00.000Z",
         },
       ],
       referralInvites: [
@@ -129,6 +136,8 @@ describe("marketing reporting summary", () => {
 
     expect(summary.leads.total).toBe(1);
     expect(summary.leads.delivered).toBe(1);
+    expect(summary.leads.nurtureSent).toBe(1);
+    expect(summary.leads.nurtureFailed).toBe(0);
     expect(summary.activation.trialStarted).toBe(1);
     expect(summary.activation.firstBriefDelivered).toBe(1);
     expect(summary.activation.notebookEntries).toBe(2);

@@ -7,6 +7,7 @@ import {
   captureMarketingLead,
   listMarketingLeads,
   recordMarketingLeadDelivery,
+  recordMarketingLeadNurture,
 } from "./marketing-lead-store";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -78,6 +79,9 @@ describe("marketing lead store", () => {
         captureCount: 2,
         childStageInterest: "DP",
         deliveryStatus: "pending",
+        nurtureEmailCount: 0,
+        nurtureLastStage: null,
+        nurtureLastStatus: null,
       }),
     );
   });
@@ -117,5 +121,47 @@ describe("marketing lead store", () => {
       }),
     );
     expect(storedLead.deliveredAt).toBeTruthy();
+  });
+
+  test("records nurture delivery outcomes against the stored lead", async () => {
+    const captured = await captureMarketingLead({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      childStageInterest: "MYP",
+      source: "ib-parent-starter-kit",
+      pagePath: "/ib-parent-starter-kit",
+      referrerUrl: null,
+      utmSource: null,
+      utmMedium: null,
+      utmCampaign: null,
+      utmContent: null,
+      utmTerm: null,
+    });
+
+    await recordMarketingLeadNurture({
+      leadId: captured.lead.id,
+      stageIndex: 1,
+      status: "sent",
+      messageId: "nurture-message-id",
+    });
+
+    const [storedLead] = await listMarketingLeads({
+      email: "parent@example.com",
+      source: "ib-parent-starter-kit",
+      limit: 1,
+    });
+
+    expect(storedLead).toEqual(
+      expect.objectContaining({
+        id: captured.lead.id,
+        nurtureEmailCount: 1,
+        nurtureLastStage: 1,
+        nurtureLastStatus: "sent",
+        nurtureLastMessageId: "nurture-message-id",
+        nurtureLastError: null,
+      }),
+    );
+    expect(storedLead.nurtureLastAttemptAt).toBeTruthy();
+    expect(storedLead.nurtureLastSentAt).toBeTruthy();
   });
 });

@@ -2,6 +2,7 @@ import { getFirebaseAdminDb } from "./firebase-admin";
 import type {
   MarketingLeadDeliveryStatus,
   MarketingLeadFilters,
+  MarketingLeadNurtureStatus,
   MarketingLeadRecord,
   MarketingLeadSource,
   MarketingLeadStageInterest,
@@ -28,6 +29,10 @@ function normalizeDeliveryStatus(value: unknown): MarketingLeadDeliveryStatus {
   return value === "sent" || value === "failed" || value === "skipped"
     ? value
     : "pending";
+}
+
+function normalizeNurtureStatus(value: unknown): MarketingLeadNurtureStatus | null {
+  return value === "sent" || value === "failed" ? value : null;
 }
 
 function normalizeLead(
@@ -57,6 +62,21 @@ function normalizeLead(
     deliveryMessageId: normalizeNullableString(raw?.deliveryMessageId),
     deliveryErrorMessage: normalizeNullableString(raw?.deliveryErrorMessage),
     deliveredAt: normalizeNullableString(raw?.deliveredAt),
+    nurtureEmailCount:
+      typeof raw?.nurtureEmailCount === "number" &&
+      Number.isFinite(raw.nurtureEmailCount)
+        ? Math.max(0, Math.trunc(raw.nurtureEmailCount))
+        : 0,
+    nurtureLastAttemptAt: normalizeNullableString(raw?.nurtureLastAttemptAt),
+    nurtureLastSentAt: normalizeNullableString(raw?.nurtureLastSentAt),
+    nurtureLastStage:
+      typeof raw?.nurtureLastStage === "number" &&
+      Number.isFinite(raw.nurtureLastStage)
+        ? Math.max(1, Math.trunc(raw.nurtureLastStage))
+        : null,
+    nurtureLastStatus: normalizeNurtureStatus(raw?.nurtureLastStatus),
+    nurtureLastMessageId: normalizeNullableString(raw?.nurtureLastMessageId),
+    nurtureLastError: normalizeNullableString(raw?.nurtureLastError),
     createdAt: normalizeString(raw?.createdAt) || timestamp,
     updatedAt: normalizeString(raw?.updatedAt) || timestamp,
   };

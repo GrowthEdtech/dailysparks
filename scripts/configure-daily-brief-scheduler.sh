@@ -28,6 +28,7 @@ GROWTH_RECONCILIATION_DAILY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_GROWTH_RECONCILIAT
 GEO_MONITORING_DAILY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_GEO_MONITORING_DAILY_SCHEDULE:-30 7 * * *}"
 OPERATIONS_HEALTH_DAILY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_OPERATIONS_HEALTH_DAILY_SCHEDULE:-0 8 * * *}"
 NOTEBOOK_WEEKLY_RECAP_SUNDAY_1800_SCHEDULE="${DAILY_BRIEF_SCHEDULER_NOTEBOOK_WEEKLY_RECAP_SUNDAY_1800_SCHEDULE:-0 18 * * 0}"
+MARKETING_LEAD_NURTURE_DAILY_SCHEDULE="${DAILY_BRIEF_SCHEDULER_MARKETING_LEAD_NURTURE_DAILY_SCHEDULE:-30 8 * * *}"
 LEGACY_STAGE_JOB_NAMES="${DAILY_BRIEF_SCHEDULER_LEGACY_STAGE_JOB_NAMES:-${JOB_PREFIX}-generate-0200,${JOB_PREFIX}-preflight-0215,${JOB_PREFIX}-generate-0600,${JOB_PREFIX}-preflight-0615,${JOB_PREFIX}-preflight-0850,${JOB_PREFIX}-deliver-0900,${JOB_PREFIX}-retry-0910}"
 SCHEDULER_SECRET="${DAILY_SPARKS_SCHEDULER_SECRET:-}"
 SCHEDULER_SECRET_SECRET="${DAILY_SPARKS_SCHEDULER_SECRET_SECRET:-}"
@@ -116,6 +117,7 @@ JOB_SPECS=(
   "${JOB_PREFIX}-geo-monitoring-daily|${GEO_MONITORING_DAILY_SCHEDULE}|/api/internal/geo-monitoring/run|Run the GEO Copilot monitoring pass, refresh machine-readability checks, and write automated visibility evidence.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-operations-health-daily|${OPERATIONS_HEALTH_DAILY_SCHEDULE}|/api/internal/operations-health/run|Evaluate cross-system operations health, emit SLA alerts, and trigger safe auto-remediation workflows.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
   "${JOB_PREFIX}-notebook-weekly-recap-sunday-1800|${NOTEBOOK_WEEKLY_RECAP_SUNDAY_1800_SCHEDULE}|/api/internal/notebook/weekly-recap/run|Generate weekly notebook recap history, sync Notion archives, and send the Sunday evening recap reminder to parents.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
+  "${JOB_PREFIX}-marketing-lead-nurture-daily|${MARKETING_LEAD_NURTURE_DAILY_SCHEDULE}|/api/internal/marketing/lead-nurture/run|Send stage-based starter-kit nurture follow-ups to leads who have not yet started a Daily Sparks trial.|${DEFAULT_MESSAGE_BODY}|${DEFAULT_ATTEMPT_DEADLINE}|${DEFAULT_MAX_RETRY_ATTEMPTS}"
 )
 
 for spec in "${JOB_SPECS[@]}"; do

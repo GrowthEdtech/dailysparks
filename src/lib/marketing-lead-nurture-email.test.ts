@@ -19,9 +19,9 @@ vi.mock("nodemailer", () => ({
 }));
 
 import {
-  buildMarketingLeadStarterKitEmail,
-  sendMarketingLeadStarterKitEmail,
-} from "./marketing-lead-email";
+  buildMarketingLeadNurtureEmail,
+  sendMarketingLeadNurtureEmail,
+} from "./marketing-lead-nurture-email";
 import type { MarketingLeadRecord } from "./marketing-lead-store-types";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -33,7 +33,7 @@ function buildLead(
     id: "lead-1",
     email: "parent@example.com",
     fullName: "Parent Example",
-    childStageInterest: "MYP",
+    childStageInterest: "DP",
     source: "ib-parent-starter-kit",
     pagePath: "/ib-parent-starter-kit",
     referrerUrl: null,
@@ -43,10 +43,10 @@ function buildLead(
     utmContent: null,
     utmTerm: null,
     captureCount: 1,
-    deliveryStatus: "pending",
-    deliveryMessageId: null,
+    deliveryStatus: "sent",
+    deliveryMessageId: "starter-kit-message-id",
     deliveryErrorMessage: null,
-    deliveredAt: null,
+    deliveredAt: "2026-04-10T00:00:00.000Z",
     nurtureEmailCount: 0,
     nurtureLastAttemptAt: null,
     nurtureLastSentAt: null,
@@ -70,45 +70,46 @@ beforeEach(() => {
   createTransportMock.mockClear();
   sendMailMock.mockReset();
   sendMailMock.mockResolvedValue({
-    messageId: "starter-kit-message-id",
+    messageId: "nurture-message-id",
   });
 });
 
-describe("marketing lead starter kit email", () => {
-  test("builds a stage-aware starter kit email", () => {
-    const mypEmail = buildMarketingLeadStarterKitEmail({
+describe("marketing lead nurture email", () => {
+  test("builds stage-aware nurture content that pushes trial start", () => {
+    const stageOneEmail = buildMarketingLeadNurtureEmail({
       lead: buildLead({
         childStageInterest: "MYP",
       }),
+      stageIndex: 1,
     });
-    const dpEmail = buildMarketingLeadStarterKitEmail({
-      lead: buildLead({
-        childStageInterest: "DP",
-      }),
+    const stageThreeEmail = buildMarketingLeadNurtureEmail({
+      lead: buildLead(),
+      stageIndex: 3,
     });
 
-    expect(mypEmail.subject).toBe("Your Daily Sparks IB Parent Starter Kit");
-    expect(mypEmail.html).toContain("MYP families building bridge reading habits");
-    expect(mypEmail.html).toContain("Open the starter kit");
-    expect(dpEmail.html).toContain("DP families building argument and TOK habits");
+    expect(stageOneEmail.subject).toMatch(/next step/i);
+    expect(stageOneEmail.html).toContain("MYP families building bridge reading habits");
+    expect(stageOneEmail.html).toContain("/login");
+    expect(stageThreeEmail.subject).toMatch(/last reminder|final reminder/i);
+    expect(stageThreeEmail.html).toContain("Start your 7-day trial");
   });
 
-  test("sends the starter kit email through the transactional notification channel", async () => {
-    const result = await sendMarketingLeadStarterKitEmail({
+  test("sends the nurture email through the transactional notification channel", async () => {
+    const result = await sendMarketingLeadNurtureEmail({
       lead: buildLead(),
+      stageIndex: 2,
     });
 
     expect(createTransportMock).toHaveBeenCalledTimes(1);
     expect(sendMailMock).toHaveBeenCalledTimes(1);
     expect(sendMailMock.mock.calls[0]?.[0]).toMatchObject({
       to: "parent@example.com",
-      subject: "Your Daily Sparks IB Parent Starter Kit",
     });
     expect(result).toEqual({
       sent: true,
       skipped: false,
       reason: null,
-      messageId: "starter-kit-message-id",
+      messageId: "nurture-message-id",
     });
   });
 });

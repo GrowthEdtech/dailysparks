@@ -3,6 +3,7 @@ export type MarketingLeadStageInterest = "MYP" | "DP" | "NOT_SURE";
 export type MarketingLeadSource = "ib-parent-starter-kit";
 
 export type MarketingLeadDeliveryStatus = "pending" | "sent" | "failed" | "skipped";
+export type MarketingLeadNurtureStatus = "sent" | "failed";
 
 export type MarketingLeadRecord = {
   id: string;
@@ -22,6 +23,13 @@ export type MarketingLeadRecord = {
   deliveryMessageId: string | null;
   deliveryErrorMessage: string | null;
   deliveredAt: string | null;
+  nurtureEmailCount: number;
+  nurtureLastAttemptAt: string | null;
+  nurtureLastSentAt: string | null;
+  nurtureLastStage: number | null;
+  nurtureLastStatus: MarketingLeadNurtureStatus | null;
+  nurtureLastMessageId: string | null;
+  nurtureLastError: string | null;
   createdAt: string;
   updatedAt: string;
 };

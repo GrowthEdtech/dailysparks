@@ -25,6 +25,18 @@ function formatDeliveryStatus(status: string) {
   return "Pending";
 }
 
+function formatLeadNurtureStatus(status: string | null, stage: number | null) {
+  if (!status || !stage) {
+    return "Nurture not started";
+  }
+
+  if (status === "sent") {
+    return `Nurture sent · stage ${stage}`;
+  }
+
+  return `Nurture failed · stage ${stage}`;
+}
+
 export default async function MarketingAdminPage() {
   const [profiles, leads, referralInvites, notebookEntries, weeklyRecaps] =
     await Promise.all([
@@ -69,7 +81,7 @@ export default async function MarketingAdminPage() {
               {summary.leads.total}
             </p>
             <p className="mt-2 text-sm text-slate-500">
-              {summary.leads.delivered} delivered starter kits
+              {summary.leads.delivered} delivered starter kits · {summary.leads.nurtureSent} nurture touches
             </p>
           </div>
           <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 px-4 py-4">
@@ -138,9 +150,14 @@ export default async function MarketingAdminPage() {
                 detail: "Lead captures that received the parent kit",
               },
               {
-                label: "Leads failed",
-                value: summary.leads.failed,
-                detail: "Starter-kit deliveries that still need review",
+                label: "Nurture touches",
+                value: summary.leads.nurtureSent,
+                detail: "Leads that have received at least one follow-up email",
+              },
+              {
+                label: "Nurture failures",
+                value: summary.leads.nurtureFailed,
+                detail: "Follow-up attempts that still need review",
               },
             ].map((metric) => (
               <div
@@ -185,6 +202,12 @@ export default async function MarketingAdminPage() {
                   </div>
                   <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                     {formatStageInterest(lead.childStageInterest)} · {lead.source}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-500">
+                    {formatLeadNurtureStatus(
+                      lead.nurtureLastStatus,
+                      lead.nurtureLastStage,
+                    )}
                   </p>
                 </div>
               ))
@@ -249,6 +272,11 @@ export default async function MarketingAdminPage() {
             <li>
               - Starter kit capture and login now mark accepted and
               trial-started referral states automatically.
+            </li>
+            <li>
+              - Starter-kit leads now move into a light nurture sequence so
+              we can watch the gap between capture and trial start instead of
+              relying on one email touch.
             </li>
             <li>
               - GA4 event plumbing is code-ready, but production still needs

@@ -73,8 +73,15 @@ describe("MarketingAdminPage", () => {
         deliveryMessageId: "message-1",
         deliveryErrorMessage: null,
         deliveredAt: "2026-04-10T00:00:00.000Z",
+        nurtureEmailCount: 1,
+        nurtureLastAttemptAt: "2026-04-11T00:00:00.000Z",
+        nurtureLastSentAt: "2026-04-11T00:00:00.000Z",
+        nurtureLastStage: 1,
+        nurtureLastStatus: "sent",
+        nurtureLastMessageId: "message-3",
+        nurtureLastError: null,
         createdAt: "2026-04-10T00:00:00.000Z",
-        updatedAt: "2026-04-10T00:00:00.000Z",
+        updatedAt: "2026-04-11T00:00:00.000Z",
       },
     ]);
     listMarketingReferralInvitesMock.mockResolvedValue([
@@ -108,6 +115,7 @@ describe("MarketingAdminPage", () => {
     expect(markup).toContain("Leads");
     expect(markup).toContain("Referral invites");
     expect(markup).toContain("Recent leads");
+    expect(markup).toContain("Nurture");
     expect(markup).toContain("lead@example.com");
     expect(markup).toContain("friend@example.com");
   });
