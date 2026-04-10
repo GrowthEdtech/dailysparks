@@ -9,6 +9,7 @@ import AccountMenu from "../../components/account-menu";
 import GoodnotesDeliveryCard from "../../components/goodnotes-delivery-card";
 import NotionSyncCard from "../../components/notion-sync-card";
 import { getBillingSummary } from "../../lib/billing";
+import type { DashboardNotebookData } from "../../lib/dashboard-notebook-data-schema";
 import type {
   DailyBriefNotebookEntryRecord,
 } from "../../lib/daily-brief-notebook-store";
@@ -79,6 +80,7 @@ type DashboardFormProps = {
       body: string;
     }>;
   } | null;
+  deferNotebookData?: boolean;
 };
 
 type RouteMessage = {
@@ -90,6 +92,7 @@ type RouteMessage = {
 const DELIVERY_COUNTRY_OPTIONS = getDeliveryCountryOptions();
 const DELIVERY_TIME_OPTIONS = buildDeliveryTimeOptions();
 const DELIVERY_TIME_ZONE_OPTIONS = getDeliveryTimeZoneOptions();
+const DASHBOARD_NOTEBOOK_DATA_ENDPOINT = "/api/dashboard/notebook";
 
 function hasMeaningfulStudentName(studentName: string) {
   const normalizedStudentName = studentName.trim();
@@ -103,10 +106,11 @@ function hasMeaningfulStudentName(studentName: string) {
 export default function DashboardForm({
   initialProfile,
   notionConfigured,
-  notebookItems = [],
-  weeklyRecapRecord = null,
-  weeklyRecapHistory = [],
-  notebookSuggestion = null,
+  notebookItems: initialNotebookItems = [],
+  weeklyRecapRecord: initialWeeklyRecapRecord = null,
+  weeklyRecapHistory: initialWeeklyRecapHistory = [],
+  notebookSuggestion: initialNotebookSuggestion = null,
+  deferNotebookData = false,
 }: DashboardFormProps) {
   const router = useRouter();
   const [studentName, setStudentName] = useState(
@@ -152,13 +156,23 @@ export default function DashboardForm({
   const [notebookErrorMessage, setNotebookErrorMessage] = useState("");
   const [notebookSuccessMessage, setNotebookSuccessMessage] = useState("");
   const [isSavingNotebook, setIsSavingNotebook] = useState(false);
+  const [notebookData, setNotebookData] = useState<DashboardNotebookData>({
+    notebookItems: initialNotebookItems,
+    weeklyRecapRecord: initialWeeklyRecapRecord,
+    weeklyRecapHistory: initialWeeklyRecapHistory,
+    notebookSuggestion: initialNotebookSuggestion,
+  });
+  const [isNotebookDataLoading, setIsNotebookDataLoading] = useState(
+    deferNotebookData,
+  );
+  const [notebookDataErrorMessage, setNotebookDataErrorMessage] = useState("");
   const [notebookFilterId, setNotebookFilterId] = useState(ALL_NOTEBOOK_FILTER_ID);
   const [notebookTagFilter, setNotebookTagFilter] = useState(ALL_NOTEBOOK_TAG_FILTER_ID);
   const [notebookSearchQuery, setNotebookSearchQuery] = useState("");
   const [notebookSortOrder, setNotebookSortOrder] =
     useState<NotebookSortOrder>("newest");
   const [selectedNotebookEntryId, setSelectedNotebookEntryId] = useState<string | null>(
-    notebookItems[0]?.id ?? null,
+    initialNotebookItems[0]?.id ?? null,
   );
   const [notebookEntryType, setNotebookEntryType] = useState(
     getDailyBriefAuthoredEntryTypes(initialProfile.student.programme)[0] ?? "generic-note",
@@ -182,7 +196,7 @@ export default function DashboardForm({
     null,
   );
   const [selectedWeeklyRecapId, setSelectedWeeklyRecapId] = useState<string | null>(
-    weeklyRecapHistory[0]?.id ?? null,
+    initialWeeklyRecapHistory[0]?.id ?? null,
   );
   const hasAppliedBrowserDeliveryDetection = useRef(false);
   const [isPending, startTransition] = useTransition();
@@ -203,6 +217,10 @@ export default function DashboardForm({
     savedCountryCode !== DEFAULT_COUNTRY_CODE ||
     savedDeliveryTimeZone !== DEFAULT_DELIVERY_TIME_ZONE ||
     savedPreferredDeliveryLocalTime !== DEFAULT_PREFERRED_DELIVERY_LOCAL_TIME;
+  const notebookItems = notebookData.notebookItems;
+  const weeklyRecapRecord = notebookData.weeklyRecapRecord;
+  const weeklyRecapHistory = notebookData.weeklyRecapHistory;
+  const notebookSuggestion = notebookData.notebookSuggestion;
   const hasNotebookSuggestion = notebookSuggestion !== null;
   const notebookLibraryItems = notebookItems.slice(0, 40);
   const generatedWeeklyRecap = buildDailyBriefNotebookWeeklyRecap({
@@ -239,6 +257,37 @@ export default function DashboardForm({
     weeklyRecapHistory,
     selectedWeeklyRecapId,
   );
+  const isNotebookBootstrapping =
+    isNotebookDataLoading &&
+    notebookItems.length === 0 &&
+    weeklyRecapHistory.length === 0 &&
+    weeklyRecapRecord === null &&
+    notebookSuggestion === null;
+
+  async function fetchNotebookData() {
+    const response = await fetch(DASHBOARD_NOTEBOOK_DATA_ENDPOINT, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+      },
+    });
+
+    const body = (await response.json().catch(() => null)) as
+      | (DashboardNotebookData & { message?: string })
+      | { message?: string }
+      | null;
+
+    if (!response.ok) {
+      throw new Error(body?.message ?? "We could not load your notebook yet.");
+    }
+
+    return body as DashboardNotebookData;
+  }
+
+  async function refreshNotebookData() {
+    setNotebookDataErrorMessage("");
+    setNotebookData(await fetchNotebookData());
+  }
 
   useEffect(() => {
     if (hasAppliedBrowserDeliveryDetection.current) {
@@ -300,6 +349,41 @@ export default function DashboardForm({
     savedDeliveryTimeZone,
     savedPreferredDeliveryLocalTime,
   ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!deferNotebookData) {
+      return;
+    }
+
+    void fetchNotebookData()
+      .then((data) => {
+        if (!cancelled) {
+          setNotebookData(data);
+        }
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        setNotebookDataErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "We could not load your notebook yet.",
+        );
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsNotebookDataLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deferNotebookData]);
 
   function handleProgrammeChange(nextProgramme: Programme) {
     setSuccessMessage("");
@@ -492,11 +576,8 @@ export default function DashboardForm({
         );
       }
 
+      await refreshNotebookData();
       setIsSavingNotebook(false);
-
-      startTransition(() => {
-        router.refresh();
-      });
     } catch {
       setNotebookErrorMessage("We could not reach the local API. Please try again.");
       setIsSavingNotebook(false);
@@ -550,11 +631,8 @@ export default function DashboardForm({
           : body?.message ?? "Notebook reflection saved.",
       );
       setNotebookEntryBody("");
+      await refreshNotebookData();
       setIsSavingNotebookEntry(false);
-
-      startTransition(() => {
-        router.refresh();
-      });
     } catch {
       setNotebookEntryErrorMessage(
         "We could not reach the local API. Please try again.",
@@ -605,11 +683,8 @@ export default function DashboardForm({
           ? body?.message ?? "Weekly recap synced to Notion."
           : body?.notionSync?.message ?? body?.message ?? "Weekly recap is ready.",
       );
+      await refreshNotebookData();
       setIsSyncingWeeklyRecap(false);
-
-      startTransition(() => {
-        router.refresh();
-      });
     } catch {
       setWeeklyRecapErrorMessage(
         "We could not reach the local API. Please try again.",
@@ -654,11 +729,8 @@ export default function DashboardForm({
       }
 
       setWeeklyRecapSuccessMessage(body?.message ?? "Weekly recap saved.");
+      await refreshNotebookData();
       setIsSavingWeeklyRecap(false);
-
-      startTransition(() => {
-        router.refresh();
-      });
     } catch {
       setWeeklyRecapErrorMessage(
         "We could not reach the local API. Please try again.",
@@ -710,11 +782,8 @@ export default function DashboardForm({
       setRetrievalResponseSuccessMessage(
         body?.message ?? "Retrieval response saved.",
       );
+      await refreshNotebookData();
       setSavingRetrievalPromptId(null);
-
-      startTransition(() => {
-        router.refresh();
-      });
     } catch {
       setRetrievalResponseErrorMessage(
         "We could not reach the local API. Please try again.",
@@ -972,7 +1041,63 @@ export default function DashboardForm({
                 notebook your family can return to later.
               </p>
 
-              {hasNotebookSuggestion ? (
+              {notebookDataErrorMessage ? (
+                <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-4">
+                  <p className="text-sm leading-6 text-red-700">
+                    {notebookDataErrorMessage}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsNotebookDataLoading(true);
+                      void refreshNotebookData()
+                        .catch((error) => {
+                          setNotebookDataErrorMessage(
+                            error instanceof Error
+                              ? error.message
+                              : "We could not load your notebook yet.",
+                          );
+                        })
+                        .finally(() => {
+                          setIsNotebookDataLoading(false);
+                        });
+                    }}
+                    className="mt-3 inline-flex rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:border-red-300"
+                  >
+                    Retry notebook load
+                  </button>
+                </div>
+              ) : null}
+
+              {isNotebookBootstrapping ? (
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      Loading your notebook
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      We&apos;re preparing your latest brief notes and saved notebook entries.
+                    </p>
+                    <div className="mt-4 space-y-3">
+                      <div className="h-16 animate-pulse rounded-2xl bg-white" />
+                      <div className="h-16 animate-pulse rounded-2xl bg-white" />
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                      Preparing weekly recap
+                    </p>
+                    <div className="mt-4 grid gap-3 md:grid-cols-3">
+                      <div className="h-20 animate-pulse rounded-2xl bg-white" />
+                      <div className="h-20 animate-pulse rounded-2xl bg-white" />
+                      <div className="h-20 animate-pulse rounded-2xl bg-white" />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {!isNotebookBootstrapping && hasNotebookSuggestion ? (
                 <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -1097,14 +1222,14 @@ export default function DashboardForm({
                     </button>
                   </div>
                 </div>
-              ) : (
+              ) : !isNotebookBootstrapping ? (
                 <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
                   <p className="text-sm leading-6 text-slate-600">
                     Once your latest published brief is ready, Daily Sparks will
                     surface structured notebook entries here for quick saving.
                   </p>
                 </div>
-              )}
+              ) : null}
 
               <div className="mt-5 rounded-2xl border border-slate-200 bg-white px-4 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1121,7 +1246,13 @@ export default function DashboardForm({
                   </span>
                 </div>
 
-                {weeklyRecap ? (
+                {isNotebookBootstrapping ? (
+                  <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-sm leading-6 text-slate-600">
+                      Your recap and retrieval prompts will appear as soon as the notebook finishes loading.
+                    </p>
+                  </div>
+                ) : weeklyRecap ? (
                   <div className="mt-4 space-y-4">
                     <div className="grid gap-3 md:grid-cols-3">
                       <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -1342,14 +1473,20 @@ export default function DashboardForm({
                   </div>
                 )}
 
-                {!weeklyRecap ? renderWeeklyRecapHistory() : null}
+                {!isNotebookBootstrapping && !weeklyRecap ? renderWeeklyRecapHistory() : null}
               </div>
 
               <div className="mt-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                   Saved notebook entries
                 </p>
-                {notebookLibraryItems.length > 0 ? (
+                {isNotebookBootstrapping ? (
+                  <div className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
+                    <p className="text-sm leading-6 text-slate-600">
+                      Loading your saved notebook library now.
+                    </p>
+                  </div>
+                ) : notebookLibraryItems.length > 0 ? (
                   <div className="mt-3 space-y-4">
                     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_220px_220px]">
                       <label className="space-y-2">

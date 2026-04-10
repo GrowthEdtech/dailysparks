@@ -208,6 +208,19 @@ const weeklyRecapHistory = [
 ];
 
 describe("DashboardForm", () => {
+  test("shows a notebook loading state when notebook data is deferred", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardForm
+        initialProfile={initialProfile}
+        notionConfigured={true}
+        deferNotebookData={true}
+      />,
+    );
+
+    expect(markup).toContain("Loading your notebook");
+    expect(markup).toContain("Preparing weekly recap");
+  });
+
   test("uses a wide desktop container and two-column layout instead of mobile-only stacking", () => {
     const markup = renderToStaticMarkup(
       <DashboardForm initialProfile={initialProfile} notionConfigured={true} />,

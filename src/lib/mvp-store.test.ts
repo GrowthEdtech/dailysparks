@@ -705,7 +705,7 @@ describe("mvp store", () => {
     });
     await updateParentSubscription("expired-trial@example.com", {
       subscriptionStatus: "trial",
-      trialEndsAt: "2026-03-31T23:59:59.000Z",
+      trialEndsAt: "2020-03-31T23:59:59.000Z",
     });
 
     await getOrCreateParentProfile({
@@ -726,7 +726,7 @@ describe("mvp store", () => {
     });
     await updateParentSubscription("future-trial@example.com", {
       subscriptionStatus: "trial",
-      trialEndsAt: "2026-04-10T00:00:00.000Z",
+      trialEndsAt: "2099-04-10T00:00:00.000Z",
     });
 
     const eligibleProfiles = await listEligibleDeliveryProfiles();
