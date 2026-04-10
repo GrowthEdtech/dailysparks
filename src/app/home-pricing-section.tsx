@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 
 import { getBillingPlanDefinitions } from "../lib/billing";
+import { trackMarketingEvent } from "../lib/marketing-analytics";
 import type { PricingMarket } from "../lib/pricing-market";
 
 type HomePricingSectionProps = {
@@ -85,6 +86,12 @@ export default function HomePricingSection({
 
                 <Link
                   href="/login"
+                  onClick={() =>
+                    trackMarketingEvent("pricing_cta_clicked", {
+                      plan_id: plan.id,
+                      billing_interval: isYearly ? "yearly" : "monthly",
+                    })
+                  }
                   className={
                     isYearly
                       ? "w-full rounded-2xl bg-[#0f172a] px-6 py-4 text-center text-base font-bold text-white shadow-[0_20px_40px_-24px_rgba(15,23,42,0.55)] transition-all hover:bg-slate-800"

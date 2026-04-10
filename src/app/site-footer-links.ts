@@ -3,4 +3,5 @@ export const siteFooterLinks = [
   { href: "/terms", label: "Terms" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+  { href: "/ib-parent-starter-kit", label: "Starter Kit" },
 ] as const;

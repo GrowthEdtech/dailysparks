@@ -55,4 +55,9 @@ export const publicCanonicalRoutes = [
     changeFrequency: "monthly" as const,
     priority: 0.8,
   },
+  {
+    href: "/ib-parent-starter-kit",
+    changeFrequency: "monthly" as const,
+    priority: 0.8,
+  },
 ] as const;

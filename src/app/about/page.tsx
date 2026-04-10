@@ -79,6 +79,12 @@ export default function AboutPage() {
               detail:
                 "Compare inquiry-driven MYP reading with argument-driven DP reading in one view.",
             },
+            {
+              href: "/ib-parent-starter-kit",
+              title: "IB Parent Starter Kit",
+              detail:
+                "Get the calm first-step guide for choosing the right path before starting a trial.",
+            },
           ].map((guide) => (
             <Link
               key={guide.href}

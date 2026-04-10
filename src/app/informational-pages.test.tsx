@@ -24,6 +24,29 @@ vi.mock("./landing-integrations-section", () => ({
   default: () => <div data-testid="integrations-section">Integrations</div>,
 }));
 
+vi.mock("../components/tracked-link", () => ({
+  default: ({
+    href,
+    children,
+    marketingEvent: _marketingEvent,
+    marketingProperties: _marketingProperties,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+    href: string;
+    marketingEvent?: string;
+    marketingProperties?: Record<string, unknown>;
+  }) => {
+    void _marketingEvent;
+    void _marketingProperties;
+
+    return (
+      <a href={href} {...props}>
+        {children}
+      </a>
+    );
+  },
+}));
+
 const informationalPages = [
   {
     href: "/privacy",
@@ -52,6 +75,13 @@ const informationalPages = [
     loader: () => import("./contact/page"),
     expectedTitle: "Contact Daily Sparks",
     expectedDetail: "info@geledtech.com",
+  },
+  {
+    href: "/ib-parent-starter-kit",
+    label: "Get the Parent Starter Kit",
+    loader: () => import("./ib-parent-starter-kit/page"),
+    expectedTitle: "IB Parent Starter Kit",
+    expectedDetail: "MYP and DP reading model",
   },
   {
     href: "/ib-myp-reading-support",
@@ -163,13 +193,14 @@ describe("informational pages", () => {
     const markup = renderToStaticMarkup(await Home());
 
     expect(markup).toContain('href="/login"');
-    expect(markup).toContain('href="/about"');
+    expect(markup).toContain('href="/ib-parent-starter-kit"');
     expect(markup).toContain("Start 7-Day Free Trial");
-    expect(markup).toContain("See Sample Brief");
+    expect(markup).toContain("Get the Parent Starter Kit");
     expect(markup).toContain("Set Up Your Reading Loop");
     expect(markup).toContain("Claim 7-Day Free Trial");
 
     for (const href of [
+      "/ib-parent-starter-kit",
       "/ib-myp-reading-support",
       "/ib-dp-reading-and-writing-support",
       "/goodnotes-workflow-for-ib-students",
@@ -216,9 +247,11 @@ describe("informational pages", () => {
     expect(aboutMarkup).toContain('href="/ib-myp-reading-support"');
     expect(aboutMarkup).toContain('href="/ib-dp-reading-and-writing-support"');
     expect(aboutMarkup).toContain('href="/myp-vs-dp-reading-model"');
+    expect(aboutMarkup).toContain('href="/ib-parent-starter-kit"');
 
     expect(contactMarkup).toContain('href="/goodnotes-workflow-for-ib-students"');
     expect(contactMarkup).toContain('href="/notion-archive-for-ib-families"');
     expect(contactMarkup).toContain('href="/myp-vs-dp-reading-model"');
+    expect(contactMarkup).toContain('href="/ib-parent-starter-kit"');
   });
 });

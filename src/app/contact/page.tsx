@@ -115,6 +115,12 @@ export default function ContactPage() {
               detail:
                 "Compare the stage-specific learning loops before asking for setup help.",
             },
+            {
+              href: "/ib-parent-starter-kit",
+              title: "IB Parent Starter Kit",
+              detail:
+                "Get the calm setup guide if you are still deciding how to start the family workflow.",
+            },
           ].map((guide) => (
             <Link
               key={guide.href}

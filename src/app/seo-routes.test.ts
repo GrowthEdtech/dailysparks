@@ -23,6 +23,7 @@ describe("SEO route outputs", () => {
           "/goodnotes-workflow-for-ib-students",
           "/notion-archive-for-ib-families",
           "/myp-vs-dp-reading-model",
+          "/ib-parent-starter-kit",
         ],
         disallow: ["/admin", "/api", "/billing", "/dashboard", "/login"],
       },
@@ -78,6 +79,11 @@ describe("SEO route outputs", () => {
       },
       {
         url: "https://dailysparks.geledtech.com/myp-vs-dp-reading-model",
+        changeFrequency: "monthly",
+        priority: 0.8,
+      },
+      {
+        url: "https://dailysparks.geledtech.com/ib-parent-starter-kit",
         changeFrequency: "monthly",
         priority: 0.8,
       },

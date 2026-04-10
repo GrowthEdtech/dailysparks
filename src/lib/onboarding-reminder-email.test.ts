@@ -131,6 +131,35 @@ describe("onboarding reminder email", () => {
     expect(email.text).toContain("https://dailysparks.geledtech.com/dashboard");
   });
 
+  test("changes the activation sequence framing across reminder stages", () => {
+    const secondStageEmail = buildOnboardingReminderEmail({
+      profile: buildProfile({
+        student: {
+          programme: "MYP",
+          programmeYear: 4,
+        },
+      }),
+      stageIndex: 2,
+    });
+    const finalStageEmail = buildOnboardingReminderEmail({
+      profile: buildProfile({
+        student: {
+          programme: "DP",
+          programmeYear: 1,
+        },
+      }),
+      stageIndex: 3,
+    });
+
+    expect(secondStageEmail.subject).toMatch(/reading routine/i);
+    expect(secondStageEmail.html).toContain("MYP reading path");
+    expect(secondStageEmail.html).toContain("global context");
+
+    expect(finalStageEmail.subject).toMatch(/final reminder/i);
+    expect(finalStageEmail.html).toContain("DP reading path");
+    expect(finalStageEmail.html).toContain("claim and counterpoint");
+  });
+
   test("uses the premium minimal outbound email structure and Growth Education signature", () => {
     const email = buildOnboardingReminderEmail({
       profile: buildProfile(),

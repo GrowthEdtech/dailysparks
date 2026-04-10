@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import GoogleAnalytics from "../components/google-analytics";
 import { siteMetadataBase, siteUrl } from "./site-config";
 
 const siteIconVersion = "2026-04-02-2";
@@ -59,6 +60,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const googleAnalyticsMeasurementId =
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim() || "";
+
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
@@ -68,6 +72,7 @@ export default function RootLayout({
             __html: JSON.stringify([organizationJsonLd, websiteJsonLd]),
           }}
         />
+        <GoogleAnalytics measurementId={googleAnalyticsMeasurementId} />
         {children}
       </body>
     </html>

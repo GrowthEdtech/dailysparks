@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
+import TrackedLink from "../components/tracked-link";
 import {
   InformationalPageShell,
   InfoSection,
@@ -95,8 +95,8 @@ const publicSeoGuideList = [
       label: "Start the MYP reading loop",
       supportingNote:
         "Choose this path if your family wants calmer reading volume, visible context building, and a stronger inquiry habit.",
-      secondaryHref: "/myp-vs-dp-reading-model",
-      secondaryLabel: "Compare MYP and DP reading",
+      secondaryHref: "/ib-parent-starter-kit",
+      secondaryLabel: "Get the parent starter kit",
     },
   },
   {
@@ -154,8 +154,8 @@ const publicSeoGuideList = [
       label: "Start the DP reading loop",
       supportingNote:
         "Choose this path if your family wants reading to feed directly into argument quality, writing confidence, and TOK-style reflection.",
-      secondaryHref: "/myp-vs-dp-reading-model",
-      secondaryLabel: "Compare MYP and DP reading",
+      secondaryHref: "/ib-parent-starter-kit",
+      secondaryLabel: "Get the parent starter kit",
     },
   },
   {
@@ -213,8 +213,8 @@ const publicSeoGuideList = [
       label: "Ask about Goodnotes setup",
       supportingNote:
         "Start here if the main question is how the student should receive and annotate the brief each day.",
-      secondaryHref: "/notion-archive-for-ib-families",
-      secondaryLabel: "See the family archive layer",
+      secondaryHref: "/ib-parent-starter-kit",
+      secondaryLabel: "Get the parent starter kit",
     },
   },
   {
@@ -272,8 +272,8 @@ const publicSeoGuideList = [
       label: "Ask about Notion archive setup",
       supportingNote:
         "Start here if your main priority is preserving briefs, notebook entries, and weekly recap history in one searchable family system.",
-      secondaryHref: "/goodnotes-workflow-for-ib-students",
-      secondaryLabel: "See the student delivery layer",
+      secondaryHref: "/ib-parent-starter-kit",
+      secondaryLabel: "Get the parent starter kit",
     },
   },
   {
@@ -327,12 +327,12 @@ const publicSeoGuideList = [
       "/notion-archive-for-ib-families",
     ],
     cta: {
-      href: "/about",
-      label: "See how the full workflow fits together",
+      href: "/ib-parent-starter-kit",
+      label: "Get the parent starter kit",
       supportingNote:
-        "Use this page when the family decision is about stage fit, then jump into the exact programme guide from here.",
-      secondaryHref: "/ib-myp-reading-support",
-      secondaryLabel: "Open the MYP guide",
+        "Use this page when the family decision is about stage fit, then move into the starter kit for the calmest next step.",
+      secondaryHref: "/login",
+      secondaryLabel: "Start the 7-day trial",
     },
   },
 ] as const satisfies readonly PublicSeoGuide[];
@@ -422,9 +422,15 @@ export function PublicSeoGuidePage({
           <p>{guide.comparison.detail}</p>
           <div className="grid gap-4 md:grid-cols-2">
             {guide.comparison.options.map((option) => (
-              <Link
+              <TrackedLink
                 key={option.href}
                 href={option.href}
+                marketingEvent="seo_guide_cta_clicked"
+                marketingProperties={{
+                  guide_href: guide.href,
+                  cta_type: "comparison-option",
+                  destination: option.href,
+                }}
                 className="rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-5 shadow-[0_18px_42px_-36px_rgba(15,23,42,0.22)] transition-transform hover:-translate-y-0.5 hover:border-slate-300"
               >
                 <h3 className="text-lg font-bold tracking-[-0.02em] text-[#0f172a]">
@@ -433,7 +439,7 @@ export function PublicSeoGuidePage({
                 <p className="mt-2 text-sm leading-7 text-slate-600">
                   {option.detail}
                 </p>
-              </Link>
+              </TrackedLink>
             ))}
           </div>
         </div>
@@ -445,9 +451,15 @@ export function PublicSeoGuidePage({
             const relatedGuide = getPublicSeoGuide(relatedHref as PublicSeoGuideHref);
 
             return (
-              <Link
+              <TrackedLink
                 key={relatedGuide.href}
                 href={relatedGuide.href}
+                marketingEvent="seo_guide_cta_clicked"
+                marketingProperties={{
+                  guide_href: guide.href,
+                  cta_type: "related-guide",
+                  destination: relatedGuide.href,
+                }}
                 className="rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-5 shadow-[0_18px_42px_-36px_rgba(15,23,42,0.22)] transition-transform hover:-translate-y-0.5 hover:border-slate-300"
               >
                 <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f59e0b]">
@@ -459,7 +471,7 @@ export function PublicSeoGuidePage({
                 <p className="mt-2 text-sm leading-7 text-slate-600">
                   {relatedGuide.description}
                 </p>
-              </Link>
+              </TrackedLink>
             );
           })}
         </div>
@@ -471,18 +483,30 @@ export function PublicSeoGuidePage({
             {guide.cta.supportingNote}
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-            <Link
+            <TrackedLink
               href={guide.cta.href}
+              marketingEvent="seo_guide_cta_clicked"
+              marketingProperties={{
+                guide_href: guide.href,
+                cta_type: "primary",
+                destination: guide.cta.href,
+              }}
               className="inline-flex rounded-full bg-[#0f172a] px-6 py-3 text-sm font-bold uppercase tracking-[0.22em] text-white transition-transform hover:scale-[1.02]"
             >
               {guide.cta.label}
-            </Link>
-            <Link
+            </TrackedLink>
+            <TrackedLink
               href={guide.cta.secondaryHref}
+              marketingEvent="seo_guide_cta_clicked"
+              marketingProperties={{
+                guide_href: guide.href,
+                cta_type: "secondary",
+                destination: guide.cta.secondaryHref,
+              }}
               className="inline-flex rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-bold uppercase tracking-[0.22em] text-[#0f172a] transition-transform hover:scale-[1.02]"
             >
               {guide.cta.secondaryLabel}
-            </Link>
+            </TrackedLink>
           </div>
         </div>
       </InfoSection>

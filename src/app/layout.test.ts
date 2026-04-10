@@ -47,4 +47,29 @@ describe("root layout metadata", () => {
     expect(markup).toContain("Daily Sparks");
     expect(markup).toContain("WebSite");
   });
+
+  test("renders Google Analytics bootstrap when a measurement id is configured", () => {
+    const previousMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = "G-TEST1234";
+
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        RootLayout,
+        undefined,
+        React.createElement("div", undefined, "hello"),
+      ),
+    );
+
+    expect(markup).toContain(
+      "https://www.googletagmanager.com/gtag/js?id=G-TEST1234",
+    );
+    expect(markup).toContain("gtag('config', 'G-TEST1234'");
+
+    if (previousMeasurementId === undefined) {
+      delete process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+      return;
+    }
+
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID = previousMeasurementId;
+  });
 });

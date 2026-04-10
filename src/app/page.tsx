@@ -11,6 +11,7 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import TrackedLink from "../components/tracked-link";
 import HomePricingSection from "./home-pricing-section";
 import HomeReadingWorkspaceIllustration from "./home-reading-workspace-illustration";
 import LandingIntegrationsSection from "./landing-integrations-section";
@@ -52,9 +53,17 @@ export default async function Home() {
           </div>
           <div className="flex items-center gap-6">
             <a href="/login" className="text-sm font-medium hover:text-[#fbbf24] transition-colors">Log in</a>
-            <a href="/login" className="bg-[#fbbf24] text-[#0f172a] px-5 py-2.5 rounded-full text-sm font-bold hover:scale-105 transition-transform active:scale-95 shadow-lg shadow-[#fbbf24]/20">
+            <TrackedLink
+              href="/login"
+              marketingEvent="landing_cta_clicked"
+              marketingProperties={{
+                location: "nav-primary",
+                destination: "trial",
+              }}
+              className="bg-[#fbbf24] text-[#0f172a] px-5 py-2.5 rounded-full text-sm font-bold hover:scale-105 transition-transform active:scale-95 shadow-lg shadow-[#fbbf24]/20"
+            >
               Get Started
-            </a>
+            </TrackedLink>
           </div>
         </div>
       </nav>
@@ -82,18 +91,28 @@ export default async function Home() {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-          <Link
+          <TrackedLink
             href="/login"
+            marketingEvent="landing_cta_clicked"
+            marketingProperties={{
+              location: "hero-primary",
+              destination: "trial",
+            }}
             className="bg-[#fbbf24] text-[#0f172a] px-10 py-5 rounded-2xl font-bold text-lg hover:scale-105 transition-all shadow-xl shadow-[#fbbf24]/20 flex items-center justify-center gap-2 group"
           >
             Start 7-Day Free Trial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
-          <Link
-            href="/about"
+          </TrackedLink>
+          <TrackedLink
+            href="/ib-parent-starter-kit"
+            marketingEvent="landing_cta_clicked"
+            marketingProperties={{
+              location: "hero-secondary",
+              destination: "starter-kit",
+            }}
             className="bg-white/5 border border-white/10 text-white px-10 py-5 rounded-2xl font-bold text-lg hover:bg-white/10 transition-all flex items-center justify-center gap-2"
           >
-            See Sample Brief
-          </Link>
+            Get the Parent Starter Kit
+          </TrackedLink>
         </div>
 
         {/* 社交證明 Social Proof */}
@@ -226,9 +245,14 @@ export default async function Home() {
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
             {publicSeoGuides.map((guide) => (
-              <Link
+              <TrackedLink
                 key={guide.href}
                 href={guide.href}
+                marketingEvent="landing_public_guide_clicked"
+                marketingProperties={{
+                  location: "guide-grid",
+                  guide_href: guide.href,
+                }}
                 className="rounded-[28px] border border-white/10 bg-white/5 p-6 transition-transform hover:-translate-y-1 hover:bg-white/[0.08]"
               >
                 <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#fbbf24]">
@@ -240,7 +264,7 @@ export default async function Home() {
                 <p className="mt-3 text-sm leading-7 text-slate-300">
                   {guide.description}
                 </p>
-              </Link>
+              </TrackedLink>
             ))}
           </div>
         </div>
@@ -278,12 +302,17 @@ export default async function Home() {
               </div>
             </div>
             
-            <Link
+            <TrackedLink
               href="/login"
+              marketingEvent="landing_cta_clicked"
+              marketingProperties={{
+                location: "workflow-primary",
+                destination: "trial",
+              }}
               className="inline-flex bg-[#0f172a] text-white px-8 py-4 rounded-xl font-bold items-center gap-2 hover:translate-x-2 transition-transform shadow-xl"
             >
               Set Up Your Reading Loop <ArrowRight className="w-5 h-5" />
-            </Link>
+            </TrackedLink>
           </div>
           
           <div className="flex-1 bg-slate-100 rounded-[48px] p-4 relative group">
@@ -329,12 +358,17 @@ export default async function Home() {
           </div>
           
           <div className="flex justify-center">
-            <Link
+            <TrackedLink
               href="/login"
+              marketingEvent="landing_cta_clicked"
+              marketingProperties={{
+                location: "footer-primary",
+                destination: "trial",
+              }}
               className="bg-[#fbbf24] text-[#0f172a] px-12 py-5 rounded-2xl font-black text-xl hover:scale-110 active:scale-95 transition-all shadow-2xl shadow-[#fbbf24]/20"
             >
               Claim 7-Day Free Trial
-            </Link>
+            </TrackedLink>
           </div>
 
           <div className="pt-20 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
