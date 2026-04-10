@@ -13,6 +13,10 @@ vi.mock("../../../../lib/marketing-lead-email", () => ({
 
 import { POST } from "./route";
 import { listMarketingLeads } from "../../../../lib/marketing-lead-store";
+import {
+  createMarketingReferralInvite,
+  listMarketingReferralInvites,
+} from "../../../../lib/marketing-referral-store";
 
 const ORIGINAL_ENV = { ...process.env };
 let tempDirectory = "";
@@ -29,6 +33,10 @@ beforeEach(async () => {
     DAILY_SPARKS_MARKETING_LEAD_STORE_PATH: path.join(
       tempDirectory,
       "marketing-leads.json",
+    ),
+    DAILY_SPARKS_MARKETING_REFERRAL_STORE_PATH: path.join(
+      tempDirectory,
+      "marketing-referrals.json",
     ),
   };
   sendMarketingLeadStarterKitEmailMock.mockReset();
@@ -107,5 +115,42 @@ describe("marketing lead capture route", () => {
     expect(response.status).toBe(400);
     expect(body.message).toMatch(/valid parent email/i);
     expect(await listMarketingLeads()).toEqual([]);
+  });
+
+  test("marks a referral invite as accepted when the starter kit submission includes a valid token", async () => {
+    const invite = await createMarketingReferralInvite({
+      referrerParentId: "parent-1",
+      referrerParentEmail: "parent@example.com",
+      referrerParentFullName: "Parent Example",
+      inviteeEmail: "friend@example.com",
+      inviteeFullName: "Friend Example",
+      inviteeStageInterest: "DP",
+      sourcePath: "/dashboard",
+    });
+
+    const response = await POST(
+      new Request("http://localhost:3000/api/marketing/leads", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          fullName: "Friend Example",
+          email: "friend@example.com",
+          childStageInterest: "DP",
+          pagePath: "/ib-parent-starter-kit",
+          referralToken: invite.token,
+        }),
+      }),
+    );
+
+    const body = await response.json();
+    const invites = await listMarketingReferralInvites({
+      referrerParentId: "parent-1",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.deliveryStatus).toBe("sent");
+    expect(invites[0].acceptedAt).toBeTruthy();
   });
 });

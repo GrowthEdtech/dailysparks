@@ -21,6 +21,10 @@ import { POST as logout } from "./logout/route";
 import { SESSION_COOKIE_NAME } from "../../lib/session";
 import { EDITORIAL_ADMIN_SESSION_COOKIE_NAME } from "../../lib/editorial-admin-auth";
 import * as mvpStore from "../../lib/mvp-store";
+import {
+  createMarketingReferralInvite,
+  listMarketingReferralInvites,
+} from "../../lib/marketing-referral-store";
 
 const verifyIdTokenMock = vi.fn();
 const createSessionCookieMock = vi.fn();
@@ -49,6 +53,10 @@ const invalidAdminSecret = "incorrect-admin-entry";
 beforeEach(async () => {
   tempDirectory = await mkdtemp(path.join(tmpdir(), "daily-sparks-routes-"));
   process.env.DAILY_SPARKS_STORE_PATH = path.join(tempDirectory, "mvp-store.json");
+  process.env.DAILY_SPARKS_MARKETING_REFERRAL_STORE_PATH = path.join(
+    tempDirectory,
+    "marketing-referrals.json",
+  );
   process.env.DAILY_SPARKS_EDITORIAL_ADMIN_PASSWORD = validAdminSecret;
   process.env.DAILY_SPARKS_EDITORIAL_ADMIN_SESSION_SECRET =
     "test-editorial-admin-session-secret";
@@ -66,6 +74,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   delete process.env.DAILY_SPARKS_STORE_PATH;
+  delete process.env.DAILY_SPARKS_MARKETING_REFERRAL_STORE_PATH;
   delete process.env.DAILY_SPARKS_EDITORIAL_ADMIN_PASSWORD;
   delete process.env.DAILY_SPARKS_EDITORIAL_ADMIN_SESSION_SECRET;
 
@@ -170,6 +179,45 @@ describe("auth routes", () => {
     expect(response.headers.get("set-cookie")).toContain(
       `${SESSION_COOKIE_NAME}=${encodeURIComponent("firebase-session-cookie")}`,
     );
+  });
+
+  test("marks a matching referral invite as trial started after successful login", async () => {
+    await createMarketingReferralInvite({
+      referrerParentId: "parent-1",
+      referrerParentEmail: "referrer@example.com",
+      referrerParentFullName: "Referrer Parent",
+      inviteeEmail: "parent@example.com",
+      inviteeFullName: "Parent Example",
+      inviteeStageInterest: "MYP",
+      sourcePath: "/dashboard",
+    });
+
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+
+    const response = await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    const invites = await listMarketingReferralInvites({
+      inviteeEmail: "parent@example.com",
+    });
+
+    expect(response.status).toBe(200);
+    expect(invites[0].trialStartedAt).toBeTruthy();
   });
 
   test("returns a secure-session error when Firebase session creation fails", async () => {

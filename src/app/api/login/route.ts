@@ -1,4 +1,5 @@
 import { getOrCreateParentProfile, getProfileByEmail } from "../../../lib/mvp-store";
+import { markMarketingReferralTrialStarted } from "../../../lib/marketing-referral-store";
 import { createSessionFromIdToken } from "../../../lib/session";
 
 type LoginRequestBody = {
@@ -49,6 +50,10 @@ export async function POST(request: Request) {
       fullName: session.identity.name,
       studentName: existingProfile?.student.studentName,
     });
+    await markMarketingReferralTrialStarted({
+      inviteeEmail: session.identity.email,
+      inviteeParentId: profile.parent.id,
+    }).catch(() => null);
 
     return Response.json(profile, {
       status: 200,

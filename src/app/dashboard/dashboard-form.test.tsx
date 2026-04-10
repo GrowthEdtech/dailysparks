@@ -369,4 +369,22 @@ describe("DashboardForm", () => {
     expect(markup).toContain("Email delivery");
     expect(markup).toContain("Synced to Notion");
   });
+
+  test("shows a referral card once the family has crossed a real value milestone", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardForm
+        initialProfile={{
+          ...initialProfile,
+          parent: {
+            ...initialProfile.parent,
+            firstBriefDeliveredAt: "2026-04-08T01:00:00.000Z",
+          },
+        }}
+        notionConfigured={true}
+      />,
+    );
+
+    expect(markup).toContain("Share Daily Sparks");
+    expect(markup).toContain("Invite another IB family");
+  });
 });

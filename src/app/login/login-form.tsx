@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 
 import { signInWithGooglePopup, signOutFirebaseClientSession } from "../../lib/firebase-client";
+import { trackMarketingEvent } from "../../lib/marketing-analytics";
 
 type LoginResponse = {
   message?: string;
@@ -66,6 +67,9 @@ export default function LoginForm() {
         return;
       }
 
+      trackMarketingEvent("trial_started", {
+        method: "google",
+      });
       void signOutFirebaseClientSession().catch(() => undefined);
       window.location.assign("/opening-dashboard");
     } catch (error) {

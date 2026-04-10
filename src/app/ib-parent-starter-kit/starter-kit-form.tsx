@@ -70,6 +70,7 @@ export default function StarterKitForm() {
       utmCampaign: normalizeUtm(normalizedSearchParams.get("utm_campaign")),
       utmContent: normalizeUtm(normalizedSearchParams.get("utm_content")),
       utmTerm: normalizeUtm(normalizedSearchParams.get("utm_term")),
+      referralToken: normalizeUtm(normalizedSearchParams.get("ref")),
     }),
     [normalizedSearchParams],
   );
@@ -80,6 +81,7 @@ export default function StarterKitForm() {
       utm_source: utmPayload.utmSource,
       utm_medium: utmPayload.utmMedium,
       utm_campaign: utmPayload.utmCampaign,
+      referred: Boolean(utmPayload.referralToken),
     });
   }, [utmPayload]);
 
@@ -124,11 +126,20 @@ export default function StarterKitForm() {
       trackMarketingEvent("starter_kit_submitted", {
         stage_interest: formState.childStageInterest,
         delivery_status: nextSuccess.deliveryStatus,
+        referred: Boolean(utmPayload.referralToken),
       });
+
+      if (utmPayload.referralToken) {
+        trackMarketingEvent("starter_kit_referred_submitted", {
+          stage_interest: formState.childStageInterest,
+          delivery_status: nextSuccess.deliveryStatus,
+        });
+      }
 
       if (nextSuccess.deliveryStatus === "sent") {
         trackMarketingEvent("starter_kit_delivered", {
           channel: "email",
+          referred: Boolean(utmPayload.referralToken),
         });
       }
     } catch (error) {

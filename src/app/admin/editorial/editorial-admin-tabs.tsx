@@ -25,6 +25,11 @@ const ADMIN_TABS = [
     description: "Generation history, sources, model trace",
   },
   {
+    href: "/admin/editorial/marketing",
+    label: "Marketing",
+    description: "Leads, starter kits, referrals, activation funnel",
+  },
+  {
     href: "/admin/editorial/operations-health",
     label: "Operations Health",
     description: "SLA alerts, self-healing, and reliability evidence",

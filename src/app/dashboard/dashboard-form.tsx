@@ -10,6 +10,7 @@ import GoodnotesDeliveryCard from "../../components/goodnotes-delivery-card";
 import NotionSyncCard from "../../components/notion-sync-card";
 import { getBillingSummary } from "../../lib/billing";
 import type { DashboardNotebookData } from "../../lib/dashboard-notebook-data-schema";
+import type { DashboardReferralData } from "../../lib/dashboard-referral-data-schema";
 import type {
   DailyBriefNotebookEntryRecord,
 } from "../../lib/daily-brief-notebook-store";
@@ -41,6 +42,8 @@ import {
   type ParentProfile,
   type Programme,
 } from "../../lib/mvp-types";
+import type { MarketingLeadStageInterest } from "../../lib/marketing-lead-store-types";
+import { trackMarketingEvent } from "../../lib/marketing-analytics";
 import {
   getInterestTaxonomyForProgramme,
   getPublicProgrammeOptions,
@@ -93,6 +96,15 @@ const DELIVERY_COUNTRY_OPTIONS = getDeliveryCountryOptions();
 const DELIVERY_TIME_OPTIONS = buildDeliveryTimeOptions();
 const DELIVERY_TIME_ZONE_OPTIONS = getDeliveryTimeZoneOptions();
 const DASHBOARD_NOTEBOOK_DATA_ENDPOINT = "/api/dashboard/notebook";
+const DASHBOARD_REFERRALS_ENDPOINT = "/api/dashboard/referrals";
+const EMPTY_DASHBOARD_REFERRAL_DATA: DashboardReferralData = {
+  summary: {
+    sentCount: 0,
+    acceptedCount: 0,
+    trialStartedCount: 0,
+  },
+  recentInvites: [],
+};
 
 function hasMeaningfulStudentName(studentName: string) {
   const normalizedStudentName = studentName.trim();
@@ -198,7 +210,27 @@ export default function DashboardForm({
   const [selectedWeeklyRecapId, setSelectedWeeklyRecapId] = useState<string | null>(
     initialWeeklyRecapHistory[0]?.id ?? null,
   );
+  const [referralInviteEmail, setReferralInviteEmail] = useState("");
+  const [referralInviteFullName, setReferralInviteFullName] = useState("");
+  const [referralInviteStageInterest, setReferralInviteStageInterest] =
+    useState<MarketingLeadStageInterest>(
+      initialProfile.student.programme === "DP"
+        ? "DP"
+        : initialProfile.student.programme === "MYP"
+          ? "MYP"
+          : "NOT_SURE",
+    );
+  const [referralData, setReferralData] = useState<DashboardReferralData>(
+    EMPTY_DASHBOARD_REFERRAL_DATA,
+  );
+  const [isReferralDataLoading, setIsReferralDataLoading] = useState(
+    Boolean(initialProfile.parent.firstBriefDeliveredAt),
+  );
+  const [referralErrorMessage, setReferralErrorMessage] = useState("");
+  const [referralSuccessMessage, setReferralSuccessMessage] = useState("");
+  const [isSendingReferralInvite, setIsSendingReferralInvite] = useState(false);
   const hasAppliedBrowserDeliveryDetection = useRef(false);
+  const hasTrackedReferralPromptView = useRef(false);
   const [isPending, startTransition] = useTransition();
   const deferredNotebookSearchQuery = useDeferredValue(notebookSearchQuery);
 
@@ -221,6 +253,7 @@ export default function DashboardForm({
   const weeklyRecapRecord = notebookData.weeklyRecapRecord;
   const weeklyRecapHistory = notebookData.weeklyRecapHistory;
   const notebookSuggestion = notebookData.notebookSuggestion;
+  const canShowReferralCard = Boolean(initialProfile.parent.firstBriefDeliveredAt);
   const hasNotebookSuggestion = notebookSuggestion !== null;
   const notebookLibraryItems = notebookItems.slice(0, 40);
   const generatedWeeklyRecap = buildDailyBriefNotebookWeeklyRecap({
@@ -287,6 +320,33 @@ export default function DashboardForm({
   async function refreshNotebookData() {
     setNotebookDataErrorMessage("");
     setNotebookData(await fetchNotebookData());
+  }
+
+  async function fetchReferralData() {
+    const response = await fetch(DASHBOARD_REFERRALS_ENDPOINT, {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+      },
+    });
+
+    const body = (await response.json().catch(() => null)) as
+      | (DashboardReferralData & { message?: string })
+      | { message?: string }
+      | null;
+
+    if (!response.ok) {
+      throw new Error(
+        body?.message ?? "We could not load your referral activity yet.",
+      );
+    }
+
+    return body as DashboardReferralData;
+  }
+
+  async function refreshReferralData() {
+    setReferralErrorMessage("");
+    setReferralData(await fetchReferralData());
   }
 
   useEffect(() => {
@@ -385,6 +445,51 @@ export default function DashboardForm({
     };
   }, [deferNotebookData]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!canShowReferralCard) {
+      return;
+    }
+
+    void fetchReferralData()
+      .then((data) => {
+        if (!cancelled) {
+          setReferralData(data);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setReferralErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "We could not load your referral activity yet.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsReferralDataLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canShowReferralCard]);
+
+  useEffect(() => {
+    if (!canShowReferralCard || hasTrackedReferralPromptView.current) {
+      return;
+    }
+
+    hasTrackedReferralPromptView.current = true;
+    trackMarketingEvent("referral_prompt_viewed", {
+      location: "dashboard",
+      programme,
+    });
+  }, [canShowReferralCard, programme]);
+
   function handleProgrammeChange(nextProgramme: Programme) {
     setSuccessMessage("");
     setErrorMessage("");
@@ -395,6 +500,13 @@ export default function DashboardForm({
     );
     setNotebookEntryType(
       getDailyBriefAuthoredEntryTypes(nextProgramme)[0] ?? "generic-note",
+    );
+    setReferralInviteStageInterest(
+      nextProgramme === "DP"
+        ? "DP"
+        : nextProgramme === "MYP"
+          ? "MYP"
+          : "NOT_SURE",
     );
   }
 
@@ -792,6 +904,57 @@ export default function DashboardForm({
     }
   }
 
+  async function handleSendReferralInvite() {
+    setReferralErrorMessage("");
+    setReferralSuccessMessage("");
+    setIsSendingReferralInvite(true);
+
+    try {
+      const response = await fetch("/api/referrals", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          inviteeEmail: referralInviteEmail,
+          inviteeFullName: referralInviteFullName,
+          inviteeStageInterest: referralInviteStageInterest,
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as
+        | {
+            message?: string;
+            deliveryStatus?: string;
+          }
+        | null;
+
+      if (!response.ok) {
+        setReferralErrorMessage(
+          body?.message ?? "We could not send that referral invite right now.",
+        );
+        setIsSendingReferralInvite(false);
+        return;
+      }
+
+      setReferralSuccessMessage(
+        body?.message ?? "Your referral invite is on the way.",
+      );
+      setReferralInviteEmail("");
+      setReferralInviteFullName("");
+      trackMarketingEvent("referral_invite_sent", {
+        stage_interest: referralInviteStageInterest,
+        delivery_status: body?.deliveryStatus ?? "unknown",
+      });
+      await refreshReferralData();
+      setIsSendingReferralInvite(false);
+    } catch {
+      setReferralErrorMessage(
+        "We could not reach the local API. Please try again.",
+      );
+      setIsSendingReferralInvite(false);
+    }
+  }
+
   function renderWeeklyRecapHistory() {
     if (weeklyRecapHistory.length === 0) {
       return null;
@@ -933,6 +1096,178 @@ export default function DashboardForm({
           ) : null}
         </div>
       </div>
+    );
+  }
+
+  function renderReferralCard() {
+    if (!canShowReferralCard) {
+      return null;
+    }
+
+    return (
+      <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm lg:p-7">
+        <div className="mb-4 flex items-center gap-2">
+          <Send className="h-5 w-5 text-[#0f172a]" />
+          <h2 className="text-lg font-bold text-[#0f172a]">Share Daily Sparks</h2>
+        </div>
+        <p className="text-sm font-semibold text-slate-700">
+          Invite another IB family
+        </p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          Your family has already reached the first brief milestone. This is the
+          best moment to share the calmer MYP or DP reading routine with another
+          parent.
+        </p>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Invites sent
+            </p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-[#0f172a]">
+              {referralData.summary.sentCount}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Starter kits accepted
+            </p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-[#0f172a]">
+              {referralData.summary.acceptedCount}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Trials started
+            </p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-[#0f172a]">
+              {referralData.summary.trialStartedCount}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
+            <label className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Parent email
+              </span>
+              <input
+                type="email"
+                value={referralInviteEmail}
+                onChange={(event) => setReferralInviteEmail(event.target.value)}
+                placeholder="friend@example.com"
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f172a]"
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Stage
+              </span>
+              <select
+                value={referralInviteStageInterest}
+                onChange={(event) =>
+                  setReferralInviteStageInterest(
+                    event.target.value as MarketingLeadStageInterest,
+                  )
+                }
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+              >
+                <option value="MYP">MYP</option>
+                <option value="DP">DP</option>
+                <option value="NOT_SURE">Not sure yet</option>
+              </select>
+            </label>
+          </div>
+
+          <label className="mt-3 block space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Parent name
+            </span>
+            <input
+              type="text"
+              value={referralInviteFullName}
+              onChange={(event) => setReferralInviteFullName(event.target.value)}
+              placeholder="Optional"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[#0f172a]"
+            />
+          </label>
+
+          {referralErrorMessage ? (
+            <p className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {referralErrorMessage}
+            </p>
+          ) : null}
+
+          {referralSuccessMessage ? (
+            <p className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {referralSuccessMessage}
+            </p>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={handleSendReferralInvite}
+            disabled={
+              isSendingReferralInvite ||
+              isPending ||
+              referralInviteEmail.trim().length === 0
+            }
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Send className="h-4 w-4" />
+            {isSendingReferralInvite || isPending
+              ? "Sending invite..."
+              : "Send referral invite"}
+          </button>
+        </div>
+
+        <div className="mt-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+            Recent invite activity
+          </p>
+          {isReferralDataLoading ? (
+            <div className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
+              Loading your referral activity now.
+            </div>
+          ) : referralData.recentInvites.length > 0 ? (
+            <div className="mt-3 space-y-3">
+              {referralData.recentInvites.map((invite) => (
+                <div
+                  key={invite.id}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[#0f172a]">
+                        {invite.inviteeFullName || "Unnamed family"}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {invite.inviteeEmail}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                      {invite.inviteeStageInterest === "NOT_SURE"
+                        ? "Not sure yet"
+                        : invite.inviteeStageInterest}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    delivery {invite.deliveryStatus} · accepted{" "}
+                    {invite.acceptedAt ? "yes" : "no"} · trial started{" "}
+                    {invite.trialStartedAt ? "yes" : "no"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-600">
+              Once you send the first invite, Daily Sparks will keep the latest
+              referral evidence here.
+            </div>
+          )}
+        </div>
+      </section>
     );
   }
 
@@ -1686,6 +2021,8 @@ export default function DashboardForm({
                 )}
               </div>
             </section>
+
+            {renderReferralCard()}
           </div>
 
           <div className="order-1 space-y-6 lg:order-2">

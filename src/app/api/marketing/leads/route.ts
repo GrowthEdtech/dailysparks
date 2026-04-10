@@ -2,6 +2,7 @@ import {
   captureMarketingLead,
   recordMarketingLeadDelivery,
 } from "../../../../lib/marketing-lead-store";
+import { markMarketingReferralAccepted } from "../../../../lib/marketing-referral-store";
 import { sendMarketingLeadStarterKitEmail } from "../../../../lib/marketing-lead-email";
 import type { MarketingLeadStageInterest } from "../../../../lib/marketing-lead-store-types";
 
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
         utmCampaign?: string | null;
         utmContent?: string | null;
         utmTerm?: string | null;
+        referralToken?: string | null;
       }
     | null;
 
@@ -86,6 +88,15 @@ export async function POST(request: Request) {
     messageId: delivery.sent ? deliveryMessageId : null,
     errorMessage: delivery.sent ? null : delivery.reason,
   });
+
+  const referralToken = normalizeNullableString(body?.referralToken);
+
+  if (referralToken) {
+    await markMarketingReferralAccepted({
+      token: referralToken,
+      inviteeEmail: email,
+    }).catch(() => null);
+  }
 
   return Response.json({
     leadId: captured.lead.id,
