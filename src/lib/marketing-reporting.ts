@@ -78,6 +78,7 @@ const ATTRIBUTION_SOURCE_LABELS: Record<MarketingAttributionSource, string> = {
 };
 
 const INTERNAL_OR_TEST_EMAIL_DOMAINS = new Set(["example.com", "geledtech.com"]);
+const MARKETING_QA_EMAIL_LOCAL_PART_MARKER = "+dailysparks-acq-qa-";
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
@@ -89,6 +90,14 @@ export function isInternalOrTestMarketingEmail(email: string) {
 
   if (atIndex === -1) {
     return false;
+  }
+
+  if (
+    normalizedEmail
+      .slice(0, atIndex)
+      .includes(MARKETING_QA_EMAIL_LOCAL_PART_MARKER)
+  ) {
+    return true;
   }
 
   return INTERNAL_OR_TEST_EMAIL_DOMAINS.has(normalizedEmail.slice(atIndex + 1));

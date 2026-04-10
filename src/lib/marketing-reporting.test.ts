@@ -453,6 +453,34 @@ describe("marketing reporting summary", () => {
           updatedAt: "2026-04-10T00:00:00.000Z",
         },
         {
+          id: "lead-qa",
+          email: "piaccte+dailysparks-acq-qa-20260410@gmail.com",
+          fullName: "Starter Kit QA",
+          childStageInterest: "DP",
+          source: "ib-parent-starter-kit",
+          pagePath: "/ib-parent-starter-kit",
+          referrerUrl: null,
+          utmSource: "qa",
+          utmMedium: "manual",
+          utmCampaign: "starter-kit-acquisition-qa-2026-04-10",
+          utmContent: "codex",
+          utmTerm: "parent-reading",
+          captureCount: 1,
+          deliveryStatus: "sent",
+          deliveryMessageId: "qa-message",
+          deliveryErrorMessage: null,
+          deliveredAt: "2026-04-10T00:00:00.000Z",
+          nurtureEmailCount: 1,
+          nurtureLastAttemptAt: "2026-04-10T00:00:00.000Z",
+          nurtureLastSentAt: "2026-04-10T00:00:00.000Z",
+          nurtureLastStage: 1,
+          nurtureLastStatus: "sent",
+          nurtureLastMessageId: "qa-nurture",
+          nurtureLastError: null,
+          createdAt: "2026-04-10T00:00:00.000Z",
+          updatedAt: "2026-04-10T00:00:00.000Z",
+        },
+        {
           id: "lead-external",
           email: "parent@families.hk",
           fullName: "Parent Example",
@@ -524,6 +552,24 @@ describe("marketing reporting summary", () => {
         },
         {
           parent: {
+            id: "parent-qa",
+            email: "piaccte+dailysparks-acq-qa-20260410@gmail.com",
+            fullName: "Starter Kit QA",
+            trialStartedAt: "2026-04-10T00:00:00.000Z",
+            firstBriefDeliveredAt: null,
+            firstPaidAt: null,
+            subscriptionActivatedAt: null,
+            trialConversionNurtureLastStage: null,
+            trialConversionNurtureLastStatus: null,
+            updatedAt: "2026-04-10T00:00:00.000Z",
+          },
+          student: {
+            studentName: "QA Student",
+            programme: "DP",
+          },
+        },
+        {
+          parent: {
             id: "parent-external",
             email: "parent@families.hk",
             fullName: "Parent Example",
@@ -548,6 +594,11 @@ describe("marketing reporting summary", () => {
           parentEmail: "admin@geledtech.com",
         },
         {
+          id: "entry-qa",
+          parentId: "parent-qa",
+          parentEmail: "piaccte+dailysparks-acq-qa-20260410@gmail.com",
+        },
+        {
           id: "entry-external",
           parentId: "parent-external",
           parentEmail: "parent@families.hk",
@@ -560,6 +611,11 @@ describe("marketing reporting summary", () => {
           parentEmail: "admin@geledtech.com",
         },
         {
+          id: "recap-qa",
+          parentId: "parent-qa",
+          parentEmail: "piaccte+dailysparks-acq-qa-20260410@gmail.com",
+        },
+        {
           id: "recap-external",
           parentId: "parent-external",
           parentEmail: "parent@families.hk",
@@ -568,11 +624,11 @@ describe("marketing reporting summary", () => {
     });
 
     expect(summary.exclusions).toEqual({
-      profiles: 1,
-      leads: 1,
+      profiles: 2,
+      leads: 2,
       referralInvites: 1,
-      notebookEntries: 1,
-      weeklyRecaps: 1,
+      notebookEntries: 2,
+      weeklyRecaps: 2,
     });
     expect(summary.leads.total).toBe(1);
     expect(summary.referrals.sent).toBe(0);
