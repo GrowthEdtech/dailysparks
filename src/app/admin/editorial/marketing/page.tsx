@@ -70,6 +70,15 @@ export default async function MarketingAdminPage() {
             family referral activity in one place so we can see where D2C growth
             is really compounding.
           </p>
+          <p className="mt-4 inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold tracking-[0.02em] text-slate-500">
+            Internal/test accounts are excluded from this baseline
+            {summary.exclusions.profiles +
+              summary.exclusions.leads +
+              summary.exclusions.referralInvites >
+            0
+              ? ` · ${summary.exclusions.profiles} profiles, ${summary.exclusions.leads} leads, ${summary.exclusions.referralInvites} referral invites`
+              : ""}
+          </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[31rem]">

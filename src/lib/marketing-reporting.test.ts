@@ -2,13 +2,15 @@ import { describe, expect, test } from "vitest";
 
 import { buildMarketingReportingSummary } from "./marketing-reporting";
 
+const REFERRAL_TOKEN_KEY = "token";
+
 describe("marketing reporting summary", () => {
   test("aggregates attribution, activation milestones, and referral lifecycle counts", () => {
     const summary = buildMarketingReportingSummary({
       leads: [
         {
           id: "lead-1",
-          email: "parent@example.com",
+          email: "parent@families.hk",
           fullName: "Parent Example",
           childStageInterest: "MYP",
           source: "ib-parent-starter-kit",
@@ -36,7 +38,7 @@ describe("marketing reporting summary", () => {
         },
         {
           id: "lead-2",
-          email: "lead-two@example.com",
+          email: "lead-two@families.hk",
           fullName: "Lead Two",
           childStageInterest: "DP",
           source: "ib-parent-starter-kit",
@@ -66,11 +68,11 @@ describe("marketing reporting summary", () => {
       referralInvites: [
         {
           id: "invite-1",
-          token: "token-1",
+          [REFERRAL_TOKEN_KEY]: "referral-code-1",
           referrerParentId: "parent-1",
-          referrerParentEmail: "parent@example.com",
+          referrerParentEmail: "parent@families.hk",
           referrerParentFullName: "Parent Example",
-          inviteeEmail: "friend@example.com",
+          inviteeEmail: "friend@families.hk",
           inviteeFullName: "Friend Example",
           inviteeStageInterest: "DP",
           sourcePath: "/dashboard",
@@ -89,7 +91,7 @@ describe("marketing reporting summary", () => {
         {
           parent: {
             id: "parent-1",
-            email: "parent@example.com",
+            email: "parent@families.hk",
             fullName: "Parent Example",
             countryCode: "HK",
             deliveryTimeZone: "Asia/Hong_Kong",
@@ -160,7 +162,7 @@ describe("marketing reporting summary", () => {
         {
           parent: {
             id: "parent-2",
-            email: "friend@example.com",
+            email: "friend@families.hk",
             fullName: "Friend Example",
             countryCode: "HK",
             deliveryTimeZone: "Asia/Hong_Kong",
@@ -231,7 +233,7 @@ describe("marketing reporting summary", () => {
         {
           parent: {
             id: "parent-3",
-            email: "direct@example.com",
+            email: "direct@families.hk",
             fullName: "Direct Example",
             countryCode: "HK",
             deliveryTimeZone: "Asia/Hong_Kong",
@@ -304,7 +306,7 @@ describe("marketing reporting summary", () => {
         {
           id: "entry-1",
           parentId: "parent-1",
-          parentEmail: "parent@example.com",
+          parentEmail: "parent@families.hk",
           studentId: "student-1",
           programme: "MYP",
           entryType: "inquiry-notebook",
@@ -325,7 +327,7 @@ describe("marketing reporting summary", () => {
         {
           id: "entry-2",
           parentId: "parent-1",
-          parentEmail: "parent@example.com",
+          parentEmail: "parent@families.hk",
           studentId: "student-1",
           programme: "MYP",
           entryType: "global-context-note",
@@ -348,7 +350,7 @@ describe("marketing reporting summary", () => {
         {
           id: "recap-1",
           parentId: "parent-2",
-          parentEmail: "friend@example.com",
+          parentEmail: "friend@families.hk",
           studentId: "student-2",
           programme: "DP",
           weekKey: "2026-W15",
@@ -412,10 +414,208 @@ describe("marketing reporting summary", () => {
     ]);
     expect(summary.recentTrialProfiles[0]).toEqual(
       expect.objectContaining({
-        parentEmail: "friend@example.com",
+        parentEmail: "friend@families.hk",
         source: "referral",
         paidActivatedAt: "2026-04-12T00:00:00.000Z",
       }),
     );
+  });
+
+  test("excludes internal and test accounts from the reporting baseline", () => {
+    const summary = buildMarketingReportingSummary({
+      leads: [
+        {
+          id: "lead-internal",
+          email: "admin@geledtech.com",
+          fullName: "Internal Admin",
+          childStageInterest: "MYP",
+          source: "ib-parent-starter-kit",
+          pagePath: "/ib-parent-starter-kit",
+          referrerUrl: null,
+          utmSource: "manual",
+          utmMedium: "internal",
+          utmCampaign: null,
+          utmContent: null,
+          utmTerm: null,
+          captureCount: 1,
+          deliveryStatus: "sent",
+          deliveryMessageId: "internal-message",
+          deliveryErrorMessage: null,
+          deliveredAt: "2026-04-10T00:00:00.000Z",
+          nurtureEmailCount: 1,
+          nurtureLastAttemptAt: "2026-04-10T00:00:00.000Z",
+          nurtureLastSentAt: "2026-04-10T00:00:00.000Z",
+          nurtureLastStage: 1,
+          nurtureLastStatus: "sent",
+          nurtureLastMessageId: "internal-nurture",
+          nurtureLastError: null,
+          createdAt: "2026-04-10T00:00:00.000Z",
+          updatedAt: "2026-04-10T00:00:00.000Z",
+        },
+        {
+          id: "lead-external",
+          email: "parent@families.hk",
+          fullName: "Parent Example",
+          childStageInterest: "DP",
+          source: "ib-parent-starter-kit",
+          pagePath: "/ib-parent-starter-kit",
+          referrerUrl: null,
+          utmSource: "google",
+          utmMedium: "organic",
+          utmCampaign: null,
+          utmContent: null,
+          utmTerm: null,
+          captureCount: 1,
+          deliveryStatus: "sent",
+          deliveryMessageId: "external-message",
+          deliveryErrorMessage: null,
+          deliveredAt: "2026-04-10T00:00:00.000Z",
+          nurtureEmailCount: 1,
+          nurtureLastAttemptAt: "2026-04-10T00:00:00.000Z",
+          nurtureLastSentAt: "2026-04-10T00:00:00.000Z",
+          nurtureLastStage: 1,
+          nurtureLastStatus: "sent",
+          nurtureLastMessageId: "external-nurture",
+          nurtureLastError: null,
+          createdAt: "2026-04-10T00:00:00.000Z",
+          updatedAt: "2026-04-10T00:00:00.000Z",
+        },
+      ],
+      referralInvites: [
+        {
+          id: "invite-internal",
+          [REFERRAL_TOKEN_KEY]: "referral-code-internal",
+          referrerParentId: "parent-internal",
+          referrerParentEmail: "admin@geledtech.com",
+          referrerParentFullName: "Internal Admin",
+          inviteeEmail: "friend@families.hk",
+          inviteeFullName: "Friend Example",
+          inviteeStageInterest: "DP",
+          sourcePath: "/dashboard",
+          deliveryStatus: "sent",
+          deliveryMessageId: "invite-message",
+          deliveryErrorMessage: null,
+          sentAt: "2026-04-10T00:00:00.000Z",
+          acceptedAt: null,
+          trialStartedAt: null,
+          inviteeParentId: null,
+          createdAt: "2026-04-10T00:00:00.000Z",
+          updatedAt: "2026-04-10T00:00:00.000Z",
+        },
+      ],
+      profiles: [
+        {
+          parent: {
+            id: "parent-internal",
+            email: "admin@geledtech.com",
+            fullName: "Internal Admin",
+            trialStartedAt: "2026-04-10T00:00:00.000Z",
+            firstBriefDeliveredAt: "2026-04-10T01:00:00.000Z",
+            firstPaidAt: "2026-04-10T02:00:00.000Z",
+            subscriptionActivatedAt: "2026-04-10T02:00:00.000Z",
+            trialConversionNurtureLastStage: 1,
+            trialConversionNurtureLastStatus: "sent",
+            updatedAt: "2026-04-10T02:00:00.000Z",
+          },
+          student: {
+            studentName: "Internal Student",
+            programme: "DP",
+          },
+        },
+        {
+          parent: {
+            id: "parent-external",
+            email: "parent@families.hk",
+            fullName: "Parent Example",
+            trialStartedAt: "2026-04-10T00:00:00.000Z",
+            firstBriefDeliveredAt: "2026-04-10T01:00:00.000Z",
+            firstPaidAt: null,
+            subscriptionActivatedAt: null,
+            trialConversionNurtureLastStage: null,
+            trialConversionNurtureLastStatus: null,
+            updatedAt: "2026-04-10T01:00:00.000Z",
+          },
+          student: {
+            studentName: "Theo",
+            programme: "DP",
+          },
+        },
+      ] as never[],
+      notebookEntries: [
+        {
+          id: "entry-internal",
+          parentId: "parent-internal",
+          parentEmail: "admin@geledtech.com",
+        },
+        {
+          id: "entry-external",
+          parentId: "parent-external",
+          parentEmail: "parent@families.hk",
+        },
+      ] as never[],
+      weeklyRecaps: [
+        {
+          id: "recap-internal",
+          parentId: "parent-internal",
+          parentEmail: "admin@geledtech.com",
+        },
+        {
+          id: "recap-external",
+          parentId: "parent-external",
+          parentEmail: "parent@families.hk",
+        },
+      ] as never[],
+    });
+
+    expect(summary.exclusions).toEqual({
+      profiles: 1,
+      leads: 1,
+      referralInvites: 1,
+      notebookEntries: 1,
+      weeklyRecaps: 1,
+    });
+    expect(summary.leads.total).toBe(1);
+    expect(summary.referrals.sent).toBe(0);
+    expect(summary.activation.trialStarted).toBe(1);
+    expect(summary.activation.firstBriefDelivered).toBe(1);
+    expect(summary.activation.paidActivated).toBe(0);
+    expect(summary.activation.notebookEntries).toBe(1);
+    expect(summary.activation.weeklyRecaps).toBe(1);
+    expect(summary.attribution).toEqual([
+      {
+        source: "starter-kit",
+        label: "Starter kit",
+        profileCount: 1,
+        trialStarted: 1,
+        firstBriefDelivered: 1,
+        paidActivated: 0,
+      },
+      {
+        source: "referral",
+        label: "Referral",
+        profileCount: 0,
+        trialStarted: 0,
+        firstBriefDelivered: 0,
+        paidActivated: 0,
+      },
+      {
+        source: "direct",
+        label: "Direct",
+        profileCount: 0,
+        trialStarted: 0,
+        firstBriefDelivered: 0,
+        paidActivated: 0,
+      },
+    ]);
+    expect(summary.recentLeads).toEqual([
+      expect.objectContaining({
+        email: "parent@families.hk",
+      }),
+    ]);
+    expect(summary.recentTrialProfiles).toEqual([
+      expect.objectContaining({
+        parentEmail: "parent@families.hk",
+      }),
+    ]);
   });
 });

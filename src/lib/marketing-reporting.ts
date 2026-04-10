@@ -33,6 +33,13 @@ export type MarketingRecentTrialProfile = {
 };
 
 export type MarketingReportingSummary = {
+  exclusions: {
+    profiles: number;
+    leads: number;
+    referralInvites: number;
+    notebookEntries: number;
+    weeklyRecaps: number;
+  };
   leads: {
     total: number;
     delivered: number;
@@ -70,8 +77,21 @@ const ATTRIBUTION_SOURCE_LABELS: Record<MarketingAttributionSource, string> = {
   direct: "Direct",
 };
 
+const INTERNAL_OR_TEST_EMAIL_DOMAINS = new Set(["example.com", "geledtech.com"]);
+
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+export function isInternalOrTestMarketingEmail(email: string) {
+  const normalizedEmail = normalizeEmail(email);
+  const atIndex = normalizedEmail.lastIndexOf("@");
+
+  if (atIndex === -1) {
+    return false;
+  }
+
+  return INTERNAL_OR_TEST_EMAIL_DOMAINS.has(normalizedEmail.slice(atIndex + 1));
 }
 
 function getPaidActivatedAt(profile: ParentProfile) {
@@ -114,26 +134,52 @@ export function buildMarketingReportingSummary(input: {
   notebookEntries: DailyBriefNotebookEntryRecord[];
   weeklyRecaps: DailyBriefNotebookWeeklyRecapRecord[];
 }): MarketingReportingSummary {
-  const leadEmails = new Set(input.leads.map((lead) => normalizeEmail(lead.email)));
+  const filteredProfiles = input.profiles.filter(
+    (profile) => !isInternalOrTestMarketingEmail(profile.parent.email),
+  );
+  const filteredProfileIds = new Set(
+    filteredProfiles.map((profile) => profile.parent.id),
+  );
+  const filteredLeads = input.leads.filter(
+    (lead) => !isInternalOrTestMarketingEmail(lead.email),
+  );
+  const filteredReferralInvites = input.referralInvites.filter(
+    (invite) =>
+      !isInternalOrTestMarketingEmail(invite.referrerParentEmail) &&
+      !isInternalOrTestMarketingEmail(invite.inviteeEmail),
+  );
+  const filteredNotebookEntries = input.notebookEntries.filter(
+    (entry) =>
+      filteredProfileIds.has(entry.parentId) &&
+      !isInternalOrTestMarketingEmail(entry.parentEmail),
+  );
+  const filteredWeeklyRecaps = input.weeklyRecaps.filter(
+    (recap) =>
+      filteredProfileIds.has(recap.parentId) &&
+      !isInternalOrTestMarketingEmail(recap.parentEmail),
+  );
+  const leadEmails = new Set(
+    filteredLeads.map((lead) => normalizeEmail(lead.email)),
+  );
   const referralParentIds = new Set(
-    input.referralInvites
+    filteredReferralInvites
       .map((invite) => invite.inviteeParentId?.trim() || null)
       .filter(Boolean) as string[],
   );
   const referralEmails = new Set(
-    input.referralInvites.map((invite) => normalizeEmail(invite.inviteeEmail)),
+    filteredReferralInvites.map((invite) => normalizeEmail(invite.inviteeEmail)),
   );
   const notebookEntryCountByParentId = new Map<string, number>();
   const weeklyRecapCountByParentId = new Map<string, number>();
 
-  for (const entry of input.notebookEntries) {
+  for (const entry of filteredNotebookEntries) {
     notebookEntryCountByParentId.set(
       entry.parentId,
       (notebookEntryCountByParentId.get(entry.parentId) ?? 0) + 1,
     );
   }
 
-  for (const recap of input.weeklyRecaps) {
+  for (const recap of filteredWeeklyRecaps) {
     weeklyRecapCountByParentId.set(
       recap.parentId,
       (weeklyRecapCountByParentId.get(recap.parentId) ?? 0) + 1,
@@ -157,7 +203,7 @@ export function buildMarketingReportingSummary(input: {
     ]),
   );
 
-  const recentTrialProfiles = [...input.profiles]
+  const recentTrialProfiles = [...filteredProfiles]
     .filter((profile) => Boolean(profile.parent.trialStartedAt))
     .sort((left, right) =>
       getLatestLifecycleTimestamp(right).localeCompare(getLatestLifecycleTimestamp(left)),
@@ -191,7 +237,7 @@ export function buildMarketingReportingSummary(input: {
       };
     });
 
-  for (const profile of input.profiles) {
+  for (const profile of filteredProfiles) {
     const source = resolveAttributionSource({
       profile,
       leadEmails,
@@ -220,42 +266,49 @@ export function buildMarketingReportingSummary(input: {
   }
 
   return {
+    exclusions: {
+      profiles: input.profiles.length - filteredProfiles.length,
+      leads: input.leads.length - filteredLeads.length,
+      referralInvites: input.referralInvites.length - filteredReferralInvites.length,
+      notebookEntries: input.notebookEntries.length - filteredNotebookEntries.length,
+      weeklyRecaps: input.weeklyRecaps.length - filteredWeeklyRecaps.length,
+    },
     leads: {
-      total: input.leads.length,
-      delivered: input.leads.filter((lead) => lead.deliveryStatus === "sent").length,
-      failed: input.leads.filter((lead) => lead.deliveryStatus === "failed").length,
-      nurtureSent: input.leads.filter((lead) => lead.nurtureLastStatus === "sent")
+      total: filteredLeads.length,
+      delivered: filteredLeads.filter((lead) => lead.deliveryStatus === "sent").length,
+      failed: filteredLeads.filter((lead) => lead.deliveryStatus === "failed").length,
+      nurtureSent: filteredLeads.filter((lead) => lead.nurtureLastStatus === "sent")
         .length,
-      nurtureFailed: input.leads.filter((lead) => lead.nurtureLastStatus === "failed")
+      nurtureFailed: filteredLeads.filter((lead) => lead.nurtureLastStatus === "failed")
         .length,
     },
     activation: {
-      trialStarted: input.profiles.filter((profile) => Boolean(profile.parent.trialStartedAt))
+      trialStarted: filteredProfiles.filter((profile) => Boolean(profile.parent.trialStartedAt))
         .length,
-      firstBriefDelivered: input.profiles.filter((profile) =>
+      firstBriefDelivered: filteredProfiles.filter((profile) =>
         Boolean(profile.parent.firstBriefDeliveredAt),
       ).length,
-      paidActivated: input.profiles.filter((profile) => Boolean(getPaidActivatedAt(profile)))
+      paidActivated: filteredProfiles.filter((profile) => Boolean(getPaidActivatedAt(profile)))
         .length,
-      notebookEntries: input.notebookEntries.length,
-      weeklyRecaps: input.weeklyRecaps.length,
+      notebookEntries: filteredNotebookEntries.length,
+      weeklyRecaps: filteredWeeklyRecaps.length,
     },
     referrals: {
-      sent: input.referralInvites.filter((invite) => invite.deliveryStatus === "sent")
+      sent: filteredReferralInvites.filter((invite) => invite.deliveryStatus === "sent")
         .length,
-      accepted: input.referralInvites.filter((invite) => Boolean(invite.acceptedAt))
+      accepted: filteredReferralInvites.filter((invite) => Boolean(invite.acceptedAt))
         .length,
-      trialStarted: input.referralInvites.filter((invite) =>
+      trialStarted: filteredReferralInvites.filter((invite) =>
         Boolean(invite.trialStartedAt),
       ).length,
     },
     attribution: ATTRIBUTION_SOURCE_ORDER.map(
       (source) => attributionCounts.get(source)!,
     ),
-    recentLeads: [...input.leads]
+    recentLeads: [...filteredLeads]
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .slice(0, 5),
-    recentReferralInvites: [...input.referralInvites]
+    recentReferralInvites: [...filteredReferralInvites]
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .slice(0, 5),
     recentTrialProfiles,
