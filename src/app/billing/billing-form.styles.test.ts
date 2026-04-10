@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  BILLING_CARD_TITLE_RAIL_CLASSNAME,
+  BILLING_CARD_TITLE_ROW_CLASSNAME,
   BILLING_CONTENT_GRID_CLASSNAME,
   BILLING_HEADER_SHELL_CLASSNAME,
   BILLING_MAIN_SHELL_CLASSNAME,
@@ -26,6 +28,12 @@ describe("billing layout styles", () => {
     expect(BILLING_HEADER_SHELL_CLASSNAME).toContain("xl:min-h-[132px]");
     expect(BILLING_CONTENT_GRID_CLASSNAME).toContain("xl:items-stretch");
     expect(BILLING_SUMMARY_COLUMN_CLASSNAME).toContain("flex h-full flex-col");
+  });
+
+  test("uses a shared title rail for summary and pricing cards", () => {
+    expect(BILLING_CARD_TITLE_RAIL_CLASSNAME).toContain("xl:min-h-[188px]");
+    expect(BILLING_CARD_TITLE_RAIL_CLASSNAME).toContain("border-b");
+    expect(BILLING_CARD_TITLE_ROW_CLASSNAME).toContain("justify-between");
   });
 });
 

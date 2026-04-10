@@ -98,4 +98,14 @@ describe("BillingForm", () => {
     expect(markup).toContain("flex h-full flex-col");
     expect(markup).toContain("mt-auto pt-6");
   });
+
+  test("uses a shared title rail so desktop card headers read as one system", () => {
+    const markup = renderToStaticMarkup(
+      <BillingForm initialProfile={initialProfile} initialPricingMarket="intl" />,
+    );
+
+    expect(markup).toContain("xl:min-h-[188px]");
+    expect(markup).toContain("border-b border-slate-100/80 pb-5");
+    expect(markup).toContain("invisible rounded-full bg-[#0f172a]");
+  });
 });

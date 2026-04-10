@@ -11,6 +11,12 @@ export const BILLING_SUMMARY_COLUMN_CLASSNAME = "flex h-full flex-col";
 
 export const BILLING_PLAN_GRID_CLASSNAME = "space-y-6";
 
+export const BILLING_CARD_TITLE_RAIL_CLASSNAME =
+  "flex min-h-[176px] flex-col gap-4 border-b border-slate-100/80 pb-5 xl:min-h-[188px]";
+
+export const BILLING_CARD_TITLE_ROW_CLASSNAME =
+  "mt-2 flex min-h-[3.5rem] items-start justify-between gap-4";
+
 export const BACK_TO_DASHBOARD_CTA_CLASSNAME =
   "inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-slate-50 px-5 py-4 text-sm font-bold transition hover:border-slate-400 hover:bg-slate-100";
 

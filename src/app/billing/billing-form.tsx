@@ -15,6 +15,8 @@ import {
 import type { ParentProfile } from "../../lib/mvp-types";
 import type { PricingMarket } from "../../lib/pricing-market";
 import {
+  BILLING_CARD_TITLE_RAIL_CLASSNAME,
+  BILLING_CARD_TITLE_ROW_CLASSNAME,
   BILLING_CONTENT_GRID_CLASSNAME,
   BILLING_HEADER_SHELL_CLASSNAME,
   BILLING_MAIN_SHELL_CLASSNAME,
@@ -57,6 +59,20 @@ export default function BillingForm({
   const hasActiveStripeSubscription =
     parent.subscriptionStatus === "active" && Boolean(parent.stripeCustomerId);
   const canceledCheckout = searchParams.get("canceled") === "1";
+  const summarySecondaryBadges = [
+    subscriptionPlanBadgeLabel
+      ? {
+          label: subscriptionPlanBadgeLabel,
+          className: "rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]",
+        }
+      : null,
+    isStripeSandbox
+      ? {
+          label: "Stripe sandbox",
+          className: "rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]",
+        }
+      : null,
+  ].filter((badge): badge is { label: string; className: string } => Boolean(badge));
 
   async function handleSelectPlan(subscriptionPlan: "monthly" | "yearly") {
     setErrorMessage("");
@@ -146,28 +162,29 @@ export default function BillingForm({
             <section
               className={`${BILLING_SUMMARY_COLUMN_CLASSNAME} rounded-3xl border border-slate-100 bg-white p-6 shadow-sm`}
             >
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-                Current subscription
-              </p>
-              <h2 className="mt-2 text-xl font-bold text-[#0f172a]">
-                {billingSummary.title}
-              </h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                {billingSummary.subtitle}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <span className="rounded-full bg-[#f8fafc] px-3 py-1 text-xs font-semibold text-slate-600">
-                  {billingSummary.statusLabel}
-                </span>
-                {subscriptionPlanBadgeLabel ? (
-                  <span className="rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]">
-                    {subscriptionPlanBadgeLabel}
+              <div className={BILLING_CARD_TITLE_RAIL_CLASSNAME}>
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                  Current subscription
+                </p>
+                <div className={BILLING_CARD_TITLE_ROW_CLASSNAME}>
+                  <h2 className="text-xl font-bold text-[#0f172a]">
+                    {billingSummary.title}
+                  </h2>
+                  <span className="rounded-full bg-[#f8fafc] px-3 py-1 text-xs font-semibold text-slate-600">
+                    {billingSummary.statusLabel}
                   </span>
-                ) : null}
-                {isStripeSandbox ? (
-                  <span className="rounded-full bg-[#fff7dd] px-3 py-1 text-xs font-semibold text-[#b45309]">
-                    Stripe sandbox
-                  </span>
+                </div>
+                <p className="text-sm leading-6 text-slate-500">
+                  {billingSummary.subtitle}
+                </p>
+                {summarySecondaryBadges.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {summarySecondaryBadges.map((badge) => (
+                      <span key={badge.label} className={badge.className}>
+                        {badge.label}
+                      </span>
+                    ))}
+                  </div>
                 ) : null}
               </div>
               <p className="mt-4 text-xs leading-5 text-slate-500">
@@ -223,32 +240,38 @@ export default function BillingForm({
                       : "border-slate-200 bg-white"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className={BILLING_CARD_TITLE_RAIL_CLASSNAME}>
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
                         {plan.eyebrow}
                       </p>
-                      <h3 className="mt-2 text-xl font-bold text-[#0f172a]">
-                        {plan.name}
-                      </h3>
+                      <div className={BILLING_CARD_TITLE_ROW_CLASSNAME}>
+                        <h3 className="text-xl font-bold text-[#0f172a]">
+                          {plan.name}
+                        </h3>
+                        <span
+                          className={
+                            isSelected
+                              ? "rounded-full bg-[#0f172a] px-3 py-1 text-xs font-semibold text-white"
+                              : "invisible rounded-full bg-[#0f172a] px-3 py-1 text-xs font-semibold text-white"
+                          }
+                          aria-hidden={!isSelected}
+                        >
+                          Selected
+                        </span>
+                      </div>
                     </div>
-                    {isSelected ? (
-                      <span className="rounded-full bg-[#0f172a] px-3 py-1 text-xs font-semibold text-white">
-                        Selected
-                      </span>
-                    ) : null}
+                    <p className="text-sm leading-6 text-slate-500">
+                      {plan.description}
+                    </p>
                   </div>
 
-                  <div className="mt-4 text-[#0f172a]">
+                  <div className="mt-5 text-[#0f172a]">
                     <span className="text-4xl font-extrabold">{plan.price}</span>
                     <span className="ml-2 text-sm font-medium text-slate-500">
                       {plan.cadence}
                     </span>
                   </div>
-
-                  <p className="mt-3 text-sm leading-6 text-slate-500">
-                    {plan.description}
-                  </p>
 
                   <ul className="mt-5 flex-1 space-y-3">
                     {plan.bullets.map((item) => (
