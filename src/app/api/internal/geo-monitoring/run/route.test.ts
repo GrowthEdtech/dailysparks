@@ -1,11 +1,28 @@
 import { describe, expect, test, vi } from "vitest";
 
-const { runGeoMonitoringMock } = vi.hoisted(() => ({
+const {
+  runGeoMonitoringMock,
+  createGeoMonitoringRunMock,
+  updateGeoMonitoringRunMock,
+  afterMock,
+} = vi.hoisted(() => ({
   runGeoMonitoringMock: vi.fn(),
+  createGeoMonitoringRunMock: vi.fn(),
+  updateGeoMonitoringRunMock: vi.fn(),
+  afterMock: vi.fn(),
 }));
 
 vi.mock("../../../../../lib/geo-monitoring", () => ({
   runGeoMonitoring: runGeoMonitoringMock,
+}));
+
+vi.mock("../../../../../lib/geo-monitoring-run-store", () => ({
+  createGeoMonitoringRun: createGeoMonitoringRunMock,
+  updateGeoMonitoringRun: updateGeoMonitoringRunMock,
+}));
+
+vi.mock("next/server", () => ({
+  after: afterMock,
 }));
 
 import { POST } from "./route";
@@ -30,15 +47,23 @@ describe("internal geo monitoring route", () => {
     expect(body.message).toMatch(/scheduler/i);
   });
 
-  test("runs the GEO monitor for authorized scheduler requests", async () => {
+  test("queues the GEO monitor for authorized scheduler requests", async () => {
     process.env = {
       ...ORIGINAL_ENV,
       DAILY_SPARKS_SCHEDULER_SECRET: "scheduler-secret",
     };
+    createGeoMonitoringRunMock.mockImplementationOnce(async (input) => ({
+      ...input,
+      id: "scheduled-run-1",
+      status: "running",
+      queryDiagnostics: [],
+    }));
     runGeoMonitoringMock.mockResolvedValueOnce({
       run: {
-        id: "run-1",
+        id: "scheduled-run-1",
         status: "completed",
+        createdLogCount: 1,
+        machineReadabilityReadyCount: 4,
       },
       logs: [{ id: "log-1" }],
       machineReadabilityStatus: {
@@ -62,9 +87,20 @@ describe("internal geo monitoring route", () => {
     );
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(body.mode).toBe("geo-monitoring");
-    expect(body.run.id).toBe("run-1");
-    expect(body.summary.logCreatedCount).toBe(1);
+    expect(response.status).toBe(202);
+    expect(body.mode).toBe("geo-monitoring-async");
+    expect(body.run.id).toBe("scheduled-run-1");
+    expect(body.run.status).toBe("running");
+    expect(body.summary.runStatus).toBe("running");
+    expect(body.summary.logCreatedCount).toBe(0);
+    expect(afterMock).toHaveBeenCalledTimes(1);
+
+    await afterMock.mock.calls[0]?.[0]();
+
+    expect(runGeoMonitoringMock).toHaveBeenCalledWith({
+      source: "scheduled",
+      runId: "scheduled-run-1",
+      persistMode: "update",
+    });
   });
 });
