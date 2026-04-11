@@ -17,6 +17,9 @@ function dedupeEmails(emails: string[]) {
   return [...new Set(emails.map((email) => normalizeEmail(email)).filter(Boolean))];
 }
 
+export const DAILY_BRIEF_SYNTHETIC_CANARY_MISSING_RECIPIENTS_REASON =
+  "No healthy synthetic canary recipients are configured for this brief.";
+
 function buildFailedTargetsReason(
   failedTargets: DailyBriefFailedDeliveryTarget[],
 ) {
@@ -78,7 +81,7 @@ export function getDailyBriefSyntheticCanaryParentEmails() {
     return dedupeEmails(dispatchFallback);
   }
 
-  return ["admin@geledtech.com"];
+  return [];
 }
 
 export function releaseDailyBriefSyntheticCanaryState(input: {
@@ -136,7 +139,7 @@ export async function runDailyBriefSyntheticCanary(input: {
         lastAttemptAt: input.attemptTimestamp,
         blockedAt: input.attemptTimestamp,
         lastFailureReason:
-          "No healthy synthetic canary recipients are configured for this brief.",
+          DAILY_BRIEF_SYNTHETIC_CANARY_MISSING_RECIPIENTS_REASON,
         lastFailedTargets: [],
         lastDeliveryReceipts: [],
       },

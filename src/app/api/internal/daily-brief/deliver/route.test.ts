@@ -748,4 +748,98 @@ describe("daily brief deliver route", () => {
       }),
     );
   });
+
+  test("continues production delivery when no healthy synthetic canary recipients are configured", async () => {
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED = "true";
+
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.deliveredCount).toBe(1);
+    expect(body.summary.syntheticCanaryBlockedCount).toBe(0);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[0]).toMatchObject({
+      parent: {
+        email: "pyp-family@example.com",
+      },
+    });
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[2]).toEqual({
+      attachmentMode: "production",
+      renderer: "typst",
+    });
+    expect(history[0]?.status).toBe("published");
+    expect(history[0]?.pipelineStage).toBe("published");
+    expect(history[0]?.syntheticCanary).toBeNull();
+    expect(history[0]?.adminNotes).toContain(
+      "Synthetic canary was skipped because no healthy canary recipients are configured",
+    );
+  });
+
+  test("auto-recovers a missing-recipient canary block and delivers to active families", async () => {
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED = "true";
+
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createDailyBriefHistoryEntry(
+      buildHistoryInput({
+        syntheticCanary: {
+          status: "blocked",
+          targetParentEmails: [],
+          attemptCount: 1,
+          successCount: 0,
+          failureCount: 1,
+          autoRetryCount: 0,
+          lastAttemptAt: "2026-04-03T01:00:00.000Z",
+          lastPassedAt: null,
+          blockedAt: "2026-04-03T01:00:00.000Z",
+          releasedAt: null,
+          releasedBy: null,
+          releaseReason: "",
+          lastFailureReason:
+            "No healthy synthetic canary recipients are configured for this brief.",
+          lastFailedTargets: [],
+          lastDeliveryReceipts: [],
+          renderAudit: null,
+        },
+      }),
+    );
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.deliveredCount).toBe(1);
+    expect(body.summary.syntheticCanaryBlockedCount).toBe(0);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(history[0]?.status).toBe("published");
+    expect(history[0]?.syntheticCanary).toBeNull();
+    expect(history[0]?.failureReason).toBe("");
+  });
 });
