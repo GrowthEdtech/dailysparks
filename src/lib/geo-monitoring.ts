@@ -16,6 +16,7 @@ import { auditGeoContent } from "./geo-content-audit";
 import {
   type RuntimeAiConnection,
   type RuntimeAiConnectionWithProvider,
+  listActiveAiConnectionsWithSecret,
 } from "./ai-connection-store";
 import {
   generateOpenAiCompatibleText,
@@ -28,7 +29,7 @@ import type { GeoVisibilityLogRecord, GeoVisibilityLogSource } from "./geo-visib
 import {
   buildGeoMonitoringPhaseNote,
   getDeferredGeoMonitoringEngines,
-  getEnabledGeoMonitoringEngines,
+  getPhaseEnabledGeoMonitoringEngines,
 } from "./geo-monitoring-engine-policy";
 import {
   inferGeoPromptIntentBucketFromPrompt,
@@ -63,6 +64,7 @@ export type GeoMonitoringEngineInput = {
   queryVariant: string;
   baseUrl: string;
   fetchImpl?: typeof fetch;
+  runtimeConnection?: RuntimeAiConnectionWithProvider | null;
   signal?: AbortSignal;
 };
 
@@ -123,6 +125,29 @@ function getGeoMonitoringEngineTimeoutMs() {
   return 15000;
 }
 
+function getGeoMonitoringEngineMaxRetries() {
+  const rawValue = process.env.DAILY_SPARKS_GEO_ENGINE_MAX_RETRIES?.trim();
+  const parsed = rawValue ? Number.parseInt(rawValue, 10) : Number.NaN;
+
+  if (Number.isFinite(parsed) && parsed >= 0) {
+    return Math.min(3, parsed);
+  }
+
+  return 1;
+}
+
+function getGeoMonitoringEngineRetryBaseDelayMs() {
+  const rawValue =
+    process.env.DAILY_SPARKS_GEO_ENGINE_RETRY_BASE_DELAY_MS?.trim();
+  const parsed = rawValue ? Number.parseInt(rawValue, 10) : Number.NaN;
+
+  if (Number.isFinite(parsed) && parsed >= 0) {
+    return Math.min(5000, parsed);
+  }
+
+  return 250;
+}
+
 function getGeoMonitoringConcurrency() {
   const rawValue = process.env.DAILY_SPARKS_GEO_MONITORING_CONCURRENCY?.trim();
   const parsed = rawValue ? Number.parseInt(rawValue, 10) : Number.NaN;
@@ -134,35 +159,94 @@ function getGeoMonitoringConcurrency() {
   return 4;
 }
 
+function getGeoMonitoringPerEngineConcurrency() {
+  const rawValue =
+    process.env.DAILY_SPARKS_GEO_MONITORING_PER_ENGINE_CONCURRENCY?.trim();
+  const parsed = rawValue ? Number.parseInt(rawValue, 10) : Number.NaN;
+
+  if (Number.isFinite(parsed) && parsed >= 1) {
+    return Math.min(4, parsed);
+  }
+
+  return 2;
+}
+
 function expandPromptQueries(prompt: GeoPromptRecord) {
   return Array.from(
     new Set([prompt.prompt, ...prompt.fanOutHints].map((item) => item.trim()).filter(Boolean)),
   );
 }
 
-async function mapWithConcurrency<T, R>(
-  items: T[],
+async function mapGeoMonitoringTasksWithConcurrency<R>(
+  tasks: GeoMonitoringTask[],
   concurrency: number,
-  mapper: (item: T) => Promise<R>,
+  perEngineConcurrency: number,
+  mapper: (task: GeoMonitoringTask) => Promise<R>,
 ) {
-  const results = new Array<R>(items.length);
-  let nextIndex = 0;
-
-  async function worker() {
-    while (nextIndex < items.length) {
-      const currentIndex = nextIndex;
-      nextIndex += 1;
-      results[currentIndex] = await mapper(items[currentIndex]!);
-    }
+  if (tasks.length === 0) {
+    return [] as R[];
   }
 
-  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+  const results = new Array<R>(tasks.length);
+  const pendingTasks = tasks.map((task, index) => ({ task, index }));
+  const activeByEngine = new Map<GeoEngineType, number>();
+  const maxGlobalConcurrency = Math.max(1, concurrency);
+  const maxPerEngineConcurrency = Math.max(1, perEngineConcurrency);
+  let activeCount = 0;
+  let completedCount = 0;
+  let rejected = false;
 
-  await Promise.all(
-    Array.from({ length: workerCount }, () => worker()),
-  );
+  return await new Promise<R[]>((resolve, reject) => {
+    const launchNext = () => {
+      if (rejected) {
+        return;
+      }
 
-  return results;
+      while (activeCount < maxGlobalConcurrency && pendingTasks.length > 0) {
+        const nextPendingIndex = pendingTasks.findIndex(
+          ({ task }) =>
+            (activeByEngine.get(task.engine) ?? 0) < maxPerEngineConcurrency,
+        );
+
+        if (nextPendingIndex === -1) {
+          break;
+        }
+
+        const nextTask = pendingTasks.splice(nextPendingIndex, 1)[0]!;
+        activeCount += 1;
+        activeByEngine.set(
+          nextTask.task.engine,
+          (activeByEngine.get(nextTask.task.engine) ?? 0) + 1,
+        );
+
+        mapper(nextTask.task)
+          .then((result) => {
+            results[nextTask.index] = result;
+          })
+          .catch((error) => {
+            rejected = true;
+            reject(error);
+          })
+          .finally(() => {
+            activeCount -= 1;
+            activeByEngine.set(
+              nextTask.task.engine,
+              Math.max((activeByEngine.get(nextTask.task.engine) ?? 1) - 1, 0),
+            );
+            completedCount += 1;
+
+            if (completedCount === tasks.length) {
+              resolve(results);
+              return;
+            }
+
+            launchNext();
+          });
+      }
+    };
+
+    launchNext();
+  });
 }
 
 function mapRunSourceToLogSource(
@@ -510,6 +594,175 @@ function buildPerplexityConnection(): RuntimeAiConnection | null {
   };
 }
 
+type GeoMonitoringRuntimeCapabilities = {
+  activeEngines: Set<GeoEngineType>;
+  unavailableReasons: Map<GeoEngineType, string>;
+  runtimeConnectionByEngine: Map<GeoEngineType, RuntimeAiConnectionWithProvider>;
+};
+
+function getGeminiApiKeyConfigured() {
+  return Boolean(process.env.GEMINI_API_KEY?.trim());
+}
+
+function getPerplexityApiKeyConfigured() {
+  return Boolean(process.env.PERPLEXITY_API_KEY?.trim());
+}
+
+function getClaudeApiKeyConfigured() {
+  return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
+}
+
+function connectionText(connection: RuntimeAiConnectionWithProvider) {
+  return [
+    connection.name,
+    connection.baseUrl,
+    connection.defaultModel,
+    connection.notes,
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
+function scoreGeminiMonitoringConnection(
+  connection: RuntimeAiConnectionWithProvider,
+) {
+  const text = connectionText(connection);
+  let score = 0;
+
+  if (connection.providerType === "vertex-openai-compatible") {
+    score += 100;
+  }
+
+  if (text.includes("gemini")) {
+    score += 50;
+  }
+
+  if (connection.isDefault) {
+    score += 10;
+  }
+
+  return score;
+}
+
+function scorePerplexityMonitoringConnection(
+  connection: RuntimeAiConnectionWithProvider,
+) {
+  const text = connectionText(connection);
+  let score = 0;
+
+  if (text.includes("perplexity.ai")) {
+    score += 100;
+  }
+
+  if (text.includes("perplexity") || text.includes("sonar")) {
+    score += 50;
+  }
+
+  if (connection.isDefault) {
+    score += 10;
+  }
+
+  return score;
+}
+
+function pickHighestScoringConnection(
+  connections: RuntimeAiConnectionWithProvider[],
+  scoreConnection: (connection: RuntimeAiConnectionWithProvider) => number,
+) {
+  return connections
+    .map((connection) => ({
+      connection,
+      score: scoreConnection(connection),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .at(0)?.connection ?? null;
+}
+
+async function resolveGeoMonitoringRuntimeCapabilities(): Promise<GeoMonitoringRuntimeCapabilities> {
+  const capabilities: GeoMonitoringRuntimeCapabilities = {
+    activeEngines: new Set<GeoEngineType>(),
+    unavailableReasons: new Map<GeoEngineType, string>(),
+    runtimeConnectionByEngine: new Map<
+      GeoEngineType,
+      RuntimeAiConnectionWithProvider
+    >(),
+  };
+  let activeConnections: RuntimeAiConnectionWithProvider[] = [];
+
+  try {
+    activeConnections = await listActiveAiConnectionsWithSecret();
+  } catch (error) {
+    capabilities.unavailableReasons.set(
+      "chatgpt-search",
+      error instanceof Error
+        ? `AI connection store is unavailable: ${error.message}`
+        : "AI connection store is unavailable.",
+    );
+  }
+
+  const defaultConnection = activeConnections.find(
+    (connection) => connection.isDefault,
+  );
+  const geminiConnection = pickHighestScoringConnection(
+    activeConnections,
+    scoreGeminiMonitoringConnection,
+  );
+  const perplexityConnection = pickHighestScoringConnection(
+    activeConnections,
+    scorePerplexityMonitoringConnection,
+  );
+
+  if (defaultConnection) {
+    capabilities.activeEngines.add("chatgpt-search");
+  } else if (!capabilities.unavailableReasons.has("chatgpt-search")) {
+    capabilities.unavailableReasons.set(
+      "chatgpt-search",
+      "No active default AI connection is configured.",
+    );
+  }
+
+  if (geminiConnection) {
+    capabilities.activeEngines.add("gemini");
+    capabilities.runtimeConnectionByEngine.set("gemini", geminiConnection);
+  } else if (getGeminiApiKeyConfigured()) {
+    capabilities.activeEngines.add("gemini");
+  } else {
+    capabilities.unavailableReasons.set(
+      "gemini",
+      "No active Gemini/Vertex monitoring connection or GEMINI_API_KEY is configured.",
+    );
+  }
+
+  if (perplexityConnection) {
+    capabilities.activeEngines.add("perplexity");
+    capabilities.runtimeConnectionByEngine.set("perplexity", perplexityConnection);
+  } else if (getPerplexityApiKeyConfigured()) {
+    capabilities.activeEngines.add("perplexity");
+  } else {
+    capabilities.unavailableReasons.set(
+      "perplexity",
+      "No Perplexity monitoring connection or PERPLEXITY_API_KEY is configured.",
+    );
+  }
+
+  if (getClaudeApiKeyConfigured()) {
+    capabilities.activeEngines.add("claude");
+  } else {
+    capabilities.unavailableReasons.set(
+      "claude",
+      "ANTHROPIC_API_KEY is not configured.",
+    );
+  }
+
+  capabilities.unavailableReasons.set(
+    "google-ai-overviews",
+    "Google AI Overviews uses the manual evidence workflow in this phase.",
+  );
+
+  return capabilities;
+}
+
 async function executeDefaultEngineCheck(
   input: GeoMonitoringEngineInput,
 ): Promise<GeoMonitoringEngineResult> {
@@ -548,7 +801,7 @@ async function executeDefaultEngineCheck(
       }
     }
     case "perplexity": {
-      const connection = buildPerplexityConnection();
+      const connection = input.runtimeConnection ?? buildPerplexityConnection();
 
       if (!connection) {
         return {
@@ -566,6 +819,16 @@ async function executeDefaultEngineCheck(
       );
     }
     case "gemini":
+      if (input.runtimeConnection) {
+        return executeOpenAiCompatibleEngine(
+          input.runtimeConnection,
+          input.queryVariant,
+          input.baseUrl,
+          fetchImpl,
+          input.signal,
+        );
+      }
+
       return executeGeminiEngine(
         input.queryVariant,
         input.baseUrl,
@@ -631,6 +894,80 @@ async function executeEngineCheckWithDeadline(options: {
       clearTimeout(timeoutId);
     }
   }
+}
+
+const GEO_RETRYABLE_ENGINE_FAILURE_PATTERNS = [
+  /timed out/i,
+  /\b429\b/i,
+  /rate limit/i,
+  /\b5\d\d\b/i,
+  /temporar/i,
+  /fetch failed/i,
+  /network/i,
+  /econnreset/i,
+  /etimedout/i,
+  /connection/i,
+] as const;
+
+function isRetryableGeoMonitoringFailure(result: GeoMonitoringEngineResult) {
+  return (
+    result.outcome === "failed" &&
+    GEO_RETRYABLE_ENGINE_FAILURE_PATTERNS.some((pattern) =>
+      pattern.test(result.reason),
+    )
+  );
+}
+
+async function waitForGeoMonitoringRetry(delayMs: number) {
+  if (delayMs <= 0) {
+    return;
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+async function executeEngineCheckWithRetryPolicy(options: {
+  executeEngineCheck: (
+    input: GeoMonitoringEngineInput,
+  ) => Promise<GeoMonitoringEngineResult>;
+  input: GeoMonitoringEngineInput;
+  timeoutMs: number;
+  maxRetries: number;
+  retryBaseDelayMs: number;
+}) {
+  let attemptCount = 0;
+  let lastResult: GeoMonitoringEngineResult = {
+    outcome: "failed",
+    reason: "GEO monitoring engine check did not run.",
+  };
+
+  while (attemptCount <= options.maxRetries) {
+    attemptCount += 1;
+    lastResult = await executeEngineCheckWithDeadline({
+      executeEngineCheck: options.executeEngineCheck,
+      input: options.input,
+      timeoutMs: options.timeoutMs,
+    });
+
+    if (
+      !isRetryableGeoMonitoringFailure(lastResult) ||
+      attemptCount > options.maxRetries
+    ) {
+      return {
+        result: lastResult,
+        attemptCount,
+      };
+    }
+
+    await waitForGeoMonitoringRetry(
+      options.retryBaseDelayMs * 2 ** (attemptCount - 1),
+    );
+  }
+
+  return {
+    result: lastResult,
+    attemptCount,
+  };
 }
 
 const GEO_STRONG_NEGATIVE_PATTERNS = [
@@ -723,12 +1060,14 @@ type GeoMonitoringTask = {
   prompt: GeoPromptRecord;
   queryVariant: string;
   engine: GeoEngineType;
+  runtimeConnection?: RuntimeAiConnectionWithProvider | null;
 };
 
 type GeoMonitoringTaskResult = {
   task: GeoMonitoringTask;
   result: GeoMonitoringEngineResult;
   durationMs: number;
+  attemptCount: number;
 };
 
 function matchesAnyPattern(
@@ -921,10 +1260,17 @@ export async function runGeoMonitoring(
   let skippedCount = 0;
   let failedCount = 0;
   const deferredEnginesSeen = new Set<GeoEngineType>();
+  const unavailablePhaseTwoEnginesSeen = new Set<GeoEngineType>();
   const engineCheckTimeoutMs = getGeoMonitoringEngineTimeoutMs();
+  const engineCheckMaxRetries = getGeoMonitoringEngineMaxRetries();
+  const engineCheckRetryBaseDelayMs =
+    getGeoMonitoringEngineRetryBaseDelayMs();
   const engineCheckConcurrency = getGeoMonitoringConcurrency();
+  const engineCheckPerEngineConcurrency =
+    getGeoMonitoringPerEngineConcurrency();
 
   const executeEngineCheck = input.executeEngineCheck ?? executeDefaultEngineCheck;
+  const runtimeCapabilities = await resolveGeoMonitoringRuntimeCapabilities();
 
   const machineReadabilityAssessment = await assessMachineReadability(
     fetchImpl,
@@ -948,11 +1294,21 @@ export async function runGeoMonitoring(
   const monitoringTasks: GeoMonitoringTask[] = [];
 
   for (const { prompt, queryVariant } of allExpandedQueries) {
-    const enabledEngines = getEnabledGeoMonitoringEngines(prompt);
+    const phaseEnabledEngines = getPhaseEnabledGeoMonitoringEngines(prompt);
+    const enabledEngines = phaseEnabledEngines.filter((engine) =>
+      runtimeCapabilities.activeEngines.has(engine),
+    );
+    const unavailablePhaseTwoEngines = phaseEnabledEngines.filter(
+      (engine) => !runtimeCapabilities.activeEngines.has(engine),
+    );
     const deferredEngines = getDeferredGeoMonitoringEngines(prompt);
 
     for (const deferredEngine of deferredEngines) {
       deferredEnginesSeen.add(deferredEngine);
+    }
+
+    for (const unavailableEngine of unavailablePhaseTwoEngines) {
+      unavailablePhaseTwoEnginesSeen.add(unavailableEngine);
     }
 
     for (const engine of enabledEngines) {
@@ -965,27 +1321,36 @@ export async function runGeoMonitoring(
       };
       currentBreakdown.attemptedCount += 1;
       engineBreakdownMap.set(engine, currentBreakdown);
-      monitoringTasks.push({ prompt, queryVariant, engine });
+      monitoringTasks.push({
+        prompt,
+        queryVariant,
+        engine,
+        runtimeConnection:
+          runtimeCapabilities.runtimeConnectionByEngine.get(engine) ?? null,
+      });
     }
   }
 
-  const engineResults = await mapWithConcurrency<
-    GeoMonitoringTask,
+  const engineResults = await mapGeoMonitoringTasksWithConcurrency<
     GeoMonitoringTaskResult
   >(
     monitoringTasks,
     engineCheckConcurrency,
+    engineCheckPerEngineConcurrency,
     async (task) => {
       const engineCheckStartedAt = Date.now();
-      const result = await executeEngineCheckWithDeadline({
+      const { result, attemptCount } = await executeEngineCheckWithRetryPolicy({
         executeEngineCheck,
         timeoutMs: engineCheckTimeoutMs,
+        maxRetries: engineCheckMaxRetries,
+        retryBaseDelayMs: engineCheckRetryBaseDelayMs,
         input: {
           engine: task.engine,
           prompt: task.prompt,
           queryVariant: task.queryVariant,
           baseUrl,
           fetchImpl,
+          runtimeConnection: task.runtimeConnection,
         },
       });
 
@@ -993,11 +1358,12 @@ export async function runGeoMonitoring(
         task,
         result,
         durationMs: Date.now() - engineCheckStartedAt,
+        attemptCount,
       };
     },
   );
 
-  for (const { task, result, durationMs } of engineResults) {
+  for (const { task, result, durationMs, attemptCount } of engineResults) {
     const { prompt, queryVariant, engine } = task;
     const currentBreakdown = engineBreakdownMap.get(engine) ?? {
       engine,
@@ -1057,7 +1423,12 @@ export async function runGeoMonitoring(
         sentiment: createdLog.sentiment,
         citationUrlCount: result.citationUrls.length,
         durationMs,
-        reason: "Created visibility log.",
+        reason:
+          attemptCount > 1
+            ? `Created visibility log after ${attemptCount - 1} retry${
+                attemptCount === 2 ? "" : "ies"
+              }.`
+            : "Created visibility log.",
         logId: createdLog.id,
       });
     } else if (result.outcome === "skipped") {
@@ -1080,7 +1451,13 @@ export async function runGeoMonitoring(
     } else {
       failedCount += 1;
       currentBreakdown.failedCount += 1;
-      notes.push(`${engine} · ${queryVariant}: ${result.reason}`);
+      const finalFailureReason =
+        attemptCount > 1
+          ? `${result.reason} Retried ${attemptCount - 1} time${
+              attemptCount === 2 ? "" : "s"
+            }.`
+          : result.reason;
+      notes.push(`${engine} · ${queryVariant}: ${finalFailureReason}`);
       queryDiagnostics.push({
         promptId: prompt.id,
         promptIntentLabel: prompt.intentLabel,
@@ -1091,7 +1468,7 @@ export async function runGeoMonitoring(
         sentiment: null,
         citationUrlCount: 0,
         durationMs,
-        reason: result.reason,
+        reason: finalFailureReason,
         logId: null,
       });
     }
@@ -1111,8 +1488,36 @@ export async function runGeoMonitoring(
     notes.push("No active GEO prompts were configured for this run.");
   }
 
-  if (deferredEnginesSeen.size > 0) {
-    notes.push(buildGeoMonitoringPhaseNote());
+  const activeEnginesSeen = new Set(
+    monitoringTasks.map((task) => task.engine),
+  );
+
+  if (
+    activeEnginesSeen.size > 0 ||
+    unavailablePhaseTwoEnginesSeen.size > 0 ||
+    deferredEnginesSeen.size > 0
+  ) {
+    notes.push(
+      buildGeoMonitoringPhaseNote({
+        activeEngines: Array.from(activeEnginesSeen),
+        unavailablePhaseTwoEngines: Array.from(unavailablePhaseTwoEnginesSeen),
+        deferredEngines: Array.from(deferredEnginesSeen),
+      }),
+    );
+  }
+
+  if (unavailablePhaseTwoEnginesSeen.size > 0) {
+    notes.push(
+      Array.from(unavailablePhaseTwoEnginesSeen)
+        .map(
+          (engine) =>
+            `${engine}: ${
+              runtimeCapabilities.unavailableReasons.get(engine) ??
+              "Monitoring engine is unavailable."
+            }`,
+        )
+        .join(" | "),
+    );
   }
 
   const nextRun: Parameters<typeof createGeoMonitoringRun>[0] = {

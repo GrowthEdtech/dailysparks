@@ -315,6 +315,33 @@ export async function getDefaultAiConnectionWithSecret(): Promise<RuntimeAiConne
   return buildRuntimeConnection(defaultConnection, getAiConnectionEncryptionSecret());
 }
 
+export async function listActiveAiConnectionsWithSecret(): Promise<
+  RuntimeAiConnectionWithProvider[]
+> {
+  const store = getAiConnectionStore();
+  const connections = await store.listConnections();
+  const encryptionSecret = getAiConnectionEncryptionSecret();
+  const runtimeConnections: RuntimeAiConnectionWithProvider[] = [];
+
+  for (const connection of connections.filter((candidate) => candidate.active)) {
+    try {
+      const runtimeConnection = buildRuntimeConnection(
+        connection,
+        encryptionSecret,
+      );
+
+      if (runtimeConnection) {
+        runtimeConnections.push(runtimeConnection);
+      }
+    } catch {
+      // Skip malformed optional connections so one bad record does not block
+      // GEO capability discovery for healthy active connections.
+    }
+  }
+
+  return runtimeConnections;
+}
+
 export async function getDefaultAiConnectionPolicyWithSecret() {
   const store = getAiConnectionStore();
   const connections = await store.listConnections();
