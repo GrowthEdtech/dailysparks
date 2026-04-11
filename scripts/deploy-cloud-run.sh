@@ -121,6 +121,8 @@ DEPLOY_ARGS=(
   --region "${REGION}"
   --ingress internal-and-cloud-load-balancing
   --allow-unauthenticated
+  --no-cpu-throttling
+  --timeout 900
   --set-env-vars "${ENV_VARS}"
 )
 
