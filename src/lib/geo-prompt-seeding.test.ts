@@ -5,6 +5,7 @@ import path from "node:path";
 
 import { createGeoPrompt, listGeoPrompts, updateGeoPrompt } from "./geo-prompt-store";
 import { seedWebsiteDerivedGeoPrompts } from "./geo-prompt-seeding";
+import { GEO_WEBSITE_DERIVED_PROMPT_SEEDS } from "./geo-website-derived-prompts";
 
 const ORIGINAL_ENV = { ...process.env };
 let tempDirectory = "";
@@ -64,6 +65,37 @@ describe("geo-prompt-seeding", () => {
     expect(syncedPrompt?.engineCoverage).toEqual(["chatgpt-search", "gemini"]);
     expect(syncedPrompt?.notes).toBe("Drifted notes");
     expect(syncedPrompt?.websiteDerivedSeedId).toBeTruthy();
+  });
+
+  test("upgrades old unchanged seeded prompts to the current phase-two engine coverage", async () => {
+    const seed = GEO_WEBSITE_DERIVED_PROMPT_SEEDS[0];
+
+    if (!seed?.websiteDerivedSeedId) {
+      throw new Error("Expected a website-derived seed with a stable id.");
+    }
+
+    const legacySeededPrompt = await createGeoPrompt({
+      ...seed,
+      engineCoverage: ["chatgpt-search"],
+    });
+
+    const run = await seedWebsiteDerivedGeoPrompts();
+    const prompts = await listGeoPrompts();
+    const upgradedPrompt = prompts.find(
+      (prompt) => prompt.id === legacySeededPrompt.id,
+    );
+
+    expect(run.createdPrompts.length).toBe(run.totalSeedCount - 1);
+    expect(run.updatedPrompts).toContainEqual(
+      expect.objectContaining({
+        id: legacySeededPrompt.id,
+        engineCoverage: ["chatgpt-search", "gemini"],
+      }),
+    );
+    expect(upgradedPrompt?.engineCoverage).toEqual([
+      "chatgpt-search",
+      "gemini",
+    ]);
   });
 
   test("backfills a stable seed id onto legacy starter prompts matched by exact prompt text", async () => {

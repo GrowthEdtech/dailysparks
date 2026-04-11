@@ -45,6 +45,25 @@ function promptMatchesSeed(existingPrompt: GeoPromptRecord, seedPrompt: typeof G
   );
 }
 
+function promptMatchesSeedExceptEngineCoverage(
+  existingPrompt: GeoPromptRecord,
+  seedPrompt: typeof GEO_WEBSITE_DERIVED_PROMPT_SEEDS[number],
+) {
+  return (
+    normalizeSeedId(existingPrompt.websiteDerivedSeedId) ===
+      normalizeSeedId(seedPrompt.websiteDerivedSeedId) &&
+    existingPrompt.prompt === seedPrompt.prompt &&
+    existingPrompt.intentLabel === seedPrompt.intentLabel &&
+    existingPrompt.priority === seedPrompt.priority &&
+    JSON.stringify(normalizeProgrammeList(existingPrompt.targetProgrammes)) ===
+      JSON.stringify(normalizeProgrammeList(seedPrompt.targetProgrammes)) &&
+    JSON.stringify(normalizeStringList(existingPrompt.fanOutHints)) ===
+      JSON.stringify(normalizeStringList(seedPrompt.fanOutHints)) &&
+    existingPrompt.active === seedPrompt.active &&
+    existingPrompt.notes === seedPrompt.notes
+  );
+}
+
 export async function seedWebsiteDerivedGeoPrompts(): Promise<SeedWebsiteDerivedGeoPromptsResult> {
   const existingPrompts = await listGeoPrompts();
   const existingPromptsBySeedId = new Map<string, GeoPromptRecord>();
@@ -72,8 +91,19 @@ export async function seedWebsiteDerivedGeoPrompts(): Promise<SeedWebsiteDerived
 
     if (existingPrompt) {
       if (!normalizeSeedId(existingPrompt.websiteDerivedSeedId) && seedId) {
+        const shouldUpgradeEngineCoverage =
+          promptMatchesSeedExceptEngineCoverage(
+            {
+              ...existingPrompt,
+              websiteDerivedSeedId: seed.websiteDerivedSeedId ?? null,
+            },
+            seed,
+          );
         const backfilledPrompt = await updateGeoPrompt(existingPrompt.id, {
           websiteDerivedSeedId: seed.websiteDerivedSeedId ?? null,
+          ...(shouldUpgradeEngineCoverage
+            ? { engineCoverage: seed.engineCoverage }
+            : {}),
         });
 
         if (backfilledPrompt) {
@@ -90,6 +120,24 @@ export async function seedWebsiteDerivedGeoPrompts(): Promise<SeedWebsiteDerived
         skippedPromptCount += 1;
         continue;
       }
+
+      if (promptMatchesSeedExceptEngineCoverage(existingPrompt, seed)) {
+        const upgradedPrompt = await updateGeoPrompt(existingPrompt.id, {
+          engineCoverage: seed.engineCoverage,
+        });
+
+        if (upgradedPrompt) {
+          updatedPrompts.push(upgradedPrompt);
+          existingPromptsByPrompt.set(promptKey, upgradedPrompt);
+          if (seedId) {
+            existingPromptsBySeedId.set(seedId, upgradedPrompt);
+          }
+        } else {
+          skippedPromptCount += 1;
+        }
+        continue;
+      }
+
       skippedPromptCount += 1;
       continue;
     }

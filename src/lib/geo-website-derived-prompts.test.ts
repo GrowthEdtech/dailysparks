@@ -24,8 +24,8 @@ describe("geo-website-derived-prompts", () => {
     expect(
       GEO_WEBSITE_DERIVED_PROMPT_SEEDS.every(
         (prompt) =>
-          prompt.engineCoverage.length === 1 &&
-          prompt.engineCoverage[0] === "chatgpt-search",
+          prompt.engineCoverage.includes("chatgpt-search") &&
+          prompt.engineCoverage.includes("gemini"),
       ),
     ).toBe(true);
   });
