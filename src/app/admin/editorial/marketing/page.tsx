@@ -159,6 +159,11 @@ export default async function MarketingAdminPage() {
                 detail: "Stored recap assets ready for retention loops",
               },
               {
+                label: "Paid activated",
+                value: summary.activation.paidActivated,
+                detail: "Families that converted from trial into paid access",
+              },
+              {
                 label: "Starter kits delivered",
                 value: summary.leads.delivered,
                 detail: "Lead captures that received the parent kit",

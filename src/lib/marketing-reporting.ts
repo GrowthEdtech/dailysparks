@@ -3,8 +3,14 @@ import type { DailyBriefNotebookEntryRecord } from "./daily-brief-notebook-store
 import type { MarketingLeadRecord } from "./marketing-lead-store-types";
 import type { MarketingReferralInviteRecord } from "./marketing-referral-store-types";
 import type { DailyBriefNotebookWeeklyRecapRecord } from "./daily-brief-notebook-weekly-recap-store";
+import {
+  MARKETING_ATTRIBUTION_SOURCES,
+  MARKETING_ATTRIBUTION_SOURCE_LABELS,
+  normalizeMarketingAttributionSource,
+} from "./marketing-attribution";
+import type { MarketingAttributionSource } from "./marketing-attribution";
 
-export type MarketingAttributionSource = "starter-kit" | "referral" | "direct";
+export type { MarketingAttributionSource } from "./marketing-attribution";
 
 export type MarketingAttributionSummary = {
   source: MarketingAttributionSource;
@@ -66,17 +72,8 @@ export type MarketingReportingSummary = {
 };
 
 const ATTRIBUTION_SOURCE_ORDER: MarketingAttributionSource[] = [
-  "starter-kit",
-  "referral",
-  "direct",
+  ...MARKETING_ATTRIBUTION_SOURCES,
 ];
-
-const ATTRIBUTION_SOURCE_LABELS: Record<MarketingAttributionSource, string> = {
-  "starter-kit": "Starter kit",
-  referral: "Referral",
-  direct: "Direct",
-};
-
 const INTERNAL_OR_TEST_EMAIL_DOMAINS = new Set(["example.com", "geledtech.com"]);
 const MARKETING_QA_EMAIL_LOCAL_PART_MARKER = "+dailysparks-acq-qa-";
 
@@ -113,6 +110,14 @@ function resolveAttributionSource(input: {
   referralParentIds: Set<string>;
   referralEmails: Set<string>;
 }): MarketingAttributionSource {
+  const snapshotSource = normalizeMarketingAttributionSource(
+    input.profile.parent.acquisitionSource,
+  );
+
+  if (snapshotSource) {
+    return snapshotSource;
+  }
+
   if (
     input.referralParentIds.has(input.profile.parent.id) ||
     input.referralEmails.has(normalizeEmail(input.profile.parent.email))
@@ -203,7 +208,7 @@ export function buildMarketingReportingSummary(input: {
       source,
       {
         source,
-        label: ATTRIBUTION_SOURCE_LABELS[source],
+        label: MARKETING_ATTRIBUTION_SOURCE_LABELS[source],
         profileCount: 0,
         trialStarted: 0,
         firstBriefDelivered: 0,
@@ -215,7 +220,9 @@ export function buildMarketingReportingSummary(input: {
   const recentTrialProfiles = [...filteredProfiles]
     .filter((profile) => Boolean(profile.parent.trialStartedAt))
     .sort((left, right) =>
-      getLatestLifecycleTimestamp(right).localeCompare(getLatestLifecycleTimestamp(left)),
+      getLatestLifecycleTimestamp(right).localeCompare(
+        getLatestLifecycleTimestamp(left),
+      ),
     )
     .slice(0, 5)
     .map((profile) => {
@@ -233,7 +240,7 @@ export function buildMarketingReportingSummary(input: {
         studentName: profile.student.studentName,
         programme: profile.student.programme,
         source,
-        sourceLabel: ATTRIBUTION_SOURCE_LABELS[source],
+        sourceLabel: MARKETING_ATTRIBUTION_SOURCE_LABELS[source],
         trialStartedAt: profile.parent.trialStartedAt ?? null,
         firstBriefDeliveredAt: profile.parent.firstBriefDeliveredAt ?? null,
         paidActivatedAt: getPaidActivatedAt(profile),
@@ -288,25 +295,30 @@ export function buildMarketingReportingSummary(input: {
       failed: filteredLeads.filter((lead) => lead.deliveryStatus === "failed").length,
       nurtureSent: filteredLeads.filter((lead) => lead.nurtureLastStatus === "sent")
         .length,
-      nurtureFailed: filteredLeads.filter((lead) => lead.nurtureLastStatus === "failed")
-        .length,
+      nurtureFailed: filteredLeads.filter(
+        (lead) => lead.nurtureLastStatus === "failed",
+      ).length,
     },
     activation: {
-      trialStarted: filteredProfiles.filter((profile) => Boolean(profile.parent.trialStartedAt))
-        .length,
+      trialStarted: filteredProfiles.filter((profile) =>
+        Boolean(profile.parent.trialStartedAt),
+      ).length,
       firstBriefDelivered: filteredProfiles.filter((profile) =>
         Boolean(profile.parent.firstBriefDeliveredAt),
       ).length,
-      paidActivated: filteredProfiles.filter((profile) => Boolean(getPaidActivatedAt(profile)))
-        .length,
+      paidActivated: filteredProfiles.filter((profile) =>
+        Boolean(getPaidActivatedAt(profile)),
+      ).length,
       notebookEntries: filteredNotebookEntries.length,
       weeklyRecaps: filteredWeeklyRecaps.length,
     },
     referrals: {
-      sent: filteredReferralInvites.filter((invite) => invite.deliveryStatus === "sent")
-        .length,
-      accepted: filteredReferralInvites.filter((invite) => Boolean(invite.acceptedAt))
-        .length,
+      sent: filteredReferralInvites.filter(
+        (invite) => invite.deliveryStatus === "sent",
+      ).length,
+      accepted: filteredReferralInvites.filter((invite) =>
+        Boolean(invite.acceptedAt),
+      ).length,
       trialStarted: filteredReferralInvites.filter((invite) =>
         Boolean(invite.trialStartedAt),
       ).length,

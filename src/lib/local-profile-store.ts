@@ -32,6 +32,7 @@ import {
   isSubscriptionPlan,
   isValidProgrammeYear,
 } from "./mvp-types";
+import { normalizeMarketingAttributionSource } from "./marketing-attribution";
 import type { ProfileStore } from "./profile-store";
 import {
   DEFAULT_PUBLIC_PROGRAMME,
@@ -140,6 +141,21 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
     typeof raw.firstPaidAt === "string" && raw.firstPaidAt
       ? raw.firstPaidAt
       : null;
+  const acquisitionSource = normalizeMarketingAttributionSource(
+    raw.acquisitionSource,
+  );
+  const acquisitionCapturedAt = normalizeNullableString(raw.acquisitionCapturedAt);
+  const acquisitionLeadId = normalizeNullableString(raw.acquisitionLeadId);
+  const acquisitionReferralInviteId = normalizeNullableString(
+    raw.acquisitionReferralInviteId,
+  );
+  const acquisitionPagePath = normalizeNullableString(raw.acquisitionPagePath);
+  const acquisitionReferrerUrl = normalizeNullableString(raw.acquisitionReferrerUrl);
+  const acquisitionUtmSource = normalizeNullableString(raw.acquisitionUtmSource);
+  const acquisitionUtmMedium = normalizeNullableString(raw.acquisitionUtmMedium);
+  const acquisitionUtmCampaign = normalizeNullableString(raw.acquisitionUtmCampaign);
+  const acquisitionUtmContent = normalizeNullableString(raw.acquisitionUtmContent);
+  const acquisitionUtmTerm = normalizeNullableString(raw.acquisitionUtmTerm);
   const trialEndsAt =
     typeof raw.trialEndsAt === "string" && raw.trialEndsAt
       ? raw.trialEndsAt
@@ -276,6 +292,17 @@ function normalizeParentRecord(raw: Record<string, unknown>): ParentRecord {
     firstDispatchableChannelAt,
     firstBriefDeliveredAt,
     firstPaidAt,
+    acquisitionSource,
+    acquisitionCapturedAt,
+    acquisitionLeadId,
+    acquisitionReferralInviteId,
+    acquisitionPagePath,
+    acquisitionReferrerUrl,
+    acquisitionUtmSource,
+    acquisitionUtmMedium,
+    acquisitionUtmCampaign,
+    acquisitionUtmContent,
+    acquisitionUtmTerm,
     onboardingReminderCount:
       typeof raw.onboardingReminderCount === "number" &&
       Number.isFinite(raw.onboardingReminderCount) &&
@@ -552,6 +579,17 @@ function createParentRecord(email: string, fullName: string): ParentRecord {
     firstDispatchableChannelAt: null,
     firstBriefDeliveredAt: null,
     firstPaidAt: null,
+    acquisitionSource: null,
+    acquisitionCapturedAt: null,
+    acquisitionLeadId: null,
+    acquisitionReferralInviteId: null,
+    acquisitionPagePath: null,
+    acquisitionReferrerUrl: null,
+    acquisitionUtmSource: null,
+    acquisitionUtmMedium: null,
+    acquisitionUtmCampaign: null,
+    acquisitionUtmContent: null,
+    acquisitionUtmTerm: null,
     onboardingReminderCount: 0,
     onboardingReminderLastAttemptAt: null,
     onboardingReminderLastSentAt: null,
@@ -1261,6 +1299,112 @@ export const localProfileStore: ProfileStore = {
       parent.updatedAt = new Date().toISOString();
       await writeStore(store);
     }
+
+    return toProfile(parent, student);
+  },
+
+  async updateParentAcquisitionSnapshot(email, input) {
+    const normalizedEmail = normalizeEmail(email);
+    const store = await readStore();
+    const parent = store.parents.find((record) => record.email === normalizedEmail);
+
+    if (!parent) {
+      return null;
+    }
+
+    const student = findStudentForParent(store, parent.id);
+
+    if (!student) {
+      return null;
+    }
+
+    if (input.acquisitionSource !== undefined) {
+      parent.acquisitionSource = normalizeMarketingAttributionSource(
+        input.acquisitionSource,
+      );
+    }
+
+    if (input.acquisitionCapturedAt !== undefined) {
+      parent.acquisitionCapturedAt =
+        typeof input.acquisitionCapturedAt === "string" &&
+        input.acquisitionCapturedAt.trim()
+          ? input.acquisitionCapturedAt
+          : null;
+    }
+
+    if (input.acquisitionLeadId !== undefined) {
+      parent.acquisitionLeadId =
+        typeof input.acquisitionLeadId === "string" && input.acquisitionLeadId.trim()
+          ? input.acquisitionLeadId
+          : null;
+    }
+
+    if (input.acquisitionReferralInviteId !== undefined) {
+      parent.acquisitionReferralInviteId =
+        typeof input.acquisitionReferralInviteId === "string" &&
+        input.acquisitionReferralInviteId.trim()
+          ? input.acquisitionReferralInviteId
+          : null;
+    }
+
+    if (input.acquisitionPagePath !== undefined) {
+      parent.acquisitionPagePath =
+        typeof input.acquisitionPagePath === "string" &&
+        input.acquisitionPagePath.trim()
+          ? input.acquisitionPagePath
+          : null;
+    }
+
+    if (input.acquisitionReferrerUrl !== undefined) {
+      parent.acquisitionReferrerUrl =
+        typeof input.acquisitionReferrerUrl === "string" &&
+        input.acquisitionReferrerUrl.trim()
+          ? input.acquisitionReferrerUrl
+          : null;
+    }
+
+    if (input.acquisitionUtmSource !== undefined) {
+      parent.acquisitionUtmSource =
+        typeof input.acquisitionUtmSource === "string" &&
+        input.acquisitionUtmSource.trim()
+          ? input.acquisitionUtmSource
+          : null;
+    }
+
+    if (input.acquisitionUtmMedium !== undefined) {
+      parent.acquisitionUtmMedium =
+        typeof input.acquisitionUtmMedium === "string" &&
+        input.acquisitionUtmMedium.trim()
+          ? input.acquisitionUtmMedium
+          : null;
+    }
+
+    if (input.acquisitionUtmCampaign !== undefined) {
+      parent.acquisitionUtmCampaign =
+        typeof input.acquisitionUtmCampaign === "string" &&
+        input.acquisitionUtmCampaign.trim()
+          ? input.acquisitionUtmCampaign
+          : null;
+    }
+
+    if (input.acquisitionUtmContent !== undefined) {
+      parent.acquisitionUtmContent =
+        typeof input.acquisitionUtmContent === "string" &&
+        input.acquisitionUtmContent.trim()
+          ? input.acquisitionUtmContent
+          : null;
+    }
+
+    if (input.acquisitionUtmTerm !== undefined) {
+      parent.acquisitionUtmTerm =
+        typeof input.acquisitionUtmTerm === "string" &&
+        input.acquisitionUtmTerm.trim()
+          ? input.acquisitionUtmTerm
+          : null;
+    }
+
+    parent.updatedAt = new Date().toISOString();
+    await writeStore(store);
 
     return toProfile(parent, student);
   },

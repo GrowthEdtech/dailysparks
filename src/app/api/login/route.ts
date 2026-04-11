@@ -1,5 +1,12 @@
-import { getOrCreateParentProfile, getProfileByEmail } from "../../../lib/mvp-store";
+import type { ParentProfile } from "../../../lib/mvp-types";
+import {
+  getOrCreateParentProfile,
+  getProfileByEmail,
+  updateParentAcquisitionSnapshot,
+} from "../../../lib/mvp-store";
+import { listMarketingLeads } from "../../../lib/marketing-lead-store";
 import { markMarketingReferralTrialStarted } from "../../../lib/marketing-referral-store";
+import { listMarketingReferralInvites } from "../../../lib/marketing-referral-store";
 import { createSessionFromIdToken } from "../../../lib/session";
 
 type LoginRequestBody = {
@@ -12,6 +19,103 @@ function badRequest(message: string) {
 
 function normalizeString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function hasAcquisitionSnapshot(profile: ParentProfile) {
+  return Boolean(profile.parent.acquisitionSource);
+}
+
+function getAcquisitionCapturedAt(profile: ParentProfile) {
+  return (
+    profile.parent.acquisitionCapturedAt ??
+    profile.parent.firstAuthenticatedAt ??
+    profile.parent.trialStartedAt ??
+    new Date().toISOString()
+  );
+}
+
+function getAcceptedInviteTimestamp(acceptedAt: string | null, updatedAt: string) {
+  return acceptedAt ?? updatedAt;
+}
+
+async function persistAcquisitionSnapshot(profile: ParentProfile) {
+  if (hasAcquisitionSnapshot(profile)) {
+    return profile;
+  }
+
+  const capturedAt = getAcquisitionCapturedAt(profile);
+  const acceptedInvite = (
+    await listMarketingReferralInvites({
+      inviteeEmail: profile.parent.email,
+      limit: 25,
+    })
+  )
+    .filter((invite) => Boolean(invite.acceptedAt))
+    .sort((left, right) =>
+      getAcceptedInviteTimestamp(right.acceptedAt, right.updatedAt).localeCompare(
+        getAcceptedInviteTimestamp(left.acceptedAt, left.updatedAt),
+      ),
+    )[0];
+
+  if (acceptedInvite) {
+    return (
+      (await updateParentAcquisitionSnapshot(profile.parent.email, {
+        acquisitionSource: "referral",
+        acquisitionCapturedAt: capturedAt,
+        acquisitionLeadId: null,
+        acquisitionReferralInviteId: acceptedInvite.id,
+        acquisitionPagePath: acceptedInvite.sourcePath,
+        acquisitionReferrerUrl: null,
+        acquisitionUtmSource: null,
+        acquisitionUtmMedium: null,
+        acquisitionUtmCampaign: null,
+        acquisitionUtmContent: null,
+        acquisitionUtmTerm: null,
+      })) ?? profile
+    );
+  }
+
+  const lead = (
+    await listMarketingLeads({
+      email: profile.parent.email,
+      source: "ib-parent-starter-kit",
+      limit: 25,
+    })
+  ).sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
+
+  if (lead) {
+    return (
+      (await updateParentAcquisitionSnapshot(profile.parent.email, {
+        acquisitionSource: "starter-kit",
+        acquisitionCapturedAt: capturedAt,
+        acquisitionLeadId: lead.id,
+        acquisitionReferralInviteId: null,
+        acquisitionPagePath: lead.pagePath,
+        acquisitionReferrerUrl: lead.referrerUrl,
+        acquisitionUtmSource: lead.utmSource,
+        acquisitionUtmMedium: lead.utmMedium,
+        acquisitionUtmCampaign: lead.utmCampaign,
+        acquisitionUtmContent: lead.utmContent,
+        acquisitionUtmTerm: lead.utmTerm,
+      })) ?? profile
+    );
+  }
+
+  return (
+    (await updateParentAcquisitionSnapshot(profile.parent.email, {
+      acquisitionSource: "direct",
+      acquisitionCapturedAt: capturedAt,
+      acquisitionLeadId: null,
+      acquisitionReferralInviteId: null,
+      acquisitionPagePath: null,
+      acquisitionReferrerUrl: null,
+      acquisitionUtmSource: null,
+      acquisitionUtmMedium: null,
+      acquisitionUtmCampaign: null,
+      acquisitionUtmContent: null,
+      acquisitionUtmTerm: null,
+    })) ?? profile
+  );
 }
 
 export async function POST(request: Request) {
@@ -50,12 +154,13 @@ export async function POST(request: Request) {
       fullName: session.identity.name,
       studentName: existingProfile?.student.studentName,
     });
+    const profileWithAcquisitionSnapshot = await persistAcquisitionSnapshot(profile);
     await markMarketingReferralTrialStarted({
       inviteeEmail: session.identity.email,
       inviteeParentId: profile.parent.id,
     }).catch(() => null);
 
-    return Response.json(profile, {
+    return Response.json(profileWithAcquisitionSnapshot, {
       status: 200,
       headers: {
         "Set-Cookie": session.cookieHeader,

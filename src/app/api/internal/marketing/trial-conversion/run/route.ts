@@ -9,8 +9,8 @@ import {
   listParentProfiles,
   updateParentNotificationEmailState,
 } from "../../../../../../lib/mvp-store";
-import { sendTrialConversionNurtureEmail } from "../../../../../../lib/trial-conversion-nurture-email";
 import { assessTrialConversionNurture } from "../../../../../../lib/trial-conversion-nurture";
+import { sendTrialConversionNurtureEmail } from "../../../../../../lib/trial-conversion-nurture-email";
 
 function serviceUnavailable(message: string) {
   return Response.json({ message }, { status: 503 });
@@ -24,6 +24,13 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error && error.message.trim()
     ? error.message
     : "Trial conversion nurture delivery failed.";
+}
+
+function incrementCountByParentId(
+  counts: Map<string, number>,
+  record: { parentId: string },
+) {
+  counts.set(record.parentId, (counts.get(record.parentId) ?? 0) + 1);
 }
 
 export async function POST(request: Request) {
@@ -40,6 +47,7 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
+  const nowIso = now.toISOString();
   const [profiles, notebookEntries, weeklyRecaps] = await Promise.all([
     listParentProfiles(),
     listDailyBriefNotebookEntries(),
@@ -47,21 +55,6 @@ export async function POST(request: Request) {
   ]);
   const notebookEntryCountByParentId = new Map<string, number>();
   const weeklyRecapCountByParentId = new Map<string, number>();
-
-  for (const entry of notebookEntries) {
-    notebookEntryCountByParentId.set(
-      entry.parentId,
-      (notebookEntryCountByParentId.get(entry.parentId) ?? 0) + 1,
-    );
-  }
-
-  for (const recap of weeklyRecaps) {
-    weeklyRecapCountByParentId.set(
-      recap.parentId,
-      (weeklyRecapCountByParentId.get(recap.parentId) ?? 0) + 1,
-    );
-  }
-
   const sent: Array<{
     parentEmail: string;
     stageIndex: number;
@@ -78,6 +71,14 @@ export async function POST(request: Request) {
   }> = [];
   let eligibleProfileCount = 0;
   let dueProfileCount = 0;
+
+  for (const entry of notebookEntries) {
+    incrementCountByParentId(notebookEntryCountByParentId, entry);
+  }
+
+  for (const recap of weeklyRecaps) {
+    incrementCountByParentId(weeklyRecapCountByParentId, recap);
+  }
 
   for (const profile of profiles) {
     const assessment = assessTrialConversionNurture({
@@ -98,17 +99,13 @@ export async function POST(request: Request) {
     }
 
     dueProfileCount += 1;
-    const stageIndex = assessment.stage.index;
-    const notebookEntryCount =
-      notebookEntryCountByParentId.get(profile.parent.id) ?? 0;
-    const weeklyRecapCount = weeklyRecapCountByParentId.get(profile.parent.id) ?? 0;
 
     try {
       const result = await sendTrialConversionNurtureEmail({
         profile,
-        stageIndex,
-        notebookEntryCount,
-        weeklyRecapCount,
+        stageIndex: assessment.stage.index,
+        notebookEntryCount: notebookEntryCountByParentId.get(profile.parent.id) ?? 0,
+        weeklyRecapCount: weeklyRecapCountByParentId.get(profile.parent.id) ?? 0,
       });
 
       if (!result.sent) {
@@ -116,10 +113,10 @@ export async function POST(request: Request) {
       }
 
       await updateParentNotificationEmailState(profile.parent.email, {
-        trialConversionNurtureCount: stageIndex,
-        trialConversionNurtureLastAttemptAt: now.toISOString(),
-        trialConversionNurtureLastSentAt: now.toISOString(),
-        trialConversionNurtureLastStage: stageIndex,
+        trialConversionNurtureCount: assessment.stage.index,
+        trialConversionNurtureLastAttemptAt: nowIso,
+        trialConversionNurtureLastSentAt: nowIso,
+        trialConversionNurtureLastStage: assessment.stage.index,
         trialConversionNurtureLastStatus: "sent",
         trialConversionNurtureLastMessageId: result.messageId ?? null,
         trialConversionNurtureLastError: null,
@@ -127,16 +124,16 @@ export async function POST(request: Request) {
 
       sent.push({
         parentEmail: profile.parent.email,
-        stageIndex,
+        stageIndex: assessment.stage.index,
         messageId: result.messageId ?? "",
       });
     } catch (error) {
       const errorMessage = getErrorMessage(error);
 
       await updateParentNotificationEmailState(profile.parent.email, {
-        trialConversionNurtureCount: stageIndex,
-        trialConversionNurtureLastAttemptAt: now.toISOString(),
-        trialConversionNurtureLastStage: stageIndex,
+        trialConversionNurtureCount: assessment.stage.index,
+        trialConversionNurtureLastAttemptAt: nowIso,
+        trialConversionNurtureLastStage: assessment.stage.index,
         trialConversionNurtureLastStatus: "failed",
         trialConversionNurtureLastMessageId: null,
         trialConversionNurtureLastError: errorMessage,
@@ -144,7 +141,7 @@ export async function POST(request: Request) {
 
       failed.push({
         parentEmail: profile.parent.email,
-        stageIndex,
+        stageIndex: assessment.stage.index,
         error: errorMessage,
       });
     }

@@ -1,3 +1,5 @@
+import type { MarketingAttributionSource } from "./marketing-attribution";
+
 export const IB_PROGRAMMES = ["PYP", "MYP", "DP"] as const;
 export type Programme = (typeof IB_PROGRAMMES)[number];
 
@@ -61,6 +63,17 @@ export type ParentRecord = {
   firstDispatchableChannelAt?: string | null;
   firstBriefDeliveredAt?: string | null;
   firstPaidAt?: string | null;
+  acquisitionSource?: MarketingAttributionSource | null;
+  acquisitionCapturedAt?: string | null;
+  acquisitionLeadId?: string | null;
+  acquisitionReferralInviteId?: string | null;
+  acquisitionPagePath?: string | null;
+  acquisitionReferrerUrl?: string | null;
+  acquisitionUtmSource?: string | null;
+  acquisitionUtmMedium?: string | null;
+  acquisitionUtmCampaign?: string | null;
+  acquisitionUtmContent?: string | null;
+  acquisitionUtmTerm?: string | null;
   onboardingReminderCount: number;
   onboardingReminderLastAttemptAt: string | null;
   onboardingReminderLastSentAt: string | null;
@@ -233,6 +246,20 @@ export type UpdateParentGrowthMilestonesInput = {
   firstDispatchableChannelAt?: string | null;
   firstBriefDeliveredAt?: string | null;
   firstPaidAt?: string | null;
+};
+
+export type UpdateParentAcquisitionSnapshotInput = {
+  acquisitionSource?: MarketingAttributionSource | null;
+  acquisitionCapturedAt?: string | null;
+  acquisitionLeadId?: string | null;
+  acquisitionReferralInviteId?: string | null;
+  acquisitionPagePath?: string | null;
+  acquisitionReferrerUrl?: string | null;
+  acquisitionUtmSource?: string | null;
+  acquisitionUtmMedium?: string | null;
+  acquisitionUtmCampaign?: string | null;
+  acquisitionUtmContent?: string | null;
+  acquisitionUtmTerm?: string | null;
 };
 
 export type UpdateParentNotificationEmailStateInput = {
