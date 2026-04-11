@@ -110,9 +110,7 @@ export async function recordMarketingLeadDelivery(input: {
   errorMessage?: string | null;
 }) {
   const store = getMarketingLeadStore();
-  const existingLead =
-    (await store.listLeads({ limit: 500 })).find((lead) => lead.id === input.leadId) ??
-    null;
+  const existingLead = await store.getLeadById(input.leadId);
 
   if (!existingLead) {
     throw new Error("Marketing lead could not be found.");
@@ -138,9 +136,7 @@ export async function recordMarketingLeadNurture(input: {
   errorMessage?: string | null;
 }) {
   const store = getMarketingLeadStore();
-  const existingLead =
-    (await store.listLeads({ limit: 500 })).find((lead) => lead.id === input.leadId) ??
-    null;
+  const existingLead = await store.getLeadById(input.leadId);
 
   if (!existingLead) {
     throw new Error("Marketing lead could not be found.");

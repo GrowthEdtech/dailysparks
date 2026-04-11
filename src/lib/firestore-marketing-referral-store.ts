@@ -81,6 +81,20 @@ function matchesFilters(
 }
 
 export const firestoreMarketingReferralStore: MarketingReferralInviteStore = {
+  async getInviteById(id) {
+    const db = getFirebaseAdminDb();
+    const snapshot = await db.collection("marketingReferralInvites").doc(id).get();
+
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    return normalizeInvite(
+      snapshot.id,
+      snapshot.data() as Partial<MarketingReferralInviteRecord> | undefined,
+    );
+  },
+
   async listInvites(filters = {}) {
     const db = getFirebaseAdminDb();
     let query = db.collection("marketingReferralInvites") as FirebaseFirestore.Query;

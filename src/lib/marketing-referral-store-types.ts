@@ -32,6 +32,7 @@ export type MarketingReferralInviteFilters = {
 };
 
 export type MarketingReferralInviteStore = {
+  getInviteById(id: string): Promise<MarketingReferralInviteRecord | null>;
   listInvites(
     filters?: MarketingReferralInviteFilters,
   ): Promise<MarketingReferralInviteRecord[]>;

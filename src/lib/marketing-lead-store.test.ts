@@ -164,4 +164,53 @@ describe("marketing lead store", () => {
     expect(storedLead.nurtureLastAttemptAt).toBeTruthy();
     expect(storedLead.nurtureLastSentAt).toBeTruthy();
   });
+
+  test(
+    "updates an older lead by id even after more than 500 newer leads exist",
+    async () => {
+    const captured = await captureMarketingLead({
+      email: "target@example.com",
+      fullName: "Target Parent",
+      childStageInterest: "MYP",
+      source: "ib-parent-starter-kit",
+      pagePath: "/ib-parent-starter-kit",
+      referrerUrl: null,
+      utmSource: null,
+      utmMedium: null,
+      utmCampaign: null,
+      utmContent: null,
+      utmTerm: null,
+    });
+
+    for (let index = 0; index < 500; index += 1) {
+      await captureMarketingLead({
+        email: `lead-${index}@example.net`,
+        fullName: `Lead ${index}`,
+        childStageInterest: "NOT_SURE",
+        source: "ib-parent-starter-kit",
+        pagePath: "/ib-parent-starter-kit",
+        referrerUrl: null,
+        utmSource: null,
+        utmMedium: null,
+        utmCampaign: null,
+        utmContent: null,
+        utmTerm: null,
+      });
+    }
+
+    await expect(
+      recordMarketingLeadDelivery({
+        leadId: captured.lead.id,
+        status: "sent",
+        messageId: "starter-kit-message-id",
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: captured.lead.id,
+        deliveryStatus: "sent",
+      }),
+    );
+    },
+    15000,
+  );
 });

@@ -3,13 +3,13 @@ import Stripe from "stripe";
 import type {
   ParentProfile,
   SubscriptionPlan,
-  SubscriptionStatus,
   UpdateParentSubscriptionInput,
 } from "./mvp-types";
 import { isSubscriptionPlan } from "./mvp-types";
 import { getProfileByEmail, updateParentSubscription } from "./mvp-store";
 import { maybeSendBillingStatusNotification } from "./billing-status-notification";
 import type { PricingMarket } from "./pricing-market";
+import { mapStripeSubscriptionStatus } from "./stripe-subscription-status";
 import {
   getPricingForPlan,
   getPricingIntervalForPlan,
@@ -249,24 +249,6 @@ async function syncParentSubscriptionByEmail(
   return updateParentSubscription(normalizedEmail, input);
 }
 
-function getSubscriptionStatusFromStripeStatus(
-  status: Stripe.Subscription.Status,
-): SubscriptionStatus | null {
-  if (status === "active") {
-    return "active";
-  }
-
-  if (status === "trialing") {
-    return "trial";
-  }
-
-  if (status === "canceled" || status === "unpaid" || status === "incomplete_expired") {
-    return "canceled";
-  }
-
-  return null;
-}
-
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   if (session.mode !== "subscription") {
     return null;
@@ -423,7 +405,7 @@ async function handleSubscriptionLifecycleEvent(
   const nextStatus =
     eventType === "customer.subscription.deleted"
       ? "canceled"
-      : getSubscriptionStatusFromStripeStatus(subscription.status);
+      : mapStripeSubscriptionStatus(subscription.status);
   const nextRenewalAt =
     eventType === "customer.subscription.deleted"
       ? null

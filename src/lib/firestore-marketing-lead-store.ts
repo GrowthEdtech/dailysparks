@@ -95,6 +95,20 @@ function matchesFilters(lead: MarketingLeadRecord, filters: MarketingLeadFilters
 }
 
 export const firestoreMarketingLeadStore: MarketingLeadStore = {
+  async getLeadById(id) {
+    const db = getFirebaseAdminDb();
+    const snapshot = await db.collection("marketingLeads").doc(id).get();
+
+    if (!snapshot.exists) {
+      return null;
+    }
+
+    return normalizeLead(
+      snapshot.id,
+      snapshot.data() as Partial<MarketingLeadRecord> | undefined,
+    );
+  },
+
   async listLeads(filters = {}) {
     const db = getFirebaseAdminDb();
     let query = db.collection("marketingLeads") as FirebaseFirestore.Query;

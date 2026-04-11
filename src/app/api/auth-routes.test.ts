@@ -24,6 +24,7 @@ import * as mvpStore from "../../lib/mvp-store";
 import {
   createMarketingReferralInvite,
   listMarketingReferralInvites,
+  markMarketingReferralAccepted,
 } from "../../lib/marketing-referral-store";
 
 const verifyIdTokenMock = vi.fn();
@@ -182,6 +183,49 @@ describe("auth routes", () => {
   });
 
   test("marks a matching referral invite as trial started after successful login", async () => {
+    const invite = await createMarketingReferralInvite({
+      referrerParentId: "parent-1",
+      referrerParentEmail: "referrer@example.com",
+      referrerParentFullName: "Referrer Parent",
+      inviteeEmail: "parent@example.com",
+      inviteeFullName: "Parent Example",
+      inviteeStageInterest: "MYP",
+      sourcePath: "/dashboard",
+    });
+    await markMarketingReferralAccepted({
+      token: invite.token,
+      inviteeEmail: "parent@example.com",
+    });
+
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+
+    const response = await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    const invites = await listMarketingReferralInvites({
+      inviteeEmail: "parent@example.com",
+    });
+
+    expect(response.status).toBe(200);
+    expect(invites[0].trialStartedAt).toBeTruthy();
+  });
+
+  test("does not mark trial started when the referral invite was never accepted", async () => {
     await createMarketingReferralInvite({
       referrerParentId: "parent-1",
       referrerParentEmail: "referrer@example.com",
@@ -217,7 +261,7 @@ describe("auth routes", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(invites[0].trialStartedAt).toBeTruthy();
+    expect(invites[0].trialStartedAt).toBeNull();
   });
 
   test("returns a secure-session error when Firebase session creation fails", async () => {

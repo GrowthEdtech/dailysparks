@@ -133,4 +133,17 @@ describe("trial conversion nurture", () => {
     expect(result.due).toBe(false);
     expect(result.reason).toMatch(/already paid/i);
   });
+
+  test("skips families whose trial already expired even if subscriptionStatus still says trial", () => {
+    const result = assessTrialConversionNurture({
+      profile: buildProfile({
+        trialEndsAt: "2026-04-10T12:00:00.000Z",
+      }),
+      now: new Date("2026-04-11T02:00:00.000Z"),
+    });
+
+    expect(result.eligible).toBe(false);
+    expect(result.due).toBe(false);
+    expect(result.reason).toMatch(/active trial/i);
+  });
 });

@@ -1,4 +1,5 @@
 import type { ParentProfile } from "./mvp-types";
+import { getDerivedAccessState } from "./access-state";
 
 export type TrialConversionNurtureStage = {
   index: number;
@@ -43,6 +44,8 @@ export function assessTrialConversionNurture(input: {
   profile: ParentProfile;
   now: Date;
 }): TrialConversionNurtureAssessment {
+  const accessState = getDerivedAccessState(input.profile.parent, input.now);
+
   if (!input.profile.parent.firstBriefDeliveredAt) {
     return {
       eligible: false,
@@ -65,7 +68,7 @@ export function assessTrialConversionNurture(input: {
     };
   }
 
-  if (input.profile.parent.subscriptionStatus !== "trial") {
+  if (accessState !== "trial_active") {
     return {
       eligible: false,
       due: false,

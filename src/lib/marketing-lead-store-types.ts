@@ -41,6 +41,7 @@ export type MarketingLeadFilters = {
 };
 
 export type MarketingLeadStore = {
+  getLeadById(id: string): Promise<MarketingLeadRecord | null>;
   listLeads(filters?: MarketingLeadFilters): Promise<MarketingLeadRecord[]>;
   upsertLead(record: MarketingLeadRecord): Promise<MarketingLeadRecord>;
 };

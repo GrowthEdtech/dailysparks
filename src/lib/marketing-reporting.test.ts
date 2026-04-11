@@ -674,4 +674,132 @@ describe("marketing reporting summary", () => {
       }),
     ]);
   });
+
+  test("keeps direct families direct when a starter kit lead is captured only after trial start", () => {
+    const summary = buildMarketingReportingSummary({
+      leads: [
+        {
+          id: "late-lead",
+          email: "direct@families.hk",
+          fullName: "Direct Example",
+          childStageInterest: "DP",
+          source: "ib-parent-starter-kit",
+          pagePath: "/ib-parent-starter-kit",
+          referrerUrl: null,
+          utmSource: "google",
+          utmMedium: "organic",
+          utmCampaign: null,
+          utmContent: null,
+          utmTerm: null,
+          captureCount: 1,
+          deliveryStatus: "sent",
+          deliveryMessageId: "late-lead-message",
+          deliveryErrorMessage: null,
+          deliveredAt: "2026-04-12T00:00:00.000Z",
+          nurtureEmailCount: 0,
+          nurtureLastAttemptAt: null,
+          nurtureLastSentAt: null,
+          nurtureLastStage: null,
+          nurtureLastStatus: null,
+          nurtureLastMessageId: null,
+          nurtureLastError: null,
+          createdAt: "2026-04-12T00:00:00.000Z",
+          updatedAt: "2026-04-12T00:00:00.000Z",
+        },
+      ],
+      referralInvites: [],
+      profiles: [
+        {
+          parent: {
+            id: "parent-direct",
+            email: "direct@families.hk",
+            fullName: "Direct Example",
+            trialStartedAt: "2026-04-10T00:00:00.000Z",
+            firstAuthenticatedAt: "2026-04-10T00:00:00.000Z",
+            firstBriefDeliveredAt: null,
+            firstPaidAt: null,
+            subscriptionActivatedAt: null,
+            trialConversionNurtureLastStage: null,
+            trialConversionNurtureLastStatus: null,
+            createdAt: "2026-04-10T00:00:00.000Z",
+            updatedAt: "2026-04-12T00:00:00.000Z",
+          },
+          student: {
+            studentName: "Theo",
+            programme: "DP",
+          },
+        },
+      ] as never[],
+      notebookEntries: [],
+      weeklyRecaps: [],
+    });
+
+    expect(
+      summary.attribution.find((entry) => entry.source === "direct")?.profileCount,
+    ).toBe(1);
+    expect(
+      summary.attribution.find((entry) => entry.source === "starter-kit")
+        ?.profileCount,
+    ).toBe(0);
+  });
+
+  test("does not classify unaccepted referral invites as referral attribution", () => {
+    const summary = buildMarketingReportingSummary({
+      leads: [],
+      referralInvites: [
+        {
+          id: "invite-1",
+          [REFERRAL_TOKEN_KEY]: "unaccepted-referral",
+          referrerParentId: "parent-1",
+          referrerParentEmail: "referrer@families.hk",
+          referrerParentFullName: "Referrer Parent",
+          inviteeEmail: "friend@families.hk",
+          inviteeFullName: "Friend Example",
+          inviteeStageInterest: "DP",
+          sourcePath: "/dashboard",
+          deliveryStatus: "sent",
+          deliveryMessageId: "invite-message",
+          deliveryErrorMessage: null,
+          sentAt: "2026-04-10T01:00:00.000Z",
+          acceptedAt: null,
+          trialStartedAt: null,
+          inviteeParentId: null,
+          createdAt: "2026-04-10T01:00:00.000Z",
+          updatedAt: "2026-04-10T01:00:00.000Z",
+        },
+      ],
+      profiles: [
+        {
+          parent: {
+            id: "parent-2",
+            email: "friend@families.hk",
+            fullName: "Friend Example",
+            trialStartedAt: "2026-04-10T02:30:00.000Z",
+            firstAuthenticatedAt: "2026-04-10T02:30:00.000Z",
+            firstBriefDeliveredAt: null,
+            firstPaidAt: null,
+            subscriptionActivatedAt: null,
+            trialConversionNurtureLastStage: null,
+            trialConversionNurtureLastStatus: null,
+            createdAt: "2026-04-10T02:30:00.000Z",
+            updatedAt: "2026-04-10T02:30:00.000Z",
+          },
+          student: {
+            studentName: "Friend Example",
+            programme: "DP",
+          },
+        },
+      ] as never[],
+      notebookEntries: [],
+      weeklyRecaps: [],
+    });
+
+    expect(
+      summary.attribution.find((entry) => entry.source === "referral")
+        ?.profileCount,
+    ).toBe(0);
+    expect(
+      summary.attribution.find((entry) => entry.source === "direct")?.profileCount,
+    ).toBe(1);
+  });
 });

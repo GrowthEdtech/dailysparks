@@ -135,6 +135,11 @@ function matchesFilters(
 }
 
 export const localMarketingReferralStore: MarketingReferralInviteStore = {
+  async getInviteById(id) {
+    const store = await readStore();
+    return store.invites.find((invite) => invite.id === id) ?? null;
+  },
+
   async listInvites(filters = {}) {
     const store = await readStore();
     const invites = [...store.invites]

@@ -92,10 +92,7 @@ export async function recordMarketingReferralInviteDelivery(input: {
   errorMessage?: string | null;
 }) {
   const store = getMarketingReferralStore();
-  const invite =
-    (await store.listInvites({ limit: 500 })).find(
-      (candidate) => candidate.id === input.inviteId,
-    ) ?? null;
+  const invite = await store.getInviteById(input.inviteId);
 
   if (!invite) {
     throw new Error("Marketing referral invite could not be found.");
@@ -151,9 +148,8 @@ export async function markMarketingReferralTrialStarted(input: {
     (
       await store.listInvites({
         inviteeEmail: normalizeString(input.inviteeEmail).toLowerCase(),
-        limit: 1,
       })
-    )[0] ?? null;
+    ).find((candidate) => Boolean(candidate.acceptedAt)) ?? null;
 
   if (!invite) {
     return null;

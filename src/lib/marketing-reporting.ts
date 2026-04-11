@@ -107,20 +107,60 @@ function getPaidActivatedAt(profile: ParentProfile) {
   return profile.parent.firstPaidAt ?? profile.parent.subscriptionActivatedAt ?? null;
 }
 
+function getAttributionCutoff(profile: ParentProfile) {
+  return (
+    profile.parent.trialStartedAt ??
+    profile.parent.firstAuthenticatedAt ??
+    profile.parent.createdAt ??
+    profile.parent.updatedAt
+  );
+}
+
+function isLeadQualifiedForProfile(
+  lead: MarketingLeadRecord,
+  profile: ParentProfile,
+) {
+  return (
+    normalizeEmail(lead.email) === normalizeEmail(profile.parent.email) &&
+    lead.createdAt <= getAttributionCutoff(profile)
+  );
+}
+
+function isReferralQualifiedForProfile(
+  invite: MarketingReferralInviteRecord,
+  profile: ParentProfile,
+) {
+  if (normalizeEmail(invite.inviteeEmail) !== normalizeEmail(profile.parent.email)) {
+    return false;
+  }
+
+  if (
+    invite.inviteeParentId &&
+    invite.inviteeParentId === profile.parent.id &&
+    invite.trialStartedAt
+  ) {
+    return true;
+  }
+
+  return Boolean(
+    invite.acceptedAt && invite.acceptedAt <= getAttributionCutoff(profile),
+  );
+}
+
 function resolveAttributionSource(input: {
   profile: ParentProfile;
-  leadEmails: Set<string>;
-  referralParentIds: Set<string>;
-  referralEmails: Set<string>;
+  leads: MarketingLeadRecord[];
+  referralInvites: MarketingReferralInviteRecord[];
 }): MarketingAttributionSource {
   if (
-    input.referralParentIds.has(input.profile.parent.id) ||
-    input.referralEmails.has(normalizeEmail(input.profile.parent.email))
+    input.referralInvites.some((invite) =>
+      isReferralQualifiedForProfile(invite, input.profile),
+    )
   ) {
     return "referral";
   }
 
-  if (input.leadEmails.has(normalizeEmail(input.profile.parent.email))) {
+  if (input.leads.some((lead) => isLeadQualifiedForProfile(lead, input.profile))) {
     return "starter-kit";
   }
 
@@ -167,17 +207,6 @@ export function buildMarketingReportingSummary(input: {
       filteredProfileIds.has(recap.parentId) &&
       !isInternalOrTestMarketingEmail(recap.parentEmail),
   );
-  const leadEmails = new Set(
-    filteredLeads.map((lead) => normalizeEmail(lead.email)),
-  );
-  const referralParentIds = new Set(
-    filteredReferralInvites
-      .map((invite) => invite.inviteeParentId?.trim() || null)
-      .filter(Boolean) as string[],
-  );
-  const referralEmails = new Set(
-    filteredReferralInvites.map((invite) => normalizeEmail(invite.inviteeEmail)),
-  );
   const notebookEntryCountByParentId = new Map<string, number>();
   const weeklyRecapCountByParentId = new Map<string, number>();
 
@@ -221,9 +250,8 @@ export function buildMarketingReportingSummary(input: {
     .map((profile) => {
       const source = resolveAttributionSource({
         profile,
-        leadEmails,
-        referralParentIds,
-        referralEmails,
+        leads: filteredLeads,
+        referralInvites: filteredReferralInvites,
       });
 
       return {
@@ -249,9 +277,8 @@ export function buildMarketingReportingSummary(input: {
   for (const profile of filteredProfiles) {
     const source = resolveAttributionSource({
       profile,
-      leadEmails,
-      referralParentIds,
-      referralEmails,
+      leads: filteredLeads,
+      referralInvites: filteredReferralInvites,
     });
     const bucket = attributionCounts.get(source);
 

@@ -150,6 +150,11 @@ function matchesFilters(lead: MarketingLeadRecord, filters: MarketingLeadFilters
 }
 
 export const localMarketingLeadStore: MarketingLeadStore = {
+  async getLeadById(id) {
+    const store = await readStore();
+    return store.leads.find((lead) => lead.id === id) ?? null;
+  },
+
   async listLeads(filters = {}) {
     const store = await readStore();
     const leads = [...store.leads]

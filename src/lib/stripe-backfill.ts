@@ -3,10 +3,10 @@ import Stripe from "stripe";
 import type {
   ParentProfile,
   ParentRecord,
-  SubscriptionStatus,
   UpdateParentSubscriptionInput,
 } from "./mvp-types";
 import { getProfileByEmail, updateParentSubscription } from "./mvp-store";
+import { mapStripeSubscriptionStatus } from "./stripe-subscription-status";
 
 export type StripeBillingBackfillResult = {
   dryRun: boolean;
@@ -96,24 +96,6 @@ function getInvoiceSummaryUpdate(invoice: Stripe.Invoice): UpdateParentSubscript
     latestInvoicePeriodStart: periodStart,
     latestInvoiceStatus: normalizeNullableString(invoice.status),
   };
-}
-
-function getSubscriptionStatusFromStripeStatus(
-  status: Stripe.Subscription.Status,
-): SubscriptionStatus | null {
-  if (status === "active") {
-    return "active";
-  }
-
-  if (status === "trialing") {
-    return "trial";
-  }
-
-  if (status === "canceled" || status === "unpaid" || status === "incomplete_expired") {
-    return "canceled";
-  }
-
-  return null;
 }
 
 function getStripeCustomerIdFromSubscription(
@@ -206,7 +188,7 @@ export function getStripeBackfillUpdate(
   const subscriptionPlan =
     inferPlanFromSubscription(subscription) ?? parent.subscriptionPlan ?? null;
   const subscriptionStatus = subscription
-    ? getSubscriptionStatusFromStripeStatus(subscription.status)
+    ? mapStripeSubscriptionStatus(subscription.status)
     : null;
   const stripeCustomerId =
     getStripeCustomerIdFromSubscription(subscription) ??
