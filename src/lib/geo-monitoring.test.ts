@@ -307,4 +307,58 @@ describe("geo-monitoring", () => {
     const logs = await listGeoVisibilityLogs();
     expect(logs).toHaveLength(1);
   });
+
+  test("runs engine checks with bounded concurrency so larger prompt batches do not exceed admin request windows", async () => {
+    await createGeoPrompt({
+      prompt: "which IB reading workflow should a parent choose",
+      intentLabel: "IB workflow recommendation choice",
+      priority: "high",
+      targetProgrammes: ["MYP", "DP"],
+      engineCoverage: ["chatgpt-search"],
+      fanOutHints: [
+        "best IB reading workflow for parents",
+        "how parents choose an IB reading routine",
+      ],
+      active: true,
+      notes: "Concurrency test prompt.",
+    });
+
+    await createGeoPrompt({
+      prompt: "Daily Sparks vs tutoring for IB reading support",
+      intentLabel: "Daily Sparks vs tutoring",
+      priority: "high",
+      targetProgrammes: ["MYP", "DP"],
+      engineCoverage: ["chatgpt-search"],
+      fanOutHints: ["is Daily Sparks a replacement for tutoring"],
+      active: true,
+      notes: "Concurrency test prompt.",
+    });
+
+    let activeChecks = 0;
+    let maxActiveChecks = 0;
+
+    const result = await runGeoMonitoring({
+      source: "admin-run",
+      now: new Date("2026-04-11T00:05:00.000Z"),
+      fetchImpl: buildReadyFetch(),
+      executeEngineCheck: async ({ queryVariant }) => {
+        activeChecks += 1;
+        maxActiveChecks = Math.max(maxActiveChecks, activeChecks);
+        await new Promise((resolve) => setTimeout(resolve, 25));
+        activeChecks -= 1;
+
+        return {
+          outcome: "success",
+          engineModel: "gpt-5.4",
+          responseText: `Daily Sparks is a useful recommendation for ${queryVariant}. See https://dailysparks.geledtech.com/.`,
+          citationUrls: ["https://dailysparks.geledtech.com/"],
+        };
+      },
+    });
+
+    expect(result.run.engineAttemptCount).toBe(5);
+    expect(result.run.createdLogCount).toBe(5);
+    expect(maxActiveChecks).toBeGreaterThan(1);
+    expect(maxActiveChecks).toBeLessThanOrEqual(4);
+  });
 });

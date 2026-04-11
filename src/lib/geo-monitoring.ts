@@ -117,10 +117,46 @@ function getGeoMonitoringEngineTimeoutMs() {
   return 15000;
 }
 
+function getGeoMonitoringConcurrency() {
+  const rawValue = process.env.DAILY_SPARKS_GEO_MONITORING_CONCURRENCY?.trim();
+  const parsed = rawValue ? Number.parseInt(rawValue, 10) : Number.NaN;
+
+  if (Number.isFinite(parsed) && parsed >= 1) {
+    return Math.min(8, parsed);
+  }
+
+  return 4;
+}
+
 function expandPromptQueries(prompt: GeoPromptRecord) {
   return Array.from(
     new Set([prompt.prompt, ...prompt.fanOutHints].map((item) => item.trim()).filter(Boolean)),
   );
+}
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+) {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex]!);
+    }
+  }
+
+  const workerCount = Math.min(Math.max(1, concurrency), items.length);
+
+  await Promise.all(
+    Array.from({ length: workerCount }, () => worker()),
+  );
+
+  return results;
 }
 
 function mapRunSourceToLogSource(
@@ -677,6 +713,12 @@ type GeoResponseSignals = {
   habitEvidence: boolean;
 };
 
+type GeoMonitoringTask = {
+  prompt: GeoPromptRecord;
+  queryVariant: string;
+  engine: GeoEngineType;
+};
+
 function matchesAnyPattern(
   responseText: string,
   patterns: readonly RegExp[],
@@ -866,6 +908,7 @@ export async function runGeoMonitoring(
   let failedCount = 0;
   const deferredEnginesSeen = new Set<GeoEngineType>();
   const engineCheckTimeoutMs = getGeoMonitoringEngineTimeoutMs();
+  const engineCheckConcurrency = getGeoMonitoringConcurrency();
 
   const executeEngineCheck = input.executeEngineCheck ?? executeDefaultEngineCheck;
 
@@ -888,6 +931,7 @@ export async function runGeoMonitoring(
     referenceNotes:
       "Source: live Daily Sparks llms.txt, llms-full.txt, and homepage SSR snapshot.",
   });
+  const monitoringTasks: GeoMonitoringTask[] = [];
 
   for (const { prompt, queryVariant } of allExpandedQueries) {
     const enabledEngines = getEnabledGeoMonitoringEngines(prompt);
@@ -906,71 +950,91 @@ export async function runGeoMonitoring(
         failedCount: 0,
       };
       currentBreakdown.attemptedCount += 1;
+      engineBreakdownMap.set(engine, currentBreakdown);
+      monitoringTasks.push({ prompt, queryVariant, engine });
+    }
+  }
 
-      const result = await executeEngineCheckWithDeadline({
+  const engineResults = await mapWithConcurrency(
+    monitoringTasks,
+    engineCheckConcurrency,
+    async (task) => ({
+      task,
+      result: await executeEngineCheckWithDeadline({
         executeEngineCheck,
         timeoutMs: engineCheckTimeoutMs,
         input: {
-          engine,
-          prompt,
-          queryVariant,
+          engine: task.engine,
+          prompt: task.prompt,
+          queryVariant: task.queryVariant,
           baseUrl,
           fetchImpl,
         },
+      }),
+    }),
+  );
+
+  for (const { task, result } of engineResults) {
+    const { prompt, queryVariant, engine } = task;
+    const currentBreakdown = engineBreakdownMap.get(engine) ?? {
+      engine,
+      attemptedCount: 0,
+      createdLogCount: 0,
+      skippedCount: 0,
+      failedCount: 0,
+    };
+
+    if (result.outcome === "success") {
+      const intentBucket = inferGeoPromptIntentBucketFromPrompt(
+        prompt,
+        queryVariant,
+      );
+      const responseSignals = analyzeGeoResponse(
+        result.responseText,
+        result.citationUrls,
+        baseUrl,
+      );
+      const mentionStatus = inferMentionStatus(responseSignals, intentBucket);
+      const createdLog = await createGeoVisibilityLog({
+        source: mapRunSourceToLogSource(input.source),
+        monitoringRunId: runId,
+        promptId: prompt.id,
+        promptTextSnapshot: prompt.prompt,
+        queryVariant,
+        engine,
+        engineModel: result.engineModel,
+        mentionStatus,
+        citationUrls: result.citationUrls,
+        shareOfModelScore: inferShareOfModelScore(
+          mentionStatus,
+          responseSignals,
+          intentBucket,
+        ),
+        citationShareScore: inferCitationShareScore(result.citationUrls, baseUrl),
+        sentiment: inferSentiment(
+          mentionStatus,
+          responseSignals,
+          intentBucket,
+        ),
+        entityAccuracy: inferEntityAccuracy(mentionStatus),
+        responseExcerpt: result.responseText,
+        notes: `Automated GEO monitoring run for ${prompt.intentLabel} (${intentBucket} intent).`,
       });
 
-      if (result.outcome === "success") {
-        const intentBucket = inferGeoPromptIntentBucketFromPrompt(
-          prompt,
-          queryVariant,
-        );
-        const responseSignals = analyzeGeoResponse(
-          result.responseText,
-          result.citationUrls,
-          baseUrl,
-        );
-        const mentionStatus = inferMentionStatus(responseSignals, intentBucket);
-        const createdLog = await createGeoVisibilityLog({
-          source: mapRunSourceToLogSource(input.source),
-          monitoringRunId: runId,
-          promptId: prompt.id,
-          promptTextSnapshot: prompt.prompt,
-          queryVariant,
-          engine,
-          engineModel: result.engineModel,
-          mentionStatus,
-          citationUrls: result.citationUrls,
-          shareOfModelScore: inferShareOfModelScore(
-            mentionStatus,
-            responseSignals,
-            intentBucket,
-          ),
-          citationShareScore: inferCitationShareScore(result.citationUrls, baseUrl),
-          sentiment: inferSentiment(
-            mentionStatus,
-            responseSignals,
-            intentBucket,
-          ),
-          entityAccuracy: inferEntityAccuracy(mentionStatus),
-          responseExcerpt: result.responseText,
-          notes: `Automated GEO monitoring run for ${prompt.intentLabel} (${intentBucket} intent).`,
-        });
-
-        createdLogs.push(createdLog);
-        createdLogCount += 1;
-        currentBreakdown.createdLogCount += 1;
-      } else if (result.outcome === "skipped") {
-        skippedCount += 1;
-        currentBreakdown.skippedCount += 1;
-        notes.push(`${engine} · ${queryVariant}: ${result.reason}`);
-      } else {
-        failedCount += 1;
-        currentBreakdown.failedCount += 1;
-        notes.push(`${engine} · ${queryVariant}: ${result.reason}`);
-      }
-
-      engineBreakdownMap.set(engine, currentBreakdown);
+      createdLogs.push(createdLog);
+      createdLogCount += 1;
+      currentBreakdown.createdLogCount += 1;
+    } else if (result.outcome === "skipped") {
+      skippedCount += 1;
+      currentBreakdown.skippedCount += 1;
+      notes.push(`${engine} · ${queryVariant}: ${result.reason}`);
+    } else {
+      failedCount += 1;
+      currentBreakdown.failedCount += 1;
+      notes.push(`${engine} · ${queryVariant}: ${result.reason}`);
     }
+
+    engineBreakdownMap.set(engine, currentBreakdown);
   }
 
   const machineReadabilityReadyCount = countReadyChecks(machineReadabilityStatus);
@@ -995,10 +1059,7 @@ export async function runGeoMonitoring(
     status,
     activePromptCount: prompts.length,
     expandedQueryCount: allExpandedQueries.length,
-    engineAttemptCount: allExpandedQueries.reduce(
-      (total, item) => total + getEnabledGeoMonitoringEngines(item.prompt).length,
-      0,
-    ),
+    engineAttemptCount: monitoringTasks.length,
     createdLogCount,
     skippedCount,
     failedCount,
