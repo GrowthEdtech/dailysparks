@@ -6,6 +6,7 @@ import path from "node:path";
 import {
   createGeoMonitoringRun,
   listGeoMonitoringRuns,
+  updateGeoMonitoringRun,
 } from "./geo-monitoring-run-store";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -66,6 +67,77 @@ describe("geo-monitoring-run-store", () => {
     expect(runs[0]?.rankabilityScore).toBe(0);
     expect(runs[0]?.citationReadinessScore).toBe(0);
     expect(runs[0]?.biasResistanceScore).toBe(0);
+    expect(runs[0]?.queryDiagnostics).toEqual([]);
     expect(runs[0]?.engineBreakdown[0]?.engine).toBe("chatgpt-search");
+  });
+
+  test("updates a queued run with query-level diagnostics", async () => {
+    const run = await createGeoMonitoringRun({
+      id: "geo-run-async-1",
+      source: "manual",
+      status: "running",
+      activePromptCount: 0,
+      expandedQueryCount: 0,
+      engineAttemptCount: 0,
+      createdLogCount: 0,
+      skippedCount: 0,
+      failedCount: 0,
+      machineReadabilityReadyCount: 0,
+      notes: "Manual GEO monitoring job queued.",
+      startedAt: "2026-04-11T01:00:00.000Z",
+      completedAt: "2026-04-11T01:00:00.000Z",
+      engineBreakdown: [],
+      queryDiagnostics: [],
+    });
+
+    const updatedRun = await updateGeoMonitoringRun(run.id, {
+      status: "partial",
+      activePromptCount: 1,
+      expandedQueryCount: 2,
+      engineAttemptCount: 2,
+      createdLogCount: 1,
+      failedCount: 1,
+      notes: "One query timed out.",
+      completedAt: "2026-04-11T01:01:00.000Z",
+      queryDiagnostics: [
+        {
+          promptId: "prompt-1",
+          promptIntentLabel: "IB workflow comparison",
+          queryVariant: "best IB reading workflow for parents",
+          engine: "chatgpt-search",
+          outcome: "success",
+          mentionStatus: "recommended",
+          sentiment: "positive",
+          citationUrlCount: 1,
+          durationMs: 1200,
+          reason: "Created visibility log.",
+          logId: "log-1",
+        },
+        {
+          promptId: "prompt-1",
+          promptIntentLabel: "IB workflow comparison",
+          queryVariant: "Daily Sparks vs tutoring",
+          engine: "chatgpt-search",
+          outcome: "failed",
+          mentionStatus: null,
+          sentiment: null,
+          citationUrlCount: 0,
+          durationMs: 15000,
+          reason: "chatgpt-search monitoring check timed out after 15000ms.",
+          logId: null,
+        },
+      ],
+    });
+
+    expect(updatedRun.status).toBe("partial");
+    expect(updatedRun.queryDiagnostics).toHaveLength(2);
+    expect(updatedRun.queryDiagnostics[0]?.logId).toBe("log-1");
+    expect(updatedRun.queryDiagnostics[1]?.outcome).toBe("failed");
+
+    const runs = await listGeoMonitoringRuns();
+
+    expect(runs).toHaveLength(1);
+    expect(runs[0]?.id).toBe("geo-run-async-1");
+    expect(runs[0]?.queryDiagnostics[1]?.durationMs).toBe(15000);
   });
 });

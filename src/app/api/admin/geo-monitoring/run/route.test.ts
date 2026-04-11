@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { POST as adminLogin } from "../../login/route";
 import {
@@ -10,11 +10,17 @@ const {
   createSessionCookieMock,
   verifySessionCookieMock,
   runGeoMonitoringMock,
+  createGeoMonitoringRunMock,
+  updateGeoMonitoringRunMock,
+  afterMock,
 } = vi.hoisted(() => ({
   verifyIdTokenMock: vi.fn(),
   createSessionCookieMock: vi.fn(),
   verifySessionCookieMock: vi.fn(),
   runGeoMonitoringMock: vi.fn(),
+  createGeoMonitoringRunMock: vi.fn(),
+  updateGeoMonitoringRunMock: vi.fn(),
+  afterMock: vi.fn(),
 }));
 
 vi.mock("../../../../../lib/firebase-admin", () => ({
@@ -27,6 +33,15 @@ vi.mock("../../../../../lib/firebase-admin", () => ({
 
 vi.mock("../../../../../lib/geo-monitoring", () => ({
   runGeoMonitoring: runGeoMonitoringMock,
+}));
+
+vi.mock("../../../../../lib/geo-monitoring-run-store", () => ({
+  createGeoMonitoringRun: createGeoMonitoringRunMock,
+  updateGeoMonitoringRun: updateGeoMonitoringRunMock,
+}));
+
+vi.mock("next/server", () => ({
+  after: afterMock,
 }));
 
 import { POST } from "./route";
@@ -60,6 +75,13 @@ async function signIn() {
 }
 
 describe("admin geo monitoring route", () => {
+  beforeEach(() => {
+    runGeoMonitoringMock.mockReset();
+    createGeoMonitoringRunMock.mockReset();
+    updateGeoMonitoringRunMock.mockReset();
+    afterMock.mockReset();
+  });
+
   test("rejects unauthenticated requests", async () => {
     const response = await POST(
       new Request("http://localhost:3000/api/admin/geo-monitoring/run", {
@@ -72,12 +94,20 @@ describe("admin geo monitoring route", () => {
     expect(body.message).toMatch(/log in/i);
   });
 
-  test("runs GEO monitoring for authenticated admins", async () => {
+  test("queues async GEO monitoring for authenticated admins", async () => {
     const cookie = await signIn();
+    createGeoMonitoringRunMock.mockImplementationOnce(async (input) => ({
+      ...input,
+      id: "run-queued-1",
+      status: "running",
+      queryDiagnostics: [],
+    }));
     runGeoMonitoringMock.mockResolvedValueOnce({
       run: {
-        id: "run-1",
+        id: "run-queued-1",
         status: "completed",
+        createdLogCount: 1,
+        machineReadabilityReadyCount: 4,
       },
       logs: [{ id: "log-1" }],
       machineReadabilityStatus: {
@@ -101,8 +131,20 @@ describe("admin geo monitoring route", () => {
     );
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(body.run.id).toBe("run-1");
-    expect(body.summary.logCreatedCount).toBe(1);
+    expect(response.status).toBe(202);
+    expect(body.mode).toBe("geo-monitoring-async");
+    expect(body.run.id).toBe("run-queued-1");
+    expect(body.run.status).toBe("running");
+    expect(body.summary.runStatus).toBe("running");
+    expect(body.summary.logCreatedCount).toBe(0);
+    expect(afterMock).toHaveBeenCalledTimes(1);
+
+    await afterMock.mock.calls[0]?.[0]();
+
+    expect(runGeoMonitoringMock).toHaveBeenCalledWith({
+      source: "manual",
+      runId: "run-queued-1",
+      persistMode: "update",
+    });
   });
 });

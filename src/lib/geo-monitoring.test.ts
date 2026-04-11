@@ -303,6 +303,15 @@ describe("geo-monitoring", () => {
     expect(result.run.failedCount).toBe(1);
     expect(result.run.createdLogCount).toBe(1);
     expect(result.run.notes).toContain("timed out after 10ms");
+    expect(result.run.queryDiagnostics).toHaveLength(2);
+    expect(result.run.queryDiagnostics[0]?.outcome).toBe("failed");
+    expect(result.run.queryDiagnostics[0]?.reason).toContain(
+      "timed out after 10ms",
+    );
+    expect(result.run.queryDiagnostics[0]?.durationMs).toBeGreaterThanOrEqual(10);
+    expect(result.run.queryDiagnostics[1]?.outcome).toBe("success");
+    expect(result.run.queryDiagnostics[1]?.mentionStatus).toBe("recommended");
+    expect(result.run.queryDiagnostics[1]?.logId).toEqual(expect.any(String));
 
     const logs = await listGeoVisibilityLogs();
     expect(logs).toHaveLength(1);
@@ -358,6 +367,10 @@ describe("geo-monitoring", () => {
 
     expect(result.run.engineAttemptCount).toBe(5);
     expect(result.run.createdLogCount).toBe(5);
+    expect(result.run.queryDiagnostics).toHaveLength(5);
+    expect(result.run.queryDiagnostics.every((entry) => entry.durationMs >= 0)).toBe(
+      true,
+    );
     expect(maxActiveChecks).toBeGreaterThan(1);
     expect(maxActiveChecks).toBeLessThanOrEqual(4);
   });
