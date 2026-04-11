@@ -1,3 +1,5 @@
+import type { MarketingAttributionSource } from "./marketing-attribution";
+
 export const IB_PROGRAMMES = ["PYP", "MYP", "DP"] as const;
 export type Programme = (typeof IB_PROGRAMMES)[number];
 
@@ -39,6 +41,7 @@ export const SUBSCRIPTION_PLANS = ["monthly", "yearly"] as const;
 export type SubscriptionPlan = (typeof SUBSCRIPTION_PLANS)[number] | null;
 export type GoodnotesDeliveryStatus = "idle" | "success" | "failed";
 export type OnboardingReminderStatus = "sent" | "failed";
+export type TrialConversionNurtureStatus = "sent" | "failed";
 
 export function isSubscriptionPlan(
   value: string,
@@ -60,6 +63,17 @@ export type ParentRecord = {
   firstDispatchableChannelAt?: string | null;
   firstBriefDeliveredAt?: string | null;
   firstPaidAt?: string | null;
+  acquisitionSource?: MarketingAttributionSource | null;
+  acquisitionCapturedAt?: string | null;
+  acquisitionLeadId?: string | null;
+  acquisitionReferralInviteId?: string | null;
+  acquisitionPagePath?: string | null;
+  acquisitionReferrerUrl?: string | null;
+  acquisitionUtmSource?: string | null;
+  acquisitionUtmMedium?: string | null;
+  acquisitionUtmCampaign?: string | null;
+  acquisitionUtmContent?: string | null;
+  acquisitionUtmTerm?: string | null;
   onboardingReminderCount: number;
   onboardingReminderLastAttemptAt: string | null;
   onboardingReminderLastSentAt: string | null;
@@ -99,6 +113,13 @@ export type ParentRecord = {
   deliverySupportAlertLastReasonKey?: string | null;
   deliverySupportAlertLastResolvedAt?: string | null;
   deliverySupportAlertLastResolvedReasonKey?: string | null;
+  trialConversionNurtureCount?: number;
+  trialConversionNurtureLastAttemptAt?: string | null;
+  trialConversionNurtureLastSentAt?: string | null;
+  trialConversionNurtureLastStage?: number | null;
+  trialConversionNurtureLastStatus?: TrialConversionNurtureStatus | null;
+  trialConversionNurtureLastMessageId?: string | null;
+  trialConversionNurtureLastError?: string | null;
   notionWorkspaceId: string | null;
   notionWorkspaceName: string | null;
   notionBotId: string | null;
@@ -227,6 +248,20 @@ export type UpdateParentGrowthMilestonesInput = {
   firstPaidAt?: string | null;
 };
 
+export type UpdateParentAcquisitionSnapshotInput = {
+  acquisitionSource?: MarketingAttributionSource | null;
+  acquisitionCapturedAt?: string | null;
+  acquisitionLeadId?: string | null;
+  acquisitionReferralInviteId?: string | null;
+  acquisitionPagePath?: string | null;
+  acquisitionReferrerUrl?: string | null;
+  acquisitionUtmSource?: string | null;
+  acquisitionUtmMedium?: string | null;
+  acquisitionUtmCampaign?: string | null;
+  acquisitionUtmContent?: string | null;
+  acquisitionUtmTerm?: string | null;
+};
+
 export type UpdateParentNotificationEmailStateInput = {
   trialEndingReminderLastNotifiedAt?: string | null;
   trialEndingReminderLastTrialEndsAt?: string | null;
@@ -242,6 +277,13 @@ export type UpdateParentNotificationEmailStateInput = {
   deliverySupportAlertLastReasonKey?: string | null;
   deliverySupportAlertLastResolvedAt?: string | null;
   deliverySupportAlertLastResolvedReasonKey?: string | null;
+  trialConversionNurtureCount?: number;
+  trialConversionNurtureLastAttemptAt?: string | null;
+  trialConversionNurtureLastSentAt?: string | null;
+  trialConversionNurtureLastStage?: number | null;
+  trialConversionNurtureLastStatus?: TrialConversionNurtureStatus | null;
+  trialConversionNurtureLastMessageId?: string | null;
+  trialConversionNurtureLastError?: string | null;
 };
 
 export type NotionConnectionSecretRecord = {

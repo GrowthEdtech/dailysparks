@@ -50,8 +50,8 @@ export default async function MarketingAdminPage() {
     profiles,
     leads,
     referralInvites,
-    notebookEntryCount: notebookEntries.length,
-    weeklyRecapCount: weeklyRecaps.length,
+    notebookEntries,
+    weeklyRecaps,
   });
 
   return (
@@ -145,6 +145,11 @@ export default async function MarketingAdminPage() {
                 detail: "Stored recap assets ready for retention loops",
               },
               {
+                label: "Paid activated",
+                value: summary.activation.paidActivated,
+                detail: "Families that converted from trial into paid access",
+              },
+              {
                 label: "Starter kits delivered",
                 value: summary.leads.delivered,
                 detail: "Lead captures that received the parent kit",
@@ -214,6 +219,80 @@ export default async function MarketingAdminPage() {
             ) : (
               <div className="rounded-[22px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-slate-500">
                 Lead captures will appear here once the public starter-kit flow starts collecting demand.
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Acquisition sources
+          </p>
+          <div className="mt-4 space-y-3">
+            {summary.attribution.map((source) => (
+              <div
+                key={source.source}
+                className="rounded-[22px] border border-slate-200 bg-white px-4 py-4"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-[#0f172a]">
+                      {source.label}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {source.trialStarted} trial starts · {source.firstBriefDelivered} first briefs
+                    </p>
+                  </div>
+                  <p className="text-2xl font-bold tabular-nums text-[#0f172a]">
+                    {source.profileCount}
+                  </p>
+                </div>
+                <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Paid activated {source.paidActivated}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Recent trial families
+          </p>
+          <div className="mt-4 space-y-3">
+            {summary.recentTrialProfiles.length > 0 ? (
+              summary.recentTrialProfiles.map((profile) => (
+                <div
+                  key={profile.parentId}
+                  className="rounded-[22px] border border-slate-200 bg-white px-4 py-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[#0f172a]">
+                        {profile.parentFullName}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {profile.parentEmail}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                      {profile.sourceLabel}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    {profile.programme} · {profile.notebookEntryCount} notebook entries · {profile.weeklyRecapCount} weekly recaps
+                  </p>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Paid activated {profile.paidActivatedAt ? "yes" : "no"} · nurture{" "}
+                    {profile.trialConversionNurtureLastStatus ?? "not started"}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-[22px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-slate-500">
+                Recent trial families will appear here once parent profiles begin their first reading workflow.
               </div>
             )}
           </div>

@@ -21,9 +21,11 @@ import { POST as logout } from "./logout/route";
 import { SESSION_COOKIE_NAME } from "../../lib/session";
 import { EDITORIAL_ADMIN_SESSION_COOKIE_NAME } from "../../lib/editorial-admin-auth";
 import * as mvpStore from "../../lib/mvp-store";
+import { captureMarketingLead } from "../../lib/marketing-lead-store";
 import {
   createMarketingReferralInvite,
   listMarketingReferralInvites,
+  markMarketingReferralAccepted,
 } from "../../lib/marketing-referral-store";
 
 const verifyIdTokenMock = vi.fn();
@@ -218,6 +220,178 @@ describe("auth routes", () => {
 
     expect(response.status).toBe(200);
     expect(invites[0].trialStartedAt).toBeTruthy();
+  });
+
+  test("persists a starter-kit acquisition snapshot on first successful login", async () => {
+    const leadCapture = await captureMarketingLead({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      childStageInterest: "MYP",
+      source: "ib-parent-starter-kit",
+      pagePath: "/ib-parent-starter-kit",
+      referrerUrl: "https://www.google.com/search?q=daily+sparks",
+      utmSource: "google",
+      utmMedium: "organic",
+      utmCampaign: "starter-kit-launch",
+      utmContent: "hero-cta",
+      utmTerm: "ib parent starter kit",
+    });
+
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+
+    const response = await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.parent.acquisitionSource).toBe("starter-kit");
+    expect(body.parent.acquisitionLeadId).toBe(leadCapture.lead.id);
+    expect(body.parent.acquisitionReferralInviteId).toBeNull();
+    expect(body.parent.acquisitionPagePath).toBe("/ib-parent-starter-kit");
+    expect(body.parent.acquisitionReferrerUrl).toBe(
+      "https://www.google.com/search?q=daily+sparks",
+    );
+    expect(body.parent.acquisitionUtmSource).toBe("google");
+    expect(body.parent.acquisitionUtmMedium).toBe("organic");
+    expect(body.parent.acquisitionUtmCampaign).toBe("starter-kit-launch");
+    expect(body.parent.acquisitionUtmContent).toBe("hero-cta");
+    expect(body.parent.acquisitionUtmTerm).toBe("ib parent starter kit");
+    expect(body.parent.acquisitionCapturedAt).toBeTruthy();
+  });
+
+  test("persists a referral acquisition snapshot when an accepted invite exists", async () => {
+    const invite = await createMarketingReferralInvite({
+      referrerParentId: "parent-1",
+      referrerParentEmail: "referrer@example.com",
+      referrerParentFullName: "Referrer Parent",
+      inviteeEmail: "parent@example.com",
+      inviteeFullName: "Parent Example",
+      inviteeStageInterest: "DP",
+      sourcePath: "/dashboard/referrals",
+    });
+
+    await markMarketingReferralAccepted({
+      token: invite.token,
+      inviteeEmail: "parent@example.com",
+    });
+
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+
+    const response = await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.parent.acquisitionSource).toBe("referral");
+    expect(body.parent.acquisitionReferralInviteId).toBe(invite.id);
+    expect(body.parent.acquisitionLeadId).toBeNull();
+    expect(body.parent.acquisitionPagePath).toBe("/dashboard/referrals");
+    expect(body.parent.acquisitionReferrerUrl).toBeNull();
+    expect(body.parent.acquisitionUtmSource).toBeNull();
+    expect(body.parent.acquisitionCapturedAt).toBeTruthy();
+  });
+
+  test("does not overwrite an existing acquisition snapshot on later login", async () => {
+    const leadCapture = await captureMarketingLead({
+      email: "parent@example.com",
+      fullName: "Parent Example",
+      childStageInterest: "MYP",
+      source: "ib-parent-starter-kit",
+      pagePath: "/ib-parent-starter-kit",
+      referrerUrl: null,
+      utmSource: "google",
+      utmMedium: "organic",
+      utmCampaign: "starter-kit-launch",
+      utmContent: null,
+      utmTerm: null,
+    });
+
+    verifyIdTokenMock.mockResolvedValue({
+      uid: "firebase-parent-1",
+      email: "parent@example.com",
+      name: "Parent Example",
+      auth_time: Math.floor(Date.now() / 1000),
+    });
+    createSessionCookieMock.mockResolvedValue("firebase-session-cookie");
+
+    await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+
+    const invite = await createMarketingReferralInvite({
+      referrerParentId: "parent-2",
+      referrerParentEmail: "referrer-two@example.com",
+      referrerParentFullName: "Referrer Two",
+      inviteeEmail: "parent@example.com",
+      inviteeFullName: "Parent Example",
+      inviteeStageInterest: "DP",
+      sourcePath: "/dashboard/referrals",
+    });
+
+    await markMarketingReferralAccepted({
+      token: invite.token,
+      inviteeEmail: "parent@example.com",
+    });
+
+    const response = await login(
+      new Request("http://localhost:3000/api/login", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          idToken: "firebase-id-token",
+        }),
+      }),
+    );
+    const body = await response.json();
+    const profile = await mvpStore.getProfileByEmail("parent@example.com");
+
+    expect(response.status).toBe(200);
+    expect(body.parent.acquisitionSource).toBe("starter-kit");
+    expect(body.parent.acquisitionLeadId).toBe(leadCapture.lead.id);
+    expect(body.parent.acquisitionReferralInviteId).toBeNull();
+    expect(profile?.parent.acquisitionSource).toBe("starter-kit");
+    expect(profile?.parent.acquisitionLeadId).toBe(leadCapture.lead.id);
+    expect(profile?.parent.acquisitionReferralInviteId).toBeNull();
   });
 
   test("returns a secure-session error when Firebase session creation fails", async () => {
