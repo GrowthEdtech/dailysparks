@@ -2,14 +2,23 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
+  GEO_MONITORING_QUERY_OUTCOMES,
   GEO_MONITORING_RUN_STATUSES,
   GEO_MONITORING_RUN_SOURCES,
   type GeoMonitoringEngineBreakdown,
+  type GeoMonitoringQueryDiagnostic,
+  type GeoMonitoringQueryOutcome,
   type GeoMonitoringRunRecord,
   type GeoMonitoringRunSource,
   type GeoMonitoringRunStatus,
 } from "./geo-monitoring-run-schema";
 import { GEO_ENGINE_TYPES, type GeoEngineType } from "./geo-prompt-schema";
+import {
+  GEO_SENTIMENT_LABELS,
+  GEO_VISIBILITY_MENTION_STATUSES,
+  type GeoSentimentLabel,
+  type GeoVisibilityMentionStatus,
+} from "./geo-visibility-log-schema";
 import type { GeoMonitoringRunStore } from "./geo-monitoring-run-store";
 
 type LocalGeoMonitoringRunStoreData = {
@@ -57,6 +66,33 @@ function normalizeEngine(value: unknown): GeoEngineType {
     : "chatgpt-search";
 }
 
+function normalizeOutcome(value: unknown): GeoMonitoringQueryOutcome {
+  const normalized = normalizeString(value);
+  return GEO_MONITORING_QUERY_OUTCOMES.includes(
+    normalized as GeoMonitoringQueryOutcome,
+  )
+    ? (normalized as GeoMonitoringQueryOutcome)
+    : "failed";
+}
+
+function normalizeMentionStatus(
+  value: unknown,
+): GeoVisibilityMentionStatus | null {
+  const normalized = normalizeString(value);
+  return GEO_VISIBILITY_MENTION_STATUSES.includes(
+    normalized as GeoVisibilityMentionStatus,
+  )
+    ? (normalized as GeoVisibilityMentionStatus)
+    : null;
+}
+
+function normalizeSentiment(value: unknown): GeoSentimentLabel | null {
+  const normalized = normalizeString(value);
+  return GEO_SENTIMENT_LABELS.includes(normalized as GeoSentimentLabel)
+    ? (normalized as GeoSentimentLabel)
+    : null;
+}
+
 function normalizeEngineBreakdown(
   value: unknown,
 ): GeoMonitoringEngineBreakdown[] {
@@ -73,6 +109,33 @@ function normalizeEngineBreakdown(
       createdLogCount: normalizeNumber(breakdown?.createdLogCount),
       skippedCount: normalizeNumber(breakdown?.skippedCount),
       failedCount: normalizeNumber(breakdown?.failedCount),
+    };
+  });
+}
+
+function normalizeQueryDiagnostics(
+  value: unknown,
+): GeoMonitoringQueryDiagnostic[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((entry) => {
+    const diagnostic =
+      entry as Partial<GeoMonitoringQueryDiagnostic> | undefined;
+
+    return {
+      promptId: normalizeString(diagnostic?.promptId),
+      promptIntentLabel: normalizeString(diagnostic?.promptIntentLabel),
+      queryVariant: normalizeString(diagnostic?.queryVariant),
+      engine: normalizeEngine(diagnostic?.engine),
+      outcome: normalizeOutcome(diagnostic?.outcome),
+      mentionStatus: normalizeMentionStatus(diagnostic?.mentionStatus),
+      sentiment: normalizeSentiment(diagnostic?.sentiment),
+      citationUrlCount: normalizeNumber(diagnostic?.citationUrlCount),
+      durationMs: normalizeNumber(diagnostic?.durationMs),
+      reason: normalizeString(diagnostic?.reason),
+      logId: normalizeString(diagnostic?.logId) || null,
     };
   });
 }
@@ -102,6 +165,7 @@ function normalizeRunRecord(
     startedAt: normalizeString(raw?.startedAt) || timestamp,
     completedAt: normalizeString(raw?.completedAt) || timestamp,
     engineBreakdown: normalizeEngineBreakdown(raw?.engineBreakdown),
+    queryDiagnostics: normalizeQueryDiagnostics(raw?.queryDiagnostics),
   };
 }
 
@@ -145,6 +209,26 @@ export const localGeoMonitoringRunStore: GeoMonitoringRunStore = {
 
     await writeStore({
       runs: [...store.runs, nextRecord],
+    });
+
+    return nextRecord;
+  },
+
+  async updateRun(id, patch) {
+    const normalizedId = normalizeString(id);
+    const store = await readStore();
+    const existingRun = store.runs.find((run) => run.id === normalizedId);
+    const nextRecord = normalizeRunRecord({
+      ...(existingRun ?? { id: normalizedId }),
+      ...patch,
+      id: normalizedId,
+    });
+    const nextRuns = existingRun
+      ? store.runs.map((run) => (run.id === normalizedId ? nextRecord : run))
+      : [...store.runs, nextRecord];
+
+    await writeStore({
+      runs: nextRuns,
     });
 
     return nextRecord;

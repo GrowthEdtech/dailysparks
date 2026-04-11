@@ -1,9 +1,20 @@
 import type { GeoEngineType } from "./geo-prompt-schema";
+import type {
+  GeoSentimentLabel,
+  GeoVisibilityMentionStatus,
+} from "./geo-visibility-log-schema";
 
 export const GEO_MONITORING_RUN_SOURCES = ["scheduled", "manual"] as const;
 export const GEO_MONITORING_RUN_STATUSES = [
+  "queued",
+  "running",
   "completed",
   "partial",
+  "failed",
+] as const;
+export const GEO_MONITORING_QUERY_OUTCOMES = [
+  "success",
+  "skipped",
   "failed",
 ] as const;
 
@@ -11,6 +22,8 @@ export type GeoMonitoringRunSource =
   (typeof GEO_MONITORING_RUN_SOURCES)[number];
 export type GeoMonitoringRunStatus =
   (typeof GEO_MONITORING_RUN_STATUSES)[number];
+export type GeoMonitoringQueryOutcome =
+  (typeof GEO_MONITORING_QUERY_OUTCOMES)[number];
 
 export type GeoMonitoringEngineBreakdown = {
   engine: GeoEngineType;
@@ -18,6 +31,20 @@ export type GeoMonitoringEngineBreakdown = {
   createdLogCount: number;
   skippedCount: number;
   failedCount: number;
+};
+
+export type GeoMonitoringQueryDiagnostic = {
+  promptId: string;
+  promptIntentLabel: string;
+  queryVariant: string;
+  engine: GeoEngineType;
+  outcome: GeoMonitoringQueryOutcome;
+  mentionStatus: GeoVisibilityMentionStatus | null;
+  sentiment: GeoSentimentLabel | null;
+  citationUrlCount: number;
+  durationMs: number;
+  reason: string;
+  logId: string | null;
 };
 
 export type GeoMonitoringRunRecord = {
@@ -38,4 +65,5 @@ export type GeoMonitoringRunRecord = {
   startedAt: string;
   completedAt: string;
   engineBreakdown: GeoMonitoringEngineBreakdown[];
+  queryDiagnostics: GeoMonitoringQueryDiagnostic[];
 };

@@ -1,6 +1,10 @@
-import { createGeoMonitoringRun } from "./geo-monitoring-run-store";
+import {
+  createGeoMonitoringRun,
+  updateGeoMonitoringRun,
+} from "./geo-monitoring-run-store";
 import type {
   GeoMonitoringEngineBreakdown,
+  GeoMonitoringQueryDiagnostic,
   GeoMonitoringRunRecord,
   GeoMonitoringRunSource,
 } from "./geo-monitoring-run-schema";
@@ -64,6 +68,8 @@ export type GeoMonitoringEngineInput = {
 
 export type RunGeoMonitoringInput = {
   source: GeoMonitoringRunSource;
+  runId?: string;
+  persistMode?: "create" | "update";
   now?: Date;
   fetchImpl?: typeof fetch;
   executeEngineCheck?: (
@@ -719,6 +725,12 @@ type GeoMonitoringTask = {
   engine: GeoEngineType;
 };
 
+type GeoMonitoringTaskResult = {
+  task: GeoMonitoringTask;
+  result: GeoMonitoringEngineResult;
+  durationMs: number;
+};
+
 function matchesAnyPattern(
   responseText: string,
   patterns: readonly RegExp[],
@@ -890,7 +902,8 @@ export async function runGeoMonitoring(
 ): Promise<GeoMonitoringResult> {
   const now = input.now ?? new Date();
   const startedAt = now.toISOString();
-  const runId = crypto.randomUUID();
+  const runId = input.runId?.trim() || crypto.randomUUID();
+  const persistMode = input.persistMode ?? "create";
   const fetchImpl = input.fetchImpl ?? fetch;
   const baseUrl = getGeoMonitoringBaseUrl();
   const prompts = (await listGeoPrompts()).filter((prompt) => prompt.active);
@@ -901,6 +914,7 @@ export async function runGeoMonitoring(
     })),
   );
   const createdLogs: GeoVisibilityLogRecord[] = [];
+  const queryDiagnostics: GeoMonitoringQueryDiagnostic[] = [];
   const notes: string[] = [];
   const engineBreakdownMap = new Map<GeoEngineType, GeoMonitoringEngineBreakdown>();
   let createdLogCount = 0;
@@ -955,12 +969,15 @@ export async function runGeoMonitoring(
     }
   }
 
-  const engineResults = await mapWithConcurrency(
+  const engineResults = await mapWithConcurrency<
+    GeoMonitoringTask,
+    GeoMonitoringTaskResult
+  >(
     monitoringTasks,
     engineCheckConcurrency,
-    async (task) => ({
-      task,
-      result: await executeEngineCheckWithDeadline({
+    async (task) => {
+      const engineCheckStartedAt = Date.now();
+      const result = await executeEngineCheckWithDeadline({
         executeEngineCheck,
         timeoutMs: engineCheckTimeoutMs,
         input: {
@@ -970,11 +987,17 @@ export async function runGeoMonitoring(
           baseUrl,
           fetchImpl,
         },
-      }),
-    }),
+      });
+
+      return {
+        task,
+        result,
+        durationMs: Date.now() - engineCheckStartedAt,
+      };
+    },
   );
 
-  for (const { task, result } of engineResults) {
+  for (const { task, result, durationMs } of engineResults) {
     const { prompt, queryVariant, engine } = task;
     const currentBreakdown = engineBreakdownMap.get(engine) ?? {
       engine,
@@ -1024,21 +1047,60 @@ export async function runGeoMonitoring(
       createdLogs.push(createdLog);
       createdLogCount += 1;
       currentBreakdown.createdLogCount += 1;
+      queryDiagnostics.push({
+        promptId: prompt.id,
+        promptIntentLabel: prompt.intentLabel,
+        queryVariant,
+        engine,
+        outcome: "success",
+        mentionStatus,
+        sentiment: createdLog.sentiment,
+        citationUrlCount: result.citationUrls.length,
+        durationMs,
+        reason: "Created visibility log.",
+        logId: createdLog.id,
+      });
     } else if (result.outcome === "skipped") {
       skippedCount += 1;
       currentBreakdown.skippedCount += 1;
       notes.push(`${engine} · ${queryVariant}: ${result.reason}`);
+      queryDiagnostics.push({
+        promptId: prompt.id,
+        promptIntentLabel: prompt.intentLabel,
+        queryVariant,
+        engine,
+        outcome: "skipped",
+        mentionStatus: null,
+        sentiment: null,
+        citationUrlCount: 0,
+        durationMs,
+        reason: result.reason,
+        logId: null,
+      });
     } else {
       failedCount += 1;
       currentBreakdown.failedCount += 1;
       notes.push(`${engine} · ${queryVariant}: ${result.reason}`);
+      queryDiagnostics.push({
+        promptId: prompt.id,
+        promptIntentLabel: prompt.intentLabel,
+        queryVariant,
+        engine,
+        outcome: "failed",
+        mentionStatus: null,
+        sentiment: null,
+        citationUrlCount: 0,
+        durationMs,
+        reason: result.reason,
+        logId: null,
+      });
     }
 
     engineBreakdownMap.set(engine, currentBreakdown);
   }
 
   const machineReadabilityReadyCount = countReadyChecks(machineReadabilityStatus);
-  const status =
+  const status: GeoMonitoringRunRecord["status"] =
     failedCount > 0 && createdLogCount === 0
       ? "failed"
       : failedCount > 0 || skippedCount > 0
@@ -1053,7 +1115,7 @@ export async function runGeoMonitoring(
     notes.push(buildGeoMonitoringPhaseNote());
   }
 
-  const run = await createGeoMonitoringRun({
+  const nextRun: Parameters<typeof createGeoMonitoringRun>[0] = {
     id: runId,
     source: input.source,
     status,
@@ -1071,7 +1133,12 @@ export async function runGeoMonitoring(
     startedAt,
     completedAt: new Date().toISOString(),
     engineBreakdown: buildEngineBreakdown(Array.from(engineBreakdownMap.values())),
-  });
+    queryDiagnostics,
+  };
+  const run =
+    persistMode === "update"
+      ? await updateGeoMonitoringRun(runId, nextRun)
+      : await createGeoMonitoringRun(nextRun);
 
   return {
     run,

@@ -480,26 +480,25 @@ export default function GeoCopilotPanel({
         | {
             run?: GeoMonitoringRunRecord;
             logs?: GeoVisibilityLogRecord[];
-            machineReadabilityStatus?: GeoMachineReadabilityStatusRecord;
+            machineReadabilityStatus?: GeoMachineReadabilityStatusRecord | null;
             message?: string;
           }
         | null;
 
-      if (
-        !response.ok ||
-        !body?.run ||
-        !body.machineReadabilityStatus ||
-        !Array.isArray(body.logs)
-      ) {
+      if (!response.ok || !body?.run) {
         setErrorMessage(body?.message ?? "We could not run GEO monitoring.");
         setIsRunningMonitoring(false);
         return;
       }
 
+      const returnedLogs = Array.isArray(body.logs) ? body.logs : [];
+      const nextMachineReadabilityStatus =
+        body.machineReadabilityStatus ?? machineReadabilityStatus;
       const nextLogs = [
-        ...body.logs,
+        ...returnedLogs,
         ...logs.filter(
-          (existingLog) => !body.logs?.some((candidate) => candidate.id === existingLog.id),
+          (existingLog) =>
+            !returnedLogs.some((candidate) => candidate.id === existingLog.id),
         ),
       ];
       const nextRuns = [
@@ -509,11 +508,17 @@ export default function GeoCopilotPanel({
 
       setLogs(nextLogs);
       setRuns(nextRuns);
-      setMachineReadabilityStatus(body.machineReadabilityStatus);
-      refreshSummary(prompts, nextLogs, body.machineReadabilityStatus);
-      setMessage(
-        `Monitoring run complete: ${body.run.createdLogCount} automated logs created.`,
-      );
+      setMachineReadabilityStatus(nextMachineReadabilityStatus);
+      refreshSummary(prompts, nextLogs, nextMachineReadabilityStatus);
+      if (body.run.status === "queued" || body.run.status === "running") {
+        setMessage(
+          "Monitoring job started. Refresh this workspace shortly to see the completed query-level diagnostics.",
+        );
+      } else {
+        setMessage(
+          `Monitoring run complete: ${body.run.createdLogCount} automated logs created.`,
+        );
+      }
       setIsRunningMonitoring(false);
     } catch {
       setErrorMessage("We could not reach the GEO monitoring API.");
@@ -797,7 +802,28 @@ export default function GeoCopilotPanel({
               appear here as soon as the GEO monitor writes real evidence.
             </div>
           ) : (
-            recentRuns.map((run) => (
+            recentRuns.map((run) => {
+              const diagnostics = run.queryDiagnostics ?? [];
+              const successfulDiagnosticCount = diagnostics.filter(
+                (diagnostic) => diagnostic.outcome === "success",
+              ).length;
+              const failedDiagnosticCount = diagnostics.filter(
+                (diagnostic) => diagnostic.outcome === "failed",
+              ).length;
+              const skippedDiagnosticCount = diagnostics.filter(
+                (diagnostic) => diagnostic.outcome === "skipped",
+              ).length;
+              const averageDiagnosticDuration =
+                diagnostics.length > 0
+                  ? Math.round(
+                      diagnostics.reduce(
+                        (total, diagnostic) => total + diagnostic.durationMs,
+                        0,
+                      ) / diagnostics.length,
+                    )
+                  : 0;
+
+              return (
               <article
                 key={run.id}
                 className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
@@ -847,8 +873,48 @@ export default function GeoCopilotPanel({
                     </p>
                   </div>
                 </div>
+                {diagnostics.length > 0 ? (
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-3 py-3">
+                    <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          Query diagnostics
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-[#0f172a]">
+                          {successfulDiagnosticCount} success · {failedDiagnosticCount} failed ·{" "}
+                          {skippedDiagnosticCount} skipped
+                        </p>
+                      </div>
+                      <p className="text-xs text-slate-500">
+                        Avg check {averageDiagnosticDuration}ms
+                      </p>
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      {diagnostics.slice(0, 5).map((diagnostic, index) => (
+                        <div
+                          key={`${run.id}-${diagnostic.engine}-${diagnostic.queryVariant}-${index}`}
+                          className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                        >
+                          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                            <span className="font-semibold text-[#0f172a]">
+                              {diagnostic.engine} · {diagnostic.outcome}
+                            </span>
+                            <span>{diagnostic.durationMs}ms</span>
+                          </div>
+                          <p className="mt-1 line-clamp-2">
+                            {diagnostic.queryVariant}
+                          </p>
+                          <p className="mt-1 text-slate-500">
+                            {diagnostic.reason}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
               </article>
-            ))
+              );
+            })
           )}
         </div>
       </section>

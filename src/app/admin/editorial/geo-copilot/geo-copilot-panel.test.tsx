@@ -76,4 +76,88 @@ describe("GeoCopilotPanel", () => {
     expect(markup).toContain("Bias resistance");
     expect(markup).toContain("Run GEO audit");
   });
+
+  test("renders query-level diagnostics inside recent monitoring runs", () => {
+    const markup = renderToStaticMarkup(
+      <GeoCopilotPanel
+        initialPrompts={[]}
+        initialLogs={[]}
+        initialRuns={[
+          {
+            id: "geo-run-1",
+            source: "manual",
+            status: "partial",
+            activePromptCount: 1,
+            expandedQueryCount: 2,
+            engineAttemptCount: 2,
+            createdLogCount: 1,
+            skippedCount: 0,
+            failedCount: 1,
+            machineReadabilityReadyCount: 4,
+            rankabilityScore: 0.9,
+            citationReadinessScore: 1,
+            biasResistanceScore: 0.95,
+            notes: "One query timed out.",
+            startedAt: "2026-04-11T01:00:00.000Z",
+            completedAt: "2026-04-11T01:01:00.000Z",
+            engineBreakdown: [],
+            queryDiagnostics: [
+              {
+                promptId: "prompt-1",
+                promptIntentLabel: "IB workflow comparison",
+                queryVariant: "best IB reading workflow for parents",
+                engine: "chatgpt-search",
+                outcome: "success",
+                mentionStatus: "recommended",
+                sentiment: "positive",
+                citationUrlCount: 1,
+                durationMs: 1200,
+                reason: "Created visibility log.",
+                logId: "log-1",
+              },
+              {
+                promptId: "prompt-1",
+                promptIntentLabel: "IB workflow comparison",
+                queryVariant: "Daily Sparks vs tutoring",
+                engine: "chatgpt-search",
+                outcome: "failed",
+                mentionStatus: null,
+                sentiment: null,
+                citationUrlCount: 0,
+                durationMs: 15000,
+                reason: "chatgpt-search monitoring check timed out after 15000ms.",
+                logId: null,
+              },
+            ],
+          },
+        ]}
+        initialMachineReadabilityStatus={{
+          llmsTxtStatus: "ready",
+          llmsFullTxtStatus: "ready",
+          ssrStatus: "ready",
+          jsonLdStatus: "ready",
+          notes: "",
+          lastCheckedAt: "2026-04-11T01:01:00.000Z",
+          updatedAt: "2026-04-11T01:01:00.000Z",
+        }}
+        initialSummary={{
+          trackedPromptCount: 0,
+          activePromptCount: 0,
+          shareOfModelAverage: 0,
+          citationShareAverage: 0,
+          positiveSentimentRate: 0,
+          entityAccuracyRate: 0,
+          lastScanAt: null,
+          readinessReadyCount: 4,
+          intentBreakdown: [],
+        }}
+      />,
+    );
+
+    expect(markup).toContain("Query diagnostics");
+    expect(markup).toContain("1 success");
+    expect(markup).toContain("1 failed");
+    expect(markup).toContain("best IB reading workflow for parents");
+    expect(markup).toContain("timed out after 15000ms");
+  });
 });
