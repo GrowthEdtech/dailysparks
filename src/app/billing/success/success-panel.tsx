@@ -8,6 +8,10 @@ import AccountMenu from "../../../components/account-menu";
 import type { ParentProfile } from "../../../lib/mvp-types";
 import {
   PRIMARY_SUCCESS_CTA_CLASSNAME,
+  SUCCESS_HEADER_SHELL_CLASSNAME,
+  SUCCESS_MAIN_SHELL_CLASSNAME,
+  SUCCESS_PRIMARY_PANEL_CLASSNAME,
+  SUCCESS_SECONDARY_PANEL_CLASSNAME,
   SECONDARY_SUCCESS_CTA_CLASSNAME,
 } from "./success-panel.styles";
 
@@ -31,6 +35,7 @@ export default function SuccessPanel({
   const [message, setMessage] = useState("Confirming your Stripe checkout...");
   const [planLabel, setPlanLabel] = useState("");
   const [isPending, startTransition] = useTransition();
+  const sessionPreview = searchParams.get("session_id")?.trim().slice(0, 18) ?? "";
 
   useEffect(() => {
     let isCancelled = false;
@@ -97,7 +102,7 @@ export default function SuccessPanel({
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
       <header className="w-full rounded-b-[32px] bg-[#0f172a] px-6 py-6 text-white shadow-md">
-        <div className="mx-auto flex w-full max-w-md items-start justify-between gap-4">
+        <div className={SUCCESS_HEADER_SHELL_CLASSNAME}>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#fbbf24]">
               Billing
@@ -111,39 +116,120 @@ export default function SuccessPanel({
         </div>
       </header>
 
-      <main className="mx-auto mt-6 flex w-full max-w-md flex-col gap-6 px-4">
-        <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
-            Billing confirmation
-          </p>
-          <h2 className="mt-2 text-xl font-bold text-[#0f172a]">
-            {status === "success"
-              ? planLabel
-              : status === "error"
-                ? "We still need to finish billing setup"
-                : "Confirming your subscription"}
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-slate-500">{message}</p>
+      <main className={SUCCESS_MAIN_SHELL_CLASSNAME}>
+        <section className={SUCCESS_PRIMARY_PANEL_CLASSNAME}>
+          <div className="flex flex-col gap-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                Billing confirmation
+              </p>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight text-[#0f172a] md:text-[2rem]">
+                {status === "success"
+                  ? planLabel
+                  : status === "error"
+                    ? "We still need to finish billing setup"
+                    : "Confirming your subscription"}
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-500 md:text-[15px]">
+                {message}
+              </p>
+            </div>
 
-          <div className="mt-6 flex flex-col gap-3">
-            <Link
-              href="/dashboard"
-              className={PRIMARY_SUCCESS_CTA_CLASSNAME}
-            >
-              Go to dashboard
-            </Link>
-            <Link
-              href="/billing"
-              className={SECONDARY_SUCCESS_CTA_CLASSNAME}
-            >
-              Back to billing
-            </Link>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Activation state
+                </p>
+                <p className="mt-2 text-sm font-bold text-[#0f172a]">
+                  {status === "success"
+                    ? "Active"
+                    : status === "error"
+                      ? "Needs review"
+                      : "Syncing"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Stripe session
+                </p>
+                <p className="mt-2 text-sm font-bold text-[#0f172a]">
+                  {sessionPreview ? `${sessionPreview}...` : "Unavailable"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Next destination
+                </p>
+                <p className="mt-2 text-sm font-bold text-[#0f172a]">
+                  {status === "success" ? "Dashboard" : "Billing workspace"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-2 grid gap-3 md:max-w-2xl md:grid-cols-2">
+              <Link
+                href="/dashboard"
+                className={`${PRIMARY_SUCCESS_CTA_CLASSNAME} w-full`}
+              >
+                Go to dashboard
+              </Link>
+              <Link
+                href="/billing"
+                className={`${SECONDARY_SUCCESS_CTA_CLASSNAME} w-full`}
+              >
+                Back to billing
+              </Link>
+            </div>
+
+            {isPending ? (
+              <p className="text-xs text-slate-400">
+                Refreshing parent billing state...
+              </p>
+            ) : null}
           </div>
-
-          {isPending ? (
-            <p className="mt-4 text-xs text-slate-400">Refreshing parent billing state...</p>
-          ) : null}
         </section>
+
+        <aside className={SUCCESS_SECONDARY_PANEL_CLASSNAME}>
+          <div className="flex flex-col gap-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400">
+                Subscription summary
+              </p>
+              <p className="mt-3 text-xl font-bold text-[#0f172a]">
+                {status === "success"
+                  ? planLabel || "Plan active"
+                  : status === "error"
+                    ? "Confirmation pending"
+                    : "Syncing Stripe result"}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Daily Sparks keeps this screen focused on the checkout result, then routes
+                you back into the parent workspace once the billing state is confirmed.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                Account
+              </p>
+              <p className="mt-2 text-sm font-bold text-[#0f172a]">
+                {accountFullName}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">{accountEmail}</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                What happens next
+              </p>
+              <div className="mt-3 space-y-3 text-sm leading-6 text-slate-600">
+                <p>1. Stripe checkout is reconciled to your Daily Sparks family account.</p>
+                <p>2. Your billing plan becomes available across the dashboard and delivery flows.</p>
+                <p>3. If confirmation stalls, return to billing and retry the hosted checkout once.</p>
+              </div>
+            </div>
+          </div>
+        </aside>
       </main>
     </div>
   );
