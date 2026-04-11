@@ -6,6 +6,7 @@ import path from "node:path";
 import { createGeoPrompt, listGeoPrompts, updateGeoPrompt } from "./geo-prompt-store";
 import { seedWebsiteDerivedGeoPrompts } from "./geo-prompt-seeding";
 import { GEO_WEBSITE_DERIVED_PROMPT_SEEDS } from "./geo-website-derived-prompts";
+import { GEO_ENGINE_TYPES } from "./geo-prompt-schema";
 
 const ORIGINAL_ENV = { ...process.env };
 let tempDirectory = "";
@@ -89,13 +90,10 @@ describe("geo-prompt-seeding", () => {
     expect(run.updatedPrompts).toContainEqual(
       expect.objectContaining({
         id: legacySeededPrompt.id,
-        engineCoverage: ["chatgpt-search", "gemini"],
+        engineCoverage: GEO_ENGINE_TYPES,
       }),
     );
-    expect(upgradedPrompt?.engineCoverage).toEqual([
-      "chatgpt-search",
-      "gemini",
-    ]);
+    expect(upgradedPrompt?.engineCoverage).toEqual(GEO_ENGINE_TYPES);
   });
 
   test("backfills a stable seed id onto legacy starter prompts matched by exact prompt text", async () => {

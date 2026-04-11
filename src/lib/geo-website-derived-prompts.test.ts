@@ -4,6 +4,7 @@ import {
   GEO_CONTENT_PAGE_STRUCTURE_SUGGESTIONS,
   GEO_WEBSITE_DERIVED_PROMPT_SEEDS,
 } from "./geo-website-derived-prompts";
+import { GEO_ENGINE_TYPES } from "./geo-prompt-schema";
 
 describe("geo-website-derived-prompts", () => {
   test("defines the first batch of website-derived GEO prompt seeds", () => {
@@ -23,9 +24,9 @@ describe("geo-website-derived-prompts", () => {
     ).toBe(true);
     expect(
       GEO_WEBSITE_DERIVED_PROMPT_SEEDS.every(
-        (prompt) =>
-          prompt.engineCoverage.includes("chatgpt-search") &&
-          prompt.engineCoverage.includes("gemini"),
+        (prompt) => GEO_ENGINE_TYPES.every((engine) =>
+          prompt.engineCoverage.includes(engine),
+        ),
       ),
     ).toBe(true);
   });

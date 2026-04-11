@@ -3,6 +3,8 @@
 import { BarChart3, Clock3, FileSearch, Radar, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import type { GeoAioEvidenceRecord } from "../../../../lib/geo-aio-evidence-schema";
+import { GEO_AIO_EVIDENCE_STATUSES } from "../../../../lib/geo-aio-evidence-schema";
 import type { GeoMachineReadabilityStatusRecord } from "../../../../lib/geo-machine-readability-schema";
 import { GEO_READINESS_STATUSES } from "../../../../lib/geo-machine-readability-schema";
 import type { GeoMonitoringRunRecord } from "../../../../lib/geo-monitoring-run-schema";
@@ -24,9 +26,11 @@ import {
 } from "../../../../lib/geo-website-derived-prompts";
 import type { Programme } from "../../../../lib/mvp-types";
 import {
+  buildGeoOpsSummary,
   buildGeoVisibilitySummary,
   formatPercent,
   formatTimestamp,
+  type GeoOpsSummary,
   type GeoVisibilitySummary,
 } from "./geo-copilot-helpers";
 
@@ -34,8 +38,10 @@ type GeoCopilotPanelProps = {
   initialPrompts: GeoPromptRecord[];
   initialLogs: GeoVisibilityLogRecord[];
   initialRuns: GeoMonitoringRunRecord[];
+  initialAioEvidence: GeoAioEvidenceRecord[];
   initialMachineReadabilityStatus: GeoMachineReadabilityStatusRecord;
   initialSummary: GeoVisibilitySummary;
+  initialOpsSummary: GeoOpsSummary;
 };
 
 type PromptFormState = {
@@ -68,6 +74,19 @@ type ContentAuditDraft = {
   headings: string;
   body: string;
   referenceNotes: string;
+};
+
+type AioEvidenceDraft = {
+  promptId: string;
+  promptTextSnapshot: string;
+  queryVariant: string;
+  aiOverviewStatus: GeoAioEvidenceRecord["aiOverviewStatus"];
+  citationUrlsText: string;
+  dailySparksCited: boolean;
+  observedAt: string;
+  evidenceUrl: string;
+  screenshotUrl: string;
+  notes: string;
 };
 
 type ContentAuditResult = {
@@ -137,9 +156,22 @@ const DEFAULT_CREATE_PROMPT: PromptFormState = {
   intentLabel: "",
   priority: "medium",
   targetProgrammes: ["MYP"],
-  engineCoverage: ["chatgpt-search", "gemini"],
+  engineCoverage: [...GEO_ENGINE_TYPES],
   fanOutHintsText: "",
   active: true,
+  notes: "",
+};
+
+const DEFAULT_AIO_EVIDENCE_DRAFT: AioEvidenceDraft = {
+  promptId: "",
+  promptTextSnapshot: "",
+  queryVariant: "",
+  aiOverviewStatus: "inconclusive",
+  citationUrlsText: "",
+  dailySparksCited: false,
+  observedAt: "",
+  evidenceUrl: "",
+  screenshotUrl: "",
   notes: "",
 };
 
@@ -207,16 +239,20 @@ export default function GeoCopilotPanel({
   initialPrompts,
   initialLogs,
   initialRuns,
+  initialAioEvidence,
   initialMachineReadabilityStatus,
   initialSummary,
+  initialOpsSummary,
 }: GeoCopilotPanelProps) {
   const [prompts, setPrompts] = useState(initialPrompts);
   const [logs, setLogs] = useState(initialLogs);
   const [runs, setRuns] = useState(initialRuns);
+  const [aioEvidence, setAioEvidence] = useState(initialAioEvidence);
   const [machineReadabilityStatus, setMachineReadabilityStatus] = useState(
     initialMachineReadabilityStatus,
   );
   const [summary, setSummary] = useState(initialSummary);
+  const [opsSummary, setOpsSummary] = useState(initialOpsSummary);
   const [draftsById, setDraftsById] = useState<Record<string, PromptFormState>>(
     () =>
       Object.fromEntries(
@@ -230,12 +266,16 @@ export default function GeoCopilotPanel({
   );
   const [auditDraft, setAuditDraft] =
     useState<ContentAuditDraft>(DEFAULT_AUDIT_DRAFT);
+  const [aioEvidenceDraft, setAioEvidenceDraft] = useState<AioEvidenceDraft>(
+    DEFAULT_AIO_EVIDENCE_DRAFT,
+  );
   const [auditResult, setAuditResult] = useState<ContentAuditResult | null>(null);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [savingPromptId, setSavingPromptId] = useState("");
   const [isCreatingPrompt, setIsCreatingPrompt] = useState(false);
   const [isCreatingLog, setIsCreatingLog] = useState(false);
+  const [isCreatingAioEvidence, setIsCreatingAioEvidence] = useState(false);
   const [isSavingReadability, setIsSavingReadability] = useState(false);
   const [isRunningAudit, setIsRunningAudit] = useState(false);
   const [isRunningMonitoring, setIsRunningMonitoring] = useState(false);
@@ -243,6 +283,7 @@ export default function GeoCopilotPanel({
 
   const recentLogs = useMemo(() => logs.slice(0, 8), [logs]);
   const recentRuns = useMemo(() => runs.slice(0, 4), [runs]);
+  const recentAioEvidence = useMemo(() => aioEvidence.slice(0, 5), [aioEvidence]);
 
   function refreshSummary(nextPrompts: GeoPromptRecord[], nextLogs: GeoVisibilityLogRecord[], nextStatus: GeoMachineReadabilityStatusRecord) {
     setSummary(
@@ -250,6 +291,20 @@ export default function GeoCopilotPanel({
         prompts: nextPrompts,
         logs: nextLogs,
         machineReadabilityStatus: nextStatus,
+      }),
+    );
+  }
+
+  function refreshOpsSummary(
+    nextRuns: GeoMonitoringRunRecord[],
+    nextLogs: GeoVisibilityLogRecord[],
+    nextAioEvidence: GeoAioEvidenceRecord[],
+  ) {
+    setOpsSummary(
+      buildGeoOpsSummary({
+        runs: nextRuns,
+        logs: nextLogs,
+        aioEvidence: nextAioEvidence,
       }),
     );
   }
@@ -392,11 +447,52 @@ export default function GeoCopilotPanel({
       setLogs(nextLogs);
       setVisibilityLogDraft(DEFAULT_VISIBILITY_LOG_DRAFT);
       refreshSummary(prompts, nextLogs, machineReadabilityStatus);
+      refreshOpsSummary(runs, nextLogs, aioEvidence);
       setMessage("Visibility log recorded.");
       setIsCreatingLog(false);
     } catch {
       setErrorMessage("We could not reach the visibility logs API.");
       setIsCreatingLog(false);
+    }
+  }
+
+  async function handleCreateAioEvidence() {
+    setErrorMessage("");
+    setMessage("");
+    setIsCreatingAioEvidence(true);
+
+    try {
+      const response = await fetch("/api/admin/geo-aio-evidence", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          ...aioEvidenceDraft,
+          citationUrls: parseTextareaList(aioEvidenceDraft.citationUrlsText),
+        }),
+      });
+      const body = (await response.json().catch(() => null)) as
+        | { evidence?: GeoAioEvidenceRecord; message?: string }
+        | null;
+
+      if (!response.ok || !body?.evidence) {
+        setErrorMessage(
+          body?.message ?? "We could not create this Google AIO evidence entry.",
+        );
+        setIsCreatingAioEvidence(false);
+        return;
+      }
+
+      const nextAioEvidence = [body.evidence, ...aioEvidence];
+      setAioEvidence(nextAioEvidence);
+      setAioEvidenceDraft(DEFAULT_AIO_EVIDENCE_DRAFT);
+      refreshOpsSummary(runs, logs, nextAioEvidence);
+      setMessage("Google AI Overviews evidence recorded.");
+      setIsCreatingAioEvidence(false);
+    } catch {
+      setErrorMessage("We could not reach the Google AIO evidence API.");
+      setIsCreatingAioEvidence(false);
     }
   }
 
@@ -510,6 +606,7 @@ export default function GeoCopilotPanel({
       setRuns(nextRuns);
       setMachineReadabilityStatus(nextMachineReadabilityStatus);
       refreshSummary(prompts, nextLogs, nextMachineReadabilityStatus);
+      refreshOpsSummary(nextRuns, nextLogs, aioEvidence);
       if (body.run.status === "queued" || body.run.status === "running") {
         setMessage(
           "Monitoring job started. Refresh this workspace shortly to see the completed query-level diagnostics.",
@@ -739,6 +836,122 @@ export default function GeoCopilotPanel({
           </div>
         </div>
 
+        <div className="mt-6 rounded-[24px] border border-emerald-200 bg-emerald-50/70 p-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                GEO operations health
+              </p>
+              <p className="mt-2 text-sm text-slate-600">
+                Phase 3 view for engine coverage, week-over-week movement, and
+                Google AI Overviews manual evidence.
+              </p>
+            </div>
+            <span className="rounded-full border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              {opsSummary.alertLevel}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
+            <article className="rounded-[20px] border border-emerald-100 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Latest run
+              </p>
+              <p className="mt-3 text-xl font-bold text-[#0f172a]">
+                {opsSummary.latestRunStatus ?? "none"}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Failure rate {formatPercent(opsSummary.latestRunFailureRate)}
+              </p>
+            </article>
+            <article className="rounded-[20px] border border-emerald-100 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                7-day Share
+              </p>
+              <p className="mt-3 text-xl font-bold text-[#0f172a]">
+                {formatPercent(opsSummary.currentWindow.shareOfModelAverage)}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                WoW {formatPercent(opsSummary.weekOverWeekShareOfModelDelta)}
+              </p>
+            </article>
+            <article className="rounded-[20px] border border-emerald-100 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Citation trend
+              </p>
+              <p className="mt-3 text-xl font-bold text-[#0f172a]">
+                {formatPercent(opsSummary.currentWindow.citationShareAverage)}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                WoW {formatPercent(opsSummary.weekOverWeekCitationShareDelta)}
+              </p>
+            </article>
+            <article className="rounded-[20px] border border-emerald-100 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Google AIO
+              </p>
+              <p className="mt-3 text-xl font-bold text-[#0f172a]">
+                {opsSummary.aioEvidence.citedCount}/{opsSummary.aioEvidence.totalCount}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Cited evidence entries
+              </p>
+            </article>
+          </div>
+
+          {opsSummary.engineCoverage.length > 0 ? (
+            <div className="mt-4 rounded-[22px] border border-emerald-100 bg-white p-4">
+              <div className="flex flex-col gap-1 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    Engine coverage diagnostics
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Latest run attempts, created logs, skips, and failures by
+                    Phase 3 engine.
+                  </p>
+                </div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
+                  {opsSummary.engineCoverage.length} engines
+                </p>
+              </div>
+              <div className="mt-4 grid gap-2 md:grid-cols-3">
+                {opsSummary.engineCoverage.map((engine) => (
+                  <article
+                    key={engine.engine}
+                    className="rounded-[18px] border border-slate-200 bg-slate-50 px-3 py-3"
+                  >
+                    <p className="text-sm font-bold text-[#0f172a]">
+                      {engine.engine}
+                    </p>
+                    <p className="mt-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                      {engine.attemptedCount} checks ·{" "}
+                      {engine.createdLogCount} logs
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {engine.skippedCount} skipped · {engine.failedCount} failed ·{" "}
+                      {formatPercent(engine.failureRate)} failure
+                    </p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {opsSummary.alertMessages.length > 0 ? (
+            <div className="mt-4 grid gap-2">
+              {opsSummary.alertMessages.map((alertMessage) => (
+                <p
+                  key={alertMessage}
+                  className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+                >
+                  {alertMessage}
+                </p>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
         {errorMessage ? (
           <p className="mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {errorMessage}
@@ -943,9 +1156,10 @@ export default function GeoCopilotPanel({
               Home, About, and Contact-derived GEO intents ready to seed.
             </p>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Phase 1 monitors ChatGPT only via the default AI connection on
-              <span className="font-semibold text-[#0f172a]"> relay.nf.video/v1</span>.
-              Perplexity, Gemini, Claude, and Google AI Overviews will be added later.
+              Phase 3 seeds full engine coverage. ChatGPT Search and Gemini run
+              live when their AI connections are healthy; Perplexity and Claude
+              activate when credentials are configured; Google AI Overviews is
+              tracked through manual evidence entries.
             </p>
             <button
               type="button"
@@ -1636,6 +1850,227 @@ export default function GeoCopilotPanel({
         </article>
 
         <div className="space-y-6">
+          <article className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-2xl font-bold tracking-tight text-[#0f172a]">
+              Google AI Overviews evidence
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Record manual AIO checks from Google results, including whether an
+              AI Overview triggered and whether Daily Sparks was cited.
+            </p>
+
+            <div className="mt-5 grid gap-4">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">Prompt</span>
+                <select
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={aioEvidenceDraft.promptId}
+                  onChange={(event) => {
+                    const nextPromptId = event.target.value;
+                    const selectedPrompt = prompts.find(
+                      (prompt) => prompt.id === nextPromptId,
+                    );
+
+                    setAioEvidenceDraft((current) => ({
+                      ...current,
+                      promptId: nextPromptId,
+                      promptTextSnapshot: selectedPrompt?.prompt ?? "",
+                      queryVariant: selectedPrompt?.prompt ?? current.queryVariant,
+                    }));
+                  }}
+                >
+                  <option value="">Select prompt</option>
+                  {prompts.map((prompt) => (
+                    <option key={prompt.id} value={prompt.id}>
+                      {prompt.intentLabel}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  Query checked
+                </span>
+                <textarea
+                  className="min-h-[72px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={aioEvidenceDraft.queryVariant}
+                  onChange={(event) =>
+                    setAioEvidenceDraft((current) => ({
+                      ...current,
+                      queryVariant: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  AIO status
+                </span>
+                <select
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={aioEvidenceDraft.aiOverviewStatus}
+                  onChange={(event) =>
+                    setAioEvidenceDraft((current) => ({
+                      ...current,
+                      aiOverviewStatus: event.target.value as GeoAioEvidenceRecord["aiOverviewStatus"],
+                    }))
+                  }
+                >
+                  {GEO_AIO_EVIDENCE_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="inline-flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={aioEvidenceDraft.dailySparksCited}
+                  onChange={(event) =>
+                    setAioEvidenceDraft((current) => ({
+                      ...current,
+                      dailySparksCited: event.target.checked,
+                    }))
+                  }
+                />
+                Daily Sparks cited
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  Citation URLs
+                </span>
+                <textarea
+                  className="min-h-[72px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={aioEvidenceDraft.citationUrlsText}
+                  onChange={(event) =>
+                    setAioEvidenceDraft((current) => ({
+                      ...current,
+                      citationUrlsText: event.target.value,
+                    }))
+                  }
+                  placeholder="One citation URL per line"
+                />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  Observed at
+                </span>
+                <input
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={aioEvidenceDraft.observedAt}
+                  onChange={(event) =>
+                    setAioEvidenceDraft((current) => ({
+                      ...current,
+                      observedAt: event.target.value,
+                    }))
+                  }
+                  placeholder="2026-04-11T09:00:00.000Z"
+                />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  Evidence URL
+                </span>
+                <input
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={aioEvidenceDraft.evidenceUrl}
+                  onChange={(event) =>
+                    setAioEvidenceDraft((current) => ({
+                      ...current,
+                      evidenceUrl: event.target.value,
+                    }))
+                  }
+                  placeholder="Google result URL or Search Console note"
+                />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">
+                  Screenshot URL
+                </span>
+                <input
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={aioEvidenceDraft.screenshotUrl}
+                  onChange={(event) =>
+                    setAioEvidenceDraft((current) => ({
+                      ...current,
+                      screenshotUrl: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-semibold text-slate-700">Notes</span>
+                <textarea
+                  className="min-h-[72px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-[#0f172a]"
+                  value={aioEvidenceDraft.notes}
+                  onChange={(event) =>
+                    setAioEvidenceDraft((current) => ({
+                      ...current,
+                      notes: event.target.value,
+                    }))
+                  }
+                />
+              </label>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={handleCreateAioEvidence}
+                disabled={isCreatingAioEvidence}
+                className="rounded-full bg-[#0f172a] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isCreatingAioEvidence ? "Saving..." : "Record AIO evidence"}
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              {recentAioEvidence.length === 0 ? (
+                <div className="rounded-[24px] border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-500">
+                  No Google AI Overviews evidence yet. Record the first manual
+                  query inspection to start AIO coverage tracking.
+                </div>
+              ) : (
+                recentAioEvidence.map((entry) => (
+                  <article
+                    key={entry.id}
+                    className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        google-ai-overviews
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        {entry.aiOverviewStatus}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-[#0f172a]">
+                      {entry.queryVariant}
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      {entry.dailySparksCited
+                        ? "Daily Sparks was cited in this AIO check."
+                        : "Daily Sparks was not cited in this AIO check."}
+                    </p>
+                    <p className="mt-3 text-xs text-slate-500">
+                      Observed {formatTimestamp(entry.observedAt)} ·{" "}
+                      {entry.citationUrls.length} citations captured
+                    </p>
+                  </article>
+                ))
+              )}
+            </div>
+          </article>
+
           <article className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-bold tracking-tight text-[#0f172a]">
               Machine-readability layer
