@@ -5,11 +5,13 @@ const {
   clearEditorialAdminSessionCookieHeaderMock,
   runOperationsHealthWorkflowMock,
   afterMock,
+  readOperationsHealthDashboardDataMock,
 } = vi.hoisted(() => ({
   getEditorialAdminSessionFromRequestMock: vi.fn(),
   clearEditorialAdminSessionCookieHeaderMock: vi.fn(),
   runOperationsHealthWorkflowMock: vi.fn(),
   afterMock: vi.fn(),
+  readOperationsHealthDashboardDataMock: vi.fn(),
 }));
 
 vi.mock("../../../../../lib/editorial-admin-auth", () => ({
@@ -26,7 +28,11 @@ vi.mock("next/server", () => ({
   after: afterMock,
 }));
 
-import { POST } from "./route";
+vi.mock("../../../../../lib/operations-health-dashboard-data", () => ({
+  readOperationsHealthDashboardData: readOperationsHealthDashboardDataMock,
+}));
+
+import * as operationsHealthRunRoute from "./route";
 
 describe("POST /api/admin/operations-health/run", () => {
   beforeEach(() => {
@@ -34,6 +40,7 @@ describe("POST /api/admin/operations-health/run", () => {
     clearEditorialAdminSessionCookieHeaderMock.mockReset();
     runOperationsHealthWorkflowMock.mockReset();
     afterMock.mockReset();
+    readOperationsHealthDashboardDataMock.mockReset();
 
     clearEditorialAdminSessionCookieHeaderMock.mockReturnValue(
       "editorial-admin=; Path=/; Max-Age=0",
@@ -43,7 +50,7 @@ describe("POST /api/admin/operations-health/run", () => {
   test("rejects requests without an editorial admin session", async () => {
     getEditorialAdminSessionFromRequestMock.mockResolvedValue(null);
 
-    const response = await POST(
+    const response = await operationsHealthRunRoute.POST(
       new Request("http://localhost:3000/api/admin/operations-health/run", {
         method: "POST",
       }),
@@ -69,7 +76,7 @@ describe("POST /api/admin/operations-health/run", () => {
       },
     });
 
-    const response = await POST(
+    const response = await operationsHealthRunRoute.POST(
       new Request("http://localhost:3000/api/admin/operations-health/run", {
         method: "POST",
       }),
@@ -87,5 +94,38 @@ describe("POST /api/admin/operations-health/run", () => {
     expect(runOperationsHealthWorkflowMock).toHaveBeenCalledWith({
       source: "manual",
     });
+  });
+
+  test("returns the latest snapshot and runs for polling authenticated admins", async () => {
+    getEditorialAdminSessionFromRequestMock.mockResolvedValue({
+      email: "admin@geledtech.com",
+    });
+    readOperationsHealthDashboardDataMock.mockResolvedValue({
+      snapshot: {
+        status: "warning",
+        alerts: [{ title: "GEO timeout" }],
+      },
+      runs: [
+        {
+          id: "run-2",
+          completedAt: "2026-04-12T03:27:30.000Z",
+        },
+      ],
+    });
+
+    expect(typeof operationsHealthRunRoute.GET).toBe("function");
+
+    const response = await operationsHealthRunRoute.GET(
+      new Request("http://localhost:3000/api/admin/operations-health/run", {
+        method: "GET",
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.mode).toBe("operations-health-snapshot");
+    expect(body.snapshot.status).toBe("warning");
+    expect(body.runs[0].id).toBe("run-2");
+    expect(readOperationsHealthDashboardDataMock).toHaveBeenCalledTimes(1);
   });
 });

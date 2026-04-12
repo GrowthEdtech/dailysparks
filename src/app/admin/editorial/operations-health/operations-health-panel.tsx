@@ -13,6 +13,38 @@ type OperationsHealthPanelProps = {
   initialRuns: OperationsHealthRunRecord[];
 };
 
+const OPERATIONS_HEALTH_POLL_INTERVAL_MS = 5_000;
+const OPERATIONS_HEALTH_POLL_MAX_ATTEMPTS = 60;
+
+type OperationsHealthSnapshotResponse = {
+  mode?: string;
+  message?: string;
+  queuedAt?: string;
+  run?: OperationsHealthRunRecord;
+  snapshot?: OperationsHealthSnapshot;
+  runs?: OperationsHealthRunRecord[];
+};
+
+function delay(ms: number) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+export function hasCompletedOperationsHealthRunAfterQueuedAt(
+  run: Pick<OperationsHealthRunRecord, "completedAt"> | null | undefined,
+  queuedAt: string,
+) {
+  const completedAt = Date.parse(run?.completedAt ?? "");
+  const queuedAtTime = Date.parse(queuedAt);
+
+  return (
+    Number.isFinite(completedAt) &&
+    Number.isFinite(queuedAtTime) &&
+    completedAt > queuedAtTime
+  );
+}
+
 function formatTimestamp(value: string | null) {
   if (!value) {
     return "Not recorded yet";
@@ -122,6 +154,51 @@ export default function OperationsHealthPanel({
   const [handoffMessage, setHandoffMessage] = useState("");
   const [handoffError, setHandoffError] = useState("");
 
+  async function pollQueuedOperationsHealthRun(queuedAt: string) {
+    for (let attempt = 0; attempt < OPERATIONS_HEALTH_POLL_MAX_ATTEMPTS; attempt += 1) {
+      await delay(OPERATIONS_HEALTH_POLL_INTERVAL_MS);
+
+      try {
+        const response = await fetch("/api/admin/operations-health/run", {
+          method: "GET",
+        });
+        const body = (await response.json().catch(() => null)) as
+          | OperationsHealthSnapshotResponse
+          | null;
+
+        if (!response.ok || !body?.snapshot || !Array.isArray(body.runs)) {
+          throw new Error(
+            body?.message || "Operations health polling could not load the latest run.",
+          );
+        }
+
+        setSnapshot(body.snapshot);
+        setRuns(body.runs);
+
+        if (
+          hasCompletedOperationsHealthRunAfterQueuedAt(body.runs[0], queuedAt)
+        ) {
+          setQueuedRunPending(false);
+          setMessage("Operations health run completed and the dashboard is up to date.");
+          return;
+        }
+      } catch (error) {
+        setQueuedRunPending(false);
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Operations health polling failed.",
+        );
+        return;
+      }
+    }
+
+    setQueuedRunPending(false);
+    setErrorMessage(
+      "Operations health run is still in progress after several minutes. Refresh this page later to load the completed immutable run.",
+    );
+  }
+
   async function runHealthCheckNow() {
     setIsRunning(true);
     setQueuedRunPending(false);
@@ -133,21 +210,18 @@ export default function OperationsHealthPanel({
         method: "POST",
       });
       const body = (await response.json().catch(() => null)) as
-        | {
-            mode?: string;
-            message?: string;
-            queuedAt?: string;
-            run?: OperationsHealthRunRecord;
-            snapshot?: OperationsHealthSnapshot;
-          }
+        | OperationsHealthSnapshotResponse
         | null;
 
       if (response.status === 202 || body?.mode === "operations-health-async") {
+        const queuedAt = body?.queuedAt ?? new Date().toISOString();
+
         setQueuedRunPending(true);
         setMessage(
           body?.message ||
             "Operations health run queued. Refresh this page shortly to load the completed immutable run.",
         );
+        void pollQueuedOperationsHealthRun(queuedAt);
         return;
       }
 

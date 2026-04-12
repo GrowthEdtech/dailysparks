@@ -4,6 +4,7 @@ import {
   clearEditorialAdminSessionCookieHeader,
   getEditorialAdminSessionFromRequest,
 } from "../../../../../lib/editorial-admin-auth";
+import { readOperationsHealthDashboardData } from "../../../../../lib/operations-health-dashboard-data";
 import { runOperationsHealthWorkflow } from "../../../../../lib/operations-health-runner";
 
 function unauthorized(message: string) {
@@ -57,4 +58,25 @@ export async function POST(request: Request) {
       "Operations health run queued. Refresh this page in about a minute to see the next immutable run.",
     queuedAt: new Date().toISOString(),
   }, { status: 202 });
+}
+
+export async function GET(request: Request) {
+  const adminCheck = await requireAdminSession(request);
+
+  if (adminCheck.errorResponse) {
+    return adminCheck.errorResponse;
+  }
+
+  const { snapshot, runs } = await readOperationsHealthDashboardData();
+
+  return Response.json({
+    mode: "operations-health-snapshot",
+    snapshot,
+    runs,
+    summary: {
+      status: snapshot.status,
+      alertCount: snapshot.alerts.length,
+      latestRunCompletedAt: runs[0]?.completedAt ?? null,
+    },
+  });
 }
