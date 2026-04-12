@@ -18,6 +18,20 @@ describe("buildOperationsHealthHandoffSummary", () => {
         missingProductionCount: 0,
         retryCandidateCount: 1,
         blockedCanaryCount: 1,
+        syntheticCanary: {
+          enabled: true,
+          configuredParentEmails: ["admin@geledtech.com", "backup@geledtech.com"],
+          selectedParentEmail: "backup@geledtech.com",
+          healthyParentEmails: ["backup@geledtech.com"],
+          fallbackActivated: true,
+          blocksProduction: false,
+          unhealthyTargets: [
+            {
+              parentEmail: "admin@geledtech.com",
+              reason: "Goodnotes delivery is not healthy right now.",
+            },
+          ],
+        },
       },
       notifications: {
         queueCount: 2,
@@ -105,6 +119,7 @@ describe("buildOperationsHealthHandoffSummary", () => {
     expect(summary).toContain("- Run date: 2026-04-07");
     expect(summary).toContain("- Status: warning");
     expect(summary).toContain("- Daily Brief: 9/9 generated, 1 retry candidate, 1 blocked by canary");
+    expect(summary).toContain("- Synthetic canary: backup@geledtech.com selected, fallback active");
     expect(summary).toContain("- Alerts: 2 active");
     expect(summary).toContain("- Notifications: 1 escalated, 1 older than 72h");
     expect(summary).toContain("- Billing: 1 actionable item");

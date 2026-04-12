@@ -32,6 +32,7 @@ export default async function OperationsHealthAdminPage() {
   const snapshot = buildOperationsHealthSnapshot({
     runDate,
     now,
+    profiles,
     dailyBriefHistory,
     plannedNotificationQueue,
     plannedNotificationHistory,

@@ -203,6 +203,15 @@ function normalizeSyntheticCanary(
         ? raw.status
         : "pending",
     targetParentEmails: normalizeStringArray(raw.targetParentEmails),
+    selectedParentEmail: normalizeNullableString(raw.selectedParentEmail),
+    healthyParentEmails: normalizeStringArray(raw.healthyParentEmails),
+    unhealthyTargets: Array.isArray(raw.unhealthyTargets)
+      ? raw.unhealthyTargets.map((target) => ({
+          parentEmail: normalizeString(target?.parentEmail),
+          reason: normalizeString(target?.reason),
+        }))
+      : [],
+    fallbackActivated: raw.fallbackActivated === true,
     attemptCount: normalizeCount(raw.attemptCount),
     successCount: normalizeCount(raw.successCount),
     failureCount: normalizeCount(raw.failureCount),

@@ -43,6 +43,15 @@ describe("operations health run store", () => {
         missingProductionCount: 0,
         retryCandidateCount: 1,
         blockedCanaryCount: 0,
+        syntheticCanary: {
+          enabled: true,
+          configuredParentEmails: ["admin@geledtech.com"],
+          selectedParentEmail: "admin@geledtech.com",
+          healthyParentEmails: ["admin@geledtech.com"],
+          fallbackActivated: false,
+          blocksProduction: false,
+          unhealthyTargets: [],
+        },
       },
       notifications: {
         queueCount: 1,
@@ -92,6 +101,15 @@ describe("operations health run store", () => {
         missingProductionCount: 0,
         retryCandidateCount: 0,
         blockedCanaryCount: 0,
+        syntheticCanary: {
+          enabled: true,
+          configuredParentEmails: ["admin@geledtech.com"],
+          selectedParentEmail: "admin@geledtech.com",
+          healthyParentEmails: ["admin@geledtech.com"],
+          fallbackActivated: false,
+          blocksProduction: false,
+          unhealthyTargets: [],
+        },
       },
       notifications: {
         queueCount: 0,

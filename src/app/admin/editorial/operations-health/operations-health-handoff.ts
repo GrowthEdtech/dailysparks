@@ -13,6 +13,10 @@ function formatTimestamp(value: string | null) {
 }
 
 function buildRecommendedHandoffNote(snapshot: OperationsHealthSnapshot) {
+  if (snapshot.dailyBrief.syntheticCanary.blocksProduction) {
+    return "Synthetic canary has no healthy recipient. Restore a dispatchable canary mailbox before trusting the next production release window.";
+  }
+
   if (
     snapshot.status === "critical" ||
     snapshot.dailyBrief.blockedCanaryCount > 0
@@ -62,6 +66,15 @@ export function buildOperationsHealthHandoffSummary(input: {
     `- Latest immutable run: ${formatTimestamp(latestRun?.completedAt ?? null)}`,
     `- Status: ${snapshot.status}`,
     `- Daily Brief: ${snapshot.dailyBrief.generatedCount}/${snapshot.dailyBrief.expectedProductionCount} generated, ${snapshot.dailyBrief.retryCandidateCount} retry candidate${snapshot.dailyBrief.retryCandidateCount === 1 ? "" : "s"}, ${snapshot.dailyBrief.blockedCanaryCount} blocked by canary`,
+    `- Synthetic canary: ${
+      snapshot.dailyBrief.syntheticCanary.selectedParentEmail ?? "no healthy recipient selected"
+    }${
+      snapshot.dailyBrief.syntheticCanary.fallbackActivated
+        ? " selected, fallback active"
+        : snapshot.dailyBrief.syntheticCanary.blocksProduction
+          ? ", next production wave would block"
+          : " selected, primary healthy"
+    }`,
     `- Alerts: ${snapshot.alerts.length} active`,
     `- Notifications: ${snapshot.notifications.escalatedCount} escalated, ${snapshot.notifications.over72hCount} older than 72h`,
     `- Billing: ${snapshot.billing.actionableCount} actionable item${snapshot.billing.actionableCount === 1 ? "" : "s"}`,

@@ -119,6 +119,7 @@ function normalizeRunRecord(
   raw: Partial<OperationsHealthRunRecord> | undefined,
 ): OperationsHealthRunRecord {
   const timestamp = new Date().toISOString();
+  const rawSyntheticCanary = raw?.dailyBrief?.syntheticCanary;
 
   return {
     id: normalizeString(raw?.id) || crypto.randomUUID(),
@@ -134,6 +135,35 @@ function normalizeRunRecord(
       missingProductionCount: normalizeNumber(raw?.dailyBrief?.missingProductionCount),
       retryCandidateCount: normalizeNumber(raw?.dailyBrief?.retryCandidateCount),
       blockedCanaryCount: normalizeNumber(raw?.dailyBrief?.blockedCanaryCount),
+      syntheticCanary: {
+        enabled: rawSyntheticCanary?.enabled === true,
+        configuredParentEmails: Array.isArray(
+          rawSyntheticCanary?.configuredParentEmails,
+        )
+          ? rawSyntheticCanary.configuredParentEmails
+              .map((email) => normalizeString(email))
+              .filter(Boolean)
+          : [],
+        selectedParentEmail:
+          normalizeString(rawSyntheticCanary?.selectedParentEmail) || null,
+        healthyParentEmails: Array.isArray(
+          rawSyntheticCanary?.healthyParentEmails,
+        )
+          ? rawSyntheticCanary.healthyParentEmails
+              .map((email) => normalizeString(email))
+              .filter(Boolean)
+          : [],
+        fallbackActivated: rawSyntheticCanary?.fallbackActivated === true,
+        blocksProduction: rawSyntheticCanary?.blocksProduction === true,
+        unhealthyTargets: Array.isArray(
+          rawSyntheticCanary?.unhealthyTargets,
+        )
+          ? rawSyntheticCanary.unhealthyTargets.map((target) => ({
+              parentEmail: normalizeString(target?.parentEmail),
+              reason: normalizeString(target?.reason),
+            }))
+          : [],
+      },
     },
     notifications: {
       queueCount: normalizeNumber(raw?.notifications?.queueCount),

@@ -1,5 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const {
   listOperationsHealthRunsMock,
@@ -49,8 +49,85 @@ vi.mock("../../../../lib/planned-notification-ops", () => ({
 
 import OperationsHealthAdminPage from "./page";
 
+const ORIGINAL_ENV = { ...process.env };
+
+function buildProfile(
+  email: string,
+  deliveryStatus: "success" | "failed",
+) {
+  return {
+    parent: {
+      id: `${email}-parent`,
+      email,
+      fullName: "Parent",
+      countryCode: "HK",
+      deliveryTimeZone: "Asia/Hong_Kong",
+      preferredDeliveryLocalTime: "09:00",
+      onboardingReminderCount: 0,
+      onboardingReminderLastAttemptAt: null,
+      onboardingReminderLastSentAt: null,
+      onboardingReminderLastStage: null,
+      onboardingReminderLastStatus: null,
+      onboardingReminderLastMessageId: null,
+      onboardingReminderLastError: null,
+      subscriptionStatus: "active",
+      subscriptionPlan: "yearly",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      trialStartedAt: "2026-04-01T00:00:00.000Z",
+      trialEndsAt: "2026-04-30T00:00:00.000Z",
+      subscriptionActivatedAt: "2026-04-01T00:00:00.000Z",
+      subscriptionRenewalAt: null,
+      latestInvoiceId: null,
+      latestInvoiceNumber: null,
+      latestInvoiceStatus: null,
+      latestInvoiceHostedUrl: null,
+      latestInvoicePdfUrl: null,
+      latestInvoiceAmountPaid: null,
+      latestInvoiceCurrency: null,
+      latestInvoicePaidAt: null,
+      latestInvoicePeriodStart: null,
+      latestInvoicePeriodEnd: null,
+      notionWorkspaceId: null,
+      notionWorkspaceName: null,
+      notionBotId: null,
+      notionDatabaseId: null,
+      notionDatabaseName: null,
+      notionDataSourceId: null,
+      notionAuthorizedAt: null,
+      notionLastSyncedAt: null,
+      notionLastSyncStatus: null,
+      notionLastSyncMessage: null,
+      notionLastSyncPageId: null,
+      notionLastSyncPageUrl: null,
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+    },
+    student: {
+      id: `${email}-student`,
+      parentId: `${email}-parent`,
+      studentName: "Student",
+      programme: "PYP",
+      programmeYear: 5,
+      goodnotesEmail: `${email}.goodnotes@example.com`,
+      goodnotesConnected: true,
+      goodnotesVerifiedAt: "2026-04-02T00:00:00.000Z",
+      goodnotesLastTestSentAt: "2026-04-02T00:00:00.000Z",
+      goodnotesLastDeliveryStatus: deliveryStatus,
+      goodnotesLastDeliveryMessage:
+        deliveryStatus === "success" ? "Ready." : "Relay timeout.",
+      notionConnected: false,
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+    },
+  };
+}
+
 describe("OperationsHealthAdminPage", () => {
   beforeEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+    delete process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED;
+    delete process.env.DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS;
     listOperationsHealthRunsMock.mockReset();
     listDailyBriefHistoryMock.mockReset();
     listParentProfilesMock.mockReset();
@@ -60,7 +137,14 @@ describe("OperationsHealthAdminPage", () => {
     buildPlannedNotificationOpsQueueMock.mockReset();
   });
 
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
   test("renders the operations health dashboard and recent evidence", async () => {
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED = "true";
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS =
+      "admin@geledtech.com,ops-backup@geledtech.com";
     getDailyBriefBusinessDateMock.mockReturnValue("2026-04-06");
     listOperationsHealthRunsMock.mockResolvedValue([
       {
@@ -77,6 +161,23 @@ describe("OperationsHealthAdminPage", () => {
           missingProductionCount: 0,
           retryCandidateCount: 1,
           blockedCanaryCount: 1,
+          syntheticCanary: {
+            enabled: true,
+            configuredParentEmails: [
+              "admin@geledtech.com",
+              "ops-backup@geledtech.com",
+            ],
+            selectedParentEmail: "ops-backup@geledtech.com",
+            healthyParentEmails: ["ops-backup@geledtech.com"],
+            fallbackActivated: true,
+            blocksProduction: false,
+            unhealthyTargets: [
+              {
+                parentEmail: "admin@geledtech.com",
+                reason: "Goodnotes delivery is not healthy right now.",
+              },
+            ],
+          },
         },
         notifications: {
           queueCount: 2,
@@ -142,7 +243,10 @@ describe("OperationsHealthAdminPage", () => {
       },
     ]);
     listDailyBriefHistoryMock.mockResolvedValue([]);
-    listParentProfilesMock.mockResolvedValue([]);
+    listParentProfilesMock.mockResolvedValue([
+      buildProfile("admin@geledtech.com", "failed"),
+      buildProfile("ops-backup@geledtech.com", "success"),
+    ]);
     listPlannedNotificationRunHistoryMock.mockResolvedValue([]);
     listGeoMonitoringRunsMock.mockResolvedValue([]);
     buildPlannedNotificationOpsQueueMock.mockReturnValue({
@@ -166,6 +270,9 @@ describe("OperationsHealthAdminPage", () => {
     expect(markup).toContain("Alerting / SLA policy");
     expect(markup).toContain("Auto-remediation workflows");
     expect(markup).toContain("Run health check now");
+    expect(markup).toContain("Synthetic canary readiness");
+    expect(markup).toContain("ops-backup@geledtech.com");
+    expect(markup).toContain("Fallback backup is active");
     expect(markup).toContain("Ops readiness");
     expect(markup).toContain("Production stabilization checklist");
     expect(markup).toContain("Confirm canary passes before trusting today&#x27;s production wave.");

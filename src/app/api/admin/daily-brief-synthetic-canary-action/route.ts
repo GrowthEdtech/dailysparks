@@ -10,7 +10,7 @@ import {
   updateDailyBriefHistoryEntry,
 } from "../../../../lib/daily-brief-history-store";
 import { emitDailyBriefOpsAlert } from "../../../../lib/daily-brief-ops-alerts";
-import { listDispatchableDeliveryProfiles } from "../../../../lib/mvp-store";
+import { listParentProfiles } from "../../../../lib/mvp-store";
 import {
   getDailyBriefSchedulerHeaderName,
   getDailyBriefSchedulerSecret,
@@ -195,14 +195,14 @@ export async function POST(request: Request) {
     });
   }
 
-  const dispatchableProfiles = await listDispatchableDeliveryProfiles();
+  const allProfiles = await listParentProfiles();
   const renderer = resolveDailyBriefRendererFromHistory({
     brief,
     attachmentMode: "canary",
   }).renderer;
   const rerunResult = await runDailyBriefSyntheticCanary({
     brief,
-    dispatchableProfiles,
+    allProfiles,
     renderer,
     attemptTimestamp: new Date().toISOString(),
     previousState: brief.syntheticCanary,

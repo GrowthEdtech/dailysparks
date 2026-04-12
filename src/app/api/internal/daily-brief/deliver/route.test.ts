@@ -779,11 +779,151 @@ describe("daily brief deliver route", () => {
       expect.objectContaining({
         status: "blocked",
         targetParentEmails: ["synthetic-canary@example.com"],
+        selectedParentEmail: "synthetic-canary@example.com",
+        fallbackActivated: false,
+        healthyParentEmails: ["synthetic-canary@example.com"],
+        unhealthyTargets: [],
         attemptCount: 2,
         autoRetryCount: 1,
         successCount: 0,
         failureCount: 2,
       }),
+    );
+  });
+
+  test("falls back to the first healthy synthetic canary recipient in configured order", async () => {
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED = "true";
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS =
+      "primary-canary@example.com,backup-canary@example.com";
+
+    await createEligibleProgrammeProfile(
+      "primary-canary@example.com",
+      "DP",
+      ["goodnotes"],
+    );
+    await updateStudentGoodnotesDelivery("primary-canary@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "failed",
+      goodnotesLastDeliveryMessage: "Relay timeout.",
+    });
+    await createEligibleProgrammeProfile(
+      "backup-canary@example.com",
+      "DP",
+      ["goodnotes"],
+    );
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.deliveredCount).toBe(1);
+    expect(body.summary.syntheticCanaryBlockedCount).toBe(0);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(2);
+    expect(sendBriefToGoodnotesMock.mock.calls[0]?.[0]).toMatchObject({
+      parent: {
+        email: "backup-canary@example.com",
+      },
+    });
+    expect(sendBriefToGoodnotesMock.mock.calls[1]?.[0]).toMatchObject({
+      parent: {
+        email: "pyp-family@example.com",
+      },
+    });
+    expect(history[0]?.syntheticCanary).toEqual(
+      expect.objectContaining({
+        status: "passed",
+        targetParentEmails: [
+          "primary-canary@example.com",
+          "backup-canary@example.com",
+        ],
+        selectedParentEmail: "backup-canary@example.com",
+        fallbackActivated: true,
+        healthyParentEmails: ["backup-canary@example.com"],
+        unhealthyTargets: [
+          expect.objectContaining({
+            parentEmail: "primary-canary@example.com",
+            reason: expect.stringMatching(/not healthy|attention|failed/i),
+          }),
+        ],
+      }),
+    );
+  });
+
+  test("stores synthetic canary precheck evidence when no configured canary recipient is healthy", async () => {
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED = "true";
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS =
+      "missing-canary@example.com,unhealthy-canary@example.com";
+
+    await createEligibleProgrammeProfile(
+      "unhealthy-canary@example.com",
+      "DP",
+      ["goodnotes"],
+    );
+    await updateStudentGoodnotesDelivery("unhealthy-canary@example.com", {
+      goodnotesConnected: true,
+      goodnotesLastDeliveryStatus: "failed",
+      goodnotesLastDeliveryMessage: "Relay timeout.",
+    });
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.deliveredCount).toBe(0);
+    expect(body.summary.syntheticCanaryBlockedCount).toBe(1);
+    expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
+    expect(history[0]?.syntheticCanary).toEqual(
+      expect.objectContaining({
+        status: "blocked",
+        targetParentEmails: [
+          "missing-canary@example.com",
+          "unhealthy-canary@example.com",
+        ],
+        selectedParentEmail: null,
+        fallbackActivated: false,
+        healthyParentEmails: [],
+        unhealthyTargets: [
+          expect.objectContaining({
+            parentEmail: "missing-canary@example.com",
+            reason: expect.stringMatching(/no parent profile|not found/i),
+          }),
+          expect.objectContaining({
+            parentEmail: "unhealthy-canary@example.com",
+            reason: expect.stringMatching(/not healthy|attention|failed/i),
+          }),
+        ],
+      }),
+    );
+    expect(history[0]?.failureReason).toMatch(
+      /no healthy synthetic canary recipients/i,
     );
   });
 });

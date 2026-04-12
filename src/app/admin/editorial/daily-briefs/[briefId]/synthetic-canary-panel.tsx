@@ -140,7 +140,7 @@ export default function SyntheticCanaryPanel({
         </span>
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
             Canary recipients
@@ -149,6 +149,21 @@ export default function SyntheticCanaryPanel({
             {syntheticCanary?.targetParentEmails?.length
               ? syntheticCanary.targetParentEmails.join(", ")
               : "Not configured yet"}
+          </p>
+        </div>
+        <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+            Selected recipient
+          </p>
+          <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+            {syntheticCanary?.selectedParentEmail ?? "No healthy recipient available"}
+          </p>
+          <p className="mt-2 text-sm text-slate-500">
+            {syntheticCanary?.fallbackActivated
+              ? "Fallback backup is active for this brief."
+              : syntheticCanary?.selectedParentEmail
+                ? "Primary canary ordering was healthy for this run."
+                : "This brief had no healthy canary recipient at precheck time."}
           </p>
         </div>
         <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
@@ -213,6 +228,20 @@ export default function SyntheticCanaryPanel({
               <p className="mt-1">
                 {target.channel} · {target.errorMessage}
               </p>
+            </article>
+          ))}
+        </div>
+      ) : null}
+
+      {syntheticCanary?.unhealthyTargets?.length ? (
+        <div className="mt-4 space-y-3">
+          {syntheticCanary.unhealthyTargets.map((target) => (
+            <article
+              key={`${target.parentEmail}-precheck`}
+              className="rounded-[20px] border border-amber-200 bg-amber-50/70 p-4 text-sm leading-6 text-amber-900"
+            >
+              <p className="font-semibold">{target.parentEmail}</p>
+              <p className="mt-1">{target.reason}</p>
             </article>
           ))}
         </div>

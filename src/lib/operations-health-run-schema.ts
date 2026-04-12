@@ -41,6 +41,21 @@ export type OperationsHealthRemediationActionType =
 export type OperationsHealthRemediationStatus =
   (typeof OPERATIONS_HEALTH_REMEDIATION_STATUSES)[number];
 
+export type OperationsHealthSyntheticCanaryUnhealthyTarget = {
+  parentEmail: string;
+  reason: string;
+};
+
+export type OperationsHealthSyntheticCanarySummary = {
+  enabled: boolean;
+  configuredParentEmails: string[];
+  selectedParentEmail: string | null;
+  healthyParentEmails: string[];
+  fallbackActivated: boolean;
+  blocksProduction: boolean;
+  unhealthyTargets: OperationsHealthSyntheticCanaryUnhealthyTarget[];
+};
+
 export type OperationsHealthDailyBriefSummary = {
   expectedProductionCount: number;
   generatedCount: number;
@@ -50,6 +65,7 @@ export type OperationsHealthDailyBriefSummary = {
   missingProductionCount: number;
   retryCandidateCount: number;
   blockedCanaryCount: number;
+  syntheticCanary: OperationsHealthSyntheticCanarySummary;
 };
 
 export type OperationsHealthNotificationsSummary = {

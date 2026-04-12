@@ -51,6 +51,46 @@ function getAlertChannelLabel(alert: OperationsHealthRunRecord["alerts"][number]
   return { emailLabel, webhookLabel };
 }
 
+function getSyntheticCanaryStatusLabel(
+  summary: OperationsHealthSnapshot["dailyBrief"]["syntheticCanary"],
+) {
+  if (!summary.enabled) {
+    return "Disabled";
+  }
+
+  if (summary.blocksProduction) {
+    return "Will block next production wave";
+  }
+
+  if (summary.fallbackActivated) {
+    return "Fallback backup is active";
+  }
+
+  if (summary.selectedParentEmail) {
+    return "Primary canary is healthy";
+  }
+
+  return "Precheck pending";
+}
+
+function getSyntheticCanaryStatusClass(
+  summary: OperationsHealthSnapshot["dailyBrief"]["syntheticCanary"],
+) {
+  if (!summary.enabled) {
+    return "border-slate-200 bg-slate-100 text-slate-600";
+  }
+
+  if (summary.blocksProduction) {
+    return "border-rose-200 bg-rose-50 text-rose-800";
+  }
+
+  if (summary.fallbackActivated) {
+    return "border-amber-200 bg-amber-50 text-amber-800";
+  }
+
+  return "border-emerald-200 bg-emerald-50 text-emerald-800";
+}
+
 export default function OperationsHealthPanel({
   initialSnapshot,
   initialRuns,
@@ -276,6 +316,95 @@ export default function OperationsHealthPanel({
             {snapshot.notifications.escalatedCount === 1 ? "" : "s"}
           </p>
         </div>
+      </section>
+
+      <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-sm">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              Synthetic canary readiness
+            </p>
+            <h3 className="mt-2 text-2xl font-bold tracking-tight text-[#0f172a]">
+              Primary and fallback precheck coverage for the next production wave
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-slate-500">
+              This panel shows the ordered synthetic canary recipient list, which
+              recipient would be selected right now, and whether the next live wave
+              would proceed, fall back, or block.
+            </p>
+          </div>
+
+          <span
+            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getSyntheticCanaryStatusClass(snapshot.dailyBrief.syntheticCanary)}`}
+          >
+            {getSyntheticCanaryStatusLabel(snapshot.dailyBrief.syntheticCanary)}
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-3">
+          <article className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Configured recipients
+            </p>
+            <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+              {snapshot.dailyBrief.syntheticCanary.configuredParentEmails.length
+                ? snapshot.dailyBrief.syntheticCanary.configuredParentEmails.join(
+                    ", ",
+                  )
+                : "Not configured"}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              Ordered top to bottom. The first healthy recipient is chosen.
+            </p>
+          </article>
+
+          <article className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Selected recipient
+            </p>
+            <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+              {snapshot.dailyBrief.syntheticCanary.selectedParentEmail ??
+                "No healthy recipient available"}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              {snapshot.dailyBrief.syntheticCanary.fallbackActivated
+                ? "A backup recipient is currently carrying the canary gate."
+                : snapshot.dailyBrief.syntheticCanary.selectedParentEmail
+                  ? "Primary ordering is healthy right now."
+                  : "Production would block until a healthy canary recipient is restored."}
+            </p>
+          </article>
+
+          <article className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              Healthy recipient pool
+            </p>
+            <p className="mt-2 text-sm font-semibold text-[#0f172a]">
+              {snapshot.dailyBrief.syntheticCanary.healthyParentEmails.length
+                ? snapshot.dailyBrief.syntheticCanary.healthyParentEmails.join(", ")
+                : "No healthy recipients"}
+            </p>
+            <p className="mt-2 text-sm text-slate-500">
+              {snapshot.dailyBrief.syntheticCanary.blocksProduction
+                ? "Immediate operator attention is required before the next production wave."
+                : "Healthy recipients are available for the next precheck."}
+            </p>
+          </article>
+        </div>
+
+        {snapshot.dailyBrief.syntheticCanary.unhealthyTargets.length ? (
+          <div className="mt-4 grid gap-3 xl:grid-cols-2">
+            {snapshot.dailyBrief.syntheticCanary.unhealthyTargets.map((target) => (
+              <article
+                key={target.parentEmail}
+                className="rounded-[20px] border border-amber-200 bg-amber-50/70 px-4 py-4 text-sm leading-6 text-amber-900"
+              >
+                <p className="font-semibold">{target.parentEmail}</p>
+                <p className="mt-1 text-amber-800">{target.reason}</p>
+              </article>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">

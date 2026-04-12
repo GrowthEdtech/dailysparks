@@ -1,9 +1,11 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import type { GeoMonitoringRunRecord } from "./geo-monitoring-run-schema";
 import type { OperationsHealthAlertDispatchResult } from "./operations-health-alerts";
 import type { OperationsHealthRunRecord } from "./operations-health-run-schema";
 import { runOperationsHealthCycle } from "./operations-health-runner";
+
+const ORIGINAL_ENV = { ...process.env };
 
 type MockContext = Parameters<typeof runOperationsHealthCycle>[0]["readContext"] extends (
   ...args: never[]
@@ -14,6 +16,7 @@ type MockContext = Parameters<typeof runOperationsHealthCycle>[0]["readContext"]
 function buildContext(overrides: Partial<MockContext> = {}): MockContext {
   return {
     runDate: "2026-04-06",
+    profiles: [],
     dailyBriefHistory: [],
     plannedNotificationQueue: {
       summary: {
@@ -36,6 +39,16 @@ function buildContext(overrides: Partial<MockContext> = {}): MockContext {
 }
 
 describe("runOperationsHealthCycle", () => {
+  beforeEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+    delete process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED;
+    delete process.env.DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS;
+  });
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
   test("runs retry, reconciliation, and geo remediation when health policy says they are needed", async () => {
     const readContextMock = vi
       .fn<() => Promise<MockContext>>()

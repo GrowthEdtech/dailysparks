@@ -1,6 +1,7 @@
 import { DAILY_BRIEF_EDITORIAL_COHORTS } from "./daily-brief-cohorts";
 import type { DailyBriefHistoryRecord } from "./daily-brief-history-schema";
 import type { GeoMonitoringRunRecord } from "./geo-monitoring-run-schema";
+import type { ParentProfile } from "./mvp-types";
 import type { PlannedNotificationRunRecord } from "./planned-notification-history-schema";
 import type { PlannedNotificationOpsQueue } from "./planned-notification-ops";
 import type {
@@ -11,6 +12,10 @@ import type {
   OperationsHealthNotificationsSummary,
   OperationsHealthRunStatus,
 } from "./operations-health-run-schema";
+import {
+  assessDailyBriefSyntheticCanaryRecipients,
+  isDailyBriefSyntheticCanaryEnabled,
+} from "./daily-brief-synthetic-canary";
 import {
   getEditoriallyActiveProgrammes,
   isProgrammeEditoriallyActive,
@@ -119,6 +124,7 @@ function getStatusFromAlerts(alerts: OperationsHealthAlert[]): OperationsHealthR
 export function buildOperationsHealthSnapshot(input: {
   runDate: string;
   now?: Date;
+  profiles: ParentProfile[];
   dailyBriefHistory: DailyBriefHistoryRecord[];
   plannedNotificationQueue: PlannedNotificationOpsQueue;
   plannedNotificationHistory: PlannedNotificationRunRecord[];
@@ -159,6 +165,12 @@ export function buildOperationsHealthSnapshot(input: {
     0,
     expectedProductionCount - generatedCount,
   );
+  const syntheticCanaryEnabled = isDailyBriefSyntheticCanaryEnabled();
+  const syntheticCanaryAssessment = syntheticCanaryEnabled
+    ? assessDailyBriefSyntheticCanaryRecipients({
+        allProfiles: input.profiles,
+      })
+    : null;
 
   const dailyBrief: OperationsHealthDailyBriefSummary = {
     expectedProductionCount,
@@ -169,6 +181,21 @@ export function buildOperationsHealthSnapshot(input: {
     missingProductionCount,
     retryCandidateCount,
     blockedCanaryCount,
+    syntheticCanary: {
+      enabled: syntheticCanaryEnabled,
+      configuredParentEmails:
+        syntheticCanaryAssessment?.configuredParentEmails ?? [],
+      selectedParentEmail:
+        syntheticCanaryAssessment?.selectedParentEmail ?? null,
+      healthyParentEmails:
+        syntheticCanaryAssessment?.healthyParentEmails ?? [],
+      fallbackActivated:
+        syntheticCanaryAssessment?.fallbackActivated ?? false,
+      blocksProduction:
+        syntheticCanaryAssessment?.blocksProduction ?? false,
+      unhealthyTargets:
+        syntheticCanaryAssessment?.unhealthyTargets ?? [],
+    },
   };
 
   if (missingProductionCount > 0) {
@@ -198,6 +225,29 @@ export function buildOperationsHealthSnapshot(input: {
       title: "Production briefs are blocked by synthetic canary",
       detail: `${blockedCanaryCount} production brief(s) are currently held by a failed synthetic canary and need operator release or rerun before delivery can resume.`,
       metricValue: blockedCanaryCount,
+    });
+  }
+
+  if (dailyBrief.syntheticCanary.enabled && dailyBrief.syntheticCanary.blocksProduction) {
+    alerts.push({
+      area: "daily-brief",
+      severity: "critical",
+      title: "Synthetic canary has no healthy recipient",
+      detail:
+        "The configured synthetic canary recipients are not dispatchable right now, so the next production wave would be blocked until a healthy recipient is restored.",
+      metricValue: dailyBrief.syntheticCanary.configuredParentEmails.length,
+    });
+  } else if (
+    dailyBrief.syntheticCanary.enabled &&
+    dailyBrief.syntheticCanary.fallbackActivated
+  ) {
+    alerts.push({
+      area: "daily-brief",
+      severity: "warning",
+      title: "Synthetic canary fallback is active",
+      detail:
+        "The primary synthetic canary recipient is not healthy, so an ordered backup recipient is currently carrying the precheck.",
+      metricValue: dailyBrief.syntheticCanary.unhealthyTargets.length,
     });
   }
 

@@ -1,9 +1,16 @@
 import { getDailyBriefCanaryParentEmails } from "./daily-brief-delivery-policy";
+import { hasAutomatedDeliverySubscription } from "./delivery-eligibility";
+import {
+  getGoodnotesChannelReadiness,
+  getNotionChannelReadiness,
+  hasDispatchableDeliveryChannel,
+} from "./delivery-readiness";
 import type {
   DailyBriefDeliveryReceipt,
   DailyBriefFailedDeliveryTarget,
   DailyBriefHistoryRecord,
   DailyBriefSyntheticCanaryState,
+  DailyBriefSyntheticCanaryUnhealthyTarget,
 } from "./daily-brief-history-schema";
 import type { DailyBriefPdfRenderer } from "./goodnotes-delivery";
 import { deliverHistoryBriefToProfiles } from "./daily-brief-stage-delivery";
@@ -35,6 +42,121 @@ function buildFailedTargetsReason(
   return `${failedTargets.length} synthetic canary targets failed after one automatic retry.`;
 }
 
+export type DailyBriefSyntheticCanaryHealthAssessment = {
+  configuredParentEmails: string[];
+  selectedParentEmail: string | null;
+  selectedProfile: ParentProfile | null;
+  healthyParentEmails: string[];
+  unhealthyTargets: DailyBriefSyntheticCanaryUnhealthyTarget[];
+  fallbackActivated: boolean;
+  blocksProduction: boolean;
+};
+
+function buildUnhealthyTargetReason(profile: ParentProfile | null) {
+  if (!profile) {
+    return "No parent profile matched this email.";
+  }
+
+  if (!hasAutomatedDeliverySubscription(profile.parent)) {
+    return "Profile does not currently have active or trial access.";
+  }
+
+  const goodnotes = getGoodnotesChannelReadiness(profile);
+  const notion = getNotionChannelReadiness(profile);
+  const channelIssues: string[] = [];
+
+  if (goodnotes.configured) {
+    if (goodnotes.needsAttention) {
+      channelIssues.push("Goodnotes last delivery failed and needs recovery.");
+    } else if (goodnotes.verified) {
+      channelIssues.push("Goodnotes is verified but not healthy yet.");
+    } else {
+      channelIssues.push("Goodnotes is configured but not verified.");
+    }
+  }
+
+  if (notion.configured) {
+    if (notion.needsAttention) {
+      channelIssues.push("Notion last sync failed and needs recovery.");
+    } else if (notion.verified) {
+      channelIssues.push("Notion is verified but not healthy yet.");
+    } else {
+      channelIssues.push("Notion is configured but not verified.");
+    }
+  }
+
+  if (channelIssues.length > 0) {
+    return channelIssues.join(" ");
+  }
+
+  return "No healthy automated delivery channel is configured for this profile.";
+}
+
+function buildNoHealthyRecipientsReason(
+  unhealthyTargets: DailyBriefSyntheticCanaryUnhealthyTarget[],
+) {
+  const detail = unhealthyTargets
+    .slice(0, 3)
+    .map((target) => `${target.parentEmail}: ${target.reason}`)
+    .join(" ");
+
+  return detail
+    ? `No healthy synthetic canary recipients are configured for this brief. ${detail}`
+    : "No healthy synthetic canary recipients are configured for this brief.";
+}
+
+export function assessDailyBriefSyntheticCanaryRecipients(input: {
+  allProfiles: ParentProfile[];
+  targetParentEmails?: string[];
+}): DailyBriefSyntheticCanaryHealthAssessment {
+  const configuredParentEmails = dedupeEmails(
+    input.targetParentEmails?.length
+      ? input.targetParentEmails
+      : getDailyBriefSyntheticCanaryParentEmails(),
+  );
+  const profileMap = new Map(
+    input.allProfiles.map((profile) => [
+      normalizeEmail(profile.parent.email),
+      profile,
+    ]),
+  );
+  const healthyProfiles: { parentEmail: string; profile: ParentProfile }[] = [];
+  const unhealthyTargets: DailyBriefSyntheticCanaryUnhealthyTarget[] = [];
+
+  for (const parentEmail of configuredParentEmails) {
+    const profile = profileMap.get(parentEmail) ?? null;
+
+    if (
+      profile &&
+      hasAutomatedDeliverySubscription(profile.parent) &&
+      hasDispatchableDeliveryChannel(profile)
+    ) {
+      healthyProfiles.push({ parentEmail, profile });
+      continue;
+    }
+
+    unhealthyTargets.push({
+      parentEmail,
+      reason: buildUnhealthyTargetReason(profile),
+    });
+  }
+
+  const selected = healthyProfiles[0] ?? null;
+  const fallbackActivated = Boolean(
+    selected && configuredParentEmails[0] !== selected.parentEmail,
+  );
+
+  return {
+    configuredParentEmails,
+    selectedParentEmail: selected?.parentEmail ?? null,
+    selectedProfile: selected?.profile ?? null,
+    healthyParentEmails: healthyProfiles.map((entry) => entry.parentEmail),
+    unhealthyTargets,
+    fallbackActivated,
+    blocksProduction: configuredParentEmails.length > 0 && !selected,
+  };
+}
+
 function buildBaseState(
   previousState: DailyBriefSyntheticCanaryState | null | undefined,
   targetParentEmails: string[],
@@ -42,6 +164,10 @@ function buildBaseState(
   return {
     status: previousState?.status ?? "pending",
     targetParentEmails,
+    selectedParentEmail: previousState?.selectedParentEmail ?? null,
+    healthyParentEmails: previousState?.healthyParentEmails ?? [],
+    unhealthyTargets: previousState?.unhealthyTargets ?? [],
+    fallbackActivated: previousState?.fallbackActivated ?? false,
     attemptCount: previousState?.attemptCount ?? 0,
     successCount: previousState?.successCount ?? 0,
     failureCount: previousState?.failureCount ?? 0,
@@ -103,40 +229,36 @@ export function releaseDailyBriefSyntheticCanaryState(input: {
 
 export async function runDailyBriefSyntheticCanary(input: {
   brief: DailyBriefHistoryRecord;
-  dispatchableProfiles: ParentProfile[];
+  allProfiles: ParentProfile[];
   renderer: DailyBriefPdfRenderer;
   attemptTimestamp: string;
   targetParentEmails?: string[];
   previousState?: DailyBriefSyntheticCanaryState | null;
 }) {
-  const targetParentEmails = dedupeEmails(
-    input.targetParentEmails?.length
-      ? input.targetParentEmails
-      : getDailyBriefSyntheticCanaryParentEmails(),
-  );
+  const assessment = assessDailyBriefSyntheticCanaryRecipients({
+    allProfiles: input.allProfiles,
+    targetParentEmails: input.targetParentEmails,
+  });
+  const targetParentEmails = assessment.configuredParentEmails;
   const nextState = buildBaseState(input.previousState, targetParentEmails);
-  const dispatchableProfileMap = new Map(
-    input.dispatchableProfiles.map((profile) => [
-      normalizeEmail(profile.parent.email),
-      profile,
-    ]),
-  );
-  const healthyProfiles = targetParentEmails
-    .map((email) => dispatchableProfileMap.get(email))
-    .filter((profile): profile is ParentProfile => Boolean(profile));
 
-  if (healthyProfiles.length === 0) {
+  if (!assessment.selectedProfile) {
     return {
       passed: false,
       state: {
         ...nextState,
         status: "blocked" as const,
+        selectedParentEmail: assessment.selectedParentEmail,
+        healthyParentEmails: assessment.healthyParentEmails,
+        unhealthyTargets: assessment.unhealthyTargets,
+        fallbackActivated: assessment.fallbackActivated,
         attemptCount: nextState.attemptCount + 1,
         failureCount: nextState.failureCount + 1,
         lastAttemptAt: input.attemptTimestamp,
         blockedAt: input.attemptTimestamp,
-        lastFailureReason:
-          "No healthy synthetic canary recipients are configured for this brief.",
+        lastFailureReason: buildNoHealthyRecipientsReason(
+          assessment.unhealthyTargets,
+        ),
         lastFailedTargets: [],
         lastDeliveryReceipts: [],
       },
@@ -144,7 +266,7 @@ export async function runDailyBriefSyntheticCanary(input: {
   }
 
   const firstAttempt = await deliverHistoryBriefToProfiles(
-    healthyProfiles,
+    [assessment.selectedProfile],
     input.brief,
     {
       attachmentMode: "canary",
@@ -153,7 +275,8 @@ export async function runDailyBriefSyntheticCanary(input: {
   );
   const firstAttemptPassed =
     firstAttempt.failedDeliveryTargets.length === 0 &&
-    firstAttempt.deliverySuccessCount === healthyProfiles.length;
+    firstAttempt.deliveryFailureCount === 0 &&
+    firstAttempt.deliverySuccessCount > 0;
 
   if (firstAttemptPassed) {
     return {
@@ -161,6 +284,10 @@ export async function runDailyBriefSyntheticCanary(input: {
       state: {
         ...nextState,
         status: "passed" as const,
+        selectedParentEmail: assessment.selectedParentEmail,
+        healthyParentEmails: assessment.healthyParentEmails,
+        unhealthyTargets: assessment.unhealthyTargets,
+        fallbackActivated: assessment.fallbackActivated,
         attemptCount: nextState.attemptCount + firstAttempt.deliveryAttemptCount,
         successCount: nextState.successCount + firstAttempt.deliverySuccessCount,
         failureCount: nextState.failureCount + firstAttempt.deliveryFailureCount,
@@ -179,7 +306,7 @@ export async function runDailyBriefSyntheticCanary(input: {
   }
 
   const secondAttempt = await deliverHistoryBriefToProfiles(
-    healthyProfiles,
+    [assessment.selectedProfile],
     input.brief,
     {
       retryTargets: firstAttempt.failedDeliveryTargets,
@@ -201,7 +328,8 @@ export async function runDailyBriefSyntheticCanary(input: {
     firstAttempt.deliveryFailureCount + secondAttempt.deliveryFailureCount;
   const passedAfterRetry =
     combinedFailedTargets.length === 0 &&
-    combinedSuccessCount === healthyProfiles.length;
+    combinedFailureCount === 0 &&
+    combinedSuccessCount > 0;
 
   if (passedAfterRetry) {
     return {
@@ -209,6 +337,10 @@ export async function runDailyBriefSyntheticCanary(input: {
       state: {
         ...nextState,
         status: "passed" as const,
+        selectedParentEmail: assessment.selectedParentEmail,
+        healthyParentEmails: assessment.healthyParentEmails,
+        unhealthyTargets: assessment.unhealthyTargets,
+        fallbackActivated: assessment.fallbackActivated,
         attemptCount: nextState.attemptCount + combinedAttemptCount,
         successCount: nextState.successCount + combinedSuccessCount,
         failureCount: nextState.failureCount + combinedFailureCount,
@@ -235,6 +367,10 @@ export async function runDailyBriefSyntheticCanary(input: {
     state: {
       ...nextState,
       status: "blocked" as const,
+      selectedParentEmail: assessment.selectedParentEmail,
+      healthyParentEmails: assessment.healthyParentEmails,
+      unhealthyTargets: assessment.unhealthyTargets,
+      fallbackActivated: assessment.fallbackActivated,
       attemptCount: nextState.attemptCount + combinedAttemptCount,
       successCount: nextState.successCount + combinedSuccessCount,
       failureCount: nextState.failureCount + combinedFailureCount,
@@ -243,7 +379,7 @@ export async function runDailyBriefSyntheticCanary(input: {
       blockedAt: input.attemptTimestamp,
       lastFailureReason:
         buildFailedTargetsReason(combinedFailedTargets) ||
-        "Synthetic canary delivery failed after one automatic retry.",
+        `Synthetic canary delivery failed after one automatic retry for ${assessment.selectedParentEmail ?? "the selected recipient"}.`,
       lastFailedTargets: combinedFailedTargets,
       lastDeliveryReceipts: combinedReceipts,
       renderAudit:

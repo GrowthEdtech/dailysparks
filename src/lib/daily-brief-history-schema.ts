@@ -92,6 +92,11 @@ export type DailyBriefRenderAudit = {
   auditedAt: string;
 };
 
+export type DailyBriefSyntheticCanaryUnhealthyTarget = {
+  parentEmail: string;
+  reason: string;
+};
+
 export const DAILY_BRIEF_SYNTHETIC_CANARY_STATUSES = [
   "pending",
   "passed",
@@ -105,6 +110,10 @@ export type DailyBriefSyntheticCanaryStatus =
 export type DailyBriefSyntheticCanaryState = {
   status: DailyBriefSyntheticCanaryStatus;
   targetParentEmails: string[];
+  selectedParentEmail?: string | null;
+  healthyParentEmails?: string[];
+  unhealthyTargets?: DailyBriefSyntheticCanaryUnhealthyTarget[];
+  fallbackActivated?: boolean;
   attemptCount: number;
   successCount: number;
   failureCount: number;

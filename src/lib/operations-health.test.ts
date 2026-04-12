@@ -1,10 +1,13 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import type { DailyBriefHistoryRecord } from "./daily-brief-history-schema";
 import type { GeoMonitoringRunRecord } from "./geo-monitoring-run-schema";
+import type { ParentProfile } from "./mvp-types";
 import type { PlannedNotificationRunRecord } from "./planned-notification-history-schema";
 import type { PlannedNotificationOpsQueue } from "./planned-notification-ops";
 import { buildOperationsHealthSnapshot } from "./operations-health";
+
+const ORIGINAL_ENV = { ...process.env };
 
 function buildBrief(
   overrides: Partial<DailyBriefHistoryRecord>,
@@ -168,11 +171,95 @@ function buildNotificationQueue(
   };
 }
 
+function buildProfile(
+  email: string,
+  overrides: Partial<ParentProfile> = {},
+): ParentProfile {
+  return {
+    parent: {
+      id: `${email}-parent`,
+      email,
+      fullName: "Parent",
+      countryCode: "HK",
+      deliveryTimeZone: "Asia/Hong_Kong",
+      preferredDeliveryLocalTime: "09:00",
+      onboardingReminderCount: 0,
+      onboardingReminderLastAttemptAt: null,
+      onboardingReminderLastSentAt: null,
+      onboardingReminderLastStage: null,
+      onboardingReminderLastStatus: null,
+      onboardingReminderLastMessageId: null,
+      onboardingReminderLastError: null,
+      subscriptionStatus: "active",
+      subscriptionPlan: "yearly",
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      trialStartedAt: "2026-04-01T00:00:00.000Z",
+      trialEndsAt: "2026-04-30T00:00:00.000Z",
+      subscriptionActivatedAt: "2026-04-01T00:00:00.000Z",
+      subscriptionRenewalAt: null,
+      latestInvoiceId: null,
+      latestInvoiceNumber: null,
+      latestInvoiceStatus: null,
+      latestInvoiceHostedUrl: null,
+      latestInvoicePdfUrl: null,
+      latestInvoiceAmountPaid: null,
+      latestInvoiceCurrency: null,
+      latestInvoicePaidAt: null,
+      latestInvoicePeriodStart: null,
+      latestInvoicePeriodEnd: null,
+      notionWorkspaceId: null,
+      notionWorkspaceName: null,
+      notionBotId: null,
+      notionDatabaseId: null,
+      notionDatabaseName: null,
+      notionDataSourceId: null,
+      notionAuthorizedAt: null,
+      notionLastSyncedAt: null,
+      notionLastSyncStatus: null,
+      notionLastSyncMessage: null,
+      notionLastSyncPageId: null,
+      notionLastSyncPageUrl: null,
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+      ...overrides.parent,
+    },
+    student: {
+      id: `${email}-student`,
+      parentId: `${email}-parent`,
+      studentName: "Student",
+      programme: "PYP",
+      programmeYear: 5,
+      goodnotesEmail: `${email}.goodnotes@example.com`,
+      goodnotesConnected: true,
+      goodnotesVerifiedAt: "2026-04-02T00:00:00.000Z",
+      goodnotesLastTestSentAt: "2026-04-02T00:00:00.000Z",
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Ready.",
+      notionConnected: false,
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+      ...overrides.student,
+    },
+  };
+}
+
 describe("buildOperationsHealthSnapshot", () => {
+  beforeEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+    delete process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED;
+    delete process.env.DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS;
+  });
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV };
+  });
+
   test("keeps deduped unresolved notifications visible without paging operations health", () => {
     const snapshot = buildOperationsHealthSnapshot({
       runDate: "2026-04-06",
       now: new Date("2026-04-06T08:00:00.000Z"),
+      profiles: [],
       dailyBriefHistory: [
         buildBrief({ editorialCohort: "APAC", programme: "MYP" }),
         buildBrief({ editorialCohort: "APAC", programme: "DP" }),
@@ -271,6 +358,7 @@ describe("buildOperationsHealthSnapshot", () => {
     const snapshot = buildOperationsHealthSnapshot({
       runDate: "2026-04-06",
       now: new Date("2026-04-06T08:00:00.000Z"),
+      profiles: [],
       dailyBriefHistory: [
         buildBrief({ editorialCohort: "APAC", programme: "MYP" }),
         buildBrief({ editorialCohort: "APAC", programme: "DP" }),
@@ -347,9 +435,22 @@ describe("buildOperationsHealthSnapshot", () => {
   });
 
   test("derives cross-system health, SLA alerts, and billing evidence from existing stores", () => {
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED = "true";
+    process.env.DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS =
+      "admin@geledtech.com,backup@geledtech.com";
+
     const snapshot = buildOperationsHealthSnapshot({
       runDate: "2026-04-06",
       now: new Date("2026-04-06T08:00:00.000Z"),
+      profiles: [
+        buildProfile("admin@geledtech.com", {
+          student: {
+            goodnotesLastDeliveryStatus: "failed",
+            goodnotesLastDeliveryMessage: "Relay timeout.",
+          },
+        }),
+        buildProfile("backup@geledtech.com"),
+      ],
       dailyBriefHistory: [
         buildBrief({
           editorialCohort: "APAC",
@@ -448,6 +549,17 @@ describe("buildOperationsHealthSnapshot", () => {
     expect(snapshot.dailyBrief.missingProductionCount).toBe(3);
     expect(snapshot.dailyBrief.retryCandidateCount).toBe(1);
     expect(snapshot.dailyBrief.blockedCanaryCount).toBe(1);
+    expect(snapshot.dailyBrief.syntheticCanary.enabled).toBe(true);
+    expect(snapshot.dailyBrief.syntheticCanary.selectedParentEmail).toBe(
+      "backup@geledtech.com",
+    );
+    expect(snapshot.dailyBrief.syntheticCanary.fallbackActivated).toBe(true);
+    expect(snapshot.dailyBrief.syntheticCanary.blocksProduction).toBe(false);
+    expect(snapshot.dailyBrief.syntheticCanary.unhealthyTargets).toEqual([
+      expect.objectContaining({
+        parentEmail: "admin@geledtech.com",
+      }),
+    ]);
     expect(snapshot.notifications.escalatedCount).toBe(1);
     expect(snapshot.notifications.over72hCount).toBe(1);
     expect(snapshot.geo.latestRunStatus).toBe("partial");
@@ -466,6 +578,11 @@ describe("buildOperationsHealthSnapshot", () => {
           title: "Production briefs are blocked by synthetic canary",
           severity: "critical",
           metricValue: 1,
+        }),
+        expect.objectContaining({
+          area: "daily-brief",
+          title: "Synthetic canary fallback is active",
+          severity: "warning",
         }),
         expect.objectContaining({
           area: "geo-monitoring",

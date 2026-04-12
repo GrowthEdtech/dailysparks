@@ -146,6 +146,17 @@ function normalizeSyntheticCanary(
     targetParentEmails:
       value.targetParentEmails?.map((entry) => entry.trim().toLowerCase()).filter(Boolean) ??
       [],
+    selectedParentEmail: value.selectedParentEmail?.trim().toLowerCase() || null,
+    healthyParentEmails:
+      value.healthyParentEmails
+        ?.map((entry) => entry.trim().toLowerCase())
+        .filter(Boolean) ?? [],
+    unhealthyTargets:
+      value.unhealthyTargets?.map((target) => ({
+        parentEmail: target.parentEmail.trim().toLowerCase(),
+        reason: target.reason.trim(),
+      })) ?? [],
+    fallbackActivated: value.fallbackActivated === true,
     attemptCount:
       typeof value.attemptCount === "number" && Number.isFinite(value.attemptCount)
         ? value.attemptCount

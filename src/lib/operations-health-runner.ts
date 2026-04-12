@@ -10,6 +10,7 @@ import { listDailyBriefHistory } from "./daily-brief-history-store";
 import { getDailyBriefBusinessDate } from "./daily-brief-run-date";
 import type { GeoMonitoringRunRecord } from "./geo-monitoring-run-schema";
 import { listGeoMonitoringRuns } from "./geo-monitoring-run-store";
+import type { ParentProfile } from "./mvp-types";
 import { listParentProfiles } from "./mvp-store";
 import type { PlannedNotificationRunRecord } from "./planned-notification-history-schema";
 import { listPlannedNotificationRunHistory } from "./planned-notification-history-store";
@@ -31,6 +32,7 @@ import type {
 
 export type OperationsHealthContext = {
   runDate: string;
+  profiles: ParentProfile[];
   dailyBriefHistory: DailyBriefHistoryRecord[];
   plannedNotificationQueue: PlannedNotificationOpsQueue;
   plannedNotificationHistory: PlannedNotificationRunRecord[];
@@ -86,6 +88,7 @@ async function loadOperationsHealthContext(now: Date): Promise<OperationsHealthC
 
   return {
     runDate,
+    profiles,
     dailyBriefHistory,
     plannedNotificationQueue,
     plannedNotificationHistory,
@@ -171,6 +174,7 @@ export async function runOperationsHealthCycle(
   const firstSnapshot = buildOperationsHealthSnapshot({
     runDate: firstContext.runDate,
     now: input.now,
+    profiles: firstContext.profiles,
     dailyBriefHistory: firstContext.dailyBriefHistory,
     plannedNotificationQueue: firstContext.plannedNotificationQueue,
     plannedNotificationHistory: firstContext.plannedNotificationHistory,
@@ -244,6 +248,7 @@ export async function runOperationsHealthCycle(
   const secondSnapshot = buildOperationsHealthSnapshot({
     runDate: secondContext.runDate,
     now: input.now,
+    profiles: secondContext.profiles,
     dailyBriefHistory: secondContext.dailyBriefHistory,
     plannedNotificationQueue: secondContext.plannedNotificationQueue,
     plannedNotificationHistory: secondContext.plannedNotificationHistory,

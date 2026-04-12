@@ -475,7 +475,7 @@ export async function POST(request: Request) {
       ) {
         const syntheticCanaryResult = await runDailyBriefSyntheticCanary({
           brief,
-          dispatchableProfiles,
+          allProfiles,
           renderer,
           attemptTimestamp: dispatchTimestamp,
           previousState: existingSyntheticCanary,
