@@ -98,6 +98,7 @@ export default function OperationsHealthPanel({
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [runs, setRuns] = useState(initialRuns);
   const [isRunning, setIsRunning] = useState(false);
+  const [queuedRunPending, setQueuedRunPending] = useState(false);
   const [message, setMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -123,6 +124,7 @@ export default function OperationsHealthPanel({
 
   async function runHealthCheckNow() {
     setIsRunning(true);
+    setQueuedRunPending(false);
     setMessage("");
     setErrorMessage("");
 
@@ -132,11 +134,22 @@ export default function OperationsHealthPanel({
       });
       const body = (await response.json().catch(() => null)) as
         | {
+            mode?: string;
             message?: string;
+            queuedAt?: string;
             run?: OperationsHealthRunRecord;
             snapshot?: OperationsHealthSnapshot;
           }
         | null;
+
+      if (response.status === 202 || body?.mode === "operations-health-async") {
+        setQueuedRunPending(true);
+        setMessage(
+          body?.message ||
+            "Operations health run queued. Refresh this page shortly to load the completed immutable run.",
+        );
+        return;
+      }
 
       if (!response.ok || !body?.run || !body.snapshot) {
         throw new Error(
@@ -234,11 +247,15 @@ export default function OperationsHealthPanel({
               <button
                 type="button"
                 onClick={runHealthCheckNow}
-                disabled={isRunning}
+                disabled={isRunning || queuedRunPending}
                 className="inline-flex items-center gap-2 rounded-full bg-[#0f172a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <RefreshCcw className="h-4 w-4" />
-                {isRunning ? "Running..." : "Run health check now"}
+                {isRunning
+                  ? "Running..."
+                  : queuedRunPending
+                    ? "Run queued"
+                    : "Run health check now"}
               </button>
             </div>
 
@@ -247,6 +264,12 @@ export default function OperationsHealthPanel({
             ) : null}
             {errorMessage ? (
               <p className="mt-3 text-sm text-rose-700">{errorMessage}</p>
+            ) : null}
+            {queuedRunPending ? (
+              <p className="mt-3 text-sm text-slate-500">
+                A background run has been queued from this page. Refresh after it
+                completes to launch another manual check.
+              </p>
             ) : null}
             <p className="mt-3 text-sm text-slate-500">
               Latest immutable run: {formatTimestamp(latestRun?.completedAt ?? null)}

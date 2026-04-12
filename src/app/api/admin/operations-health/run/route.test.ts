@@ -4,10 +4,12 @@ const {
   getEditorialAdminSessionFromRequestMock,
   clearEditorialAdminSessionCookieHeaderMock,
   runOperationsHealthWorkflowMock,
+  afterMock,
 } = vi.hoisted(() => ({
   getEditorialAdminSessionFromRequestMock: vi.fn(),
   clearEditorialAdminSessionCookieHeaderMock: vi.fn(),
   runOperationsHealthWorkflowMock: vi.fn(),
+  afterMock: vi.fn(),
 }));
 
 vi.mock("../../../../../lib/editorial-admin-auth", () => ({
@@ -20,6 +22,10 @@ vi.mock("../../../../../lib/operations-health-runner", () => ({
   runOperationsHealthWorkflow: runOperationsHealthWorkflowMock,
 }));
 
+vi.mock("next/server", () => ({
+  after: afterMock,
+}));
+
 import { POST } from "./route";
 
 describe("POST /api/admin/operations-health/run", () => {
@@ -27,6 +33,7 @@ describe("POST /api/admin/operations-health/run", () => {
     getEditorialAdminSessionFromRequestMock.mockReset();
     clearEditorialAdminSessionCookieHeaderMock.mockReset();
     runOperationsHealthWorkflowMock.mockReset();
+    afterMock.mockReset();
 
     clearEditorialAdminSessionCookieHeaderMock.mockReturnValue(
       "editorial-admin=; Path=/; Max-Age=0",
@@ -45,7 +52,7 @@ describe("POST /api/admin/operations-health/run", () => {
     expect(response.status).toBe(401);
   });
 
-  test("runs a manual operations-health check for authenticated admins", async () => {
+  test("queues a manual operations-health check for authenticated admins", async () => {
     getEditorialAdminSessionFromRequestMock.mockResolvedValue({
       email: "admin@geledtech.com",
     });
@@ -69,9 +76,14 @@ describe("POST /api/admin/operations-health/run", () => {
     );
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(body.mode).toBe("operations-health");
-    expect(body.run.id).toBe("run-1");
+    expect(response.status).toBe(202);
+    expect(body.mode).toBe("operations-health-async");
+    expect(body.message).toMatch(/queued/i);
+    expect(afterMock).toHaveBeenCalledTimes(1);
+    expect(runOperationsHealthWorkflowMock).not.toHaveBeenCalled();
+
+    await afterMock.mock.calls[0]?.[0]();
+
     expect(runOperationsHealthWorkflowMock).toHaveBeenCalledWith({
       source: "manual",
     });

@@ -1,3 +1,5 @@
+import { after } from "next/server";
+
 import {
   clearEditorialAdminSessionCookieHeader,
   getEditorialAdminSessionFromRequest,
@@ -39,17 +41,20 @@ export async function POST(request: Request) {
     return adminCheck.errorResponse;
   }
 
-  const result = await runOperationsHealthWorkflow({
-    source: "manual",
+  after(async () => {
+    try {
+      await runOperationsHealthWorkflow({
+        source: "manual",
+      });
+    } catch (error) {
+      console.error("Background operations health run failed.", error);
+    }
   });
 
   return Response.json({
-    mode: "operations-health",
-    run: result.run,
-    snapshot: result.snapshot,
-    summary: {
-      status: result.snapshot.status,
-      alertCount: result.snapshot.alerts.length,
-    },
-  });
+    mode: "operations-health-async",
+    message:
+      "Operations health run queued. Refresh this page in about a minute to see the next immutable run.",
+    queuedAt: new Date().toISOString(),
+  }, { status: 202 });
 }
