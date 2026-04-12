@@ -60,7 +60,7 @@ function buildBaseState(
 }
 
 export function isDailyBriefSyntheticCanaryEnabled() {
-  return process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED !== "false";
+  return process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED === "true";
 }
 
 export function getDailyBriefSyntheticCanaryParentEmails() {

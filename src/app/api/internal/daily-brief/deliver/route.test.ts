@@ -683,6 +683,44 @@ describe("daily brief deliver route", () => {
     }
   });
 
+  test("does not block production delivery when synthetic canary is not explicitly enabled", async () => {
+    delete process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED;
+    delete process.env.DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS;
+    delete process.env.DAILY_BRIEF_CANARY_PARENT_EMAILS;
+
+    await createEligibleProgrammeProfile(
+      "pyp-family@example.com",
+      "PYP",
+      ["goodnotes"],
+    );
+    await createDailyBriefHistoryEntry(buildHistoryInput());
+
+    const response = await deliverDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+        dispatchTimestamp: "2026-04-03T01:00:00.000Z",
+      }),
+    );
+    const body = await response.json();
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(body.summary.deliveredCount).toBe(1);
+    expect(body.summary.syntheticCanaryBlockedCount).toBe(0);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(history[0]?.status).toBe("published");
+    expect(history[0]?.pipelineStage).toBe("published");
+    expect(history[0]?.deliveryReceipts).toEqual([
+      expect.objectContaining({
+        channel: "goodnotes",
+        parentEmail: "pyp-family@example.com",
+      }),
+    ]);
+    expect(history[0]?.syntheticCanary).toBeNull();
+  });
+
   test("blocks production delivery when the synthetic canary fails twice", async () => {
     process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED = "true";
     process.env.DAILY_BRIEF_SYNTHETIC_CANARY_PARENT_EMAILS =
