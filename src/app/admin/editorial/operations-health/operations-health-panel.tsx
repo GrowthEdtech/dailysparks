@@ -239,11 +239,11 @@ export default function OperationsHealthPanel({
             <h3 className="font-semibold">Alerting / SLA policy</h3>
           </div>
           <p className="mt-3 text-sm text-slate-500">
-            {snapshot.alerts.length} active alert
+            {snapshot.alerts.length} current snapshot alert
             {snapshot.alerts.length === 1 ? "" : "s"}
           </p>
           <p className="mt-2 text-sm text-slate-500">
-            {snapshot.notifications.over72hCount} notification SLA breach
+            {snapshot.notifications.over72hCount} delivery/action SLA breach
             {snapshot.notifications.over72hCount === 1 ? "" : "es"}
           </p>
         </div>
@@ -269,7 +269,7 @@ export default function OperationsHealthPanel({
           </div>
           <p className="mt-3 text-sm text-slate-500">
             {snapshot.billing.actionableCount} billing item
-            {snapshot.billing.actionableCount === 1 ? "" : "s"} active
+            {snapshot.billing.actionableCount === 1 ? "" : "s"} needing action
           </p>
           <p className="mt-2 text-sm text-slate-500">
             {snapshot.notifications.escalatedCount} escalated notification
@@ -343,7 +343,7 @@ export default function OperationsHealthPanel({
       <div className="grid gap-6 xl:grid-cols-[1.3fr_1fr]">
         <section className="rounded-[28px] border border-slate-200 bg-white px-5 py-5 shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-            Recent alerts
+            Latest immutable run alerts
           </p>
           <div className="mt-4 space-y-3">
             {recentAlerts.length === 0 ? (

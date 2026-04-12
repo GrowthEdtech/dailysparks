@@ -26,9 +26,82 @@ export type OperationsHealthSnapshot = {
   alerts: OperationsHealthAlert[];
 };
 
-function countGeoTimeouts(notes: string) {
-  const matches = notes.match(/timed out after/gi);
-  return matches?.length ?? 0;
+const GEO_TIMEOUT_PATTERN = /timed out after/i;
+
+type GeoTimeoutSignal = {
+  engine: string;
+  promptIntentLabel: string;
+  queryVariant: string;
+  reason: string;
+};
+
+function getGeoTimeoutSignals(run: GeoMonitoringRunRecord | null) {
+  if (!run) {
+    return [] as GeoTimeoutSignal[];
+  }
+
+  const diagnosticSignals = (run.queryDiagnostics ?? [])
+    .filter(
+      (diagnostic) =>
+        diagnostic.outcome === "failed" &&
+        GEO_TIMEOUT_PATTERN.test(diagnostic.reason),
+    )
+    .map((diagnostic) => ({
+      engine: diagnostic.engine,
+      promptIntentLabel: diagnostic.promptIntentLabel,
+      queryVariant: diagnostic.queryVariant,
+      reason: diagnostic.reason,
+    }));
+
+  if (diagnosticSignals.length > 0) {
+    return diagnosticSignals;
+  }
+
+  const fallbackCount = run.notes.match(/timed out after/gi)?.length ?? 0;
+
+  return Array.from({ length: fallbackCount }, () => ({
+    engine: "unknown-engine",
+    promptIntentLabel: "unknown prompt",
+    queryVariant: "unknown query",
+    reason: "Timeout was detected in legacy run notes.",
+  }));
+}
+
+function buildGeoTimeoutDetail(input: {
+  run: GeoMonitoringRunRecord;
+  timeoutSignals: GeoTimeoutSignal[];
+}) {
+  const timeoutCount = input.timeoutSignals.length;
+  const coverageDetail =
+    input.run.engineAttemptCount > 0
+      ? ` Latest run still created ${input.run.createdLogCount} / ${input.run.engineAttemptCount} visibility log(s).`
+      : "";
+  const sampleDetail = input.timeoutSignals
+    .slice(0, 3)
+    .map(
+      (signal) =>
+        `${signal.engine} · ${signal.promptIntentLabel}: ${signal.queryVariant}`,
+    )
+    .join("; ");
+
+  return [
+    `${timeoutCount} GEO engine timeout signal(s) were detected in the latest monitoring diagnostics.`,
+    coverageDetail,
+    sampleDetail ? ` Timeout samples: ${sampleDetail}.` : "",
+  ].join("");
+}
+
+function isNotificationDeliveryActionRequired(
+  item: PlannedNotificationOpsQueue["items"][number],
+) {
+  return item.queueLabel !== "Deduped unresolved";
+}
+
+function countAgingBucket(
+  items: PlannedNotificationOpsQueue["items"],
+  agingLabel: PlannedNotificationOpsQueue["items"][number]["agingLabel"],
+) {
+  return items.filter((item) => item.agingLabel === agingLabel).length;
 }
 
 function getStatusFromAlerts(alerts: OperationsHealthAlert[]): OperationsHealthRunStatus {
@@ -128,6 +201,9 @@ export function buildOperationsHealthSnapshot(input: {
     });
   }
 
+  const deliveryActionRequiredItems = input.plannedNotificationQueue.items.filter(
+    isNotificationDeliveryActionRequired,
+  );
   const notifications: OperationsHealthNotificationsSummary = {
     queueCount: input.plannedNotificationQueue.summary.totalCount,
     pendingCount: input.plannedNotificationQueue.summary.pendingCount,
@@ -135,10 +211,12 @@ export function buildOperationsHealthSnapshot(input: {
     coolingDownCount: input.plannedNotificationQueue.summary.coolingDownCount,
     escalatedCount: input.plannedNotificationQueue.summary.escalatedCount,
     dedupedCount: input.plannedNotificationQueue.summary.dedupedCount,
-    under24hCount: input.plannedNotificationQueue.summary.under24hCount,
-    between24hAnd72hCount:
-      input.plannedNotificationQueue.summary.between24hAnd72hCount,
-    over72hCount: input.plannedNotificationQueue.summary.over72hCount,
+    under24hCount: countAgingBucket(deliveryActionRequiredItems, "Under 24h"),
+    between24hAnd72hCount: countAgingBucket(
+      deliveryActionRequiredItems,
+      "24-72h",
+    ),
+    over72hCount: countAgingBucket(deliveryActionRequiredItems, "Older than 72h"),
   };
 
   if (notifications.escalatedCount > 0) {
@@ -164,7 +242,8 @@ export function buildOperationsHealthSnapshot(input: {
   const latestGeoRun = [...input.geoRuns].sort((left, right) =>
     right.startedAt.localeCompare(left.startedAt),
   )[0] ?? null;
-  const timeoutCount = latestGeoRun ? countGeoTimeouts(latestGeoRun.notes) : 0;
+  const timeoutSignals = getGeoTimeoutSignals(latestGeoRun);
+  const timeoutCount = timeoutSignals.length;
   const geo: OperationsHealthGeoSummary = {
     latestRunStatus: latestGeoRun?.status ?? null,
     latestRunStartedAt: latestGeoRun?.startedAt ?? null,
@@ -192,7 +271,10 @@ export function buildOperationsHealthSnapshot(input: {
       detail: "The latest GEO monitoring pass failed and needs recovery.",
       metricValue: latestGeoRun.failedCount,
     });
-  } else if (latestGeoRun.status === "partial") {
+  } else if (
+    latestGeoRun.status === "partial" &&
+    !(timeoutCount > 0 && timeoutCount >= latestGeoRun.failedCount)
+  ) {
     alerts.push({
       area: "geo-monitoring",
       severity: "warning",
@@ -207,14 +289,16 @@ export function buildOperationsHealthSnapshot(input: {
       area: "geo-monitoring",
       severity: "warning",
       title: "GEO engine checks timed out",
-      detail: `${timeoutCount} GEO engine timeout signal(s) were detected in the latest monitoring notes.`,
+      detail: latestGeoRun
+        ? buildGeoTimeoutDetail({ run: latestGeoRun, timeoutSignals })
+        : `${timeoutCount} GEO engine timeout signal(s) were detected in the latest monitoring diagnostics.`,
       metricValue: timeoutCount,
     });
   }
 
-  const billingQueueItems = input.plannedNotificationQueue.items.filter(
-    (item) => item.notificationFamily === "billing-status-update",
-  );
+  const billingQueueItems = input.plannedNotificationQueue.items
+    .filter((item) => item.notificationFamily === "billing-status-update")
+    .filter(isNotificationDeliveryActionRequired);
   const billingHistoryToday = input.plannedNotificationHistory.filter(
     (entry) =>
       entry.notificationFamily === "billing-status-update" &&

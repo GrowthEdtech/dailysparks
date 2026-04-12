@@ -169,6 +169,183 @@ function buildNotificationQueue(
 }
 
 describe("buildOperationsHealthSnapshot", () => {
+  test("keeps deduped unresolved notifications visible without paging operations health", () => {
+    const snapshot = buildOperationsHealthSnapshot({
+      runDate: "2026-04-06",
+      now: new Date("2026-04-06T08:00:00.000Z"),
+      dailyBriefHistory: [
+        buildBrief({ editorialCohort: "APAC", programme: "MYP" }),
+        buildBrief({ editorialCohort: "APAC", programme: "DP" }),
+        buildBrief({ editorialCohort: "EMEA", programme: "MYP" }),
+        buildBrief({ editorialCohort: "EMEA", programme: "DP" }),
+        buildBrief({ editorialCohort: "AMER", programme: "MYP" }),
+        buildBrief({ editorialCohort: "AMER", programme: "DP" }),
+      ],
+      plannedNotificationQueue: buildNotificationQueue({
+        summary: {
+          totalCount: 2,
+          pendingCount: 0,
+          retryDueCount: 0,
+          coolingDownCount: 0,
+          escalatedCount: 0,
+          dedupedCount: 2,
+          under24hCount: 0,
+          between24hAnd72hCount: 0,
+          over72hCount: 2,
+        },
+        items: [
+          {
+            id: "parent-1:billing-status-update",
+            parentId: "parent-1",
+            parentEmail: "parent@example.com",
+            parentName: "Parent Example",
+            studentName: "Student",
+            programmeLabel: "MYP 4",
+            notificationFamily: "billing-status-update",
+            notificationLabel: "Billing status",
+            queueLabel: "Deduped unresolved",
+            detail: "The current invoice paid update was already emailed.",
+            lastSentAt: "2026-04-02T00:00:00.000Z",
+            lastResolvedAt: null,
+            lastFailureAt: null,
+            retryAvailableAt: null,
+            failureCount: 0,
+            deduped: true,
+            assignee: null,
+            opsNote: null,
+            collaborationUpdatedAt: null,
+            ageStartedAt: "2026-04-02T00:00:00.000Z",
+            ageHours: 104,
+            agingLabel: "Older than 72h",
+          },
+          {
+            id: "parent-2:delivery-support-alert",
+            parentId: "parent-2",
+            parentEmail: "support@example.com",
+            parentName: "Support Example",
+            studentName: "Support Student",
+            programmeLabel: "DP 1",
+            notificationFamily: "delivery-support-alert",
+            notificationLabel: "Delivery support",
+            queueLabel: "Deduped unresolved",
+            detail: "The current delivery support issue was already emailed.",
+            lastSentAt: "2026-04-02T00:00:00.000Z",
+            lastResolvedAt: null,
+            lastFailureAt: null,
+            retryAvailableAt: null,
+            failureCount: 0,
+            deduped: true,
+            assignee: null,
+            opsNote: null,
+            collaborationUpdatedAt: null,
+            ageStartedAt: "2026-04-02T00:00:00.000Z",
+            ageHours: 104,
+            agingLabel: "Older than 72h",
+          },
+        ],
+      }),
+      plannedNotificationHistory: [
+        buildNotificationHistory({
+          status: "sent",
+          deduped: true,
+          runDate: "2026-04-06",
+        }),
+      ],
+      geoRuns: [buildGeoRun({})],
+    });
+
+    expect(snapshot.status).toBe("healthy");
+    expect(snapshot.notifications.queueCount).toBe(2);
+    expect(snapshot.notifications.dedupedCount).toBe(2);
+    expect(snapshot.notifications.over72hCount).toBe(0);
+    expect(snapshot.billing.actionableCount).toBe(0);
+    expect(snapshot.alerts).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ area: "planned-notifications" }),
+        expect.objectContaining({ area: "billing-status" }),
+      ]),
+    );
+  });
+
+  test("uses query diagnostics for GEO timeout alerts without duplicating generic partial coverage alerts", () => {
+    const snapshot = buildOperationsHealthSnapshot({
+      runDate: "2026-04-06",
+      now: new Date("2026-04-06T08:00:00.000Z"),
+      dailyBriefHistory: [
+        buildBrief({ editorialCohort: "APAC", programme: "MYP" }),
+        buildBrief({ editorialCohort: "APAC", programme: "DP" }),
+        buildBrief({ editorialCohort: "EMEA", programme: "MYP" }),
+        buildBrief({ editorialCohort: "EMEA", programme: "DP" }),
+        buildBrief({ editorialCohort: "AMER", programme: "MYP" }),
+        buildBrief({ editorialCohort: "AMER", programme: "DP" }),
+      ],
+      plannedNotificationQueue: buildNotificationQueue({
+        summary: {
+          totalCount: 0,
+          pendingCount: 0,
+          retryDueCount: 0,
+          coolingDownCount: 0,
+          escalatedCount: 0,
+          dedupedCount: 0,
+          under24hCount: 0,
+          between24hAnd72hCount: 0,
+          over72hCount: 0,
+        },
+        items: [],
+      }),
+      plannedNotificationHistory: [],
+      geoRuns: [
+        buildGeoRun({
+          status: "partial",
+          engineAttemptCount: 19,
+          createdLogCount: 17,
+          failedCount: 2,
+          notes: "Latest run completed with partial coverage.",
+          queryDiagnostics: [
+            {
+              promptId: "prompt-1",
+              promptIntentLabel: "Goodnotes delivery workflow",
+              queryVariant: "student reading briefs on Goodnotes",
+              engine: "chatgpt-search",
+              outcome: "failed",
+              mentionStatus: null,
+              sentiment: null,
+              citationUrlCount: 0,
+              durationMs: 15001,
+              reason:
+                "chatgpt-search monitoring check timed out after 15000ms.",
+              logId: null,
+            },
+            {
+              promptId: "prompt-2",
+              promptIntentLabel: "IB reading routine",
+              queryVariant: "daily IB reading routine",
+              engine: "chatgpt-search",
+              outcome: "failed",
+              mentionStatus: null,
+              sentiment: null,
+              citationUrlCount: 0,
+              durationMs: 15000,
+              reason:
+                "chatgpt-search monitoring check timed out after 15000ms.",
+              logId: null,
+            },
+          ],
+        }),
+      ],
+    });
+
+    expect(snapshot.status).toBe("warning");
+    expect(snapshot.geo.timeoutCount).toBe(2);
+    expect(snapshot.alerts.map((alert) => alert.title)).toEqual([
+      "GEO engine checks timed out",
+    ]);
+    expect(snapshot.alerts[0]?.detail).toContain("17 / 19");
+    expect(snapshot.alerts[0]?.detail).toContain(
+      "chatgpt-search · Goodnotes delivery workflow",
+    );
+  });
+
   test("derives cross-system health, SLA alerts, and billing evidence from existing stores", () => {
     const snapshot = buildOperationsHealthSnapshot({
       runDate: "2026-04-06",
