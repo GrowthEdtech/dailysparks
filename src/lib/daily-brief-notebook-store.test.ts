@@ -101,6 +101,10 @@ describe("daily brief notebook store", () => {
         sourceHeadline: "Students compare city cleanup plans",
         programme: "MYP",
         knowledgeBankTitle: "Inquiry notebook",
+        sourceScheduledFor: "2026-04-08",
+        savedAt: "2026-04-08T00:00:00.000Z",
+        createdAt: "2026-04-08T00:00:00.000Z",
+        updatedAt: "2026-04-08T00:00:00.000Z",
       }),
     );
   });

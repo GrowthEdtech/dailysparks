@@ -77,6 +77,17 @@ function normalizeStringArray(values: string[]) {
   return values.map((value) => normalizeString(value)).filter(Boolean);
 }
 
+function resolveNotebookEntryTimestamp(scheduledFor: string) {
+  const normalizedScheduledFor = normalizeString(scheduledFor);
+  const scheduledTimestamp = new Date(`${normalizedScheduledFor}T00:00:00.000Z`);
+
+  if (Number.isNaN(scheduledTimestamp.getTime())) {
+    return new Date().toISOString();
+  }
+
+  return scheduledTimestamp.toISOString();
+}
+
 function buildNotebookDeduplicationKey(
   entry: Pick<
     DailyBriefNotebookEntryRecord,
@@ -105,9 +116,9 @@ export async function saveDailyBriefNotebookEntries(
 
   const savedEntries: DailyBriefNotebookEntryRecord[] = [];
   const dedupedEntries: DailyBriefNotebookEntryRecord[] = [];
-  const timestamp = new Date().toISOString();
 
   for (const entry of input.entries) {
+    const timestamp = resolveNotebookEntryTimestamp(input.scheduledFor);
     const entryType = resolveDailyBriefNotebookEntryType(
       input.programme,
       entry.title,
@@ -167,6 +178,7 @@ export async function saveDailyBriefNotebookAuthoredEntry(
     existingEntries.map((entry) => [buildNotebookDeduplicationKey(entry), entry]),
   );
   const timestamp = new Date().toISOString();
+  const initialTimestamp = resolveNotebookEntryTimestamp(input.scheduledFor);
   const prototypeEntry: Pick<
     DailyBriefNotebookEntryRecord,
     "parentId" | "sourceBriefId" | "entryType" | "entryOrigin"
@@ -194,9 +206,9 @@ export async function saveDailyBriefNotebookAuthoredEntry(
     topicTags: normalizeStringArray(input.topicTags),
     interestTags: normalizeStringArray(input.interestTags),
     savedSource: "reflection",
-    savedAt: existingEntry?.savedAt ?? timestamp,
-    createdAt: existingEntry?.createdAt ?? timestamp,
-    updatedAt: timestamp,
+    savedAt: existingEntry?.savedAt ?? initialTimestamp,
+    createdAt: existingEntry?.createdAt ?? initialTimestamp,
+    updatedAt: existingEntry ? timestamp : initialTimestamp,
   };
 
   const savedEntry = await store.upsertEntry(nextEntry);
