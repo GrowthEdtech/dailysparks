@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 
 import { getBillingPlanDefinitions } from "../lib/billing";
 import { trackMarketingEvent } from "../lib/marketing-analytics";
@@ -98,11 +98,26 @@ export default function HomePricingSection({
                   }
                   className={
                     isYearly
-                      ? "w-full rounded-2xl bg-[#0f172a] px-6 py-4 text-center text-base font-bold text-white shadow-[0_20px_40px_-24px_rgba(15,23,42,0.55)] transition-all hover:bg-slate-800"
-                      : "w-full rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-center text-base font-bold text-[#0f172a] shadow-sm transition-all hover:bg-slate-100"
+                      ? "group flex w-full items-center justify-center gap-3 rounded-2xl bg-[#0f172a] px-6 py-4 text-center text-base font-bold text-[#f8fafc] shadow-[0_20px_40px_-24px_rgba(15,23,42,0.55)] transition-all hover:bg-slate-800"
+                      : "group flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-center text-base font-bold text-[#0f172a] shadow-sm transition-all hover:bg-slate-100"
                   }
                 >
-                  {plan.cta}
+                  <span
+                    className={
+                      isYearly
+                        ? "text-[#f8fafc] opacity-100 [text-shadow:0_1px_0_rgba(15,23,42,0.18)]"
+                        : "text-[#0f172a] opacity-100"
+                    }
+                  >
+                    {plan.cta}
+                  </span>
+                  <ArrowRight
+                    className={
+                      isYearly
+                        ? "h-4 w-4 shrink-0 text-[#f8fafc] transition-transform group-hover:translate-x-0.5"
+                        : "h-4 w-4 shrink-0 text-[#0f172a] transition-transform group-hover:translate-x-0.5"
+                    }
+                  />
                 </Link>
               </div>
             );
