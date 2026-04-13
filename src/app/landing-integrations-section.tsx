@@ -16,11 +16,12 @@ export default function LandingIntegrationsSection() {
             Delivery options
           </p>
           <h2 className="text-balance text-4xl font-extrabold leading-[0.96] tracking-[-0.05em] text-[#0f172a] sm:text-[3.2rem] md:text-[3.55rem] xl:max-w-none xl:text-[3rem] xl:whitespace-nowrap">
-            Daily Sparks works with the tools families already use.
+            Use the setup your family will actually keep using.
           </h2>
           <p className="max-w-3xl text-pretty text-[1.02rem] leading-[1.8] text-slate-500 md:max-w-none md:text-[1.06rem] lg:max-w-none">
-            Use Goodnotes for direct student delivery, Notion for family archiving,
-            or combine both when you want daily reading plus a searchable record.
+            Goodnotes supports direct student reading. Notion supports long-term
+            family memory. Start with one, then add the second when you want
+            both daily delivery and a searchable record.
           </p>
         </div>
 
@@ -34,11 +35,12 @@ export default function LandingIntegrationsSection() {
                 Works with
               </p>
               <h3 className="text-balance text-[1.9rem] font-bold leading-[1.04] tracking-[-0.04em] text-[#0f172a] md:max-w-none md:text-[2.05rem] xl:max-w-none xl:text-[2.15rem]">
-                Choose the setup that fits how your family reads and keeps records.
+                Choose the setup that fits how your family reads, reflects, and remembers.
               </h3>
               <p className="text-pretty text-sm leading-6 text-slate-500 md:max-w-none md:text-[0.98rem] md:leading-7">
                 Goodnotes is the student-facing delivery path. Notion is the
-                parent-facing archive. Pick one or combine both.
+                parent-facing archive. Pick one or combine both without
+                rebuilding your whole home workflow.
               </p>
             </div>
 
@@ -88,7 +90,8 @@ export default function LandingIntegrationsSection() {
                   Use one or both.
                 </span>{" "}
                 Start with the tool your family already trusts, then add the
-                second when you want both daily delivery and a long-term record.
+                second when you want both direct delivery and a long-term
+                reading record.
               </p>
             </div>
 

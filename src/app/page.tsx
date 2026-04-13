@@ -1,12 +1,10 @@
 import {
   ArrowRight,
-  Zap,
   BookOpen,
   Brain,
   PenTool,
   ShieldCheck,
   ChevronDown,
-  Smartphone,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -78,16 +76,16 @@ export default async function Home() {
         </div>
         
         <h1 className="text-5xl md:text-7xl font-extrabold leading-[1.1] mb-6 drop-shadow-sm tracking-tight text-white px-2">
-          Build MYP curiosity. <br className="hidden md:block" />
+          Turn daily reading into a <br className="hidden md:block" />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fbbf24] to-[#f59e0b]">
-            Strengthen DP argument.
+            calm IB learning routine.
           </span>
         </h1>
         
-        <p className="text-[#94a3b8] text-lg md:text-xl max-w-2xl leading-relaxed mb-10">
-          Daily Sparks delivers a calm IB reading routine. MYP learners build
-          inquiry and global-context habits. DP learners train academic framing,
-          evidence handling, and TOK-style thinking.
+        <p className="text-[#94a3b8] text-lg md:text-xl max-w-3xl leading-relaxed mb-10">
+          Daily Sparks sends programme-aware MYP and DP reading briefs,
+          delivers them into Goodnotes, captures notebook thinking, and keeps a
+          searchable family archive in Notion.
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
@@ -115,6 +113,23 @@ export default async function Home() {
           </TrackedLink>
         </div>
 
+        <div className="mt-10 grid w-full max-w-4xl gap-3 rounded-[30px] border border-white/10 bg-white/5 p-4 text-left shadow-[0_28px_90px_-56px_rgba(15,23,42,0.6)] md:grid-cols-5">
+          {[
+            "Daily brief",
+            "Goodnotes delivery",
+            "Notebook capture",
+            "Weekly recap",
+            "Notion archive",
+          ].map((item) => (
+            <div
+              key={item}
+              className="rounded-2xl border border-white/8 bg-[#0f172a]/70 px-4 py-3 text-sm font-semibold text-slate-200"
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+
         {/* 社交證明 Social Proof */}
         <div className="mt-16 flex flex-col items-center gap-4">
           <div className="flex -space-x-2">
@@ -125,7 +140,7 @@ export default async function Home() {
             ))}
           </div>
           <p className="text-xs text-[#64748b] font-medium uppercase tracking-widest">
-            BUILT FOR CALM IB FAMILY ROUTINES
+            BUILT FOR IB FAMILIES USING GOODNOTES AND NOTION AT HOME
           </p>
         </div>
       </section>
@@ -134,29 +149,29 @@ export default async function Home() {
       <section className="bg-white text-[#0f172a] py-24 px-6 overflow-hidden relative">
         <div className="max-w-4xl mx-auto text-center mb-16 px-4">
           <h2 className="text-3xl md:text-5xl font-extrabold mb-4 px-2">
-            Traditional reading has a <span className="text-red-500">focus problem</span>.
+            Strong reading matters. <span className="text-red-500">Family routines break first.</span>
           </h2>
           <p className="text-gray-500 text-lg">
-            Is your child truly learning, or just scrolling?
+            Daily Sparks is built for the friction that appears after good intentions.
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
           {[
             {
-              icon: <Zap className="text-red-500 w-6 h-6" />,
-              title: "The TikTok Attention Span",
-              desc: "Hyper-fast content is ruining the ability to focus on complex, long-form logic found in international exams."
-            },
-            {
               icon: <BookOpen className="text-red-500 w-6 h-6" />,
-              title: "Outdated Curriculum",
-              desc: "Textbooks are static. Kids lose interest in stale examples that don't connect to today's AI and Space discoveries."
+              title: "Reading happens, but it does not accumulate",
+              desc: "Students may read current events or school-linked articles, but the insight often disappears before it becomes reflection, writing, or a repeatable habit."
             },
             {
-              icon: <Smartphone className="text-red-500 w-6 h-6" />,
-              title: "Digital Distraction",
-              desc: "Giving a child an iPad for research often leads to YouTube. They need a distraction-free environment."
+              icon: <Brain className="text-red-500 w-6 h-6" />,
+              title: "Parents know IB reading matters, but not what to do daily",
+              desc: "Families want stronger MYP inquiry and DP argument habits, but most reading routines are either too vague to sustain or too heavy to keep going."
+            },
+            {
+              icon: <ShieldCheck className="text-red-500 w-6 h-6" />,
+              title: "Tools are scattered",
+              desc: "Delivery, note capture, archive, and follow-up often live in different places, so momentum breaks just when the routine starts to form."
             }
           ].map((pain, i) => (
             <div key={i} className="p-8 rounded-3xl bg-slate-50 border border-slate-100 flex flex-col gap-4">
@@ -175,7 +190,7 @@ export default async function Home() {
         <div className="max-w-4xl mx-auto text-center mb-16">
           <span className="text-[#fbbf24] font-bold text-sm tracking-widest uppercase">The Solution</span>
           <h2 className="text-3xl md:text-5xl font-extrabold mt-4 mb-4 text-white">
-            Meet Their New Academic Habit.
+            One workflow, built for the way IB reading actually grows.
           </h2>
         </div>
 
@@ -184,14 +199,13 @@ export default async function Home() {
             <div className="bg-[#fbbf24] text-[#0f172a] w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-[#fbbf24]/20">
               <Brain className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-bold mb-4 text-white">MYP bridge reading</h3>
+            <h3 className="text-xl font-bold mb-4 text-white">MYP reading that builds inquiry</h3>
             <p className="text-[#94a3b8] text-sm leading-relaxed mb-6">
-              Shorter, structured briefs help MYP learners connect current
-              events to global contexts, compare perspectives, and keep inquiry
-              moving.
+              Bridge-reading briefs help students connect current events to
+              global contexts, compare perspectives, and keep curiosity active.
             </p>
-            <div className="flex items-center gap-2 text-[#fbbf24] text-xs font-bold uppercase tracking-widest pt-4 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-              Inquiry And Context
+            <div className="flex items-center gap-2 text-[#fbbf24] text-xs font-bold uppercase tracking-widest pt-4 border-t border-white/5">
+              For MYP
             </div>
           </div>
 
@@ -199,14 +213,13 @@ export default async function Home() {
             <div className="bg-[#fbbf24] text-[#0f172a] w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-[#fbbf24]/20">
               <PenTool className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-bold mb-4 text-white">DP academic framing</h3>
+            <h3 className="text-xl font-bold mb-4 text-white">DP reading that strengthens argument</h3>
             <p className="text-[#94a3b8] text-sm leading-relaxed mb-6">
-              DP briefs surface the abstract, core issue, claim, counterpoint,
-              and TOK-style prompts that turn daily reading into usable writing
-              material.
+              Academic briefs surface abstract, claim, counterpoint, method
+              focus, and TOK-style thinking that students can reuse in writing.
             </p>
-            <div className="flex items-center gap-2 text-[#fbbf24] text-xs font-bold uppercase tracking-widest pt-4 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-              Argument And Evidence
+            <div className="flex items-center gap-2 text-[#fbbf24] text-xs font-bold uppercase tracking-widest pt-4 border-t border-white/5">
+              For DP
             </div>
           </div>
 
@@ -214,13 +227,14 @@ export default async function Home() {
             <div className="bg-[#fbbf24] text-[#0f172a] w-12 h-12 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-[#fbbf24]/20">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <h3 className="text-xl font-bold mb-4 text-white">Calm delivery, lasting record</h3>
+            <h3 className="text-xl font-bold mb-4 text-white">One calm family system</h3>
             <p className="text-[#94a3b8] text-sm leading-relaxed mb-6">
-              Students read in Goodnotes, families keep a searchable Notion
-              archive, and both sides stay aligned without dashboard overload.
+              Students receive the brief in Goodnotes, families keep the
+              long-term record in Notion, and notebook prompts plus weekly
+              recaps turn reading into visible progress.
             </p>
-            <div className="flex items-center gap-2 text-[#fbbf24] text-xs font-bold uppercase tracking-widest pt-4 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
-              Delivery And Archive
+            <div className="flex items-center gap-2 text-[#fbbf24] text-xs font-bold uppercase tracking-widest pt-4 border-t border-white/5">
+              For families
             </div>
           </div>
         </div>
@@ -231,16 +245,83 @@ export default async function Home() {
         <div className="mx-auto max-w-7xl space-y-10">
           <div className="max-w-3xl space-y-4">
             <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#fbbf24]">
-              Explore The Reading Model
+              How It Works
             </p>
             <h2 className="text-3xl font-extrabold tracking-[-0.04em] text-white md:text-5xl">
-              Public guides for the exact family workflow you are comparing.
+              A calmer setup for a repeatable MYP or DP reading habit.
             </h2>
             <p className="text-base leading-8 text-slate-300 md:text-lg">
-              These pages break out the MYP bridge-reading model, the DP
-              academic loop, the Goodnotes student workflow, the Notion family
-              archive, and the difference between MYP and DP reading support.
+              Daily Sparks works best when the workflow is simple enough to keep
+              going at home, but structured enough to help reading accumulate.
             </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-5">
+            {[
+              {
+                step: "1",
+                title: "Choose MYP or DP",
+                body: "Set the learning stage so the brief structure matches the kind of reading your child needs.",
+              },
+              {
+                step: "2",
+                title: "Connect Goodnotes, Notion, or both",
+                body: "Use Goodnotes for direct reading delivery, Notion for family archiving, or combine both.",
+              },
+              {
+                step: "3",
+                title: "Receive the daily brief",
+                body: "Each brief arrives already structured for MYP inquiry or DP academic framing.",
+              },
+              {
+                step: "4",
+                title: "Capture notebook thinking",
+                body: "Students respond while the reading is still fresh instead of letting the moment disappear.",
+              },
+              {
+                step: "5",
+                title: "Review the weekly recap",
+                body: "Families revisit the reading, the notebook capture, and the ideas worth returning to.",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="rounded-[28px] border border-white/10 bg-white/5 p-6"
+              >
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-[#fbbf24] text-sm font-black text-[#0f172a]">
+                  {item.step}
+                </div>
+                <h3 className="text-lg font-bold text-white">{item.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-300">
+                  {item.body}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between gap-6 rounded-[32px] border border-white/10 bg-white/5 p-6 md:p-8">
+            <div className="max-w-3xl">
+              <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#fbbf24]">
+                Explore The Reading Model
+              </p>
+              <p className="mt-3 text-base leading-8 text-slate-300">
+                If your family is still comparing options, these public guides
+                explain the MYP bridge-reading model, the DP academic loop, the
+                Goodnotes student workflow, the Notion family archive, and the
+                difference between MYP and DP reading support.
+              </p>
+            </div>
+            <TrackedLink
+              href="/ib-parent-starter-kit"
+              marketingEvent="landing_cta_clicked"
+              marketingProperties={{
+                location: "workflow-secondary",
+                destination: "starter-kit",
+              }}
+              className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/15"
+            >
+              See How The Workflow Fits
+            </TrackedLink>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
@@ -270,36 +351,51 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* --- Section 5: How it Works --- */}
+      {/* --- Section 5: Workspace Preview --- */}
       <section className="bg-white text-[#0f172a] py-24 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16">
           <div className="flex-1 space-y-8">
-              <h2 className="text-4xl md:text-5xl font-extrabold leading-tight">
-                A calm setup for a <br />repeatable academic habit.
+            <div className="space-y-4">
+              <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#f59e0b]">
+                Workspace Preview
+              </p>
+              <h2 className="text-4xl font-extrabold leading-tight md:text-5xl">
+                See the reading workflow in one view.
               </h2>
+              <p className="max-w-2xl text-base leading-8 text-slate-500 md:text-lg">
+                The student-facing brief, the programme framing, the delivery
+                path, and the family archive all stay legible in the same
+                system, so the routine feels lighter to keep.
+              </p>
+            </div>
             
-            <div className="space-y-6">
-              <div className="flex gap-4 group">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#0f172a] text-white flex items-center justify-center font-bold text-sm">1</div>
-                <div>
-                  <h4 className="font-bold text-lg mb-1">Choose MYP or DP focus</h4>
-                  <p className="text-gray-500 text-sm">Pick the learning stage and a few interest areas so future briefs match the kind of reading your family wants more of.</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                {
+                  title: "Student-facing, not dashboard-heavy",
+                  body: "Goodnotes delivery keeps the daily reading loop focused and ready for handwriting, annotation, and quick reflection.",
+                },
+                {
+                  title: "Programme-aware by default",
+                  body: "MYP and DP framing stay visible in the brief itself, so families do not need to translate the academic purpose each day.",
+                },
+                {
+                  title: "Archive stays useful later",
+                  body: "Notion turns each brief, prompt, and recap into a searchable family record instead of another lost document.",
+                },
+                {
+                  title: "Recaps support follow-through",
+                  body: "Weekly recap helps families notice what was read, what was captured, and what is worth returning to next.",
+                },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="rounded-[28px] border border-slate-200 bg-slate-50 p-6"
+                >
+                  <h4 className="font-bold text-lg text-slate-900">{item.title}</h4>
+                  <p className="mt-3 text-sm leading-7 text-slate-500">{item.body}</p>
                 </div>
-              </div>
-              <div className="flex gap-4 group">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#0f172a] text-white flex items-center justify-center font-bold text-sm">2</div>
-                <div>
-                  <h4 className="font-bold text-lg mb-1">Connect the reading flow</h4>
-                  <p className="text-gray-500 text-sm">Use Goodnotes for direct student delivery, Notion for family archiving, or combine both.</p>
-                </div>
-              </div>
-              <div className="flex gap-4 group">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#fbbf24] text-[#0f172a] flex items-center justify-center font-bold text-sm shadow-lg shadow-[#fbbf24]/50 scale-110">3</div>
-                <div>
-                  <h4 className="font-bold text-lg mb-1">Read, reflect, and save</h4>
-                  <p className="text-gray-500 text-sm">Each brief arrives in a clean workflow, with notebook prompts and weekly recap tools that help students build lasting academic habits.</p>
-                </div>
-              </div>
+              ))}
             </div>
             
             <TrackedLink
@@ -311,7 +407,7 @@ export default async function Home() {
               }}
               className="inline-flex bg-[#0f172a] text-white px-8 py-4 rounded-xl font-bold items-center gap-2 hover:translate-x-2 transition-transform shadow-xl"
             >
-              Set Up Your Reading Loop <ArrowRight className="w-5 h-5" />
+              Start The Reading Routine <ArrowRight className="w-5 h-5" />
             </TrackedLink>
           </div>
           
@@ -353,8 +449,8 @@ export default async function Home() {
       <footer className="bg-[#0f172a] py-20 px-6 border-t border-white/5">
         <div className="max-w-7xl mx-auto text-center space-y-12">
           <div className="space-y-4">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-white">Ready to spark their curiosity?</h2>
-            <p className="text-[#94a3b8]">Join 500+ global families investing in their child&apos;s IB journey today.</p>
+            <h2 className="text-4xl md:text-5xl font-extrabold text-white">Start a calmer IB reading routine at home.</h2>
+            <p className="text-[#94a3b8]">Choose MYP or DP, connect the workflow your family already uses, and let Daily Sparks turn reading into something that accumulates.</p>
           </div>
           
           <div className="flex justify-center">
@@ -367,7 +463,7 @@ export default async function Home() {
               }}
               className="bg-[#fbbf24] text-[#0f172a] px-12 py-5 rounded-2xl font-black text-xl hover:scale-110 active:scale-95 transition-all shadow-2xl shadow-[#fbbf24]/20"
             >
-              Claim 7-Day Free Trial
+              Start The Reading Routine
             </TrackedLink>
           </div>
 

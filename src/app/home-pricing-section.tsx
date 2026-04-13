@@ -24,9 +24,13 @@ export default function HomePricingSection({
             Subscription pricing
           </p>
           <h2 className="text-4xl md:text-5xl font-extrabold">
-            Choose the Daily Sparks rhythm that fits your family.
+            Choose the rhythm that fits your family.
           </h2>
           <p className="text-slate-500 text-lg">
+            Start with a 7-day trial, connect the delivery setup you want, and
+            keep the routine only if it becomes useful in real family life.
+          </p>
+          <p className="text-sm text-slate-400">
             All subscriptions, checkout, and invoices are billed in USD.
           </p>
         </div>

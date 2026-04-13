@@ -65,16 +65,24 @@ export const landingFaqItems = [
     a: "MYP briefs act as bridge reading: global context, compare-or-connect thinking, and inquiry prompts. DP briefs are more academic: abstract, claim, evidence limits, and TOK-style prompts.",
   },
   {
-    q: "How does Goodnotes delivery work?",
-    a: "Add the student's @goodnotes.email destination in the dashboard and Daily Sparks sends each brief straight into that handwriting-friendly reading flow.",
+    q: "What does a daily brief include?",
+    a: "Each brief includes a structured reading frame, key concepts or vocabulary, and a notebook prompt aligned to MYP or DP reading goals.",
   },
   {
-    q: "How does Notion sync work?",
-    a: "Connect a parent workspace once and Daily Sparks builds a searchable archive for briefs, notebook entries, and weekly recaps.",
+    q: "Do I need Goodnotes or Notion to start?",
+    a: "No. You can start with either delivery path. Goodnotes is best for direct student reading, while Notion is best for searchable family archiving.",
   },
   {
-    q: "Do I need both GoodNotes and Notion?",
-    a: "No. Goodnotes is best for direct student reading. Notion is best for family archiving. You can start with one and add the second later.",
+    q: "How long does setup take?",
+    a: "Most families can choose a programme and connect at least one delivery path in a few minutes, then refine the workflow over time.",
+  },
+  {
+    q: "When does the free trial begin?",
+    a: "The trial begins when your family starts the reading workflow through sign-in, not simply when a tool is connected.",
+  },
+  {
+    q: "What is included in the weekly recap?",
+    a: "The weekly recap helps families revisit the reading, notebook capture, and the ideas worth returning to, so progress does not disappear after a few days.",
   },
   {
     q: "Can I cancel anytime?",

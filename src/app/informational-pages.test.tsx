@@ -149,18 +149,24 @@ describe("informational pages", () => {
   test("home page copy reflects the MYP and DP product model", async () => {
     const markup = renderToStaticMarkup(await Home());
 
-    expect(markup).toContain("Build MYP curiosity.");
-    expect(markup).toContain("Strengthen DP argument.");
+    expect(markup).toContain("Turn daily reading into a ");
+    expect(markup).toContain("calm IB learning routine.");
     expect(markup).toContain(
-      "MYP learners build inquiry and global-context habits.",
+      "Daily Sparks sends programme-aware MYP and DP reading briefs, delivers them into Goodnotes, captures notebook thinking, and keeps a searchable family archive in Notion.",
     );
     expect(markup).toContain(
-      "DP learners train academic framing, evidence handling, and TOK-style thinking.",
+      "Reading happens, but it does not accumulate",
     );
-    expect(markup).toContain("MYP bridge reading");
-    expect(markup).toContain("DP academic framing");
-    expect(markup).toContain("Set Up Your Reading Loop");
+    expect(markup).toContain(
+      "Parents know IB reading matters, but not what to do daily",
+    );
+    expect(markup).toContain("MYP reading that builds inquiry");
+    expect(markup).toContain("DP reading that strengthens argument");
+    expect(markup).toContain("Choose MYP or DP");
+    expect(markup).toContain("Receive the daily brief");
+    expect(markup).toContain("Review the weekly recap");
     expect(markup).toContain("How are MYP and DP briefs different?");
+    expect(markup).toContain("What does a daily brief include?");
     expect(markup).not.toContain("TED-Talk Structure");
     expect(markup).not.toContain("Every 09:00 UTC");
     expect(markup).not.toContain("P5 to MYP");
@@ -196,8 +202,8 @@ describe("informational pages", () => {
     expect(markup).toContain('href="/ib-parent-starter-kit"');
     expect(markup).toContain("Start 7-Day Free Trial");
     expect(markup).toContain("Get the Parent Starter Kit");
-    expect(markup).toContain("Set Up Your Reading Loop");
-    expect(markup).toContain("Claim 7-Day Free Trial");
+    expect(markup).toContain("See How The Workflow Fits");
+    expect(markup).toContain("Start The Reading Routine");
 
     for (const href of [
       "/ib-parent-starter-kit",

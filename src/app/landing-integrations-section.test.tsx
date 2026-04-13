@@ -48,7 +48,7 @@ describe("LandingIntegrationsSection", () => {
       'xl:max-w-none',
     );
     expect(markup).toContain(
-      "Choose the setup that fits how your family reads and keeps records.",
+      "Choose the setup that fits how your family reads, reflects, and remembers.",
     );
     expect(markup).toContain(
       "Best when the student reads in Goodnotes each day.",

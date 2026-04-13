@@ -37,13 +37,19 @@ describe("home content", () => {
           q: "How are MYP and DP briefs different?",
         }),
         expect.objectContaining({
-          q: "How does Goodnotes delivery work?",
+          q: "What does a daily brief include?",
         }),
         expect.objectContaining({
-          q: "How does Notion sync work?",
+          q: "Do I need Goodnotes or Notion to start?",
         }),
         expect.objectContaining({
-          q: "Do I need both GoodNotes and Notion?",
+          q: "How long does setup take?",
+        }),
+        expect.objectContaining({
+          q: "When does the free trial begin?",
+        }),
+        expect.objectContaining({
+          q: "What is included in the weekly recap?",
         }),
       ]),
     );
