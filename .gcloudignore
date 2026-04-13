@@ -1,0 +1,12 @@
+# Keep Cloud Build uploads aligned with deployable source only.
+.git
+.github
+.next
+.worktrees
+node_modules
+coverage
+npm-debug.log*
+.env*
+data
+docs
+*.tsbuildinfo
