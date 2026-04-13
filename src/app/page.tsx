@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   ChevronDown,
 } from "lucide-react";
+import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -40,6 +41,28 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   const publicSeoGuides = getPublicSeoGuides();
+  const socialProofPortraits = [
+    {
+      src: "/social-proof/family-1.svg",
+      alt: "Representative IB family portrait 1",
+    },
+    {
+      src: "/social-proof/family-2.svg",
+      alt: "Representative IB family portrait 2",
+    },
+    {
+      src: "/social-proof/family-3.svg",
+      alt: "Representative IB family portrait 3",
+    },
+    {
+      src: "/social-proof/family-4.svg",
+      alt: "Representative IB family portrait 4",
+    },
+    {
+      src: "/social-proof/family-5.svg",
+      alt: "Representative IB family portrait 5",
+    },
+  ] as const;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-[#f8fafc] selection:bg-[#fbbf24] selection:text-[#0f172a]">
@@ -132,10 +155,19 @@ export default async function Home() {
 
         {/* 社交證明 Social Proof */}
         <div className="mt-16 flex flex-col items-center gap-4">
-          <div className="flex -space-x-2">
-            {[1,2,3,4,5].map(i => (
-              <div key={i} className="w-10 h-10 rounded-full border-2 border-[#0f172a] bg-slate-700 flex items-center justify-center text-xs font-bold ring-2 ring-white/5">
-                {String.fromCharCode(64 + i)}
+          <div className="flex -space-x-3">
+            {socialProofPortraits.map((portrait) => (
+              <div
+                key={portrait.src}
+                className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-[#0f172a] bg-slate-700 ring-2 ring-white/5 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.85)]"
+              >
+                <Image
+                  src={portrait.src}
+                  alt={portrait.alt}
+                  fill
+                  sizes="48px"
+                  className="object-cover"
+                />
               </div>
             ))}
           </div>

@@ -16,6 +16,16 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("next/image", () => ({
+  default: ({
+    src,
+    alt,
+    ...props
+  }: React.ImgHTMLAttributes<HTMLImageElement> & { src: string; alt: string }) => (
+    <img src={src} alt={alt} {...props} />
+  ),
+}));
+
 vi.mock("./home-pricing-section", () => ({
   default: () => <div data-testid="pricing-section">Pricing</div>,
 }));
@@ -191,6 +201,8 @@ describe("informational pages", () => {
     expect(markup).toContain("Goodnotes delivery");
     expect(markup).toContain("Notion archive");
     expect(markup).toContain("Weekly recap");
+    expect(markup).toContain("/social-proof/family-1.svg");
+    expect(markup).not.toContain(">A<");
     expect(markup).not.toContain("Wait until you see their first analysis.");
     expect(markup).not.toContain("💻");
   });
