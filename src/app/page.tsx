@@ -171,8 +171,9 @@ export default async function Home() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-[#64748b] font-medium uppercase tracking-widest">
-            BUILT FOR IB FAMILIES USING GOODNOTES AND NOTION AT HOME
+          <p className="max-w-xl text-center text-xs font-medium uppercase tracking-[0.22em] text-[#64748b]">
+            TRUSTED IN CALM IB HOME ROUTINES WITH GOODNOTES DELIVERY AND
+            SEARCHABLE NOTION ARCHIVES
           </p>
         </div>
       </section>

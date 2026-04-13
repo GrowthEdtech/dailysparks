@@ -165,6 +165,9 @@ describe("informational pages", () => {
       "Daily Sparks sends programme-aware MYP and DP reading briefs, delivers them into Goodnotes, captures notebook thinking, and keeps a searchable family archive in Notion.",
     );
     expect(markup).toContain(
+      "TRUSTED IN CALM IB HOME ROUTINES WITH GOODNOTES DELIVERY AND SEARCHABLE NOTION ARCHIVES",
+    );
+    expect(markup).toContain(
       "Reading happens, but it does not accumulate",
     );
     expect(markup).toContain(
