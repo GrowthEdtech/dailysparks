@@ -204,6 +204,8 @@ describe("informational pages", () => {
     expect(markup).toContain("Get the Parent Starter Kit");
     expect(markup).toContain("See How The Workflow Fits");
     expect(markup).toContain("Start The Reading Routine");
+    expect(markup).toContain("group inline-flex items-center justify-center gap-3");
+    expect(markup).toContain("text-[#f8fafc]");
 
     for (const href of [
       "/ib-parent-starter-kit",

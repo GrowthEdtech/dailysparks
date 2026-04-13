@@ -405,9 +405,12 @@ export default async function Home() {
                 location: "workflow-primary",
                 destination: "trial",
               }}
-              className="inline-flex bg-[#0f172a] text-white px-8 py-4 rounded-xl font-bold items-center gap-2 hover:translate-x-2 transition-transform shadow-xl"
+              className="group inline-flex items-center justify-center gap-3 rounded-xl bg-[#0f172a] px-8 py-4 font-bold text-white shadow-xl transition-transform hover:translate-x-2"
             >
-              Start The Reading Routine <ArrowRight className="w-5 h-5" />
+              <span className="text-[#f8fafc] opacity-100 [text-shadow:0_1px_0_rgba(15,23,42,0.18)]">
+                Start The Reading Routine
+              </span>
+              <ArrowRight className="h-5 w-5 shrink-0 text-[#f8fafc] transition-transform group-hover:translate-x-0.5" />
             </TrackedLink>
           </div>
           
