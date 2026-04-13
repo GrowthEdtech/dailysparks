@@ -212,9 +212,15 @@ describe("buildOutboundDailyBriefPacket", () => {
     expect(packet.summaryTitle).toBe("3-sentence abstract");
     expect(packet.readingTitle).toBe("Academic frame");
     expect(packet.readingSections).toEqual([
-      expect.objectContaining({ title: "Learning objective" }),
+      expect.objectContaining({
+        title: "Learning objective",
+        body: "Students should evaluate how strong a policy claim remains when evidence, uncertainty, and competing priorities all stay in play.",
+      }),
       expect.objectContaining({ title: "Core issue" }),
-      expect.objectContaining({ title: "Claim" }),
+      expect.objectContaining({
+        title: "Claim",
+        body: "Stronger regulation is justified when a tool can scale harm faster than existing oversight can respond.",
+      }),
       expect.objectContaining({ title: "Counterpoint or evidence limit" }),
       expect.objectContaining({ title: "Method focus" }),
       expect.objectContaining({ title: "TOK link" }),
@@ -237,5 +243,41 @@ describe("buildOutboundDailyBriefPacket", () => {
     expect(packet.bigIdeaBody).toContain(
       "Note one claim supporting faster regulation",
     );
+  });
+
+  test("compresses dense DP reading sections and support blocks for a two-page outbound budget", () => {
+    const packet = buildOutboundDailyBriefPacket({
+      headline:
+        "Defending champion Rory McIlroy loses six-shot lead before the final Masters round",
+      scheduledFor: "2026-04-13",
+      programme: "DP",
+      editorialCohort: "APAC",
+      summary:
+        "Rory McIlroy lost a six-shot lead at Augusta National before the final round of the Masters, turning his title defence into a far less certain contest. The episode matters because it illustrates how apparent numerical control can weaken quickly when execution, psychology, and competitive context all shift together.",
+      topicTags: ["golf", "performance", "evidence", "psychology", "causation"],
+      briefMarkdown: [
+        "3-sentence abstract Rory McIlroy appeared to be in commanding control of the Masters after building a six-shot lead. That advantage disappeared before the final round, forcing observers to reconsider whether the collapse reflected psychology, technical execution, or competitive pressure. The event matters because it demonstrates how quickly a persuasive surface narrative can dissolve when causation is more complex than the score alone suggests.",
+        "Learning objective Students should evaluate a performance claim by separating observable facts from inferred explanations and by keeping multiple causal pathways in view.",
+        "Core issue The key issue is whether a sudden reversal in elite performance can be explained mainly by individual psychology or whether it should be understood as the result of interacting variables, including opponent performance, course conditions, and decision-making under pressure.",
+        "Claim A large lead in elite individual sport does not guarantee victory because performance advantages remain vulnerable to psychological pressure, changing context, and execution errors.",
+        "Counterpoint or evidence limit The strongest public evidence here is limited: score changes and athlete comments do not fully reveal whether the lost lead came mostly from McIlroy's own mistakes, exceptional play by others, or situational factors on the course. That means any single-cause explanation should be treated cautiously.",
+        "Method focus Use causal reasoning with confounding variables in mind: distinguish what can be directly observed from what must be inferred, and compare stronger evidence with weaker interpretation.",
+        "TOK link Public explanations by athletes and commentators can feel convincing, but persuasive interpretation is not the same as reliable knowledge about why an outcome changed.",
+        "Why this matters for IB thinking This case rewards evidence-aware reasoning because students must weigh narrative simplicity against analytical accuracy. It also models a core IB habit: resisting the temptation to over-explain a complex event with only one attractive cause.",
+        "Key academic term - Confounding variable: A factor that may influence an outcome while making it harder to isolate the true cause of change.",
+        "TOK / essay prompt - When evidence is partial and emotionally charged, how should we decide which explanation deserves the most confidence?",
+        "Researchable question Which indicators would best help an analyst distinguish psychological collapse from broader performance-context change in a high-stakes golf tournament?",
+        "Notebook capture Record one defensible claim about why the lead disappeared, then add one evidence limit that prevents that claim from becoming too certain.",
+      ].join("\n"),
+      sourceReferences: [],
+    });
+
+    expect(packet.summaryBody.length).toBeLessThanOrEqual(300);
+    expect(packet.readingSections.every((section) => section.body.length <= 220)).toBe(
+      true,
+    );
+    expect(packet.vocabularyItems[0]?.definition.length ?? 0).toBeLessThanOrEqual(120);
+    expect(packet.discussionPrompts[0]?.length ?? 0).toBeLessThanOrEqual(140);
+    expect(packet.bigIdeaBody?.length ?? 0).toBeLessThanOrEqual(170);
   });
 });

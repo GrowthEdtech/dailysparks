@@ -336,33 +336,33 @@ ${
     isDpAcademic
       ? `
 #grid(
-  columns: (1.28fr, 0.72fr),
-  gutter: 16pt,
+  columns: (1.34fr, 0.66fr),
+  gutter: 14pt,
   [
     ${
       packet.vocabularyTitle && packet.vocabularyItems.length > 0
-        ? `#section-card(${escapeTypstString(packet.vocabularyTitle)}, ${escapeTypstString(
+        ? `#compact-section-card(${escapeTypstString(packet.vocabularyTitle)}, ${escapeTypstString(
             packet.vocabularyItems
               .map((item) => `${item.term}: ${item.definition}`)
               .join(" / "),
           )}, fill-color: pale-gold, border-color: gold-border, label-color: gold)
-    #v(12pt)`
+    #v(10pt)`
         : ""
     }
-    #section-card(${escapeTypstString(packet.discussionTitle)}, ${escapeTypstString(
+    #compact-section-card(${escapeTypstString(packet.discussionTitle)}, ${escapeTypstString(
           packet.discussionPrompts.join(" "),
         )}, fill-color: pale-blue)
   ],
   [
     ${
       packet.bigIdeaTitle && packet.bigIdeaBody
-        ? `#section-card(${escapeTypstString(packet.bigIdeaTitle)}, ${escapeTypstString(packet.bigIdeaBody)}, fill-color: white)
-    #v(12pt)`
+        ? `#compact-section-card(${escapeTypstString(packet.bigIdeaTitle)}, ${escapeTypstString(packet.bigIdeaBody)}, fill-color: white)
+    #v(10pt)`
         : ""
     }
     ${
       packet.themesTitle && packet.themesBody
-        ? `#section-card(${escapeTypstString(packet.themesTitle)}, ${escapeTypstString(packet.themesBody)}, fill-color: rgb("#f8fbff"))`
+        ? `#compact-section-card(${escapeTypstString(packet.themesTitle)}, ${escapeTypstString(packet.themesBody)}, fill-color: rgb("#f8fbff"))`
         : '#box(width: 100%)[ ]'
     }
   ],
@@ -371,7 +371,7 @@ ${
       : "";
 
   return `
-#set page(width: 595pt, height: 842pt, margin: ${isPypOnePage ? "36pt" : "48pt"}, fill: rgb("#fffdfa"))
+#set page(width: 595pt, height: 842pt, margin: ${isPypOnePage ? "36pt" : isDpAcademic ? "44pt" : "48pt"}, fill: rgb("#fffdfa"))
 #set par(justify: false, leading: 0.95em)
 #set text(size: 11pt, fill: rgb("#475569"))
 
@@ -404,6 +404,19 @@ ${
   #text(size: 11.1pt, fill: secondary)[#body]
 ]
 
+#let compact-section-card(label, body, fill-color: white, border-color: soft-border, label-color: muted) = rect(
+  width: 100%,
+  fill: fill-color,
+  stroke: (paint: border-color, thickness: 1pt),
+  inset: 14pt,
+  radius: 16pt,
+)[
+  #text(size: 8.4pt, weight: "semibold", fill: label-color)[#label]
+  #v(6pt)
+  #set par(leading: 1.08em)
+  #text(size: 10.2pt, fill: secondary)[#body]
+]
+
 #let standfirst-card(label, body) = rect(
   width: 100%,
   fill: rgb("#fcfeff"),
@@ -412,19 +425,21 @@ ${
   radius: 18pt,
 )[
   #text(size: ${isPypOnePage ? "8.5pt" : "9pt"}, weight: "semibold", fill: gold)[#label]
-  #v(${isPypOnePage ? "6pt" : "8pt"})
-  #set par(leading: ${isPypOnePage ? "1.16em" : "1.2em"})
+  #v(${isPypOnePage ? "6pt" : isDpAcademic ? "7pt" : "8pt"})
+  #set par(leading: ${isPypOnePage ? "1.16em" : isDpAcademic ? "1.14em" : "1.2em"})
   #text(size: ${isPypOnePage ? "12.4pt" : isMypBridge ? "12.6pt" : isDpAcademic ? "12.9pt" : "13.2pt"}, fill: ink)[#body]
 ]
 
 #let reading-block(title, body) = [
-  #if title != "" [
-    #text(size: ${isPypOnePage ? "11.4pt" : isMypBridge ? "11.8pt" : isDpAcademic ? "12.1pt" : "12.5pt"}, weight: "semibold", fill: ink)[#title]
-    #v(3pt)
+  #block(breakable: false)[
+    #if title != "" [
+      #text(size: ${isPypOnePage ? "11.4pt" : isMypBridge ? "11.8pt" : isDpAcademic ? "12.1pt" : "12.5pt"}, weight: "semibold", fill: ink)[#title]
+      #v(3pt)
+    ]
+    #set par(leading: ${isPypOnePage ? "1.1em" : isMypBridge ? "1.14em" : isDpAcademic ? "1.17em" : "1.18em"})
+    #text(size: ${isPypOnePage ? "10.3pt" : isMypBridge ? "10.8pt" : isDpAcademic ? "11.05pt" : "11.35pt"}, fill: secondary)[#body]
   ]
-  #set par(leading: ${isPypOnePage ? "1.1em" : isMypBridge ? "1.14em" : isDpAcademic ? "1.17em" : "1.18em"})
-  #text(size: ${isPypOnePage ? "10.3pt" : isMypBridge ? "10.8pt" : isDpAcademic ? "11.05pt" : "11.35pt"}, fill: secondary)[#body]
-  #v(${isPypOnePage ? "8pt" : isMypBridge ? "12pt" : isDpAcademic ? "13pt" : "14pt"})
+  #v(${isPypOnePage ? "8pt" : isMypBridge ? "12pt" : isDpAcademic ? "11pt" : "14pt"})
 ]
 
 #let vocab-item(term, definition) = [

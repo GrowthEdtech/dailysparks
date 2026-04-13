@@ -116,117 +116,117 @@ const STRUCTURED_SECTION_DEFINITIONS: {
   {
     key: "learningObjective",
     title: "Learning objective",
-    pattern: /learning objective(?:\?|:)?/i,
+    pattern: /^learning objective(?:\?|:)?/i,
   },
   {
     key: "whatsHappening",
     title: "What's happening?",
-    pattern: /what['’]s happening\?/i,
+    pattern: /^what['’]s happening\?/i,
   },
   {
     key: "whyDoesThisMatter",
     title: "Why does this matter?",
-    pattern: /why does this matter\?/i,
+    pattern: /^why does this matter\?/i,
   },
   {
     key: "pictureIt",
     title: "Picture it",
-    pattern: /picture it(?:\?|:)?/i,
+    pattern: /^picture it(?:\?|:)?/i,
   },
   {
     key: "globalContext",
     title: "Global context",
-    pattern: /global context(?:\?|:)?/i,
+    pattern: /^global context(?:\?|:)?/i,
   },
   {
     key: "compareOrConnect",
     title: "Compare or connect",
-    pattern: /compare or connect(?:\?|:)?/i,
+    pattern: /^compare or connect(?:\?|:)?/i,
   },
   {
     key: "keyRelatedConcepts",
     title: "Key / related concepts",
-    pattern: /key\s*\/\s*related concepts(?:\?|:)?/i,
+    pattern: /^key\s*\/\s*related concepts(?:\?|:)?/i,
   },
   {
     key: "threeSentenceAbstract",
     title: "3-sentence abstract",
-    pattern: /3-sentence abstract(?:\?|:)?/i,
+    pattern: /^3-sentence abstract(?:\?|:)?/i,
   },
   {
     key: "coreIssue",
     title: "Core issue",
-    pattern: /core issue(?:\?|:)?/i,
+    pattern: /^core issue(?:\?|:)?/i,
   },
   {
     key: "claim",
     title: "Claim",
-    pattern: /claim(?:\?|:)?/i,
+    pattern: /^claim(?:\?|:)?/i,
   },
   {
     key: "counterpointOrEvidenceLimit",
     title: "Counterpoint or evidence limit",
-    pattern: /counterpoint or evidence limit(?:\?|:)?/i,
+    pattern: /^counterpoint or evidence limit(?:\?|:)?/i,
   },
   {
     key: "methodFocus",
     title: "Method focus",
-    pattern: /method focus(?:\?|:)?/i,
+    pattern: /^method focus(?:\?|:)?/i,
   },
   {
     key: "tokLink",
     title: "TOK link",
-    pattern: /tok link(?:\?|:)?/i,
+    pattern: /^tok link(?:\?|:)?/i,
   },
   {
     key: "whyThisMattersForIbThinking",
     title: "Why this matters for IB thinking",
-    pattern: /why this matters for ib thinking(?:\?|:)?/i,
+    pattern: /^why this matters for ib thinking(?:\?|:)?/i,
   },
   {
     key: "researchableQuestion",
     title: "Researchable question",
-    pattern: /researchable question(?:\?|:)?/i,
+    pattern: /^researchable question(?:\?|:)?/i,
   },
   {
     key: "keyAcademicTerm",
     title: "Key academic term",
-    pattern: /key academic term(?:\?|:)?/i,
+    pattern: /^key academic term(?:\?|:)?/i,
   },
   {
     key: "wordsToKnow",
     title: "Words to know",
-    pattern: /words to know/i,
+    pattern: /^words to know/i,
   },
   {
     key: "talkAboutItAtHome",
     title: "Talk about it at home",
-    pattern: /talk about it at home/i,
+    pattern: /^talk about it at home/i,
   },
   {
     key: "inquiryQuestion",
     title: "Inquiry question",
-    pattern: /inquiry question(?:\?|:)?/i,
+    pattern: /^inquiry question(?:\?|:)?/i,
   },
   {
     key: "tokEssayPrompt",
     title: "TOK \/ essay prompt",
-    pattern: /tok\s*\/\s*essay prompt(?:\?|:)?/i,
+    pattern: /^tok\s*\/\s*essay prompt(?:\?|:)?/i,
   },
   {
     key: "notebookPrompt",
     title: "Notebook prompt",
-    pattern: /notebook prompt(?:\?|:)?/i,
+    pattern: /^notebook prompt(?:\?|:)?/i,
   },
   {
     key: "notebookCapture",
     title: "Notebook capture",
-    pattern: /notebook capture(?:\?|:)?/i,
+    pattern: /^notebook capture(?:\?|:)?/i,
   },
   {
     key: "bigIdea",
     title: "Big idea",
-    pattern: /big idea/i,
+    pattern: /^big idea/i,
   },
 ];
 
@@ -260,24 +260,6 @@ function buildCollapsedMarkdownText(markdown: string) {
 }
 
 function extractStructuredSections(markdown: string) {
-  const collapsedText = buildCollapsedMarkdownText(markdown);
-  const matches = STRUCTURED_SECTION_DEFINITIONS
-    .map((sectionDefinition) => {
-      const match = sectionDefinition.pattern.exec(collapsedText);
-
-      if (!match) {
-        return null;
-      }
-
-      return {
-        ...sectionDefinition,
-        start: match.index,
-        labelEnd: match.index + match[0].length,
-      };
-    })
-    .filter((match): match is NonNullable<typeof match> => match !== null)
-    .sort((left, right) => left.start - right.start);
-
   const sections = new Map<
     StructuredSectionKey,
     {
@@ -285,22 +267,44 @@ function extractStructuredSections(markdown: string) {
       body: string;
     }
   >();
+  const paragraphs = markdown
+    .split(/\n+/)
+    .map((segment) => sanitizePlainText(segment))
+    .filter(Boolean);
 
-  for (const [index, match] of matches.entries()) {
-    const nextMatch = matches[index + 1];
-    const rawBody = collapsedText.slice(
-      match.labelEnd,
-      nextMatch?.start ?? collapsedText.length,
+  let activeSection: StructuredSectionKey | null = null;
+  let activeTitle: string | null = null;
+
+  for (const paragraph of paragraphs) {
+    const matchingDefinition = STRUCTURED_SECTION_DEFINITIONS.find((definition) =>
+      definition.pattern.test(paragraph),
     );
-    const body = normalizeWhitespace(rawBody.replace(/^[:\-\s]+/, ""));
 
-    if (!body) {
+    if (matchingDefinition) {
+      const body = normalizeWhitespace(
+        paragraph.replace(matchingDefinition.pattern, "").replace(/^[:\-\s]+/, ""),
+      );
+      sections.set(matchingDefinition.key, {
+        title: matchingDefinition.title,
+        body,
+      });
+      activeSection = matchingDefinition.key;
+      activeTitle = matchingDefinition.title;
       continue;
     }
 
-    sections.set(match.key, {
-      title: match.title,
-      body,
+    if (!activeSection || !activeTitle) {
+      continue;
+    }
+
+    const previous = sections.get(activeSection);
+    const nextBody = previous?.body
+      ? normalizeWhitespace(`${previous.body} ${paragraph}`)
+      : paragraph;
+
+    sections.set(activeSection, {
+      title: activeTitle,
+      body: nextBody,
     });
   }
 
@@ -405,6 +409,31 @@ function applyMypBridgePolicyToReadingSections(
   }));
 }
 
+function applyDpAcademicPolicyToReadingSections(
+  sections: OutboundDailyBriefReadingSection[],
+) {
+  return sections.map((section) => {
+    const maxCharacters =
+      section.title === "Learning objective"
+        ? 170
+        : section.title === "Method focus" || section.title === "TOK link"
+          ? 180
+          : section.title === "Researchable question"
+            ? 190
+            : section.title === "Why this matters for IB thinking"
+              ? 200
+              : 220;
+
+    return {
+      ...section,
+      body: truncateSentenceBudget(section.body, {
+        maxSentences: 2,
+        maxCharacters,
+      }),
+    };
+  });
+}
+
 export function extractOutboundParagraphsFromMarkdown(markdown: string) {
   return markdown
     .split(/\n{2,}/)
@@ -486,6 +515,8 @@ export function buildOutboundDailyBriefPacket(
       ? applyPypOnePagePolicyToReadingSections(baseReadingSections)
       : layoutVariant === "myp-bridge"
         ? applyMypBridgePolicyToReadingSections(baseReadingSections)
+      : layoutVariant === "dp-academic"
+        ? applyDpAcademicPolicyToReadingSections(baseReadingSections)
       : baseReadingSections;
   const vocabularyItems = wordsToKnow ? parseVocabularyItems(wordsToKnow.body) : [];
   const discussionPrompts = talkAtHome
@@ -514,7 +545,7 @@ export function buildOutboundDailyBriefPacket(
       : layoutVariant === "dp-academic"
         ? truncateSentenceBudget(threeSentenceAbstract?.body || brief.summary, {
             maxSentences: 3,
-            maxCharacters: 320,
+            maxCharacters: 300,
           })
       : brief.summary;
   const vocabularyItemsForLayout =
@@ -539,7 +570,7 @@ export function buildOutboundDailyBriefPacket(
             ...item,
             definition: truncateSentenceBudget(item.definition, {
               maxSentences: 1,
-              maxCharacters: 160,
+              maxCharacters: 120,
             }),
           }))
       : vocabularyItems;
@@ -562,7 +593,7 @@ export function buildOutboundDailyBriefPacket(
         ? discussionPrompts.slice(0, 2).map((prompt) =>
             truncateSentenceBudget(prompt, {
               maxSentences: 1,
-              maxCharacters: 160,
+              maxCharacters: 140,
             }),
           )
       : discussionPrompts;
@@ -580,8 +611,8 @@ export function buildOutboundDailyBriefPacket(
           })
       : layoutVariant === "dp-academic"
         ? truncateSentenceBudget(resolvedBigIdeaBody, {
-            maxSentences: 2,
-            maxCharacters: 220,
+            maxSentences: 1,
+            maxCharacters: 170,
           })
       : resolvedBigIdeaBody
     : null;
