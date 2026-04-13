@@ -70,6 +70,46 @@ describe("outbound daily brief typst", () => {
     ].join("\n"),
     sourceReferences: [],
   };
+  const dpSampleBrief = {
+    headline:
+      "Defending champion weighs evidence, pressure, and risk at Augusta",
+    scheduledFor: "2026-04-13",
+    programme: "DP",
+    editorialCohort: "APAC" as const,
+    summary:
+      "The defending champion returns to Augusta with a narrow lead, rising public expectations, and visible pressure on key shots. The story invites students to examine how evidence, interpretation, and narrative framing shape claims about performance.",
+    topicTags: [
+      "Golf",
+      "Performance",
+      "Evidence",
+      "Pressure",
+      "Interpretation",
+    ],
+    briefMarkdown: [
+      "3-sentence abstract McIlroy remains in contention at Augusta, but the margin is fragile and every mistake is magnified by expectation. Commentators are debating whether his recent errors signal a collapse or simply the variance of elite sport. Students can use the brief to test how far one round of evidence can support a strong claim about performance.",
+      "Learning objective Students should evaluate how evidence quality and framing shape claims about pressure and performance.",
+      "Core issue Public narratives often move faster than the evidence when a leading athlete shows visible signs of strain.",
+      "Claim A short sequence of errors can make spectators overstate the certainty of decline.",
+      "Counterpoint or evidence limit A few shots do not fully capture decision quality, course conditions, or recovery potential across the full tournament.",
+      "Method focus Separate observation from interpretation, then test whether the available evidence is broad enough to justify the claim.",
+      "TOK link The case raises questions about when repeated commentary becomes accepted as knowledge despite limited evidence.",
+      "Why this matters for IB thinking Academic judgment depends on distinguishing strong inference from persuasive storytelling.",
+      "Key academic term - Burden of proof: The responsibility to provide enough evidence before making a strong claim",
+      "TOK / essay prompt To what extent should we suspend judgment when the available evidence is vivid but incomplete?",
+      "Researchable question - What kinds of data would help distinguish temporary pressure from sustained decline in elite performance?",
+      "Notebook capture Record one claim, one evidence limit, and one question you would carry into a fuller essay or discussion.",
+    ].join("\n"),
+    sourceReferences: [
+      {
+        sourceId: "bbc-sport",
+        sourceName: "BBC Sport",
+        sourceDomain: "bbc.com",
+        articleTitle:
+          "Defending champion Rory McIlroy loses six-shot lead at Augusta",
+        articleUrl: "https://www.bbc.com/sport/golf/example",
+      },
+    ],
+  };
 
   test("builds typst source from the shared outbound packet without markdown artifacts", () => {
     const source = buildOutboundDailyBriefTypstSource(sampleBrief);
@@ -138,6 +178,29 @@ describe("outbound daily brief typst", () => {
     expect(source).toContain('#section-card("Words to know"');
     expect(source).toContain('Learning objective');
     expect(source).toContain('Key / related concepts');
+    expect(await countPdfPages(result.pdf)).toBeLessThanOrEqual(2);
+    expect(result.pageCount).toBeLessThanOrEqual(2);
+  });
+
+  test("uses a dedicated DP academic layout with supporting academic sections", async () => {
+    const source = buildOutboundDailyBriefTypstSource(dpSampleBrief);
+    const result = await renderOutboundDailyBriefTypstPrototype(dpSampleBrief);
+
+    expect(source).toContain('columns: (1.28fr, 0.72fr)');
+    expect(source).toContain('#text(size: 21pt, weight: "bold", fill: ink)');
+    expect(source).toContain('#section-card("Key academic term"');
+    expect(source).toContain('#section-card("TOK / essay prompt"');
+    expect(source).toContain('#section-card("Notebook capture"');
+    expect(source).toContain("Method focus");
+    expect(source).toContain("TOK link");
+    expect(source).toContain("Researchable question");
+    expect(source).toContain("Burden of proof");
+    expect(source).toContain(
+      "To what extent should we suspend judgment when the available evidence is vivid but incomplete?",
+    );
+    expect(source).toContain(
+      "Record one claim, one evidence limit, and one question you would carry into a fuller essay or discussion.",
+    );
     expect(await countPdfPages(result.pdf)).toBeLessThanOrEqual(2);
     expect(result.pageCount).toBeLessThanOrEqual(2);
   });

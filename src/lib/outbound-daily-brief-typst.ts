@@ -332,6 +332,43 @@ ${
 )
 `
       : "";
+  const dpAcademicSupportBlocks =
+    isDpAcademic
+      ? `
+#grid(
+  columns: (1.28fr, 0.72fr),
+  gutter: 16pt,
+  [
+    ${
+      packet.vocabularyTitle && packet.vocabularyItems.length > 0
+        ? `#section-card(${escapeTypstString(packet.vocabularyTitle)}, ${escapeTypstString(
+            packet.vocabularyItems
+              .map((item) => `${item.term}: ${item.definition}`)
+              .join(" / "),
+          )}, fill-color: pale-gold, border-color: gold-border, label-color: gold)
+    #v(12pt)`
+        : ""
+    }
+    #section-card(${escapeTypstString(packet.discussionTitle)}, ${escapeTypstString(
+          packet.discussionPrompts.join(" "),
+        )}, fill-color: pale-blue)
+  ],
+  [
+    ${
+      packet.bigIdeaTitle && packet.bigIdeaBody
+        ? `#section-card(${escapeTypstString(packet.bigIdeaTitle)}, ${escapeTypstString(packet.bigIdeaBody)}, fill-color: white)
+    #v(12pt)`
+        : ""
+    }
+    ${
+      packet.themesTitle && packet.themesBody
+        ? `#section-card(${escapeTypstString(packet.themesTitle)}, ${escapeTypstString(packet.themesBody)}, fill-color: rgb("#f8fbff"))`
+        : '#box(width: 100%)[ ]'
+    }
+  ],
+)
+`
+      : "";
 
   return `
 #set page(width: 595pt, height: 842pt, margin: ${isPypOnePage ? "36pt" : "48pt"}, fill: rgb("#fffdfa"))
@@ -448,6 +485,7 @@ ${readingBlocks}
 ${pypTeachingBlocks}
 ${standardTeachingBlocks}
 ${mypCompareBlocks}
+${dpAcademicSupportBlocks}
 
 ${!isPypOnePage && !isMypBridge && !isDpAcademic
   ? `#v(12pt)
