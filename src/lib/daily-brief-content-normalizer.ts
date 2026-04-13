@@ -8,16 +8,22 @@ export type DailyBriefNormalizedReadingSection = {
 const PROGRAMME_READING_TITLES: Record<Programme, string[]> = {
   PYP: ["What's happening?", "Why does this matter?", "Picture it"],
   MYP: [
+    "Learning objective",
     "What's happening?",
     "Why does this matter?",
     "Global context",
     "Compare or connect",
+    "Key / related concepts",
   ],
   DP: [
+    "Learning objective",
     "Core issue",
     "Claim",
     "Counterpoint or evidence limit",
+    "Method focus",
+    "TOK link",
     "Why this matters for IB thinking",
+    "Researchable question",
   ],
 };
 

@@ -66,10 +66,12 @@ function getProgrammeRuntimeIntentNotes(programme: Programme) {
 }
 
 const MYP_REQUIRED_SECTION_ORDER = [
+  "Learning objective",
   "What's happening?",
   "Why does this matter?",
   "Global context",
   "Compare or connect",
+  "Key / related concepts",
   "Words to know",
   "Inquiry question",
   "Notebook prompt",
@@ -77,12 +79,16 @@ const MYP_REQUIRED_SECTION_ORDER = [
 
 const DP_REQUIRED_SECTION_ORDER = [
   "3-sentence abstract",
+  "Learning objective",
   "Core issue",
   "Claim",
   "Counterpoint or evidence limit",
+  "Method focus",
+  "TOK link",
   "Why this matters for IB thinking",
   "Key academic term",
   "TOK / essay prompt",
+  "Researchable question",
   "Notebook capture",
 ];
 

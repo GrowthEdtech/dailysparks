@@ -68,7 +68,7 @@ describe("daily brief product policy", () => {
 
     expect(mypContract).toContain("Runtime contract overlay");
     expect(mypContract).toContain(
-      "Use this exact section order: What's happening? -> Why does this matter? -> Global context -> Compare or connect -> Words to know -> Inquiry question -> Notebook prompt.",
+      "Use this exact section order: Learning objective -> What's happening? -> Why does this matter? -> Global context -> Compare or connect -> Key / related concepts -> Words to know -> Inquiry question -> Notebook prompt.",
     );
     expect(mypContract).toContain("Vision day");
     expect(mypContract).toContain("Global context must connect the story");
@@ -76,7 +76,7 @@ describe("daily brief product policy", () => {
 
     expect(dpContract).toContain("Runtime contract overlay");
     expect(dpContract).toContain(
-      "Use this exact section order: 3-sentence abstract -> Core issue -> Claim -> Counterpoint or evidence limit -> Why this matters for IB thinking -> Key academic term -> TOK / essay prompt -> Notebook capture.",
+      "Use this exact section order: 3-sentence abstract -> Learning objective -> Core issue -> Claim -> Counterpoint or evidence limit -> Method focus -> TOK link -> Why this matters for IB thinking -> Key academic term -> TOK / essay prompt -> Researchable question -> Notebook capture.",
     );
     expect(dpContract).toContain("TOK day");
     expect(dpContract).toContain("Claim must make a defensible interpretation");

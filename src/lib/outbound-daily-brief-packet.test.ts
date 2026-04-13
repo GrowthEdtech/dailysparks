@@ -129,10 +129,12 @@ describe("buildOutboundDailyBriefPacket", () => {
         "Evidence",
       ],
       briefMarkdown: [
+        "Learning objective Students should explain how different civic priorities change what counts as a fair cleanup plan.",
         "What’s happening? Students are comparing several coastal cleanup plans from different cities. Each plan uses different volunteers, budgets, and rules about which areas should be cleaned first.",
         "Why does this matter? Each plan solves one problem well, but creates trade-offs in cost, speed, and fairness. A plan that looks efficient might leave some neighbourhoods waiting longer for help.",
         "Global context Coastal cleanup decisions affect communities, public budgets, local trust, and environmental recovery. They show how local action connects to larger questions about responsibility and shared systems.",
         "Compare or connect One city may value speed, while another values resident voice and long-term resilience. Comparing those choices helps students see how different priorities shape outcomes.",
+        "Key / related concepts Key concept: Change. Related concepts: Systems and Perspective.",
         "Words to know - Trade-off: Giving up one advantage to gain another - Evidence: Information used to support a decision - Civic planning: Organising how a community solves shared problems",
         "Inquiry question - Which cleanup plan would feel fairest, and what evidence would help you defend that choice?",
         "Notebook prompt Write two sentences comparing a fast cleanup plan with a community-led cleanup plan, and explain which trade-off matters more to you.",
@@ -155,6 +157,9 @@ describe("buildOutboundDailyBriefPacket", () => {
     ]);
     expect(packet.readingSections).toEqual([
       expect.objectContaining({
+        title: "Learning objective",
+      }),
+      expect.objectContaining({
         title: "What's happening?",
       }),
       expect.objectContaining({
@@ -165,6 +170,9 @@ describe("buildOutboundDailyBriefPacket", () => {
       }),
       expect.objectContaining({
         title: "Compare or connect",
+      }),
+      expect.objectContaining({
+        title: "Key / related concepts",
       }),
     ]);
     expect(packet.bigIdeaTitle).toBe("Notebook prompt");
@@ -185,12 +193,16 @@ describe("buildOutboundDailyBriefPacket", () => {
       topicTags: ["AI", "Regulation", "Ethics", "Policy", "Evidence"],
       briefMarkdown: [
         "3-sentence abstract Governments are debating whether AI laws can move fast enough to regulate powerful new tools. Some policymakers want stronger guardrails now, while others warn that rushed rules could stifle useful innovation. The debate matters because the pace of technology may outstrip the pace of public accountability.",
+        "Learning objective Students should evaluate how strong a policy claim remains when evidence, uncertainty, and competing priorities all stay in play.",
         "Core issue The central question is not whether AI matters, but how institutions should govern fast-changing systems without pretending that risk can be removed entirely.",
         "Claim Stronger regulation is justified when a tool can scale harm faster than existing oversight can respond.",
         "Counterpoint or evidence limit Regulation can also overreach when the evidence base is still incomplete or when policymakers target hypothetical harms without distinguishing high-risk uses from low-risk experimentation.",
+        "Method focus Distinguish causal claims from confounding political pressure, and compare stronger evidence with weaker inference.",
+        "TOK link Public self-confidence about regulation is not the same as justified knowledge about future harm.",
         "Why this matters for IB thinking This issue invites students to compare certainty with precaution, public good with innovation, and evidence with political pressure.",
         "Key academic term - Precautionary principle: The idea that policymakers may act to reduce harm even before all evidence is complete",
         "TOK / essay prompt - When evidence is incomplete, how should societies decide whether caution is wiser than freedom to experiment?",
+        "Researchable question Which AI harms can already be measured directly, and which proposed harms still rely mainly on projection?",
         "Notebook capture Note one claim supporting faster regulation and one evidence limit that weakens a simplistic policy response.",
       ].join("\n"),
       sourceReferences: [],
@@ -200,10 +212,14 @@ describe("buildOutboundDailyBriefPacket", () => {
     expect(packet.summaryTitle).toBe("3-sentence abstract");
     expect(packet.readingTitle).toBe("Academic frame");
     expect(packet.readingSections).toEqual([
+      expect.objectContaining({ title: "Learning objective" }),
       expect.objectContaining({ title: "Core issue" }),
       expect.objectContaining({ title: "Claim" }),
       expect.objectContaining({ title: "Counterpoint or evidence limit" }),
+      expect.objectContaining({ title: "Method focus" }),
+      expect.objectContaining({ title: "TOK link" }),
       expect.objectContaining({ title: "Why this matters for IB thinking" }),
+      expect.objectContaining({ title: "Researchable question" }),
     ]);
     expect(packet.vocabularyTitle).toBe("Key academic term");
     expect(packet.vocabularyItems).toEqual([

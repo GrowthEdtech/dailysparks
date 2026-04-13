@@ -58,12 +58,15 @@ describe("outbound daily brief typst", () => {
       "Evidence",
     ],
     briefMarkdown: [
+      "Learning objective Students should explain how different civic priorities change what counts as a fair cleanup plan.",
       "What’s happening? Students are comparing several coastal cleanup plans from different cities. Each plan uses different volunteers, budgets, and rules about which areas should be cleaned first.",
       "Why does this matter? Each plan solves one problem well, but creates trade-offs in cost, speed, and fairness. A plan that looks efficient might leave some neighbourhoods waiting longer for help.",
-      "Picture it Imagine three teams trying to clean the same beach, each with different tools and budgets. One team finishes quickly, another costs less, and another listens more carefully to local residents.",
+      "Global context Coastal cleanup decisions affect communities, public budgets, local trust, and environmental recovery. They show how local action connects to larger questions about responsibility and shared systems.",
+      "Compare or connect One city may value speed, while another values resident voice and long-term resilience. Comparing those choices helps students see how different priorities shape outcomes.",
+      "Key / related concepts Key concept: Change. Related concepts: Systems and Perspective.",
       "Words to know - Trade-off: Giving up one advantage to gain another - Evidence: Information used to support a decision - Civic planning: Organising how a community solves shared problems",
-      "Talk about it at home - Which plan would feel fairest? - What information would help you decide? - When is a fast solution not the best solution?",
-      "Big idea Good decisions often depend on comparing trade-offs, not just choosing the first idea that sounds appealing. Leaders often need to explain why one benefit matters more than another.",
+      "Inquiry question - Which plan would feel fairest, and what evidence would help you defend that choice?",
+      "Notebook prompt Write two sentences comparing a fast cleanup plan with a community-led cleanup plan, and explain which trade-off matters more to you.",
     ].join("\n"),
     sourceReferences: [],
   };
@@ -133,6 +136,8 @@ describe("outbound daily brief typst", () => {
     expect(source).toContain('columns: (1.15fr, 0.85fr)');
     expect(source).toContain('#text(size: 20pt, weight: "bold", fill: ink)');
     expect(source).toContain('#section-card("Words to know"');
+    expect(source).toContain('Learning objective');
+    expect(source).toContain('Key / related concepts');
     expect(await countPdfPages(result.pdf)).toBeLessThanOrEqual(2);
     expect(result.pageCount).toBeLessThanOrEqual(2);
   });

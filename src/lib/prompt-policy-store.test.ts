@@ -76,10 +76,16 @@ describe("prompt policy store", () => {
     expect(defaultPolicy.pypInstructions).toMatch(/short sentences/i);
     expect(defaultPolicy.pypInstructions).toMatch(/reassuring/i);
     expect(defaultPolicy.pypInstructions).toMatch(/trusted adults|helpers/i);
+    expect(defaultPolicy.mypInstructions).toMatch(/Learning objective/i);
     expect(defaultPolicy.mypInstructions).toMatch(/global context/i);
+    expect(defaultPolicy.mypInstructions).toMatch(/Key \/ related concepts/i);
     expect(defaultPolicy.mypInstructions).toMatch(/inquiry question/i);
     expect(defaultPolicy.dpInstructions).toMatch(/3-sentence abstract/i);
+    expect(defaultPolicy.dpInstructions).toMatch(/Learning objective/i);
+    expect(defaultPolicy.dpInstructions).toMatch(/Method focus/i);
+    expect(defaultPolicy.dpInstructions).toMatch(/TOK link/i);
     expect(defaultPolicy.dpInstructions).toMatch(/TOK \/ essay prompt/i);
+    expect(defaultPolicy.dpInstructions).toMatch(/Researchable question/i);
     expect(defaultPolicy.dpInstructions).toMatch(/Notebook capture/i);
   });
 

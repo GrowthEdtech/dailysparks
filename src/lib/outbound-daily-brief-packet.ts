@@ -84,16 +84,21 @@ export function formatOutboundEditorialCohortEdition(
 }
 
 type StructuredSectionKey =
+  | "learningObjective"
   | "whatsHappening"
   | "whyDoesThisMatter"
   | "pictureIt"
   | "globalContext"
   | "compareOrConnect"
+  | "keyRelatedConcepts"
   | "threeSentenceAbstract"
   | "coreIssue"
   | "claim"
   | "counterpointOrEvidenceLimit"
+  | "methodFocus"
+  | "tokLink"
   | "whyThisMattersForIbThinking"
+  | "researchableQuestion"
   | "keyAcademicTerm"
   | "wordsToKnow"
   | "talkAboutItAtHome"
@@ -108,6 +113,11 @@ const STRUCTURED_SECTION_DEFINITIONS: {
   title: string;
   pattern: RegExp;
 }[] = [
+  {
+    key: "learningObjective",
+    title: "Learning objective",
+    pattern: /learning objective(?:\?|:)?/i,
+  },
   {
     key: "whatsHappening",
     title: "What's happening?",
@@ -134,6 +144,11 @@ const STRUCTURED_SECTION_DEFINITIONS: {
     pattern: /compare or connect(?:\?|:)?/i,
   },
   {
+    key: "keyRelatedConcepts",
+    title: "Key / related concepts",
+    pattern: /key\s*\/\s*related concepts(?:\?|:)?/i,
+  },
+  {
     key: "threeSentenceAbstract",
     title: "3-sentence abstract",
     pattern: /3-sentence abstract(?:\?|:)?/i,
@@ -154,9 +169,24 @@ const STRUCTURED_SECTION_DEFINITIONS: {
     pattern: /counterpoint or evidence limit(?:\?|:)?/i,
   },
   {
+    key: "methodFocus",
+    title: "Method focus",
+    pattern: /method focus(?:\?|:)?/i,
+  },
+  {
+    key: "tokLink",
+    title: "TOK link",
+    pattern: /tok link(?:\?|:)?/i,
+  },
+  {
     key: "whyThisMattersForIbThinking",
     title: "Why this matters for IB thinking",
     pattern: /why this matters for ib thinking(?:\?|:)?/i,
+  },
+  {
+    key: "researchableQuestion",
+    title: "Researchable question",
+    pattern: /researchable question(?:\?|:)?/i,
   },
   {
     key: "keyAcademicTerm",
@@ -394,17 +424,23 @@ export function buildOutboundDailyBriefPacket(
   const primarySectionKeys =
     programme === "MYP"
       ? [
+          "learningObjective",
           "whatsHappening",
           "whyDoesThisMatter",
           "globalContext",
           "compareOrConnect",
+          "keyRelatedConcepts",
         ]
       : programme === "DP"
         ? [
+            "learningObjective",
             "coreIssue",
             "claim",
             "counterpointOrEvidenceLimit",
+            "methodFocus",
+            "tokLink",
             "whyThisMattersForIbThinking",
+            "researchableQuestion",
           ]
         : ["whatsHappening", "whyDoesThisMatter", "pictureIt"];
   const readingSections = (
