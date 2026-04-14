@@ -181,6 +181,9 @@ describe("informational pages", () => {
     expect(markup).toContain("Review the weekly recap");
     expect(markup).toContain("How are MYP and DP briefs different?");
     expect(markup).toContain("What does a daily brief include?");
+    expect(markup).toContain('data-home-section="hero"');
+    expect(markup).toContain('data-home-section="pricing"');
+    expect(markup).toContain('data-home-section="faq"');
     expect(markup).not.toContain("TED-Talk Structure");
     expect(markup).not.toContain("Every 09:00 UTC");
     expect(markup).not.toContain("P5 to MYP");

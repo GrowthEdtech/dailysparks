@@ -12,6 +12,7 @@ import Link from "next/link";
 
 import TrackedLink from "../components/tracked-link";
 import HomePricingSection from "./home-pricing-section";
+import HomeConversionTracker from "./home-conversion-tracker";
 import HomeReadingWorkspaceIllustration from "./home-reading-workspace-illustration";
 import LandingIntegrationsSection from "./landing-integrations-section";
 import { getPublicSeoGuides } from "./public-seo-pages-content";
@@ -66,6 +67,7 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-[#f8fafc] selection:bg-[#fbbf24] selection:text-[#0f172a]">
+      <HomeConversionTracker />
       {/* 導航欄 Navbar */}
       <nav className="fixed top-0 w-full z-50 bg-[#0f172a]/80 backdrop-blur-md border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
@@ -90,7 +92,10 @@ export default async function Home() {
       </nav>
 
       {/* --- Section 1: Hero --- */}
-      <section className="pt-28 pb-20 px-6 max-w-5xl mx-auto flex flex-col items-center text-center md:pt-32">
+      <section
+        data-home-section="hero"
+        className="pt-28 pb-20 px-6 max-w-5xl mx-auto flex flex-col items-center text-center md:pt-32"
+      >
         <div className="inline-flex items-center rounded-full bg-[#fbbf24]/10 border border-[#fbbf24]/30 px-4 py-1.5 mb-8 animate-fade-in">
           <span className="flex h-2 w-2 rounded-full bg-[#fbbf24] mr-2"></span>
           <span className="text-[#fbbf24] text-xs font-bold uppercase tracking-widest">
@@ -179,7 +184,10 @@ export default async function Home() {
       </section>
 
       {/* --- Section 2: Problem (Pain Points) --- */}
-      <section className="bg-white text-[#0f172a] py-24 px-6 overflow-hidden relative">
+      <section
+        data-home-section="problem"
+        className="bg-white text-[#0f172a] py-24 px-6 overflow-hidden relative"
+      >
         <div className="max-w-4xl mx-auto text-center mb-16 px-4">
           <h2 className="text-3xl md:text-5xl font-extrabold mb-4 px-2">
             Strong reading matters. <span className="text-red-500">Family routines break first.</span>
@@ -219,7 +227,10 @@ export default async function Home() {
       </section>
 
       {/* --- Section 3: The Solution --- */}
-      <section className="py-24 px-6 relative bg-gradient-to-b from-[#0f172a] to-[#1e293b]">
+      <section
+        data-home-section="solution"
+        className="py-24 px-6 relative bg-gradient-to-b from-[#0f172a] to-[#1e293b]"
+      >
         <div className="max-w-4xl mx-auto text-center mb-16">
           <span className="text-[#fbbf24] font-bold text-sm tracking-widest uppercase">The Solution</span>
           <h2 className="text-3xl md:text-5xl font-extrabold mt-4 mb-4 text-white">
@@ -274,7 +285,7 @@ export default async function Home() {
       </section>
 
       {/* --- Section 4: How it Works --- */}
-      <section className="bg-[#111827] px-6 py-20">
+      <section data-home-section="workflow" className="bg-[#111827] px-6 py-20">
         <div className="mx-auto max-w-7xl space-y-10">
           <div className="max-w-3xl space-y-4">
             <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#fbbf24]">
@@ -385,7 +396,10 @@ export default async function Home() {
       </section>
 
       {/* --- Section 5: Workspace Preview --- */}
-      <section className="bg-white text-[#0f172a] py-24 px-6">
+      <section
+        data-home-section="workspace-preview"
+        className="bg-white text-[#0f172a] py-24 px-6"
+      >
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 md:gap-16">
           <div className="flex-1 space-y-8">
             <div className="space-y-4">
@@ -458,12 +472,19 @@ export default async function Home() {
         </div>
       </section>
 
-      <LandingIntegrationsSection />
+      <div data-home-section="integrations">
+        <LandingIntegrationsSection />
+      </div>
 
-      <HomePricingSection initialPricingMarket={DEFAULT_PRICING_MARKET} />
+      <div data-home-section="pricing">
+        <HomePricingSection initialPricingMarket={DEFAULT_PRICING_MARKET} />
+      </div>
 
       {/* --- Section 6: FAQ --- */}
-      <section className="bg-white text-[#0f172a] py-24 px-6 border-t border-slate-100">
+      <section
+        data-home-section="faq"
+        className="bg-white text-[#0f172a] py-24 px-6 border-t border-slate-100"
+      >
         <div className="max-w-3xl mx-auto space-y-12">
            <h2 className="text-4xl font-extrabold text-center">Frequently Asked.</h2>
            
