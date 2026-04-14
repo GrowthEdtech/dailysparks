@@ -620,6 +620,43 @@ The script creates or reuses a webhook for:
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
 
+### Live family billing smoke
+
+Before asking a family to complete live checkout, generate a real hosted checkout session and billing portal URL for one known family:
+
+```bash
+GOOGLE_CLOUD_PROJECT=gen-lang-client-0586185740 \
+DAILY_SPARKS_STORE_BACKEND=firestore \
+FIREBASE_PROJECT_ID=gen-lang-client-0586185740 \
+STRIPE_SECRET_KEY="$(gcloud secrets versions access latest --secret=daily-sparks-stripe-live-secret-key --project=gen-lang-client-0586185740)" \
+./node_modules/.bin/tsx ./scripts/live-billing-family-smoke.ts --email ckx.leung@gmail.com --plan yearly
+```
+
+This does not charge the family by itself. It validates that:
+
+- the real profile can load from Firestore
+- a live checkout session can be created
+- a live billing portal URL can be created
+
+### Stripe live secret rotation
+
+When a live key has been exposed or needs scheduled rotation, use the managed script:
+
+```bash
+GOOGLE_CLOUD_PROJECT=gen-lang-client-0586185740 \
+NEW_STRIPE_SECRET_KEY="sk_live_..." \
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_live_..." \
+DEPLOY_LIVE_BILLING=1 \
+./scripts/rotate-stripe-live-secret.sh
+```
+
+The rotation flow:
+
+- adds a new Secret Manager version for `daily-sparks-stripe-live-secret-key`
+- re-syncs live prices
+- refreshes the live webhook signing secret
+- optionally redeploys Cloud Run with the same live secret names
+
 ### Stripe invoice backfill
 
 If older subscriptions were created before webhook invoice sync was enabled, run this one-time backfill to pull the latest Stripe invoice into each parent profile:

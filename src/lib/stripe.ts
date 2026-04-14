@@ -44,6 +44,22 @@ function normalizeNullableString(value: string | null | undefined) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function isStripeCustomerMissingError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const candidate = error as {
+    code?: string;
+    param?: string;
+  };
+
+  return (
+    candidate.code === "resource_missing" &&
+    (candidate.param === "customer" || candidate.param === "id")
+  );
+}
+
 function getStripeSecretKey() {
   return process.env.STRIPE_SECRET_KEY?.trim() ?? "";
 }
@@ -443,11 +459,23 @@ async function handleSubscriptionLifecycleEvent(
 }
 
 async function ensureStripeCustomer(profile: ParentProfile) {
-  if (profile.parent.stripeCustomerId) {
-    return profile.parent.stripeCustomerId;
+  const stripe = getStripeServerClient();
+  const persistedCustomerId = normalizeNullableString(profile.parent.stripeCustomerId);
+
+  if (persistedCustomerId) {
+    try {
+      const customer = await stripe.customers.retrieve(persistedCustomerId);
+
+      if (!("deleted" in customer && customer.deleted)) {
+        return customer.id;
+      }
+    } catch (error) {
+      if (!isStripeCustomerMissingError(error)) {
+        throw error;
+      }
+    }
   }
 
-  const stripe = getStripeServerClient();
   const customer = await stripe.customers.create({
     email: profile.parent.email,
     name: profile.parent.fullName,
