@@ -90,7 +90,7 @@ export default async function Home() {
       </nav>
 
       {/* --- Section 1: Hero --- */}
-      <section className="pt-32 pb-20 px-6 max-w-5xl mx-auto flex flex-col items-center text-center">
+      <section className="pt-28 pb-20 px-6 max-w-5xl mx-auto flex flex-col items-center text-center md:pt-32">
         <div className="inline-flex items-center rounded-full bg-[#fbbf24]/10 border border-[#fbbf24]/30 px-4 py-1.5 mb-8 animate-fade-in">
           <span className="flex h-2 w-2 rounded-full bg-[#fbbf24] mr-2"></span>
           <span className="text-[#fbbf24] text-xs font-bold uppercase tracking-widest">
@@ -98,14 +98,14 @@ export default async function Home() {
           </span>
         </div>
         
-        <h1 className="text-5xl md:text-7xl font-extrabold leading-[1.1] mb-6 drop-shadow-sm tracking-tight text-white px-2">
+        <h1 className="px-2 text-4xl font-extrabold leading-[1.08] mb-6 drop-shadow-sm tracking-tight text-white sm:text-5xl md:text-7xl">
           Turn daily reading into a <br className="hidden md:block" />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fbbf24] to-[#f59e0b]">
             calm IB learning routine.
           </span>
         </h1>
         
-        <p className="text-[#94a3b8] text-lg md:text-xl max-w-3xl leading-relaxed mb-10">
+        <p className="max-w-3xl text-base leading-8 text-[#94a3b8] mb-10 sm:text-lg md:text-xl">
           Daily Sparks sends programme-aware MYP and DP reading briefs,
           delivers them into Goodnotes, captures notebook thinking, and keeps a
           searchable family archive in Notion.
@@ -171,7 +171,7 @@ export default async function Home() {
               </div>
             ))}
           </div>
-          <p className="max-w-xl text-center text-xs font-medium uppercase tracking-[0.22em] text-[#64748b]">
+          <p className="max-w-[18rem] text-center text-[11px] font-semibold uppercase leading-5 tracking-[0.18em] text-[#8ea1bd] sm:max-w-xl sm:text-xs sm:tracking-[0.22em]">
             TRUSTED IN CALM IB HOME ROUTINES WITH GOODNOTES DELIVERY AND
             SEARCHABLE NOTION ARCHIVES
           </p>
@@ -332,7 +332,7 @@ export default async function Home() {
             ))}
           </div>
 
-          <div className="flex items-center justify-between gap-6 rounded-[32px] border border-white/10 bg-white/5 p-6 md:p-8">
+          <div className="flex flex-col items-start gap-6 rounded-[32px] border border-white/10 bg-white/5 p-6 md:flex-row md:items-center md:justify-between md:p-8">
             <div className="max-w-3xl">
               <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#fbbf24]">
                 Explore The Reading Model
@@ -351,7 +351,7 @@ export default async function Home() {
                 location: "workflow-secondary",
                 destination: "starter-kit",
               }}
-              className="inline-flex shrink-0 items-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/15"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/15 md:w-auto md:shrink-0"
             >
               See How The Workflow Fits
             </TrackedLink>
@@ -386,13 +386,13 @@ export default async function Home() {
 
       {/* --- Section 5: Workspace Preview --- */}
       <section className="bg-white text-[#0f172a] py-24 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 md:gap-16">
           <div className="flex-1 space-y-8">
             <div className="space-y-4">
               <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#f59e0b]">
                 Workspace Preview
               </p>
-              <h2 className="text-4xl font-extrabold leading-tight md:text-5xl">
+              <h2 className="text-4xl font-extrabold leading-[1.08] md:text-5xl">
                 See the reading workflow in one view.
               </h2>
               <p className="max-w-2xl text-base leading-8 text-slate-500 md:text-lg">

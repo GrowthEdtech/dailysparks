@@ -167,6 +167,7 @@ describe("informational pages", () => {
     expect(markup).toContain(
       "TRUSTED IN CALM IB HOME ROUTINES WITH GOODNOTES DELIVERY AND SEARCHABLE NOTION ARCHIVES",
     );
+    expect(markup).toContain("text-[#8ea1bd]");
     expect(markup).toContain(
       "Reading happens, but it does not accumulate",
     );
@@ -221,6 +222,8 @@ describe("informational pages", () => {
     expect(markup).toContain("Start The Reading Routine");
     expect(markup).toContain("group inline-flex items-center justify-center gap-3");
     expect(markup).toContain("text-[#f8fafc]");
+    expect(markup).toContain("flex flex-col items-start gap-6");
+    expect(markup).toContain("inline-flex w-full items-center justify-center gap-2");
 
     for (const href of [
       "/ib-parent-starter-kit",
