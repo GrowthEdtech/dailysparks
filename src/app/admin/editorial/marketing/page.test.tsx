@@ -200,8 +200,13 @@ describe("MarketingAdminPage", () => {
     expect(markup).toContain("Acquisition sources");
     expect(markup).toContain("Paid activated");
     expect(markup).toContain("Recent trial families");
+    expect(markup).toContain("Homepage baseline watch");
+    expect(markup).toContain("landing_page_viewed");
+    expect(markup).toContain("landing_section_viewed");
+    expect(markup).toContain("landing_scroll_depth_reached");
     expect(markup).toContain("Starter kit");
     expect(markup).toContain("Internal/test accounts are excluded from this baseline");
+    expect(markup).toContain("Homepage baseline events are now live in GA4");
     expect(markup).toContain("lead@families.hk");
     expect(markup).toContain("friend@families.hk");
   });

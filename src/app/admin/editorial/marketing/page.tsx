@@ -237,6 +237,54 @@ export default async function MarketingAdminPage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
         <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+            Homepage baseline watch
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                label: "landing_page_viewed",
+                detail:
+                  "Use as the top-of-funnel homepage session baseline before comparing CTA and depth rates.",
+              },
+              {
+                label: "landing_section_viewed",
+                detail:
+                  "Check whether families are actually reaching Hero, workspace preview, integrations, pricing, and FAQ.",
+              },
+              {
+                label: "landing_scroll_depth_reached",
+                detail:
+                  "Read 25 / 50 / 75 / 90% milestones first before changing section order or adding more copy.",
+              },
+              {
+                label: "landing_cta_clicked + pricing_cta_clicked",
+                detail:
+                  "Compare hero, workflow, footer, and pricing clicks against section reach to locate the real drop-off.",
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-[22px] border border-slate-200 bg-white px-4 py-4"
+              >
+                <p className="text-sm font-semibold text-[#0f172a]">
+                  {item.label}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  {item.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 rounded-[20px] border border-dashed border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-slate-500">
+            Decision rule: if pricing reach is low, fix homepage flow first; if
+            pricing reach is healthy but pricing clicks are weak, polish pricing
+            next; if FAQ reach is high before CTA clicks recover, refine FAQ
+            second.
+          </p>
+        </section>
+
+        <section className="rounded-[28px] border border-slate-200 bg-slate-50/70 px-5 py-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
             Acquisition sources
           </p>
           <div className="mt-4 space-y-3">
@@ -371,9 +419,9 @@ export default async function MarketingAdminPage() {
               relying on one email touch.
             </li>
             <li>
-              - GA4 event plumbing is code-ready, but production still needs
-              the real <code>NEXT_PUBLIC_GA_MEASUREMENT_ID</code> value to start
-              collecting live analytics.
+              - Homepage baseline events are now live in GA4, so the next page
+              decision should come from section reach, scroll depth, and CTA
+              click data instead of another blind copy pass.
             </li>
           </ul>
         </section>
