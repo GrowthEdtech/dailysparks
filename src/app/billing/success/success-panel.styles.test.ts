@@ -33,6 +33,6 @@ describe("success panel CTA styles", () => {
 
   test("uses darker copy for the secondary CTA", () => {
     expect(SECONDARY_SUCCESS_CTA_CLASSNAME).toContain("bg-slate-50");
-    expect(SECONDARY_SUCCESS_CTA_CLASSNAME).toContain("text-[#0f172a]");
+    expect(SECONDARY_SUCCESS_CTA_CLASSNAME).toContain("text-slate-900");
   });
 });
