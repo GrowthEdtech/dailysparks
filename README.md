@@ -565,8 +565,8 @@ If these are omitted, the reminder flow falls back to `GOODNOTES_SMTP_URL`,
 ### Required environment variables
 
 ```env
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_... # use pk_test_... for sandbox
+STRIPE_SECRET_KEY=sk_live_... # use sk_test_... for sandbox
 ```
 
 The billing page automatically shows sandbox state when the publishable key starts with `pk_test_`.
@@ -591,12 +591,13 @@ The billing page automatically shows sandbox state when the publishable key star
 The deploy script can carry Stripe billing config through to Cloud Run when these environment variables are present locally:
 
 ```env
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_SECRET_KEY_SECRET=daily-sparks-stripe-test-secret-key
-STRIPE_WEBHOOK_SECRET_SECRET=daily-sparks-stripe-test-webhook-secret
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_SECRET_KEY_SECRET=daily-sparks-stripe-live-secret-key
+STRIPE_WEBHOOK_SECRET_SECRET=daily-sparks-stripe-live-webhook-secret
 ```
 
 `STRIPE_SECRET_KEY_SECRET` and `STRIPE_WEBHOOK_SECRET_SECRET` should point to Secret Manager secret names, not raw keys.
+For sandbox deploys, use the corresponding `...-test-...` secret names instead.
 
 ### Stripe webhook setup
 
@@ -604,8 +605,9 @@ Create the Stripe webhook endpoint and store its signing secret in Secret Manage
 
 ```bash
 chmod +x scripts/configure-stripe-webhook.sh
-STRIPE_API_KEY="$(gcloud secrets versions access latest --secret=daily-sparks-stripe-test-secret-key --project=gen-lang-client-0586185740)" \
-STRIPE_WEBHOOK_SECRET_SECRET=daily-sparks-stripe-test-webhook-secret \
+STRIPE_MODE=live \
+STRIPE_API_KEY="$(gcloud secrets versions access latest --secret=daily-sparks-stripe-live-secret-key --project=gen-lang-client-0586185740)" \
+STRIPE_WEBHOOK_SECRET_SECRET=daily-sparks-stripe-live-webhook-secret \
 ./scripts/configure-stripe-webhook.sh
 ```
 
@@ -623,7 +625,7 @@ The script creates or reuses a webhook for:
 If older subscriptions were created before webhook invoice sync was enabled, run this one-time backfill to pull the latest Stripe invoice into each parent profile:
 
 ```bash
-STRIPE_API_KEY="$(gcloud secrets versions access latest --secret=daily-sparks-stripe-test-secret-key --project=gen-lang-client-0586185740)" \
+STRIPE_API_KEY="$(gcloud secrets versions access latest --secret=daily-sparks-stripe-live-secret-key --project=gen-lang-client-0586185740)" \
 GOOGLE_CLOUD_PROJECT=gen-lang-client-0586185740 \
 npm run backfill:stripe-invoices
 ```

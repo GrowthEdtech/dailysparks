@@ -53,7 +53,7 @@ export async function POST(request: Request) {
 
   if (!isStripeConfigured()) {
     return Response.json(
-      { message: "Stripe sandbox checkout is not configured yet." },
+      { message: "Stripe checkout is not configured yet." },
       { status: 503 },
     );
   }

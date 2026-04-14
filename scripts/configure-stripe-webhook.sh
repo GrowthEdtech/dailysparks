@@ -3,8 +3,15 @@ set -euo pipefail
 
 PROJECT_ID="${GOOGLE_CLOUD_PROJECT:-gen-lang-client-0586185740}"
 WEBHOOK_URL="${WEBHOOK_URL:-https://dailysparks.geledtech.com/api/stripe/webhook}"
-STRIPE_WEBHOOK_SECRET_SECRET="${STRIPE_WEBHOOK_SECRET_SECRET:-daily-sparks-stripe-test-webhook-secret}"
+STRIPE_MODE="${STRIPE_MODE:-test}"
+DEFAULT_WEBHOOK_SECRET_NAME="daily-sparks-stripe-${STRIPE_MODE}-webhook-secret"
+STRIPE_WEBHOOK_SECRET_SECRET="${STRIPE_WEBHOOK_SECRET_SECRET:-${DEFAULT_WEBHOOK_SECRET_NAME}}"
 STRIPE_API_KEY="${STRIPE_API_KEY:-}"
+
+if [[ "${STRIPE_MODE}" != "test" ]] && [[ "${STRIPE_MODE}" != "live" ]]; then
+  echo "STRIPE_MODE must be either test or live." >&2
+  exit 1
+fi
 
 if [[ -z "${STRIPE_API_KEY}" ]]; then
   echo "STRIPE_API_KEY is required." >&2
@@ -62,3 +69,4 @@ fi
 
 echo "Created Stripe webhook endpoint: ${WEBHOOK_ID}"
 echo "Stored signing secret in Secret Manager: ${STRIPE_WEBHOOK_SECRET_SECRET}"
+echo "Stripe mode: ${STRIPE_MODE}"
