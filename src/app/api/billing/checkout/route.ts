@@ -71,6 +71,7 @@ export async function POST(request: Request) {
       pricingMarket: getPricingMarketFromRequest(request),
       subscriptionPlan,
       trialDays: 7,
+      cancelUrl: "/pricing?canceled=1",
     });
 
     await updateParentSubscription(sessionEmail, {

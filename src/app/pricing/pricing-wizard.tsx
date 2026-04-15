@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import Image from "next/image";
 
@@ -17,6 +17,13 @@ export default function PricingWizard({
 }: PricingWizardProps) {
   const [isRedirecting, setIsRedirecting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Track the arrival at the pricing page
+  useEffect(() => {
+    trackMarketingEvent("pricing_viewed", {
+      location: "conversion_funnel",
+    });
+  }, []);
   
   const plans = getBillingPlanDefinitions(pricingMarket);
 

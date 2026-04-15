@@ -24,6 +24,7 @@ type CheckoutSessionInput = {
   profile: ParentProfile;
   subscriptionPlan: CheckoutPlan;
   trialDays?: number;
+  cancelUrl?: string;
 };
 
 type FinalizeCheckoutInput = {
@@ -513,7 +514,7 @@ export async function createCheckoutSessionForParent(
     customer: customerId,
     client_reference_id: input.profile.parent.id,
     success_url: `${input.origin}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${input.origin}/billing?canceled=1`,
+    cancel_url: input.cancelUrl ? `${input.origin}${input.cancelUrl}` : `${input.origin}/billing?canceled=1`,
     allow_promotion_codes: true,
     metadata: {
       parentEmail: input.profile.parent.email,

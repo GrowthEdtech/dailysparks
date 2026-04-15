@@ -32,6 +32,10 @@ export default function OnboardingWizard({ initialProfile, stripeSessionId }: On
 
   // Finalize Stripe checkout if redirected from Stripe with a session_id
   useEffect(() => {
+    trackMarketingEvent("onboarding_viewed", {
+      location: "conversion_funnel",
+    });
+
     if (!stripeSessionId) return;
 
     async function finalizeCheckout() {
@@ -139,6 +143,11 @@ export default function OnboardingWizard({ initialProfile, stripeSessionId }: On
     } finally {
       setIsWorking(false);
     }
+  }
+
+  function handleBack() {
+    setStep(1);
+    setError(null);
   }
 
   return (
@@ -301,19 +310,30 @@ export default function OnboardingWizard({ initialProfile, stripeSessionId }: On
                   </div>
                </div>
 
-               <button
-                  type="button"
-                  onClick={handleSaveGoodnotes}
-                  disabled={isWorking}
-                  className="w-full group flex items-center justify-center gap-3 rounded-[24px] bg-[#00b5d6] py-5 px-8 font-black text-lg text-white shadow-xl shadow-[#00b5d6]/20 hover:bg-[#009aba] transition-all active:scale-[0.98]"
-                >
-                  {isWorking ? <Loader2 className="h-6 w-6 animate-spin" /> : (
-                    <>
-                      <span>Complete & Enter Dashboard</span>
-                      <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                    </>
-                  )}
-                </button>
+                <div className="flex flex-col gap-4">
+                  <button
+                    type="button"
+                    onClick={handleSaveGoodnotes}
+                    disabled={isWorking}
+                    className="w-full group flex items-center justify-center gap-3 rounded-[24px] bg-[#00b5d6] py-5 px-8 font-black text-lg text-white shadow-xl shadow-[#00b5d6]/20 hover:bg-[#009aba] transition-all active:scale-[0.98]"
+                  >
+                    {isWorking ? <Loader2 className="h-6 w-6 animate-spin" /> : (
+                      <>
+                        <span>Complete & Enter Dashboard</span>
+                        <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    disabled={isWorking}
+                    className="w-full py-4 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest"
+                  >
+                    Back to profile
+                  </button>
+                </div>
                 
                 <p className="text-center text-xs font-bold text-slate-400 uppercase tracking-widest leading-loose">
                    By completing this, you start your habit routine<br/>immediately in your Goodnotes library.
