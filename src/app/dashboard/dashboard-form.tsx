@@ -8,6 +8,7 @@ import { BookOpen, Clock3, CreditCard, Save, Send } from "lucide-react";
 import AccountMenu from "../../components/account-menu";
 import GoodnotesDeliveryCard from "../../components/goodnotes-delivery-card";
 import NotionSyncCard from "../../components/notion-sync-card";
+import TrialStatusBanner from "../../components/trial-status-banner";
 import { getBillingSummary } from "../../lib/billing";
 import type { DashboardNotebookData } from "../../lib/dashboard-notebook-data-schema";
 import type { DashboardReferralData } from "../../lib/dashboard-referral-data-schema";
@@ -1273,6 +1274,7 @@ export default function DashboardForm({
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
+      <TrialStatusBanner parent={initialProfile.parent} />
       <header className="w-full rounded-b-[32px] bg-[#0f172a] px-6 py-6 text-white shadow-md">
         <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-4 sm:items-center sm:gap-6">
           <div>
