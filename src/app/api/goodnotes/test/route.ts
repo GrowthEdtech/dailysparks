@@ -1,6 +1,6 @@
-import {
   getProfileByEmail,
   updateStudentGoodnotesDelivery,
+  updateParentGrowthMilestones,
 } from "../../../../lib/mvp-store";
 import {
   isGoodnotesDeliveryConfigured,
@@ -95,6 +95,12 @@ export async function POST(request: Request) {
   if (!profile) {
     return unauthorized("Your session has expired. Please log in again.");
   }
+
+  // Update activation milestones
+  await updateParentGrowthMilestones(sessionEmail, {
+    firstBriefDeliveredAt: profile.parent.firstBriefDeliveredAt ?? timestamp,
+    firstDispatchableChannelAt: profile.parent.firstDispatchableChannelAt ?? timestamp,
+  });
 
   return Response.json({
     ...profile,

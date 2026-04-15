@@ -4,10 +4,10 @@ import type { ParentProfile } from "./mvp-types";
 
 export const ACTIVATION_FUNNEL_STAGE_KEYS = [
   "signed_in",
+  "paid_activated",
   "child_profile_completed",
   "dispatchable_channel_ready",
   "first_brief_delivered",
-  "paid_activated",
 ] as const;
 
 export type ActivationFunnelStageKey =
@@ -57,9 +57,16 @@ function buildStep(input: {
 }
 
 function getCurrentStage(steps: Record<ActivationFunnelStageKey, ActivationFunnelStep>) {
-  if (!steps.child_profile_completed.completed) {
+  if (!steps.paid_activated.completed) {
     return {
       currentStage: "signed_in" as const,
+      nextStage: "paid_activated" as const,
+    };
+  }
+
+  if (!steps.child_profile_completed.completed) {
+    return {
+      currentStage: "paid_activated" as const,
       nextStage: "child_profile_completed" as const,
     };
   }
@@ -78,15 +85,8 @@ function getCurrentStage(steps: Record<ActivationFunnelStageKey, ActivationFunne
     };
   }
 
-  if (!steps.paid_activated.completed) {
-    return {
-      currentStage: "first_brief_delivered" as const,
-      nextStage: "paid_activated" as const,
-    };
-  }
-
   return {
-    currentStage: "paid_activated" as const,
+    currentStage: "first_brief_delivered" as const,
     nextStage: null,
   };
 }

@@ -143,5 +143,14 @@ export async function PUT(request: Request) {
     return unauthorized("Your session has expired. Please log in again.");
   }
 
+  // Update milestone if first time
+  if (!profile.parent.childProfileCompletedAt) {
+    await import("../../../lib/mvp-store").then(m => 
+      m.updateParentGrowthMilestones(sessionEmail, {
+        childProfileCompletedAt: new Date().toISOString(),
+      })
+    );
+  }
+
   return Response.json(profile);
 }

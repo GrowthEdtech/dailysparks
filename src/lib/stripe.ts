@@ -589,6 +589,10 @@ export async function finalizeCheckoutSessionForParent(
     typeof checkoutSession.subscription === "string"
       ? checkoutSession.subscription
       : checkoutSession.subscription?.id ?? null;
+  const subscriptionStatus =
+    typeof checkoutSession.subscription !== "string" && checkoutSession.subscription?.status
+      ? getSubscriptionStatusFromStripeStatus(checkoutSession.subscription.status) ?? "active"
+      : "active";
   const subscriptionActivatedAt = new Date(checkoutSession.created * 1000).toISOString();
   const renewalTimestamp =
     typeof checkoutSession.subscription !== "string"
@@ -617,7 +621,7 @@ export async function finalizeCheckoutSessionForParent(
 
   const profile = await updateParentSubscription(expectedEmail, {
     subscriptionPlan,
-    subscriptionStatus: "active",
+    subscriptionStatus,
     stripeCustomerId,
     stripeSubscriptionId,
     subscriptionActivatedAt,
