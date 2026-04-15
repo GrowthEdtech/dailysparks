@@ -116,7 +116,7 @@ export default async function Home() {
           searchable family archive in Notion.
         </p>
         
-        <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
+        <div className="flex flex-col items-center gap-3 w-full justify-center">
           <TrackedLink
             href="/login"
             marketingEvent="landing_cta_clicked"
@@ -124,21 +124,13 @@ export default async function Home() {
               location: "hero-primary",
               destination: "trial",
             }}
-            className="bg-[#fbbf24] text-[#0f172a] px-10 py-5 rounded-2xl font-bold text-lg hover:scale-105 transition-all shadow-xl shadow-[#fbbf24]/20 flex items-center justify-center gap-2 group"
+            className="bg-[#fbbf24] text-[#0f172a] px-12 py-5 rounded-2xl font-extrabold text-xl hover:scale-105 transition-all shadow-xl shadow-[#fbbf24]/20 flex items-center justify-center gap-3 group w-full sm:w-auto"
           >
-            Start 7-Day Free Trial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            Start 7-Day Free Trial <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
           </TrackedLink>
-          <TrackedLink
-            href="/ib-parent-starter-kit"
-            marketingEvent="landing_cta_clicked"
-            marketingProperties={{
-              location: "hero-secondary",
-              destination: "starter-kit",
-            }}
-            className="bg-white/5 border border-white/10 text-white px-10 py-5 rounded-2xl font-bold text-lg hover:bg-white/10 transition-all flex items-center justify-center gap-2"
-          >
-            Get the Parent Starter Kit
-          </TrackedLink>
+          <p className="text-[#64748b] text-sm font-medium mt-1">
+            No credit card required to start • Cancel anytime
+          </p>
         </div>
 
         <div className="mt-10 grid w-full max-w-4xl gap-3 rounded-[30px] border border-white/10 bg-white/5 p-4 text-left shadow-[0_28px_90px_-56px_rgba(15,23,42,0.6)] md:grid-cols-5">
@@ -192,9 +184,13 @@ export default async function Home() {
           <h2 className="text-3xl md:text-5xl font-extrabold mb-4 px-2">
             Strong reading matters. <span className="text-red-500">Family routines break first.</span>
           </h2>
-          <p className="text-gray-500 text-lg">
+          <p className="text-gray-500 text-lg mb-6">
             Daily Sparks is built for the friction that appears after good intentions.
           </p>
+          <div className="inline-flex items-center gap-2 bg-[#f8fafc] border border-slate-200 text-slate-600 px-5 py-2.5 rounded-full text-sm font-semibold shadow-sm">
+            <span className="flex h-2 w-2 rounded-full bg-slate-400"></span>
+            Stop drowning in free PDFs. Start a system that actually builds habits.
+          </div>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
@@ -346,25 +342,22 @@ export default async function Home() {
           <div className="flex flex-col items-start gap-6 rounded-[32px] border border-white/10 bg-white/5 p-6 md:flex-row md:items-center md:justify-between md:p-8">
             <div className="max-w-3xl">
               <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#fbbf24]">
-                Explore The Reading Model
+                Ready to stop compiling links?
               </p>
               <p className="mt-3 text-base leading-8 text-slate-300">
-                If your family is still comparing options, these public guides
-                explain the MYP bridge-reading model, the DP academic loop, the
-                Goodnotes student workflow, the Notion family archive, and the
-                difference between MYP and DP reading support.
+                The hardest part of IB reading isn&apos;t finding articles—it&apos;s maintaining the daily delivery and archive logic so the student actually engages.
               </p>
             </div>
             <TrackedLink
-              href="/ib-parent-starter-kit"
+              href="/login"
               marketingEvent="landing_cta_clicked"
               marketingProperties={{
-                location: "workflow-secondary",
-                destination: "starter-kit",
+                location: "workflow-primary",
+                destination: "trial",
               }}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/15 md:w-auto md:shrink-0"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#fbbf24] px-8 py-4 text-sm font-extrabold text-[#0f172a] shadow-lg shadow-[#fbbf24]/20 transition hover:scale-105 md:w-auto md:shrink-0"
             >
-              See How The Workflow Fits
+              Start 7-Day Free Trial
             </TrackedLink>
           </div>
 

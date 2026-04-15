@@ -70,6 +70,7 @@ export async function POST(request: Request) {
       profile,
       pricingMarket: getPricingMarketFromRequest(request),
       subscriptionPlan,
+      trialDays: 7,
     });
 
     await updateParentSubscription(sessionEmail, {

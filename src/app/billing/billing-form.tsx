@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
 import AccountMenu from "../../components/account-menu";
@@ -12,6 +12,7 @@ import {
   getLatestInvoiceSummary,
   getSubscriptionPlanBadgeLabel,
 } from "../../lib/billing";
+import { trackMarketingEvent } from "../../lib/marketing-analytics";
 import type { ParentProfile } from "../../lib/mvp-types";
 import type { PricingMarket } from "../../lib/pricing-market";
 import {
@@ -74,9 +75,24 @@ export default function BillingForm({
       : null,
   ].filter((badge): badge is { label: string; className: string } => Boolean(badge));
 
+  useEffect(() => {
+    if (!canceledCheckout) {
+      return;
+    }
+
+    trackMarketingEvent("billing_checkout_canceled", {
+      location: "billing_page",
+    });
+  }, [canceledCheckout]);
+
   async function handleSelectPlan(subscriptionPlan: "monthly" | "yearly") {
     setErrorMessage("");
     setPendingPlan(subscriptionPlan);
+
+    trackMarketingEvent("billing_checkout_started", {
+      plan: subscriptionPlan,
+      location: "billing_page",
+    });
 
     try {
       const response = await fetch("/api/billing/checkout", {
@@ -94,18 +110,35 @@ export default function BillingForm({
       if (!response.ok || !body?.url) {
         setErrorMessage(body?.message ?? "We could not open Stripe checkout.");
         setPendingPlan(null);
+        trackMarketingEvent("billing_checkout_failed", {
+          plan: subscriptionPlan,
+          location: "billing_page",
+          reason: "api_error",
+        });
         return;
       }
 
+      trackMarketingEvent("billing_checkout_redirected", {
+        plan: subscriptionPlan,
+        location: "billing_page",
+      });
       window.location.assign(body.url);
     } catch {
       setErrorMessage("We could not reach Stripe checkout right now. Please try again.");
       setPendingPlan(null);
+      trackMarketingEvent("billing_checkout_failed", {
+        plan: subscriptionPlan,
+        location: "billing_page",
+        reason: "network_error",
+      });
     }
   }
 
   async function handleOpenPortal() {
     setErrorMessage("");
+    trackMarketingEvent("billing_portal_opened", {
+      location: "billing_page",
+    });
 
     try {
       const response = await fetch("/api/billing/portal", {
@@ -116,12 +149,20 @@ export default function BillingForm({
 
       if (!response.ok || !body?.url) {
         setErrorMessage(body?.message ?? "We could not open the Stripe billing portal.");
+        trackMarketingEvent("billing_portal_failed", {
+          location: "billing_page",
+          reason: "api_error",
+        });
         return;
       }
 
       window.location.assign(body.url);
     } catch {
       setErrorMessage("We could not reach the Stripe billing portal right now.");
+      trackMarketingEvent("billing_portal_failed", {
+        location: "billing_page",
+        reason: "network_error",
+      });
     }
   }
 

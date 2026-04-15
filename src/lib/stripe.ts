@@ -23,6 +23,7 @@ type CheckoutSessionInput = {
   pricingMarket: PricingMarket;
   profile: ParentProfile;
   subscriptionPlan: CheckoutPlan;
+  trialDays?: number;
 };
 
 type FinalizeCheckoutInput = {
@@ -525,6 +526,9 @@ export async function createCheckoutSessionForParent(
         pricingMarket: input.pricingMarket,
         subscriptionPlan: input.subscriptionPlan,
       },
+      ...(input.trialDays
+        ? { trial_period_days: input.trialDays }
+        : {}),
     },
     line_items: [
       {

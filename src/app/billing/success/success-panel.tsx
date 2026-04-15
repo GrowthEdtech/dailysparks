@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import AccountMenu from "../../../components/account-menu";
+import { trackMarketingEvent } from "../../../lib/marketing-analytics";
 import type { ParentProfile } from "../../../lib/mvp-types";
 import {
   PRIMARY_SUCCESS_CTA_CLASSNAME,
@@ -46,8 +47,16 @@ export default function SuccessPanel({
       if (!sessionId) {
         setStatus("error");
         setMessage("We could not find a Stripe checkout session to confirm.");
+        trackMarketingEvent("billing_finalize_failed", {
+          location: "billing_success",
+          reason: "missing_session",
+        });
         return;
       }
+
+      trackMarketingEvent("billing_finalize_started", {
+        location: "billing_success",
+      });
 
       try {
         const response = await fetch("/api/billing/finalize", {
@@ -69,6 +78,10 @@ export default function SuccessPanel({
               body?.message ??
                 "Stripe checkout returned, but Daily Sparks could not confirm it yet.",
             );
+            trackMarketingEvent("billing_finalize_failed", {
+              location: "billing_success",
+              reason: "api_error",
+            });
           }
           return;
         }
@@ -79,6 +92,10 @@ export default function SuccessPanel({
             body.parent.subscriptionPlan === "yearly" ? "Yearly plan active" : "Monthly plan active",
           );
           setMessage("Stripe checkout is complete and your Daily Sparks billing is now active.");
+          trackMarketingEvent("billing_finalize_success", {
+            location: "billing_success",
+            plan: body.parent.subscriptionPlan ?? "unknown",
+          });
 
           startTransition(() => {
             router.refresh();
@@ -88,6 +105,10 @@ export default function SuccessPanel({
         if (!isCancelled) {
           setStatus("error");
           setMessage("We could not reach billing confirmation right now. Please try again.");
+          trackMarketingEvent("billing_finalize_failed", {
+            location: "billing_success",
+            reason: "network_error",
+          });
         }
       }
     }
