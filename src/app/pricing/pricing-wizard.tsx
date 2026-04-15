@@ -4,18 +4,15 @@ import { useState } from "react";
 import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
 import Image from "next/image";
 
-import type { ParentProfile } from "../../lib/mvp-types";
 import type { PricingMarket } from "../../lib/pricing-market";
 import { getBillingPlanDefinitions } from "../../lib/billing";
 import { trackMarketingEvent } from "../../lib/marketing-analytics";
 
 type PricingWizardProps = {
-  profile: ParentProfile;
   pricingMarket: PricingMarket;
 };
 
 export default function PricingWizard({
-  profile,
   pricingMarket,
 }: PricingWizardProps) {
   const [isRedirecting, setIsRedirecting] = useState<string | null>(null);

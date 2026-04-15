@@ -44,7 +44,6 @@ export default async function PricingPage() {
 
   return (
     <PricingWizard 
-      profile={profile}
       pricingMarket={resolvePricingMarket()}
     />
   );

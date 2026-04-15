@@ -94,9 +94,10 @@ function getCurrentStage(steps: Record<ActivationFunnelStageKey, ActivationFunne
 export function getActivationFunnelState(
   profile: ParentProfile,
 ): ActivationFunnelState {
+  const accessState = getDerivedAccessState(profile.parent);
   const paidActivationTimestamp =
     profile.parent.firstPaidAt ??
-    (getDerivedAccessState(profile.parent) === "active"
+    (accessState === "active" || accessState === "trial_active"
       ? profile.parent.subscriptionActivatedAt ?? null
       : null);
 

@@ -71,7 +71,7 @@ export default function LoginForm() {
         method: "google",
       });
       void signOutFirebaseClientSession().catch(() => undefined);
-      window.location.assign("/opening-dashboard");
+      window.location.assign("/dashboard");
     } catch (error) {
       setErrorMessage(getGoogleLoginErrorMessage(error));
       setIsSubmitting(false);

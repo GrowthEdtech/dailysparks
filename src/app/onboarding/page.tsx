@@ -16,7 +16,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function OnboardingPage() {
+type OnboardingPageProps = {
+  searchParams: Promise<{ session_id?: string }>;
+};
+
+export default async function OnboardingPage({ searchParams }: OnboardingPageProps) {
   const session = await getSessionFromCookieStore(await cookies());
   const sessionEmail = session?.email ?? null;
 
@@ -30,10 +34,13 @@ export default async function OnboardingPage() {
     redirect("/login");
   }
 
+  const resolvedSearchParams = await searchParams;
+  const stripeSessionId = resolvedSearchParams.session_id ?? null;
+
   const funnel = getActivationFunnelState(profile);
 
-  // If not even paid/trialing yet, they shouldn't be here
-  if (!funnel.steps.paid_activated.completed) {
+  // If not even paid/trialing yet AND no Stripe session to finalize, redirect to pricing
+  if (!funnel.steps.paid_activated.completed && !stripeSessionId) {
     redirect("/pricing");
   }
 
@@ -43,6 +50,9 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <OnboardingWizard initialProfile={profile} />
+    <OnboardingWizard
+      initialProfile={profile}
+      stripeSessionId={stripeSessionId}
+    />
   );
 }

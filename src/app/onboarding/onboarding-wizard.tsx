@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   User, 
   GraduationCap, 
@@ -21,13 +21,36 @@ import { trackMarketingEvent } from "../../lib/marketing-analytics";
 
 type OnboardingWizardProps = {
   initialProfile: ParentProfile;
+  stripeSessionId: string | null;
 };
 
-export default function OnboardingWizard({ initialProfile }: OnboardingWizardProps) {
+export default function OnboardingWizard({ initialProfile, stripeSessionId }: OnboardingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Finalize Stripe checkout if redirected from Stripe with a session_id
+  useEffect(() => {
+    if (!stripeSessionId) return;
+
+    async function finalizeCheckout() {
+      try {
+        await fetch("/api/billing/finalize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: stripeSessionId }),
+        });
+        trackMarketingEvent("billing_finalize_success", {
+          location: "onboarding",
+        });
+      } catch {
+        console.error("Failed to finalize Stripe checkout during onboarding.");
+      }
+    }
+
+    void finalizeCheckout();
+  }, [stripeSessionId]);
 
   // Step 1 State: Profile
   const [studentName, setStudentName] = useState(initialProfile.student.studentName || "");
@@ -110,7 +133,7 @@ export default function OnboardingWizard({ initialProfile }: OnboardingWizardPro
       trackMarketingEvent("onboarding_goodnotes_completed", { has_test_sent: true });
 
       // 3. Complete and redirect
-      router.push("/opening-dashboard");
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {

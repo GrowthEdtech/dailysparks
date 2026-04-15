@@ -277,7 +277,7 @@ function getSubscriptionStatusFromStripeStatus(
     return "trial";
   }
 
-  if (status === "canceled" || status === "unpaid" || status === "incomplete_expired") {
+  if (status === "canceled" || status === "unpaid" || status === "incomplete_expired" || status === "past_due") {
     return "canceled";
   }
 
@@ -512,7 +512,7 @@ export async function createCheckoutSessionForParent(
     currency: planPrice.currency,
     customer: customerId,
     client_reference_id: input.profile.parent.id,
-    success_url: `${input.origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${input.origin}/onboarding?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${input.origin}/billing?canceled=1`,
     allow_promotion_codes: true,
     metadata: {
