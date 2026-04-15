@@ -6,6 +6,7 @@ import DashboardForm from "./dashboard-form";
 import { getProfileByEmail } from "../../lib/mvp-store";
 import { isNotionConfigured } from "../../lib/notion-config";
 import { getSessionFromCookieStore } from "../../lib/session";
+import { getActivationFunnelState } from "../../lib/activation-funnel";
 
 export const metadata: Metadata = {
   title: "Dashboard",
