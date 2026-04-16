@@ -119,6 +119,16 @@ function normalizeCount(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+function normalizeAcademicTier(value: unknown): "foundation" | "core" | "enriched" {
+  const normalized = String(value).trim().toLowerCase();
+  
+  if (normalized === "foundation" || normalized === "enriched") {
+    return normalized;
+  }
+  
+  return "core";
+}
+
 function normalizeDeliveryChannel(value: unknown): DailyBriefDeliveryChannel {
   const normalized = normalizeString(value);
 
@@ -307,6 +317,7 @@ function normalizeEntry(
     summary: normalizeString(raw?.summary),
     programme: normalizeProgramme(raw?.programme),
     editorialCohort: normalizeEditorialCohort(raw?.editorialCohort),
+    academicTier: normalizeAcademicTier(raw?.academicTier),
     status: normalizeStatus(raw?.status),
     topicClusterKey:
       normalizeString(raw?.topicClusterKey) ||

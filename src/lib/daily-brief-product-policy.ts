@@ -66,6 +66,32 @@ function getProgrammeRuntimeIntentNotes(programme: Programme) {
   ];
 }
 
+export function getTierRuntimeIntentNotes(tier: "foundation" | "core" | "enriched") {
+  if (tier === "foundation") {
+    return [
+      "ACADEMIC TIER: FOUNDATION",
+      "Focus on concrete vocabulary and literal comprehension.",
+      "Inquiry prompts should be highly scaffolded, moving from 'What' to 'Why' with clear hints.",
+      "Use simpler sentence structures while maintaining academic interest.",
+    ];
+  }
+
+  if (tier === "enriched") {
+    return [
+      "ACADEMIC TIER: ENRICHED",
+      "Focus on evaluative judgment and interdisciplinary tensions (TOK-style).",
+      "Vocabulary should challenge the student with abstract concepts and precise lexemes.",
+      "Inquiry prompts should be open-ended, inviting justification and critical evaluation of evidence limits.",
+    ];
+  }
+
+  return [
+    "ACADEMIC TIER: CORE",
+    "Use standard programme-level academic framing.",
+    "Maintain the established balance of scaffolding and challenge.",
+  ];
+}
+
 const MYP_REQUIRED_SECTION_ORDER = [
   "What's happening?",
   "Why does this matter?",

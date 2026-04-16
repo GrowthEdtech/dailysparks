@@ -3,6 +3,7 @@ import { fetchNotionPageInteractions } from "./notion";
 import { getProfileStore } from "./profile-store-factory";
 import { generateOpenAiCompatibleText } from "./ai-runtime";
 import { getDefaultAiConnectionWithSecret } from "./ai-connection-store";
+import { evaluateStudentTrajectory } from "./learning-path-engine";
 import type { WeeklyProgressReportRecord, WeeklyProgressReportContent } from "./weekly-report-schema";
 import { getWeeklyReportStore } from "./weekly-report-store-factory";
 import type { ParentProfile } from "./mvp-types";
@@ -44,6 +45,9 @@ export async function generateWeeklyProgressReport(
     }
   }
 
+  // 2b. Evaluate Dynamic Learning Path
+  const trajectory = await evaluateStudentTrajectory(profile);
+
   // 3. AI Summarization (English)
   const connection = await getDefaultAiConnectionWithSecret();
   if (!connection) throw new Error("No default AI connection configured.");
@@ -63,6 +67,12 @@ ${historySummary}
 Interaction Stats:
 - Total Challenges Presented: ${totalTasks}
 - Challenges Completed: ${completedTasks}
+
+Adaptive Learning Path Update:
+- Previous Tier: ${trajectory.previousTier}
+- Current Tier: ${trajectory.newTier}
+- Adjustment Made: ${trajectory.adjusted ? "Yes" : "No"}
+- Reason: ${trajectory.reason}
 
 TASK:
 Provide a structured report in English with the following JSON format:

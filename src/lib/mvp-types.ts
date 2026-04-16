@@ -142,6 +142,19 @@ export type StudentRecord = {
   studentName: string;
   programme: Programme;
   programmeYear: number;
+  academicTier?: "foundation" | "core" | "enriched";
+  engagementStats?: {
+    last7DaysScore: number;
+    totalTasks: number;
+    completedTasks: number;
+    snapshotDate: string;
+  };
+  adaptationHistory?: Array<{
+    date: string;
+    from: string;
+    to: string;
+    reason: string;
+  }>;
   interestTags?: string[];
   goodnotesEmail: string;
   goodnotesConnected: boolean;

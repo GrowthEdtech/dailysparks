@@ -284,6 +284,7 @@ export async function POST(request: Request) {
     ).filter(
       (profile) =>
         profile.student.programme === brief.programme &&
+        (profile.student.academicTier || "core") === (brief.academicTier || "core") &&
         hasAutomatedDeliverySubscription(profile.parent),
     );
     const eligibleProgrammeProfiles = filterProfilesByEditorialCohort(
@@ -291,7 +292,9 @@ export async function POST(request: Request) {
       brief.editorialCohort,
       cohortEvaluationDate,
     ).filter(
-      (profile) => profile.student.programme === brief.programme,
+      (profile) => 
+        profile.student.programme === brief.programme &&
+        (profile.student.academicTier || "core") === (brief.academicTier || "core"),
     );
     const deliveryWindowSplit = forceDispatch
       ? {

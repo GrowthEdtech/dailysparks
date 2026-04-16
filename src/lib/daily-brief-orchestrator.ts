@@ -7,6 +7,7 @@ import {
   buildDailyBriefRuntimeContract,
   getDailyBriefProgrammeContentModel,
   getWeekendDeliveryPolicy,
+  getTierRuntimeIntentNotes,
 } from "./daily-brief-product-policy";
 import { getEditoriallyActiveProgrammes } from "./programme-availability-policy";
 import { generateTextWithDefaultAiConnectionPolicy } from "./ai-runtime";
@@ -330,7 +331,6 @@ export async function generateDailyBriefDrafts(
     };
   }
 
-  const existingProgrammes = getExistingProgrammeSet(
     historyEntries,
     options.scheduledFor,
     editorialCohort,
@@ -340,109 +340,127 @@ export async function generateDailyBriefDrafts(
   const skippedProgrammes: Programme[] = [];
 
   for (const programme of editorialProgrammes) {
-    if (existingProgrammes.has(programme)) {
-      skippedProgrammes.push(programme);
-      continue;
-    }
-
-    const resolvedPrompt = [
-      buildResolvedPromptPreview(promptPolicy, programme),
-      "",
-      buildDailyBriefRuntimeContract(programme, options.scheduledFor),
-    ].join("\n");
-    const programmeProfile = getEditorialProgrammeProfile(programme);
+    const tiers: Array<"foundation" | "core" | "enriched"> = ["foundation", "core", "enriched"];
     
-    const MAX_AUTOREWRITE_RETRIES = 3;
-    let attempts = 0;
-    let generatedPayload: GeneratedBriefPayload | null = null;
-    let lastPayload: GeneratedBriefPayload | null = null;
-    let aiResult;
-    let usedPlasticWords: string[] = [];
-
-    while (attempts < MAX_AUTOREWRITE_RETRIES) {
-      attempts++;
-      const warningPrompt = usedPlasticWords.length > 0 
-        ? `\nCRITICAL DO NOT USE THESE WORDS: ${usedPlasticWords.join(", ")}\nREWRITE REQUIRED.`
-        : "";
-
-      aiResult = await generateTextWithDefaultAiConnectionPolicy({
-        developerPrompt: resolvedPrompt,
-        userPrompt: [
-          buildGenerationUserPrompt(selectedTopic, programme, options.scheduledFor),
-          "",
-          `Programme framing note: ${programmeProfile.contentGoal}`,
-          `Prompt focus: ${programmeProfile.promptFocus}`,
-          warningPrompt
-        ].join("\n"),
-        fetchImpl: options.fetchImpl,
-      });
-
-      const tempPayload = parseGeneratedBriefPayload(aiResult.text);
-      lastPayload = tempPayload;
-      
-      const foundWords = DAILY_SPARKS_ANTI_PLASTIC_WORDS.filter((w) => 
-        tempPayload.briefMarkdown.toLowerCase().includes(w.toLowerCase())
+    for (const tier of tiers) {
+      // Check if this specific programme + tier combination already exists
+      const alreadyExists = historyEntries.some(entry => 
+        entry.scheduledFor === options.scheduledFor &&
+        entry.programme === programme &&
+        entry.editorialCohort === editorialCohort &&
+        entry.academicTier === tier &&
+        entry.status !== "failed"
       );
 
-      if (foundWords.length > 0) {
-        usedPlasticWords = foundWords;
-        console.warn(`[Quality Filter] Rejecting brief for ${programme} because it used plastic words: ${foundWords.join(", ")}. Retrying...`);
+      if (alreadyExists) {
         continue;
       }
+
+      const resolvedPrompt = [
+        buildResolvedPromptPreview(promptPolicy, programme),
+        "",
+        buildDailyBriefRuntimeContract(programme, options.scheduledFor),
+        "",
+        ...getTierRuntimeIntentNotes(tier),
+      ].join("\n");
+      const programmeProfile = getEditorialProgrammeProfile(programme);
       
-      generatedPayload = tempPayload;
-      break;
+      const MAX_AUTOREWRITE_RETRIES = 3;
+      let attempts = 0;
+      let generatedPayload: GeneratedBriefPayload | null = null;
+      let lastPayload: GeneratedBriefPayload | null = null;
+      let aiResult: any;
+      let usedPlasticWords: string[] = [];
+
+      while (attempts < MAX_AUTOREWRITE_RETRIES) {
+        attempts++;
+        const warningPrompt = usedPlasticWords.length > 0 
+          ? `\nCRITICAL DO NOT USE THESE WORDS: ${usedPlasticWords.join(", ")}\nREWRITE REQUIRED.`
+          : "";
+
+        aiResult = await generateTextWithDefaultAiConnectionPolicy({
+          developerPrompt: resolvedPrompt,
+          userPrompt: [
+            buildGenerationUserPrompt(selectedTopic, programme, options.scheduledFor),
+            "",
+            `Programme framing note: ${programmeProfile.contentGoal}`,
+            `Prompt focus: ${programmeProfile.promptFocus}`,
+            warningPrompt
+          ].join("\n"),
+          fetchImpl: options.fetchImpl,
+        });
+
+        const tempPayload = parseGeneratedBriefPayload(aiResult.text);
+        lastPayload = tempPayload;
+        
+        const foundWords = DAILY_SPARKS_ANTI_PLASTIC_WORDS.filter((w) => 
+          tempPayload.briefMarkdown.toLowerCase().includes(w.toLowerCase())
+        );
+
+        if (foundWords.length > 0) {
+          usedPlasticWords = foundWords;
+          console.warn(`[Quality Filter] Rejecting brief for ${programme}/${tier} because it used plastic words: ${foundWords.join(", ")}. Retrying...`);
+          continue;
+        }
+        
+        generatedPayload = tempPayload;
+        break;
+      }
+
+      const isApprovedZeroShot = generatedPayload !== null;
+
+      if (!generatedPayload) {
+        generatedPayload = lastPayload!;
+      }
+      const finalAdminNotes = isApprovedZeroShot 
+        ? "" 
+        : `Auto-Rewrite failed after ${MAX_AUTOREWRITE_RETRIES} attempts. Plastic words detected: ${usedPlasticWords.join(", ")}. Curation required.`;
+      
+      const repetitionAssessment = buildRepetitionAssessment(
+        historyEntries,
+        options.scheduledFor,
+        selectedTopic,
+        generatedPayload.topicTags,
+      );
+
+      generatedBriefs.push({
+        scheduledFor: options.scheduledFor,
+        recordKind: options.recordKind ?? "production",
+        headline: generatedPayload.headline,
+        normalizedHeadline:
+          selectionDecision.normalizedHeadline ??
+          normalizeHeadlineForComparison(generatedPayload.headline),
+        summary: generatedPayload.summary,
+        programme,
+        editorialCohort,
+        academicTier: tier,
+        status: "draft",
+        topicClusterKey: selectionDecision.topicClusterKey ?? selectedTopic.clusterKey,
+        topicLatestPublishedAt: selectionDecision.latestPublishedAt,
+        selectionDecision:
+          selectionDecision.selectionAudit.decision ?? "new",
+        selectionOverrideNote: selectionDecision.selectionAudit.overrideNote,
+        blockedTopics: selectionDecision.selectionAudit.blockedTopics,
+        topicTags: generatedPayload.topicTags,
+        sourceReferences: selectedTopic.sourceReferences,
+        aiConnectionId: aiResult.connectionUsed.id,
+        aiConnectionName: aiResult.connectionUsed.name,
+        aiModel: aiResult.model,
+        promptPolicyId: promptPolicy.id,
+        promptVersionLabel: promptPolicy.versionLabel,
+        promptVersion: promptPolicy.versionLabel,
+        repetitionNotes: repetitionAssessment.repetitionNotes,
+        repetitionRisk: repetitionAssessment.repetitionRisk,
+        adminNotes: finalAdminNotes,
+        briefMarkdown: generatedPayload.briefMarkdown,
+        retrievalPrompts: generatedPayload.retrievalPrompts,
+        resolvedPrompt,
+        candidateCount: selectedTopic.topicCandidates.length,
+        recommendedStatus: isApprovedZeroShot ? "approved" : "draft",
+        recommendedPipelineStage: isApprovedZeroShot ? "preflight_passed" : "generated",
+        interactionUrl: null,
+      });
     }
-
-    const isApprovedZeroShot = generatedPayload !== null;
-
-    if (!generatedPayload) {
-      generatedPayload = lastPayload!;
-    }
-    const finalAdminNotes = isApprovedZeroShot 
-      ? "" 
-      : `Auto-Rewrite failed after ${MAX_AUTOREWRITE_RETRIES} attempts. Plastic words detected: ${usedPlasticWords.join(", ")}. Curation required.`;
-    const repetitionAssessment = buildRepetitionAssessment(
-      historyEntries,
-      options.scheduledFor,
-      selectedTopic,
-      generatedPayload.topicTags,
-    );
-
-    generatedBriefs.push({
-      scheduledFor: options.scheduledFor,
-      recordKind: options.recordKind ?? "production",
-      headline: generatedPayload.headline,
-      normalizedHeadline:
-        selectionDecision.normalizedHeadline ??
-        normalizeHeadlineForComparison(generatedPayload.headline),
-      summary: generatedPayload.summary,
-      programme,
-      editorialCohort,
-      status: "draft",
-      topicClusterKey: selectionDecision.topicClusterKey ?? selectedTopic.clusterKey,
-      topicLatestPublishedAt: selectionDecision.latestPublishedAt,
-      selectionDecision:
-        selectionDecision.selectionAudit.decision ?? "new",
-      selectionOverrideNote: selectionDecision.selectionAudit.overrideNote,
-      blockedTopics: selectionDecision.selectionAudit.blockedTopics,
-      topicTags: generatedPayload.topicTags,
-      sourceReferences: selectedTopic.sourceReferences,
-      aiConnectionId: aiResult.connectionUsed.id,
-      aiConnectionName: aiResult!.connectionUsed.name,
-      aiModel: aiResult!.model,
-      promptPolicyId: promptPolicy.id,
-      promptVersionLabel: promptPolicy.versionLabel,
-      promptVersion: promptPolicy.versionLabel,
-      repetitionNotes: repetitionAssessment.repetitionNotes,
-      adminNotes: finalAdminNotes,
-      briefMarkdown: generatedPayload.briefMarkdown,
-      retrievalPrompts: generatedPayload.retrievalPrompts,
-      resolvedPrompt,
-      candidateCount: selectedTopic.topicCandidates.length,
-      recommendedStatus: isApprovedZeroShot ? "approved" : "draft",
-      recommendedPipelineStage: isApprovedZeroShot ? "preflight_passed" : "generated",
-    });
   }
 
   return {
