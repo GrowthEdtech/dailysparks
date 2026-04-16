@@ -94,6 +94,7 @@ type GeneratedBriefPayload = {
   summary: string;
   briefMarkdown: string;
   topicTags: string[];
+  retrievalPrompts: Array<{ title: string; prompt: string }>;
 };
 
 function normalizeTag(value: string) {
@@ -156,7 +157,8 @@ function buildGenerationUserPrompt(
         `- ${reference.sourceName} (${reference.sourceDomain}): ${reference.articleTitle} — ${reference.articleUrl}`,
     ),
     "",
-    "Return valid JSON only with the keys headline, summary, briefMarkdown, topicTags.",
+    "Return valid JSON only with the keys headline, summary, briefMarkdown, topicTags, and retrievalPrompts.",
+    "The retrievalPrompts should be an array of 2-3 socratic questions (title, prompt) that encourage critical thinking and active recall about the content, tailored to the academic level.",
   ].join("\n");
 }
 
@@ -183,6 +185,7 @@ function parseGeneratedBriefPayload(text: string): GeneratedBriefPayload {
     summary?: unknown;
     briefMarkdown?: unknown;
     topicTags?: unknown;
+    retrievalPrompts?: unknown;
   };
   const topicTags = Array.isArray(payload.topicTags)
     ? payload.topicTags
@@ -198,6 +201,12 @@ function parseGeneratedBriefPayload(text: string): GeneratedBriefPayload {
     summary: String(payload.summary ?? "").trim(),
     briefMarkdown: String(payload.briefMarkdown ?? "").trim(),
     topicTags,
+    retrievalPrompts: Array.isArray(payload.retrievalPrompts)
+      ? payload.retrievalPrompts.map((p: any) => ({
+          title: String(p?.title ?? "Quick Check").trim(),
+          prompt: String(p?.prompt ?? "").trim(),
+        })).filter(p => p.prompt)
+      : [],
   };
 
   if (!result.headline) {
@@ -424,10 +433,10 @@ export async function generateDailyBriefDrafts(
       promptPolicyId: promptPolicy.id,
       promptVersionLabel: promptPolicy.versionLabel,
       promptVersion: promptPolicy.versionLabel,
-      repetitionRisk: repetitionAssessment.repetitionRisk,
       repetitionNotes: repetitionAssessment.repetitionNotes,
       adminNotes: finalAdminNotes,
       briefMarkdown: generatedPayload.briefMarkdown,
+      retrievalPrompts: generatedPayload.retrievalPrompts,
       resolvedPrompt,
       candidateCount: selectedTopic.topicCandidates.length,
       recommendedStatus: isApprovedZeroShot ? "approved" : "draft",

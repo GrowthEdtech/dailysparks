@@ -51,6 +51,11 @@ export type DailyBriefSourceReference = {
   articleUrl: string;
 };
 
+export type DailyBriefRetrievalPrompt = {
+  title: string;
+  prompt: string;
+};
+
 export type DailyBriefFailedDeliveryTarget = {
   parentId: string;
   parentEmail: string;
@@ -158,6 +163,7 @@ export type DailyBriefHistoryRecord = {
   repetitionNotes: string;
   adminNotes: string;
   briefMarkdown: string;
+  retrievalPrompts?: DailyBriefRetrievalPrompt[];
   pipelineStage: DailyBriefPipelineStage;
   candidateSnapshotAt: string | null;
   generationCompletedAt: string | null;

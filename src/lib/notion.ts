@@ -178,6 +178,21 @@ function toNotionBulletedListItemBlock(content: string): NotionBlock {
   };
 }
 
+function toNotionCalloutBlock(content: string, icon = "🚀"): NotionBlock {
+  return {
+    object: "block",
+    type: "callout",
+    callout: {
+      rich_text: toPlainRichText(content),
+      icon: {
+        type: "emoji",
+        emoji: icon,
+      },
+      color: "blue_background",
+    },
+  };
+}
+
 function buildNotionBriefPageChildren(
   brief: GeneratedDailyBriefDraft,
 ): NotionBlock[] {
@@ -190,6 +205,7 @@ function buildNotionBriefPageChildren(
     topicTags: brief.topicTags,
     briefMarkdown: brief.briefMarkdown,
     sourceReferences: brief.sourceReferences,
+    retrievalPrompts: brief.retrievalPrompts,
   });
   const knowledgeBank = buildDailyBriefKnowledgeBank(packet);
   const children: NotionBlock[] = [
@@ -275,6 +291,28 @@ function buildNotionBriefPageChildren(
       },
     });
     children.push(toNotionParagraphBlock(packet.bigIdeaBody));
+  }
+
+  if (packet.retrievalPrompts.length > 0) {
+    children.push({
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: toPlainRichText("Daily Challenge ⚡️"),
+      },
+    });
+    
+    children.push(toNotionParagraphBlock("Ready for a quick review? Try answering these questions to solidify your learning:"));
+
+    for (const item of packet.retrievalPrompts) {
+      children.push(toNotionCalloutBlock(`${item.title}: ${item.prompt}`));
+    }
+    
+    children.push({
+      object: "block",
+      type: "divider",
+      divider: {},
+    });
   }
 
   if (brief.sourceReferences.length > 0) {

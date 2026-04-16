@@ -45,6 +45,8 @@ export type OutboundDailyBriefPacket = {
   sourcesTitle: string;
   sourceLines: string[];
   footerSignature: string;
+  retrievalPrompts: Array<{ title: string; prompt: string }>;
+  interactionUrl: string | null;
 };
 
 export type OutboundDailyBriefPacketInput = {
@@ -56,6 +58,8 @@ export type OutboundDailyBriefPacketInput = {
   topicTags: string[];
   briefMarkdown: string;
   sourceReferences: DailyBriefSourceReference[];
+  retrievalPrompts?: Array<{ title: string; prompt: string }>;
+  interactionUrl?: string | null;
 };
 
 export function formatOutboundScheduledDateLabel(scheduledFor: string) {
@@ -593,5 +597,7 @@ export function buildOutboundDailyBriefPacket(
       (reference) => `${reference.sourceName} - ${reference.articleTitle}`,
     ),
     footerSignature: "Growth Education Limited",
+    retrievalPrompts: brief.retrievalPrompts ?? [],
+    interactionUrl: brief.interactionUrl ?? null,
   };
 }

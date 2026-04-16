@@ -215,6 +215,7 @@ export async function POST(request: Request) {
         repetitionNotes: brief.repetitionNotes,
         adminNotes: brief.adminNotes,
         briefMarkdown: brief.briefMarkdown,
+        retrievalPrompts: brief.retrievalPrompts,
         pipelineStage: brief.recommendedPipelineStage,
         candidateSnapshotAt: frozenSnapshot.updatedAt,
         generationCompletedAt,

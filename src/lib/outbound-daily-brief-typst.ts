@@ -420,6 +420,18 @@ ${
   #v(6pt)
 ]
 
+#let button-link(label, url) = rect(
+  width: 100%,
+  fill: rgb("#0f172a"),
+  stroke: none,
+  inset: 16pt,
+  radius: 12pt,
+)[
+  #link(url)[
+    #align(center)[#text(size: 11pt, weight: "bold", fill: white)[#label]]
+  ]
+]
+
 #rect(
   width: 100%,
   fill: pale-blue,
@@ -486,6 +498,27 @@ ${!isPypOnePage && !isMypBridge && !isDpAcademic
 #v(8pt)
 #text(size: 11pt, weight: "semibold", fill: ink)[#${escapeTypstString(packet.footerSignature)}]`
     : pypFooterBlock}
+
+${
+  packet.interactionUrl
+    ? `
+#v(16pt)
+#rect(
+  width: 100%,
+  fill: rgb("#f8fafc"),
+  stroke: (paint: soft-border, thickness: 1pt, dash: "dashed"),
+  inset: 20pt,
+  radius: 18pt,
+)[
+  #text(size: 10pt, weight: "semibold", fill: gold)[DAILY CHALLENGE]
+  #v(8pt)
+  #text(size: 11pt, fill: secondary)[Ready to solidify your learning? Answer today's socratic questions and engage in active recall directly in your Notion notebook.]
+  #v(14pt)
+  #button-link("🚀 Start Interactive Review in Notion", ${escapeTypstString(packet.interactionUrl)})
+]
+`
+    : ""
+}
 `.trim();
 }
 

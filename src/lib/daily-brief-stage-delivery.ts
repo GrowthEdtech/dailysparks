@@ -109,6 +109,7 @@ function toGeneratedBriefDraft(
     briefMarkdown: brief.briefMarkdown,
     resolvedPrompt: "",
     candidateCount: brief.sourceReferences.length,
+    retrievalPrompts: brief.retrievalPrompts,
   };
 }
 
@@ -178,11 +179,69 @@ export async function deliverHistoryBriefToProfiles(
   const failedDeliveryTargets: DailyBriefFailedDeliveryTarget[] = [];
 
   for (const profile of profiles) {
+    let interactionUrl: string | null = null;
+
+    if (shouldAttemptChannel(profile, "notion", options)) {
+      deliveryAttemptCount += 1;
+
+      try {
+        const result = await withRetry(() => createNotionBriefPage(profile, deliveryBrief));
+        const deliveryTimestamp = new Date().toISOString();
+        interactionUrl = result.pageUrl;
+        await updateParentNotionConnection(profile.parent.email, {
+          notionConnected: true,
+          notionLastSyncedAt: new Date().toISOString(),
+          notionLastSyncStatus: "success",
+          notionLastSyncMessage: buildNotionDeliveryMessage(
+            brief.scheduledFor,
+            "success",
+          ),
+          notionLastSyncPageId: result.pageId,
+          notionLastSyncPageUrl: result.pageUrl,
+        });
+        await updateParentGrowthMilestones(profile.parent.email, {
+          firstBriefDeliveredAt: deliveryTimestamp,
+        });
+        deliverySuccessCount += 1;
+        deliveryReceipts.push({
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          channel: "notion",
+          renderer: null,
+          attachmentFileName: null,
+          externalId: result.pageId,
+          externalUrl: result.pageUrl,
+        });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Notion delivery failed.";
+        await updateParentNotionConnection(profile.parent.email, {
+          notionLastSyncedAt: new Date().toISOString(),
+          notionLastSyncStatus: "failed",
+          notionLastSyncMessage: buildNotionDeliveryMessage(
+            brief.scheduledFor,
+            "failed",
+            errorMessage,
+          ),
+        });
+        deliveryFailureCount += 1;
+        failedDeliveryTargets.push({
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          channel: "notion",
+          errorMessage,
+        });
+      }
+    }
+
     if (shouldAttemptChannel(profile, "goodnotes", options)) {
       deliveryAttemptCount += 1;
 
       try {
-        const result = await withRetry(() => sendBriefToGoodnotes(profile, deliveryBrief, {
+        const result = await withRetry(() => sendBriefToGoodnotes(profile, {
+          ...deliveryBrief,
+          interactionUrl,
+        }, {
           attachmentMode: options.attachmentMode ?? "production",
           renderer: options.renderer ?? "typst",
         }));
@@ -225,58 +284,6 @@ export async function deliverHistoryBriefToProfiles(
           parentId: profile.parent.id,
           parentEmail: profile.parent.email,
           channel: "goodnotes",
-          errorMessage,
-        });
-      }
-    }
-
-    if (shouldAttemptChannel(profile, "notion", options)) {
-      deliveryAttemptCount += 1;
-
-      try {
-        const result = await withRetry(() => createNotionBriefPage(profile, deliveryBrief));
-        const deliveryTimestamp = new Date().toISOString();
-        await updateParentNotionConnection(profile.parent.email, {
-          notionConnected: true,
-          notionLastSyncedAt: new Date().toISOString(),
-          notionLastSyncStatus: "success",
-          notionLastSyncMessage: buildNotionDeliveryMessage(
-            brief.scheduledFor,
-            "success",
-          ),
-          notionLastSyncPageId: result.pageId,
-          notionLastSyncPageUrl: result.pageUrl,
-        });
-        await updateParentGrowthMilestones(profile.parent.email, {
-          firstBriefDeliveredAt: deliveryTimestamp,
-        });
-        deliverySuccessCount += 1;
-        deliveryReceipts.push({
-          parentId: profile.parent.id,
-          parentEmail: profile.parent.email,
-          channel: "notion",
-          renderer: null,
-          attachmentFileName: null,
-          externalId: result.pageId,
-          externalUrl: result.pageUrl,
-        });
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Notion delivery failed.";
-        await updateParentNotionConnection(profile.parent.email, {
-          notionLastSyncedAt: new Date().toISOString(),
-          notionLastSyncStatus: "failed",
-          notionLastSyncMessage: buildNotionDeliveryMessage(
-            brief.scheduledFor,
-            "failed",
-            errorMessage,
-          ),
-        });
-        deliveryFailureCount += 1;
-        failedDeliveryTargets.push({
-          parentId: profile.parent.id,
-          parentEmail: profile.parent.email,
-          channel: "notion",
           errorMessage,
         });
       }
