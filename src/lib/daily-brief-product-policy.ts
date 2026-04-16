@@ -1,3 +1,4 @@
+import { DAILY_SPARKS_ANTI_PLASTIC_WORDS } from "./editorial-policy";
 import type { Programme } from "./mvp-types";
 
 export const DAILY_BRIEF_LAYOUT_VARIANTS = [
@@ -261,6 +262,8 @@ export function buildDailyBriefRuntimeContract(
     `Knowledge bank target: ${contentModel.knowledgeBankTitle}`,
     `Weekend delivery mode: ${weekendPolicy.label}`,
     `Weekend framing note: ${weekendPolicy.promptNote}`,
+    `FATAL FORMATTING RULE: NEVER use any of these generic AI terms: ${DAILY_SPARKS_ANTI_PLASTIC_WORDS.join(", ")}.`,
+    "FATAL FORMATTING RULE: Sentences must be concise. Use bullet points heavily for scannability.",
     ...getProgrammeRuntimeIntentNotes(programme),
   ].join("\n");
 }

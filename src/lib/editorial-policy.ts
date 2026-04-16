@@ -46,6 +46,27 @@ export type DailySparksRepetitionPolicy = {
   };
 };
 
+export const DAILY_SPARKS_ANTI_PLASTIC_WORDS = [
+  "delve",
+  "tapestry",
+  "in conclusion",
+  "furthermore",
+  "landscape",
+  "testament",
+  "beacon",
+  "embark",
+  "a testament to",
+  "in a world where",
+  "unleash",
+  "intricate",
+  "realm",
+  "crucial", 
+  "vital",
+  "let's dive in",
+  "ultimately",
+  "navigating",
+] as const;
+
 export const DAILY_SPARKS_SOURCE_WHITELIST_V1: EditorialSource[] = [
   {
     id: "reuters",
@@ -170,7 +191,7 @@ const EDITORIAL_PROGRAMME_PROFILES: Record<Programme, EditorialProgrammeProfile>
     programme: "MYP",
     readingMode: "analysis-led",
     contentGoal:
-      "Build transition-level academic reading by connecting current events to global contexts, comparison, and inquiry-driven interpretation.",
+      "Build transition-level academic reading (target CEFR B1-B2 / Lexile 800L-1000L). Connect current events to global contexts, comparison, and inquiry-driven interpretation. Limit sentence lengths to 25 words max for rapid reading.",
     promptFocus:
       "Highlight causes, trade-offs, perspective differences, global context, and one inquiry prompt the learner can carry into a notebook.",
   },
@@ -178,7 +199,7 @@ const EDITORIAL_PROGRAMME_PROFILES: Record<Programme, EditorialProgrammeProfile>
     programme: "DP",
     readingMode: "argument-led",
     contentGoal:
-      "Support academic framing, evidence-aware interpretation, and claim-versus-counterpoint habits that help with TOK, EE, and essay thinking.",
+      "Support academic framing (target CEFR C1 / Lexile 1100L-1300L), evidence-aware interpretation, and claim-versus-counterpoint habits that help with TOK, EE, and essay thinking. Be ruthlessly succinct.",
     promptFocus:
       "Surface a core issue, a defensible claim, an evidence limit or counterpoint, and a TOK or essay-style prompt that rewards justified reasoning.",
   },
