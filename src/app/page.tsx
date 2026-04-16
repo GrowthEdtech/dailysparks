@@ -127,10 +127,10 @@ export default async function Home() {
             }}
             className="bg-[#fbbf24] text-[#0f172a] px-12 py-5 rounded-2xl font-extrabold text-xl hover:scale-105 transition-all shadow-xl shadow-[#fbbf24]/20 hover:shadow-[#fbbf24]/40 flex items-center justify-center gap-3 group w-full sm:w-auto active:scale-95"
           >
-            Start 7-Day Free Trial <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+            Start 7-Day Trial for $0.99 <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
           </TrackedLink>
           <p className="text-[#64748b] text-sm font-semibold mt-1 uppercase tracking-widest opacity-80">
-            No credit card required to start • Cancel anytime
+            $0.99 for full 7-day access • Cancel anytime
           </p>
         </div>
 
@@ -395,7 +395,7 @@ export default async function Home() {
               }}
               className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#fbbf24] px-8 py-4 text-sm font-extrabold text-[#0f172a] shadow-lg shadow-[#fbbf24]/20 transition hover:scale-105 md:w-auto md:shrink-0"
             >
-              Start 7-Day Free Trial
+              Start 7-Day Trial ($0.99)
             </TrackedLink>
           </div>
 

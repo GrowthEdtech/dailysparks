@@ -73,11 +73,11 @@ export default function PricingWizard({
           </div>
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-[#0f172a] leading-[1.05]">
-             Unlock your 7-day <span className="text-[#fbbf24] [text-shadow:0_1px_0_rgba(251,191,36,0.2)]">Free Trial</span>
+             Unlock your 7-day <span className="text-[#fbbf24] [text-shadow:0_1px_0_rgba(251,191,36,0.2)]">Trial for $0.99</span>
           </h1>
           
           <p className="text-lg md:text-xl text-slate-500 font-medium leading-relaxed">
-            Zero commitment for the first week. We only charge your card on day 7 if you love the workflow. Cancel anytime with one click.
+            Pay only $0.99 today for a full week of access. We only charge for the plan on day 7 if you love the workflow. Cancel anytime with one click.
           </p>
 
           {error && (
@@ -151,7 +151,7 @@ export default function PricingWizard({
                     <Loader2 className="h-6 w-6 animate-spin" />
                   ) : (
                     <>
-                      <span>{isYearly ? "Start Yearly Trial" : "Start Monthly Trial"}</span>
+                      <span>{isYearly ? "Start Yearly Trial ($0.99)" : "Start Monthly Trial ($0.99)"}</span>
                       <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                     </>
                   )}

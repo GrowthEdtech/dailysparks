@@ -193,9 +193,9 @@ export function getBillingSummary(parent: ParentRecord, now = new Date()) {
   const planName = formatPlanName(parent.subscriptionPlan);
   const summary = {
     title: `${statusLabel} access`,
-    subtitle: "Your 7-day trial starts the first time you sign in to Daily Sparks.",
+    subtitle: "Your 7-day $0.99 introductory trial starts the first time you sign in to Daily Sparks.",
     detail:
-      "Choose monthly or yearly billing before trial ends. Linking Goodnotes or Notion does not change your billing dates.",
+      "Your $0.99 payment covers the first week. Choose monthly or yearly billing before trial ends to continue. Cancel anytime.",
     statusLabel,
     summaryRows: [
       {

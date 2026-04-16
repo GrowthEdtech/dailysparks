@@ -47,6 +47,13 @@ const PRICING_PLAN_CONFIG: Record<Exclude<SubscriptionPlan, null>, PricingPlanCo
   },
 };
 
+export const TRIAL_FEE_CONFIG = {
+  amount: 99, // $0.99
+  currency: "usd" as PricingCurrency,
+  lookupKey: "daily_sparks_trial_initiation",
+  productName: "7-Day Introductory Trial Access",
+};
+
 function formatMoney(amount: number) {
   return `USD ${(amount / 100).toFixed(2)}`;
 }

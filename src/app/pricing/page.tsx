@@ -10,7 +10,7 @@ import { resolvePricingMarket } from "../../lib/pricing-market";
 
 export const metadata: Metadata = {
   title: "Pricing | Daily Sparks",
-  description: "Choose your plan to start your 7-day free trial.",
+  description: "Introductory 7-day trial for $0.99. Experience the IB reading routine today.",
   robots: {
     index: false,
     follow: false,

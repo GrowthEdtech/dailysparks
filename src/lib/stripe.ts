@@ -11,9 +11,9 @@ import { getProfileByEmail, updateParentSubscription } from "./mvp-store";
 import { maybeSendBillingStatusNotification } from "./billing-status-notification";
 import type { PricingMarket } from "./pricing-market";
 import {
-  getPricingForPlan,
   getPricingIntervalForPlan,
   getPricingLookupKeyForPlan,
+  TRIAL_FEE_CONFIG,
 } from "./pricing-market";
 
 type CheckoutPlan = Exclude<SubscriptionPlan, null>;
@@ -535,6 +535,16 @@ export async function createCheckoutSessionForParent(
       {
         quantity: 1,
         price: checkoutPrice.id,
+      },
+      {
+        price_data: {
+          currency: TRIAL_FEE_CONFIG.currency,
+          product_data: {
+            name: TRIAL_FEE_CONFIG.productName,
+          },
+          unit_amount: TRIAL_FEE_CONFIG.amount,
+        },
+        quantity: 1,
       },
     ],
   });

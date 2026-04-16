@@ -77,8 +77,8 @@ export const landingFaqItems = [
     a: "Most families can choose a programme and connect at least one delivery path in a few minutes, then refine the workflow over time.",
   },
   {
-    q: "When does the free trial begin?",
-    a: "The trial begins when your family starts the reading workflow through sign-in, not simply when a tool is connected.",
+    q: "How does the $0.99 trial work?",
+    a: "You pay only $0.99 upfront for a full 7-day introductory trial. This covers the first week of access. After 7 days, your chosen monthly or yearly subscription begins automatically unless you cancel.",
   },
   {
     q: "What is included in the weekly recap?",
