@@ -177,6 +177,16 @@ function toNotionBulletedListItemBlock(content: string): NotionBlock {
     },
   };
 }
+function toNotionToDoBlock(content: string, checked = false): NotionBlock {
+  return {
+    object: "block",
+    type: "to_do",
+    to_do: {
+      rich_text: toPlainRichText(content),
+      checked,
+    },
+  };
+}
 
 function toNotionCalloutBlock(content: string, icon = "🚀"): NotionBlock {
   return {
@@ -296,16 +306,21 @@ function buildNotionBriefPageChildren(
   if (packet.retrievalPrompts.length > 0) {
     children.push({
       object: "block",
+      type: "divider",
+      divider: {},
+    });
+    children.push({
+      object: "block",
       type: "heading_2",
       heading_2: {
         rich_text: toPlainRichText("Daily Challenge ⚡️"),
       },
     });
     
-    children.push(toNotionParagraphBlock("Ready for a quick review? Try answering these questions to solidify your learning:"));
+    children.push(toNotionParagraphBlock("Complete these challenges in your Notion notebook to solidify your learning! Check them off once you've answered them."));
 
     for (const item of packet.retrievalPrompts) {
-      children.push(toNotionCalloutBlock(`${item.title}: ${item.prompt}`));
+      children.push(toNotionToDoBlock(`${item.title}: ${item.prompt}`));
     }
     
     children.push({
@@ -1263,4 +1278,48 @@ export async function createNotionNotebookWeeklyRecapPage(
 
 export async function removeNotionConnection(parentId: string) {
   await clearNotionConnectionSecret(parentId);
+}
+export type NotionPageInteractionSummary = {
+  totalTasks: number;
+  completedTasks: number;
+  hasActivity: boolean;
+};
+
+export async function fetchNotionPageInteractions(
+  parentId: string,
+  pageId: string,
+): Promise<NotionPageInteractionSummary> {
+  const active = await getActiveAccessToken(parentId);
+
+  if (!active) {
+    throw new Error("Notion is not connected.");
+  }
+
+  const config = getNotionConfig();
+  const result = await notionJsonRequest<Record<string, unknown>>(
+    `${config!.apiBaseUrl}/blocks/${pageId}/children?page_size=100`,
+    {
+      method: "GET",
+      headers: getNotionHeaders(active.accessToken),
+    },
+  );
+
+  const blocks = Array.isArray(result.results) ? result.results : [];
+  let totalTasks = 0;
+  let completedTasks = 0;
+
+  for (const block of blocks as any[]) {
+    if (block.type === "to_do") {
+      totalTasks += 1;
+      if (block.to_do?.checked === true) {
+        completedTasks += 1;
+      }
+    }
+  }
+
+  return {
+    totalTasks,
+    completedTasks,
+    hasActivity: totalTasks > 0 && completedTasks > 0,
+  };
 }
