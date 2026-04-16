@@ -3,6 +3,7 @@ import { getProfileStore } from "../../../../../lib/profile-store-factory";
 import { generateWeeklyProgressReport } from "../../../../../lib/weekly-report-orchestrator";
 import { sendWeeklyProgressReportEmail } from "../../../../../lib/weekly-report-delivery";
 import { localWeeklyReportStore } from "../../../../../lib/local-weekly-report-store";
+import { emitDailyBriefOpsAlert } from "../../../../../lib/daily-brief-ops-alerts";
 
 const SCHEDULER_SECRET = process.env.DAILY_BRIEF_SCHEDULER_SECRET;
 
@@ -35,6 +36,16 @@ export async function POST(request: Request) {
       results.push({ parent: parent.email, status: "success", messageId: delivery.messageId });
     } catch (error) {
       console.error(`Failed to process weekly report for ${parent.email}:`, error);
+      
+      await emitDailyBriefOpsAlert({
+        stage: "weekly-report",
+        severity: "warning",
+        runDate: new Date().toISOString().split("T")[0],
+        title: `Weekly Report Failed: ${parent.email}`,
+        message: (error as Error).message,
+        details: { parentEmail: parent.email }
+      });
+
       results.push({ parent: parent.email, status: "failed", error: (error as Error).message });
     }
   }

@@ -237,6 +237,19 @@ export async function deliverHistoryBriefToProfiles(
     if (shouldAttemptChannel(profile, "goodnotes", options)) {
       deliveryAttemptCount += 1;
 
+      // PRE-FLIGHT CHECK: Ensure interactive link exists if Notion was attempted
+      if (!interactionUrl && profile.parent.notionConnected) {
+        const errorMessage = "Goodnotes delivery held: Missing interactionUrl (Notion page creation likely failed).";
+        deliveryFailureCount += 1;
+        failedDeliveryTargets.push({
+          parentId: profile.parent.id,
+          parentEmail: profile.parent.email,
+          channel: "goodnotes",
+          errorMessage,
+        });
+        continue;
+      }
+
       try {
         const result = await withRetry(() => sendBriefToGoodnotes(profile, {
           ...deliveryBrief,

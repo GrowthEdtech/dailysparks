@@ -4,6 +4,7 @@ export const DAILY_BRIEF_OPS_ALERT_STAGES = [
   "preflight",
   "deliver",
   "retry-delivery",
+  "weekly-report",
   "run",
 ] as const;
 

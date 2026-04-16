@@ -4,7 +4,7 @@ import { getProfileStore } from "./profile-store-factory";
 import { generateOpenAiCompatibleText } from "./ai-runtime";
 import { getDefaultAiConnectionWithSecret } from "./ai-connection-store";
 import type { WeeklyProgressReportRecord, WeeklyProgressReportContent } from "./weekly-report-schema";
-import { localWeeklyReportStore } from "./local-weekly-report-store";
+import { getWeeklyReportStore } from "./weekly-report-store-factory";
 import type { ParentProfile } from "./mvp-types";
 
 export type WeeklyReportOrchestrationResult = {
@@ -114,7 +114,7 @@ Rules:
     updatedAt: new Date().toISOString()
   };
 
-  await localWeeklyReportStore.upsertReport(report);
+  await getWeeklyReportStore().upsertReport(report);
 
   return { report, historyCount: studentHistory.length };
 }

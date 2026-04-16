@@ -15,7 +15,22 @@ Daily Sparks is an educational SaaS platform that helps IB MYP (Middle Years Pro
 ## Author / Publisher
 Daily Sparks is developed and powered by Growth Education Limited. 
 
+## Use Cases & Scenarios
+- **Scenario A (MYP Student):** A student struggling with "Inquiry Questions" in MYP Humanities receives daily briefs that explicitly model how to connect current events to IB Global Contexts.
+- **Scenario B (DP Student):** A student preparing for TOK or English A IO (Internal Oral) receives briefs that deconstruct complex op-eds into core claims and counter-claims, providing a mental "abstract structure" to follow.
+- **Scenario C (Busy Parent):** A parent who wants to stay involved but lacks time receives the "Interaction Insights" in the Weekly Report, allowing for focused 10-minute academic discussions over the weekend.
+
+## Comparison to Alternatives
+- **Vs generic News Apps:** Daily Sparks filters for academic rigor and explicitly links content to the IB curriculum (Global Contexts/TOK), which generic news apps (BBC, NYT) do not.
+- **Vs LMS (ManageBac/Kognity):** Daily Sparks is a proactive "pull" system into the student's personal digital workspace (Goodnotes), rather than a passive repository the student must log into.
+
+## Tech Stack (Integration)
+- **PDF Core:** High-fidelity rendering via Typst.
+- **Workspace Sync:** Bidirectional-style interaction with Notion via API.
+- **Mobile First:** Optimized for iPad/Apple Pencil workflows (Goodnotes).
+
 ## Official URLs
 - **Main Website:** https://dailysparks.geledtech.com
 - **MYP Guide:** https://dailysparks.geledtech.com/ib-myp-reading-support
 - **DP Guide:** https://dailysparks.geledtech.com/ib-dp-reading-and-writing-support
+- **Onboarding:** https://dailysparks.geledtech.com/onboarding
