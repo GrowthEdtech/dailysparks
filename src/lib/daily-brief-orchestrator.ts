@@ -1,4 +1,5 @@
 import {
+  DAILY_SPARKS_ANTI_PLASTIC_WORDS,
   DAILY_SPARKS_REPETITION_POLICY,
   getEditorialProgrammeProfile,
 } from "./editorial-policy";
@@ -61,6 +62,8 @@ export type GeneratedDailyBriefDraft = Omit<
   blockedTopics: DailyBriefHistoryRecord["blockedTopics"];
   resolvedPrompt: string;
   candidateCount: number;
+  recommendedStatus: DailyBriefHistoryRecord["status"];
+  recommendedPipelineStage: DailyBriefHistoryRecord["pipelineStage"];
 };
 
 export type DailyBriefGenerationResult = {
@@ -338,17 +341,57 @@ export async function generateDailyBriefDrafts(
       buildDailyBriefRuntimeContract(programme, options.scheduledFor),
     ].join("\n");
     const programmeProfile = getEditorialProgrammeProfile(programme);
-    const aiResult = await generateTextWithDefaultAiConnectionPolicy({
-      developerPrompt: resolvedPrompt,
-      userPrompt: [
-        buildGenerationUserPrompt(selectedTopic, programme, options.scheduledFor),
-        "",
-        `Programme framing note: ${programmeProfile.contentGoal}`,
-        `Prompt focus: ${programmeProfile.promptFocus}`,
-      ].join("\n"),
-      fetchImpl: options.fetchImpl,
-    });
-    const generatedPayload = parseGeneratedBriefPayload(aiResult.text);
+    
+    const MAX_AUTOREWRITE_RETRIES = 3;
+    let attempts = 0;
+    let generatedPayload: GeneratedBriefPayload | null = null;
+    let lastPayload: GeneratedBriefPayload | null = null;
+    let aiResult;
+    let usedPlasticWords: string[] = [];
+
+    while (attempts < MAX_AUTOREWRITE_RETRIES) {
+      attempts++;
+      const warningPrompt = usedPlasticWords.length > 0 
+        ? `\nCRITICAL DO NOT USE THESE WORDS: ${usedPlasticWords.join(", ")}\nREWRITE REQUIRED.`
+        : "";
+
+      aiResult = await generateTextWithDefaultAiConnectionPolicy({
+        developerPrompt: resolvedPrompt,
+        userPrompt: [
+          buildGenerationUserPrompt(selectedTopic, programme, options.scheduledFor),
+          "",
+          `Programme framing note: ${programmeProfile.contentGoal}`,
+          `Prompt focus: ${programmeProfile.promptFocus}`,
+          warningPrompt
+        ].join("\n"),
+        fetchImpl: options.fetchImpl,
+      });
+
+      const tempPayload = parseGeneratedBriefPayload(aiResult.text);
+      lastPayload = tempPayload;
+      
+      const foundWords = DAILY_SPARKS_ANTI_PLASTIC_WORDS.filter((w) => 
+        tempPayload.briefMarkdown.toLowerCase().includes(w.toLowerCase())
+      );
+
+      if (foundWords.length > 0) {
+        usedPlasticWords = foundWords;
+        console.warn(`[Quality Filter] Rejecting brief for ${programme} because it used plastic words: ${foundWords.join(", ")}. Retrying...`);
+        continue;
+      }
+      
+      generatedPayload = tempPayload;
+      break;
+    }
+
+    const isApprovedZeroShot = generatedPayload !== null;
+
+    if (!generatedPayload) {
+      generatedPayload = lastPayload!;
+    }
+    const finalAdminNotes = isApprovedZeroShot 
+      ? "" 
+      : `Auto-Rewrite failed after ${MAX_AUTOREWRITE_RETRIES} attempts. Plastic words detected: ${usedPlasticWords.join(", ")}. Curation required.`;
     const repetitionAssessment = buildRepetitionAssessment(
       historyEntries,
       options.scheduledFor,
@@ -376,17 +419,19 @@ export async function generateDailyBriefDrafts(
       topicTags: generatedPayload.topicTags,
       sourceReferences: selectedTopic.sourceReferences,
       aiConnectionId: aiResult.connectionUsed.id,
-      aiConnectionName: aiResult.connectionUsed.name,
-      aiModel: aiResult.model,
+      aiConnectionName: aiResult!.connectionUsed.name,
+      aiModel: aiResult!.model,
       promptPolicyId: promptPolicy.id,
       promptVersionLabel: promptPolicy.versionLabel,
       promptVersion: promptPolicy.versionLabel,
       repetitionRisk: repetitionAssessment.repetitionRisk,
       repetitionNotes: repetitionAssessment.repetitionNotes,
-      adminNotes: "",
+      adminNotes: finalAdminNotes,
       briefMarkdown: generatedPayload.briefMarkdown,
       resolvedPrompt,
       candidateCount: selectedTopic.topicCandidates.length,
+      recommendedStatus: isApprovedZeroShot ? "approved" : "draft",
+      recommendedPipelineStage: isApprovedZeroShot ? "preflight_passed" : "generated",
     });
   }
 
