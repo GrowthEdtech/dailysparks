@@ -10,6 +10,7 @@ import GoodnotesDeliveryCard from "../../components/goodnotes-delivery-card";
 import NotionSyncCard from "../../components/notion-sync-card";
 import TrialStatusBanner from "../../components/trial-status-banner";
 import AcademicGrowthVisual from "../../components/academic-growth-visual";
+import DeliveryStatusCard from "../../components/delivery-status-card";
 import { getBillingSummary } from "../../lib/billing";
 import type { DashboardNotebookData } from "../../lib/dashboard-notebook-data-schema";
 import type { DashboardReferralData } from "../../lib/dashboard-referral-data-schema";
@@ -2048,10 +2049,12 @@ export default function DashboardForm({
               </div>
             </section>
 
-            {renderReferralCard()}
+            {/* End of Left Column */}
           </div>
 
           <div className="order-1 space-y-6 lg:order-2">
+            <DeliveryStatusCard profile={initialProfile} />
+            {renderReferralCard()}
             <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm lg:p-6">
               <div>
                 <h2 className="text-sm font-semibold text-slate-500">Current plan</h2>

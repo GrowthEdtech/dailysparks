@@ -22,6 +22,25 @@ import { createNotionBriefPage } from "./notion";
 import type { GeneratedDailyBriefDraft } from "./daily-brief-orchestrator";
 import type { ParentProfile } from "./mvp-types";
 
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  delay = 1000,
+): Promise<T> {
+  let lastError: unknown;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (i < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, i)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export type DailyBriefDeliveryAttemptSummary = {
   deliveryAttemptCount: number;
   deliverySuccessCount: number;
@@ -163,10 +182,10 @@ export async function deliverHistoryBriefToProfiles(
       deliveryAttemptCount += 1;
 
       try {
-        const result = await sendBriefToGoodnotes(profile, deliveryBrief, {
+        const result = await withRetry(() => sendBriefToGoodnotes(profile, deliveryBrief, {
           attachmentMode: options.attachmentMode ?? "production",
           renderer: options.renderer ?? "typst",
-        });
+        }));
         const deliveryTimestamp = new Date().toISOString();
         await updateStudentGoodnotesDelivery(profile.parent.email, {
           goodnotesConnected: true,
@@ -215,7 +234,7 @@ export async function deliverHistoryBriefToProfiles(
       deliveryAttemptCount += 1;
 
       try {
-        const result = await createNotionBriefPage(profile, deliveryBrief);
+        const result = await withRetry(() => createNotionBriefPage(profile, deliveryBrief));
         const deliveryTimestamp = new Date().toISOString();
         await updateParentNotionConnection(profile.parent.email, {
           notionConnected: true,
