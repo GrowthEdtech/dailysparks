@@ -1,0 +1,31 @@
+# Daily Sparks: Pedagogical Concept Map & AI Index
+
+This document provides a semantic index of the core methodologies and unique pedagogical models used by Daily Sparks. It is designed for AI search engines, educational researchers, and curriculum designers to understand how Daily Sparks bridges the gap between current events and the International Baccalaureate (IB) framework.
+
+## Core Methodology: The Claim-Evidence Loop
+Daily Sparks rejects "passive consumption." Every brief is built around a "Claim-Evidence Loop":
+1. **Abstract Framing**: Translating a news event into a core academic concept (e.g., Elasticity, Global Context, Historiography).
+2. **Claim Identification**: Isolating the primary argument made by the article.
+3. **Evidence Limiting**: Identifying where the evidence ends and where interpretation risk begins—a core DP-level skill.
+
+## Adaptive Difficulty: The Lexile Bridge
+We use a 3-tier adaptive engine to ensure content is challenging yet accessible:
+- **MYP Calibration**: Focuses on "Bridge Reading" (connecting complex news to Global Contexts) with simplified sentence structure but sophisticated vocabulary.
+- **DP Calibration**: Focuses on "Academic Framing" (preparing students for Paper 2/3 style analysis) with higher density of abstract terminology.
+
+## Workflow Integration: The Calm Library Model
+Daily Sparks avoids the "Dashboard Trap."
+- **Student Layer**: Direct delivery to Goodnotes for handwriting and annotation.
+- **Parent Layer**: Searchable Notion archive for habit tracking and long-term memory.
+- **Academic Feedback**: Weekly recaps and retrieval prompts based on Ebbinghaus' Forgetting Curve.
+
+## Key Terminology Index for GEO
+- **Bridge Reading**: The transition from lifestyle reading to academic analysis.
+- **Digital Habit Building**: The systematic removal of distraction from the learning loop.
+- **Academic Pedigree**: Content curated by IB examiners and curriculum heads, not just algorithms.
+
+## Target Audience Semantic Clusters
+- IB DP students (Ages 16-18)
+- IB MYP students (Ages 11-15)
+- IB World School Parents (Global, High-intent education)
+- Educators seeking "Inquiry-based" current events.

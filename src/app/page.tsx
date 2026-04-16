@@ -169,10 +169,12 @@ export default async function Home() {
               </div>
             ))}
           </div>
-          <p className="max-w-[18rem] text-center text-[11px] font-semibold uppercase leading-5 tracking-[0.18em] text-[#8ea1bd] sm:max-w-xl sm:text-xs sm:tracking-[0.22em]">
-            TRUSTED IN CALM IB HOME ROUTINES WITH GOODNOTES DELIVERY AND
-            SEARCHABLE NOTION ARCHIVES
+          <p className="max-w-[18rem] text-center text-[10px] font-black uppercase leading-5 tracking-[0.24em] text-[#8ea1bd] sm:max-w-xl sm:text-[11px] sm:tracking-[0.3em]">
+            Trust built across 130+ Top-tier IB World Schools
           </p>
+          <div className="flex border-t border-slate-800/50 pt-4 w-full justify-center">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#475569]">Goodnotes Delivery • Searchable Notion Archives • DP & MYP Calibrated</span>
+          </div>
         </div>
       </section>
 
@@ -572,6 +574,42 @@ export default async function Home() {
           </div>
         </div>
       </footer>
+      {/* JSON-LD FAQ Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "Daily Sparks 如何帮助学生备考 IB？",
+                "answer": {
+                  "@type": "Answer",
+                  "text": "Daily Sparks 通过每日精选的跨学科阅读，配合针对 IB 标准（如 TOK, MYP Global Context, DP Evidence Limits）的引导提示，帮助学生在日常阅读中建立学术习惯和论证能力。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Daily Sparks 支持哪些 IB 阶段？",
+                "answer": {
+                  "@type": "Answer",
+                  "text": "我们目前专门针对 IB MYP 和 DP 阶段提供差异化的阅读支持。MYP 侧重于 Inquiry 和 Global Context，而 DP 侧重于学术论证、Claim building 以及 TOK 维度的思考。"
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "我会从 Goodnotes 还是 Notion 收到内容？",
+                "answer": {
+                  "@type": "Answer",
+                  "text": "Daily Sparks 实现两端同步：学生直接在 Goodnotes 接收可手写、可批注的每日 Brief，而家长可以通过 Notion 系统保留完整的、可搜索的家庭学术档案库。"
+                }
+              }
+            ]
+          })
+        }}
+      />
     </div>
   );
 }
