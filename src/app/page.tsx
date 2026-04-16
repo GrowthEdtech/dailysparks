@@ -5,6 +5,7 @@ import {
   PenTool,
   ShieldCheck,
   ChevronDown,
+  GraduationCap,
 } from "lucide-react";
 import Image from "next/image";
 import type { Metadata } from "next";
@@ -219,6 +220,40 @@ export default async function Home() {
               <p className="text-gray-600 text-sm leading-relaxed">{pain.desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+      
+      {/* --- Section 2.5: Academic Pedigree (E-E-A-T) --- */}
+      <section
+        data-home-section="pedigree"
+        className="bg-slate-50 border-y border-slate-100 py-16 px-6"
+      >
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-10">
+          <div className="flex-shrink-0 w-20 h-20 rounded-3xl bg-[#fbbf24]/10 flex items-center justify-center">
+            <GraduationCap className="w-10 h-10 text-[#f59e0b]" />
+          </div>
+          <div className="space-y-4">
+            <h3 className="text-2xl font-extrabold text-[#0f172a]">Developed by IB Curriculum Experts</h3>
+            <p className="text-[#64748b] leading-relaxed">
+              Daily Sparks isn&apos;t just a tech tool. It is built by Growth Education Limited, leveraging 
+              decades of combined experience in IB curriculum design and assessment. Our team understands 
+              the specific inquiry requirements of the MYP and the rigorous academic argument standards of the DP.
+            </p>
+            <div className="flex flex-wrap gap-6 pt-2">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[#0f172a]">10+ Years</span>
+                <span className="text-xs text-[#94a3b8] uppercase tracking-wider font-bold">IB Experience</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[#0f172a]">130+ Schools</span>
+                <span className="text-xs text-[#94a3b8] uppercase tracking-wider font-bold">Data Mapped</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-[#0f172a]">DP/MYP</span>
+                <span className="text-xs text-[#94a3b8] uppercase tracking-wider font-bold">Specialized</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
