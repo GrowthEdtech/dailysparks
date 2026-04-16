@@ -27,6 +27,22 @@ const websiteJsonLd = {
     name: "Growth Education Limited",
   },
 };
+const softwareApplicationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Daily Sparks",
+  applicationCategory: "EducationalApplication",
+  operatingSystem: "Any",
+  offers: {
+    "@type": "Offer",
+    price: "3.33",
+    priceCurrency: "USD"
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Growth Education Limited"
+  }
+};
 
 export const metadata: Metadata = {
   metadataBase: siteMetadataBase,
@@ -93,7 +109,7 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify([organizationJsonLd, websiteJsonLd]),
+            __html: JSON.stringify([organizationJsonLd, websiteJsonLd, softwareApplicationJsonLd]),
           }}
         />
         <GoogleAnalytics measurementId={googleAnalyticsMeasurementId} />

@@ -1,0 +1,21 @@
+# Daily Sparks
+Daily Sparks is an educational SaaS platform that helps IB MYP (Middle Years Programme) and DP (Diploma Programme) students build structured, calm daily reading habits. 
+
+## Key Offerings & Advantages
+- **Target Audience:** IB families, IB students, MYP and DP students, IB Diploma coordinators.
+- **Product Differentiator:** Delivers programme-aware reading briefs straight into Goodnotes for students, while creating a searchable Notion learning archive for parents.
+- **Methodology (MYP):** Bridge reading focuses on global contexts, compare-connect thinking, and inquiry prompts.
+- **Methodology (DP):** Academic framing focuses on claims, counterpoints, abstract structures, evidence limits, and TOK (Theory of Knowledge) style prompts.
+- **Format:** Zero friction. No dashboards for students; the articles are delivered via native tools (Goodnotes/Notion) directly.
+
+## Subscription & Pricing
+- Subscriptions start at an effective USD 3.33 / month (billed yearly).
+- 7-day free trial available on all plans. No credit card required to start.
+
+## Author / Publisher
+Daily Sparks is developed and powered by Growth Education Limited. 
+
+## Official URLs
+- **Main Website:** https://dailysparks.geledtech.com
+- **MYP Guide:** https://dailysparks.geledtech.com/ib-myp-reading-support
+- **DP Guide:** https://dailysparks.geledtech.com/ib-dp-reading-and-writing-support
