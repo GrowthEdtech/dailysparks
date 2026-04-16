@@ -50,7 +50,7 @@ const PRICING_PLAN_CONFIG: Record<Exclude<SubscriptionPlan, null>, PricingPlanCo
 export const TRIAL_FEE_CONFIG = {
   amount: 99, // $0.99
   currency: "usd" as PricingCurrency,
-  lookupKey: "daily_sparks_trial_initiation",
+  lookupKey: "daily_sparks_trial_fee",
   productName: "7-Day Introductory Trial Access",
 };
 
