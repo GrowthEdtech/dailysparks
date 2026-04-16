@@ -20,6 +20,11 @@ const ADMIN_TABS = [
     description: "Versioned PYP, MYP, and DP prompt rules",
   },
   {
+    href: "/admin/editorial/curation",
+    label: "Curation",
+    description: "Review and approve AI-generated brief drafts",
+  },
+  {
     href: "/admin/editorial/daily-briefs",
     label: "Daily Briefs",
     description: "Generation history, sources, model trace",
