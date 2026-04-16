@@ -9,6 +9,7 @@ import AccountMenu from "../../components/account-menu";
 import GoodnotesDeliveryCard from "../../components/goodnotes-delivery-card";
 import NotionSyncCard from "../../components/notion-sync-card";
 import TrialStatusBanner from "../../components/trial-status-banner";
+import AcademicGrowthVisual from "../../components/academic-growth-visual";
 import { getBillingSummary } from "../../lib/billing";
 import type { DashboardNotebookData } from "../../lib/dashboard-notebook-data-schema";
 import type { DashboardReferralData } from "../../lib/dashboard-referral-data-schema";
@@ -1106,19 +1107,35 @@ export default function DashboardForm({
     }
 
     return (
-      <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm lg:p-7">
-        <div className="mb-4 flex items-center gap-2">
-          <Send className="h-5 w-5 text-[#0f172a]" />
-          <h2 className="text-lg font-bold text-[#0f172a]">Share Daily Sparks</h2>
+      <>
+        <div className="relative overflow-hidden rounded-[32px] border border-[#0f172a]/5 bg-[#f8fafc] p-8 lg:p-10">
+          <div className="absolute -right-12 -top-12 h-40 w-40 rounded-full bg-[#0f172a]/5 blur-3xl" />
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2 max-w-lg">
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#0f172a] px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-slate-900/10">
+                <Send size={12} />
+                <span>Parent-to-Parent Referral</span>
+              </div>
+              <h2 className="text-2xl font-black text-[#0f172a]">Share the Calm</h2>
+              <p className="text-sm leading-relaxed text-slate-600 font-medium">
+                Your family has established a stable {programme} reading rhythm. 
+                Invite another family to join the Daily Sparks circle.
+              </p>
+            </div>
+            
+            <button
+               type="button"
+               onClick={() => {
+                 const link = `${window.location.origin}/login?ref=${initialProfile.parent.id}`;
+                 navigator.clipboard.writeText(link);
+                 setReferralSuccessMessage("Referral link copied to clipboard!");
+               }}
+               className="group flex items-center gap-3 rounded-2xl bg-white border-2 border-slate-200 px-6 py-4 text-sm font-black text-[#0f172a] shadow-sm hover:border-[#0f172a] transition-all active:scale-95"
+            >
+              Copy Invitation Link
+            </button>
+          </div>
         </div>
-        <p className="text-sm font-semibold text-slate-700">
-          Invite another IB family
-        </p>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
-          Your family has already reached the first brief milestone. This is the
-          best moment to share the calmer MYP or DP reading routine with another
-          parent.
-        </p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -1268,7 +1285,7 @@ export default function DashboardForm({
             </div>
           )}
         </div>
-      </section>
+      </>
     );
   }
 
@@ -1296,6 +1313,13 @@ export default function DashboardForm({
       </header>
 
       <main className="mx-auto mt-6 w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="mb-6">
+           <AcademicGrowthVisual 
+             briefsCount={notebookItems.length} 
+             streakDays={initialProfile.parent.firstBriefDeliveredAt ? 3 : 0} 
+             programme={programme}
+           />
+        </div>
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.18fr)_minmax(320px,0.82fr)] lg:items-start">
           <div className="order-2 space-y-6 lg:order-1">
             <section className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm lg:p-7">
