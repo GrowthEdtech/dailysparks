@@ -285,6 +285,7 @@ export async function POST(request: Request) {
       (profile) =>
         profile.student.programme === brief.programme &&
         (profile.student.academicTier || "core") === (brief.academicTier || "core") &&
+        (profile.student.learnerPersona || "general") === (brief.learnerPersona || "general") &&
         hasAutomatedDeliverySubscription(profile.parent),
     );
     const eligibleProgrammeProfiles = filterProfilesByEditorialCohort(
@@ -294,7 +295,8 @@ export async function POST(request: Request) {
     ).filter(
       (profile) => 
         profile.student.programme === brief.programme &&
-        (profile.student.academicTier || "core") === (brief.academicTier || "core"),
+        (profile.student.academicTier || "core") === (brief.academicTier || "core") &&
+        (profile.student.learnerPersona || "general") === (brief.learnerPersona || "general"),
     );
     const deliveryWindowSplit = forceDispatch
       ? {

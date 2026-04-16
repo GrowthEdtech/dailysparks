@@ -8,6 +8,7 @@ import {
   getDailyBriefProgrammeContentModel,
   getWeekendDeliveryPolicy,
   getTierRuntimeIntentNotes,
+  getPersonaRuntimeIntentNotes,
 } from "./daily-brief-product-policy";
 import { getEditoriallyActiveProgrammes } from "./programme-availability-policy";
 import { generateTextWithDefaultAiConnectionPolicy } from "./ai-runtime";
@@ -341,28 +342,33 @@ export async function generateDailyBriefDrafts(
 
   for (const programme of editorialProgrammes) {
     const tiers: Array<"foundation" | "core" | "enriched"> = ["foundation", "core", "enriched"];
+    const personas: Array<"analytical" | "reflective"> = ["analytical", "reflective"];
     
     for (const tier of tiers) {
-      // Check if this specific programme + tier combination already exists
-      const alreadyExists = historyEntries.some(entry => 
-        entry.scheduledFor === options.scheduledFor &&
-        entry.programme === programme &&
-        entry.editorialCohort === editorialCohort &&
-        entry.academicTier === tier &&
-        entry.status !== "failed"
-      );
+      for (const persona of personas) {
+        // Check if this specific programme + tier + persona combination already exists
+        const alreadyExists = historyEntries.some(entry => 
+          entry.scheduledFor === options.scheduledFor &&
+          entry.programme === programme &&
+          entry.editorialCohort === editorialCohort &&
+          entry.academicTier === tier &&
+          entry.learnerPersona === persona &&
+          entry.status !== "failed"
+        );
 
       if (alreadyExists) {
         continue;
       }
 
-      const resolvedPrompt = [
-        buildResolvedPromptPreview(promptPolicy, programme),
-        "",
-        buildDailyBriefRuntimeContract(programme, options.scheduledFor),
-        "",
-        ...getTierRuntimeIntentNotes(tier),
-      ].join("\n");
+        const resolvedPrompt = [
+          buildResolvedPromptPreview(promptPolicy, programme),
+          "",
+          buildDailyBriefRuntimeContract(programme, options.scheduledFor),
+          "",
+          ...getTierRuntimeIntentNotes(tier),
+          "",
+          ...getPersonaRuntimeIntentNotes(persona),
+        ].join("\n");
       const programmeProfile = getEditorialProgrammeProfile(programme);
       
       const MAX_AUTOREWRITE_RETRIES = 3;
@@ -434,6 +440,7 @@ export async function generateDailyBriefDrafts(
         programme,
         editorialCohort,
         academicTier: tier,
+        learnerPersona: persona,
         status: "draft",
         topicClusterKey: selectionDecision.topicClusterKey ?? selectedTopic.clusterKey,
         topicLatestPublishedAt: selectionDecision.latestPublishedAt,
@@ -462,6 +469,7 @@ export async function generateDailyBriefDrafts(
       });
     }
   }
+}
 
   return {
     selectedTopic,

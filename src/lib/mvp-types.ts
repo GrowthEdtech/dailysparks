@@ -143,6 +143,7 @@ export type StudentRecord = {
   programme: Programme;
   programmeYear: number;
   academicTier?: "foundation" | "core" | "enriched";
+  learnerPersona?: "analytical" | "reflective" | "general";
   engagementStats?: {
     last7DaysScore: number;
     totalTasks: number;

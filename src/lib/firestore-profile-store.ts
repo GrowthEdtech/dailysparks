@@ -383,6 +383,7 @@ function normalizeStudentRecord(
     programme: normalizeProgramme(raw?.programme),
     programmeYear: normalizeProgrammeYear(raw?.programmeYear),
     academicTier: raw?.academicTier || "core",
+    learnerPersona: raw?.learnerPersona || "general",
     engagementStats: raw?.engagementStats || null,
     adaptationHistory: raw?.adaptationHistory || [],
     interestTags: sanitizeInterestTagsForProgramme(programme, rawInterestTags),

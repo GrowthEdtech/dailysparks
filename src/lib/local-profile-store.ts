@@ -483,6 +483,10 @@ function normalizeStudentRecord(raw: Record<string, unknown>): StudentRecord {
         : "Student",
     programme,
     programmeYear: inferProgrammeYear(programme, raw.programmeYear),
+    academicTier: (raw.academicTier as any) || "core",
+    learnerPersona: (raw.learnerPersona as any) || "general",
+    engagementStats: (raw.engagementStats as any) || null,
+    adaptationHistory: (raw.adaptationHistory as any) || [],
     interestTags: sanitizeInterestTagsForProgramme(programme, rawInterestTags),
     goodnotesEmail:
       typeof raw.goodnotesEmail === "string" ? raw.goodnotesEmail.trim() : "",

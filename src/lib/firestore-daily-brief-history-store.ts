@@ -112,6 +112,16 @@ function normalizeAcademicTier(value: unknown): "foundation" | "core" | "enriche
   return "core";
 }
 
+function normalizeLearnerPersona(value: unknown): "analytical" | "reflective" | "general" {
+  const normalized = String(value).trim().toLowerCase();
+  
+  if (normalized === "analytical" || normalized === "reflective") {
+    return normalized;
+  }
+  
+  return "general";
+}
+
 function normalizeDeliveryChannel(value: unknown): DailyBriefDeliveryChannel {
   const normalized = normalizeString(value);
 
@@ -302,6 +312,7 @@ function normalizeEntry(
     programme: normalizeProgramme(raw?.programme),
     editorialCohort: normalizeEditorialCohort(raw?.editorialCohort),
     academicTier: normalizeAcademicTier(raw?.academicTier),
+    learnerPersona: normalizeLearnerPersona(raw?.learnerPersona),
     status: normalizeStatus(raw?.status),
     topicClusterKey:
       normalizeString(raw?.topicClusterKey) ||

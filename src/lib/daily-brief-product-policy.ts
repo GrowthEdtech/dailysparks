@@ -92,6 +92,31 @@ export function getTierRuntimeIntentNotes(tier: "foundation" | "core" | "enriche
   ];
 }
 
+export function getPersonaRuntimeIntentNotes(persona: "analytical" | "reflective" | "general") {
+  if (persona === "analytical") {
+    return [
+      "LEARNER PERSONA: ANALYTICAL (Systems/STEM focus)",
+      "Focus on mechanistic links, data relationships, and cause-effect systems.",
+      "Use technical or logical analogies whenever possible.",
+      "In the 'Why does this matter' section, emphasize efficiency, logic, or systemic impact.",
+    ];
+  }
+
+  if (persona === "reflective") {
+    return [
+      "LEARNER PERSONA: REFLECTIVE (Impact/Humanities focus)",
+      "Focus on human perspective, ethics, social consequences, and historical context.",
+      "Use narrative or ethical analogies whenever possible.",
+      "In the 'Why does this matter' section, emphasize equity, responsibility, or human experience.",
+    ];
+  }
+
+  return [
+    "LEARNER PERSONA: GENERAL",
+    "Maintain a balanced thematic approach between systems and impact.",
+  ];
+}
+
 const MYP_REQUIRED_SECTION_ORDER = [
   "What's happening?",
   "Why does this matter?",

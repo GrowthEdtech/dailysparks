@@ -10,8 +10,36 @@ const MIN_SAMPLES_FOR_CHANGE = 5; // Need at least 5 briefs in a week to trigger
 export type LearningPathAdjustmentResult = {
   previousTier: string;
   newTier: string;
+  previousPersona: string;
+  newPersona: string;
   adjusted: boolean;
   reason: string;
+};
+
+const PERSONA_TAG_MAP: Record<string, "analytical" | "reflective"> = {
+  // Analytical (Systems/STEM)
+  "science": "analytical",
+  "technology": "analytical",
+  "math": "analytical",
+  "artificial-intelligence": "analytical",
+  "space": "analytical",
+  "environment": "analytical",
+  "economics": "analytical",
+  "coding": "analytical",
+  "engineering": "analytical",
+  "data": "analytical",
+  
+  // Reflective (Impact/Humanities)
+  "history": "reflective",
+  "ethics": "reflective",
+  "philosophy": "reflective",
+  "art": "reflective",
+  "culture": "reflective",
+  "sociology": "reflective",
+  "social-justice": "reflective",
+  "literature": "reflective",
+  "politics": "reflective",
+  "psychology": "reflective"
 };
 
 export async function evaluateStudentTrajectory(
@@ -58,7 +86,44 @@ export async function evaluateStudentTrajectory(
 
   const engagementScore = totalTasks > 0 ? (completedTasks / totalTasks) : 0;
   
-  // 2. Logic for tier adjustment
+  // 2. Identify thematic affinity
+  const tagCounts: Record<string, number> = {};
+  for (const entry of studentHistory) {
+    const receipt = entry.deliveryReceipts.find(r => r.parentId === profile.parent.id);
+    if (!receipt?.externalId) continue;
+    
+    // We assume if they engaged, they liked the topic tags
+    for (const tag of entry.topicTags) {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    }
+  }
+
+  let analyticalWeight = 0;
+  let reflectiveWeight = 0;
+
+  for (const [tag, count] of Object.entries(tagCounts)) {
+    const persona = PERSONA_TAG_MAP[tag];
+    if (persona === "analytical") analyticalWeight += count;
+    if (persona === "reflective") reflectiveWeight += count;
+  }
+
+  const currentPersona = profile.student.learnerPersona || "general";
+  let newPersona = currentPersona;
+
+  // Pivot logic: if one persona is significantly dominant (>60% of typed interactions)
+  const totalTypedWeight = analyticalWeight + reflectiveWeight;
+  if (totalTypedWeight >= 3) { // Minimum 3 tagged interactions to pivot
+    const analyticalRatio = analyticalWeight / totalTypedWeight;
+    if (analyticalRatio >= 0.65) {
+      newPersona = "analytical";
+    } else if (analyticalRatio <= 0.35) {
+      newPersona = "reflective";
+    } else {
+      newPersona = "general";
+    }
+  }
+
+  // 3. Logic for tier adjustment
   let newTier = currentTier;
   let reason = "Engagement remains within standard parameters.";
 
@@ -80,20 +145,27 @@ export async function evaluateStudentTrajectory(
     }
   }
 
-  // 3. Update the profile if changed
-  const adjusted = newTier !== currentTier;
+  // 4. Update the profile if changed
+  const adjusted = newTier !== currentTier || newPersona !== currentPersona;
   if (adjusted) {
     const adaptationHistory = profile.student.adaptationHistory || [];
+    let adjustmentReason = reason;
+    if (newPersona !== currentPersona) {
+      const personaReason = `Interest pivot detected: learner shows strong affinity for ${newPersona === "analytical" ? "Systems/STEM" : "Impact/Humanities"} content.`;
+      adjustmentReason = reason === "Engagement remains within standard parameters." ? personaReason : `${reason} ${personaReason}`;
+    }
+
     adaptationHistory.push({
       date: new Date().toISOString(),
-      from: currentTier,
-      to: newTier,
-      reason
+      from: `${currentTier}/${currentPersona}`,
+      to: `${newTier}/${newPersona}`,
+      reason: adjustmentReason
     });
 
     await store.updateStudentRecord(profile.parent.email, {
       ...profile.student,
       academicTier: newTier,
+      learnerPersona: newPersona,
       engagementStats: {
         last7DaysScore: engagementScore,
         totalTasks,
@@ -107,6 +179,8 @@ export async function evaluateStudentTrajectory(
   return {
     previousTier: currentTier,
     newTier,
+    previousPersona: currentPersona,
+    newPersona,
     adjusted,
     reason
   };

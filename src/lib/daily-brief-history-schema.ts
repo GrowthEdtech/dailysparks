@@ -146,6 +146,7 @@ export type DailyBriefHistoryRecord = {
   programme: Programme;
   editorialCohort: DailyBriefEditorialCohort;
   academicTier?: "foundation" | "core" | "enriched";
+  learnerPersona?: "analytical" | "reflective" | "general";
   status: DailyBriefStatus;
   topicClusterKey: string;
   topicLatestPublishedAt: string | null;
