@@ -50,7 +50,7 @@ export default function CompetitorComparisonPage({ params }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-[#f8fafc] selection:bg-[#fbbf24] selection:text-[#0f172a]">
+    <div className="min-h-screen bg-[#0f172a] text-[#f8fafc] selection:bg-[#fbbf24] selection:text-[#0f172a] mesh-gradient-dark">
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 bg-[#0f172a]/80 backdrop-blur-md border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
@@ -129,8 +129,8 @@ export default function CompetitorComparisonPage({ params }: Props) {
           </div>
 
           {/* Daily Sparks Side */}
-          <div className="bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-[32px] p-8 space-y-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-[#fbbf24] text-[#0f172a] px-4 py-1 text-[10px] font-black uppercase tracking-tighter rounded-bl-xl">
+          <div className="bg-[#fbbf24]/5 border border-[#fbbf24]/20 rounded-[40px] p-8 md:p-10 space-y-6 relative overflow-hidden transition-all duration-500 hover:scale-[1.02] hover:shadow-glow-amber group">
+            <div className="absolute top-0 right-0 bg-[#fbbf24] text-[#0f172a] px-5 py-2 text-[11px] font-black uppercase tracking-widest rounded-bl-2xl shadow-lg ring-1 ring-[#fbbf24]/50">
               Recommended for Habits
             </div>
             
@@ -180,9 +180,9 @@ export default function CompetitorComparisonPage({ params }: Props) {
                   location: "alternative-matrix-primary",
                   competitor: competitor.slug,
                 }}
-                className="w-full bg-[#fbbf24] text-[#0f172a] py-4 rounded-2xl font-black flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform"
+                className="w-full bg-[#fbbf24] text-[#0f172a] py-5 rounded-[24px] font-black text-lg flex items-center justify-center gap-3 hover:scale-[1.03] transition-all shadow-lg shadow-[#fbbf24]/20 active:scale-95"
               >
-                Start Free Trial <ArrowRight className="w-5 h-5" />
+                Start Free Trial <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </TrackedLink>
             </div>
           </div>

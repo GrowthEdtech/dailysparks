@@ -154,8 +154,8 @@ export default function OnboardingWizard({ initialProfile, stripeSessionId }: On
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-[#00b5d6]/20">
       {/* Background decoration */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-[-5%] left-[-5%] w-[35%] h-[35%] rounded-full bg-gradient-to-br from-[#00b5d6]/10 to-transparent blur-3xl opacity-50" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[45%] h-[45%] rounded-full bg-gradient-to-tr from-[#fbbf24]/5 to-transparent blur-3xl opacity-40" />
+        <div className="absolute top-[-5%] left-[-5%] w-[45%] h-[45%] rounded-full bg-gradient-to-br from-[#00b5d6]/20 to-transparent blur-[120px] opacity-60 animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[55%] h-[55%] rounded-full bg-gradient-to-tr from-[#fbbf24]/10 to-transparent blur-[120px] opacity-50" />
       </div>
 
       <main className="max-w-4xl mx-auto px-6 py-12 md:py-20">
@@ -191,7 +191,7 @@ export default function OnboardingWizard({ initialProfile, stripeSessionId }: On
         </header>
 
         {/* Content Wizard */}
-        <div className="bg-white rounded-[40px] shadow-[0_40px_100px_-40px_rgba(15,23,42,0.1)] border border-slate-100 p-8 md:p-12 max-w-2xl mx-auto">
+        <div className="bg-white/90 backdrop-blur-2xl rounded-[48px] shadow-[0_40px_120px_-40px_rgba(15,23,42,0.15)] border border-white p-8 md:p-14 max-w-2xl mx-auto ring-1 ring-slate-900/5">
           {error && (
             <div className="mb-8 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-sm font-semibold animate-in fade-in slide-in-from-top-2">
               {error}
@@ -209,7 +209,7 @@ export default function OnboardingWizard({ initialProfile, stripeSessionId }: On
                         value={studentName}
                         onChange={(e) => setStudentName(e.target.value)}
                         placeholder="e.g. Katherine"
-                        className="w-full pl-14 pr-6 py-5 rounded-[22px] bg-slate-50 border-2 border-transparent focus:border-[#00b5d6] focus:bg-white outline-none font-bold text-lg transition-all"
+                        className="w-full pl-14 pr-6 py-5 rounded-[22px] bg-slate-50/50 border-2 border-slate-100 focus:border-[#00b5d6] focus:bg-white focus:ring-4 focus:ring-[#00b5d6]/10 outline-none font-bold text-xl transition-all placeholder:text-slate-300"
                       />
                    </div>
                 </section>
@@ -226,8 +226,8 @@ export default function OnboardingWizard({ initialProfile, stripeSessionId }: On
                              setProgramme(p);
                              setProgrammeYear(PROGRAMME_YEAR_OPTIONS[p][0]);
                            }}
-                           className="w-full pl-14 pr-6 py-5 rounded-[22px] bg-slate-50 border-2 border-transparent focus:border-[#00b5d6] focus:bg-white outline-none font-bold text-lg transition-all appearance-none cursor-pointer"
-                         >
+                        className="w-full pl-14 pr-6 py-5 rounded-[22px] bg-slate-50/50 border-2 border-slate-100 focus:border-[#00b5d6] focus:bg-white focus:ring-4 focus:ring-[#00b5d6]/10 outline-none font-bold text-xl transition-all appearance-none cursor-pointer"
+                      >
                             {IB_PROGRAMMES.filter(p => p !== "PYP").map(p => (
                                <option key={p} value={p}>{p}</option>
                             ))}

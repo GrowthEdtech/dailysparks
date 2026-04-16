@@ -125,11 +125,11 @@ export default async function Home() {
               location: "hero-primary",
               destination: "trial",
             }}
-            className="bg-[#fbbf24] text-[#0f172a] px-12 py-5 rounded-2xl font-extrabold text-xl hover:scale-105 transition-all shadow-xl shadow-[#fbbf24]/20 flex items-center justify-center gap-3 group w-full sm:w-auto"
+            className="bg-[#fbbf24] text-[#0f172a] px-12 py-5 rounded-2xl font-extrabold text-xl hover:scale-105 transition-all shadow-xl shadow-[#fbbf24]/20 hover:shadow-[#fbbf24]/40 flex items-center justify-center gap-3 group w-full sm:w-auto active:scale-95"
           >
             Start 7-Day Free Trial <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
           </TrackedLink>
-          <p className="text-[#64748b] text-sm font-medium mt-1">
+          <p className="text-[#64748b] text-sm font-semibold mt-1 uppercase tracking-widest opacity-80">
             No credit card required to start • Cancel anytime
           </p>
         </div>
@@ -226,14 +226,15 @@ export default async function Home() {
       {/* --- Section 2.5: Academic Pedigree (E-E-A-T) --- */}
       <section
         data-home-section="pedigree"
-        className="bg-slate-50 border-y border-slate-100 py-16 px-6"
+        className="bg-[#f8fafc] border-y border-slate-200 py-16 px-6 relative overflow-hidden"
       >
+        <div className="absolute inset-0 mesh-gradient-dark opacity-30 pointer-events-none" />
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-10">
-          <div className="flex-shrink-0 w-20 h-20 rounded-3xl bg-[#fbbf24]/10 flex items-center justify-center">
-            <GraduationCap className="w-10 h-10 text-[#f59e0b]" />
+          <div className="flex-shrink-0 w-20 h-20 rounded-3xl bg-[#fbbf24]/10 flex items-center justify-center shadow-glow-amber">
+            <GraduationCap className="w-10 h-10 text-[#f59e0b] drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]" />
           </div>
-          <div className="space-y-4">
-            <h3 className="text-2xl font-extrabold text-[#0f172a]">Developed by IB Curriculum Experts</h3>
+          <div className="space-y-4 relative z-10">
+            <h3 className="text-2xl font-extrabold text-[#0f172a] tracking-tight">Developed by IB Curriculum Experts</h3>
             <p className="text-[#64748b] leading-relaxed">
               Daily Sparks isn&apos;t just a tech tool. It is built by Growth Education Limited, leveraging 
               decades of combined experience in IB curriculum design and assessment. Our team understands 

@@ -44,13 +44,13 @@ export default function HomePricingSection({
                 key={plan.id}
                 className={
                   isYearly
-                    ? "relative flex flex-col rounded-[32px] border-[3px] border-[#fbbf24] bg-gradient-to-br from-[#fffdf7] via-white to-[#fff7df] p-8 md:p-10 shadow-[0_30px_90px_-45px_rgba(251,191,36,0.55)] md:-translate-y-2"
-                    : "flex flex-col rounded-[32px] border border-slate-200 bg-white p-8 md:p-10 shadow-[0_28px_80px_-45px_rgba(15,23,42,0.4)] transition-all hover:-translate-y-1 hover:shadow-[0_32px_90px_-50px_rgba(15,23,42,0.45)]"
+                    ? "relative flex flex-col rounded-[32px] border-[3px] border-[#fbbf24] bg-gradient-to-br from-[#fffdf7] via-white to-[#fffef2] p-8 md:p-10 shadow-[0_30px_90px_-45px_rgba(251,191,36,0.55)] md:-translate-y-2 transition-all duration-500 hover:scale-[1.02] hover:shadow-[0_40px_100px_-40px_rgba(251,191,36,0.6)]"
+                    : "flex flex-col rounded-[32px] border border-slate-200 bg-white p-8 md:p-10 shadow-[0_28px_80px_-45px_rgba(15,23,42,0.4)] transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_32px_90px_-50px_rgba(15,23,42,0.45)] hover:border-slate-300"
                 }
               >
                 {isYearly ? (
-                  <div className="absolute -top-4 right-8 bg-[#fbbf24] text-[#0f172a] px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest">
-                    Most Popular
+                  <div className="absolute -top-4 right-8 bg-[#fbbf24] text-[#0f172a] px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.15em] shadow-[0_4px_15px_-4px_rgba(251,191,36,0.8)] animate-pulse">
+                    Best Value
                   </div>
                 ) : null}
 
@@ -98,8 +98,8 @@ export default function HomePricingSection({
                   }
                   className={
                     isYearly
-                      ? "group flex w-full items-center justify-center gap-3 rounded-2xl bg-[#0f172a] px-6 py-4 text-center text-base font-bold text-[#f8fafc] shadow-[0_20px_40px_-24px_rgba(15,23,42,0.55)] transition-all hover:bg-slate-800"
-                      : "group flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-center text-base font-bold text-[#0f172a] shadow-sm transition-all hover:bg-slate-100"
+                      ? "group flex w-full items-center justify-center gap-3 rounded-2xl bg-[#0f172a] px-6 py-4 text-center text-lg font-bold text-[#f8fafc] shadow-[0_20px_40px_-24px_rgba(15,23,42,0.55)] transition-all duration-300 hover:bg-slate-800 hover:shadow-[0_25px_50px_-12px_rgba(15,23,42,0.6)] active:scale-95"
+                      : "group flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-center text-lg font-bold text-[#0f172a] shadow-sm transition-all duration-300 hover:bg-slate-100 hover:border-slate-300 active:scale-95"
                   }
                 >
                   <span
