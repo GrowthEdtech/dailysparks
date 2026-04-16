@@ -135,5 +135,77 @@ export const SUBJECT_DATA: Record<string, IBSubject> = {
         answer: "Both. It helps you find objects for the Exhibition and provides contemporary evidence for the Essay."
       }
     ]
+  },
+  "ib-myp-individuals-and-societies": {
+    slug: "ib-myp-individuals-and-societies",
+    name: "IB MYP Individuals & Societies",
+    programme: "MYP",
+    focus: "Global Contexts and Inquiry Questions.",
+    exampleTitle: "Urbanization in Lagos: A Study of Sustainability and Context",
+    description: "MYP I&S students need to see beyond the facts. We help them apply Global Contexts (like Sustainability or Fairness) to the news, building a habit of inquiry before they hit DP.",
+    benefits: [
+      {
+        title: "Inquiry Habit",
+        description: "Every brief includes 3 level-aware inquiry questions that mirror the MYP assessment criteria."
+      },
+      {
+        title: "Context Mapping",
+        description: "See how world events map to Global Contexts and Key Concepts like Change and Systems."
+      }
+    ],
+    faq: [
+      {
+        question: "Is this for years 1-5?",
+        answer: "Yes. The inquiry prompts are scaffolded to work for younger MYP students while providing enough depth for E-Assessment prep in Year 5."
+      }
+    ]
+  },
+  "ib-myp-language-and-literature": {
+    slug: "ib-myp-language-and-literature",
+    name: "IB MYP Language & Literature",
+    programme: "MYP",
+    focus: "Stylistic analysis and the relationship between text and audience.",
+    exampleTitle: "The Rhetoric of Climate Activism: Analyzing Modern Persuasion",
+    description: "Reading is the foundation of Lang & Lit. We provide daily non-fiction texts that help students practice identifying purpose, audience, and stylistic devices in a low-stakes loop.",
+    benefits: [
+      {
+        title: "Feature Spotting",
+        description: "Each brief identifies 2-3 stylistic features for students to annotate in Goodnotes."
+      },
+      {
+        title: "Bridge to Rhetoric",
+        description: "Practice analyzing how creators use language to influence audiences, setting the stage for DP English A."
+      }
+    ],
+    faq: [
+      {
+        question: "Does this replace my class readings?",
+        answer: "No, it complements them by providing diverse, high-interest modern texts that keep your analysis skills sharp."
+      }
+    ]
+  },
+  "ib-myp-science": {
+    slug: "ib-myp-science",
+    name: "IB MYP Science",
+    programme: "MYP",
+    focus: "Connecting scientific concepts to ATLs and real-world impact.",
+    exampleTitle: "The Physics of Sustainable Flight: Beyond Fossil Fuels",
+    description: "Science in the MYP is about exploring the relationship between science and the world. We help students look at breakthroughs through the Key Concepts of Systems, Models, and Relationships.",
+    benefits: [
+      {
+        title: "Scientific Inquiry",
+        description: "Analyze experimental data and scientific claims from current research papers rewritten for MYP accessibility."
+      },
+      {
+        title: "Global Implications",
+        description: "Every brief includes a section on 'Science and Society', perfect for Criterion D (Reflecting on the impacts of science)."
+      }
+    ],
+    faq: [
+      {
+        question: "Does this cover Biology, Chemistry, and Physics?",
+        answer: "Yes. We rotate between the three sciences to ensure a balanced connection to the MYP integrated science curriculum."
+      }
+    ]
   }
 };

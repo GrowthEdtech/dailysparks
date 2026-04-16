@@ -97,12 +97,17 @@ export function InformationalPageShell({
 }
 
 export function InfoSection({ title, children }: InfoSectionProps) {
+  const sectionId = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
   return (
-    <section className="space-y-4">
+    <section id={sectionId} className="space-y-4 scroll-mt-24">
       <h2 className="text-2xl font-bold tracking-[-0.03em] text-[#0f172a]">
         {title}
       </h2>
-      <div className="space-y-4 text-[1.02rem] leading-8 text-slate-600">
+      <div className="space-y-4 text-[1.02rem] leading-8 text-slate-600 font-medium">
         {children}
       </div>
     </section>

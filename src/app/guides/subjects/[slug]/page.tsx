@@ -149,7 +149,56 @@ export default async function SubjectGuidePage({ params }: Props) {
         </div>
       </InfoSection>
 
-      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "EducationalOccupationalProgram",
+            "name": `Daily Sparks ${subject.name} Habit Loop`,
+            "description": subject.description,
+            "provider": {
+              "@type": "EducationalOrganization",
+              "name": "Daily Sparks",
+              "url": "https://dailysparks.geledtech.com"
+            },
+            "educationalLevel": subject.programme === "DP" ? "High School / Pre-University" : "Middle School",
+            "programPrerequisites": [
+              {
+                "@type": "EducationalOccupationalCredential",
+                "name": `IB ${subject.programme} Enrollment`
+              }
+            ],
+            "offers": {
+              "@type": "Offer",
+              "category": "Educational Support",
+              "price": "3.33",
+              "priceCurrency": "USD"
+            }
+          })
+        }}
+      />
+
+      {/* JSON-LD Course Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Course",
+            "name": subject.name,
+            "description": `Bite-sized daily reading and academic habit building for IB ${subject.name} students.`,
+            "provider": {
+              "@type": "EducationalOrganization",
+              "name": "Daily Sparks",
+              "url": "https://dailysparks.geledtech.com"
+            },
+            "courseMode": "Online",
+            "educationalCredentialAwarded": "Academic Habit Mastery"
+          })
+        }}
+      />
+
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

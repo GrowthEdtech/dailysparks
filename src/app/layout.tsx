@@ -11,11 +11,21 @@ const siteIconVersion = "2026-04-02-2";
 
 const organizationJsonLd = {
   "@context": "https://schema.org",
-  "@type": "Organization",
+  "@type": "EducationalOrganization",
   name: "Growth Education Limited",
-  brand: "Daily Sparks",
+  brand: {
+    "@type": "Brand",
+    "name": "Daily Sparks"
+  },
   url: siteUrl,
-  sameAs: [siteUrl],
+  logo: `${siteUrl}/logo.png`,
+  sameAs: ["https://dailysparks.geledtech.com"],
+  knowsAbout: [
+    "IB MYP",
+    "IB Diploma Programme",
+    "Educational habit building",
+    "Inquiry-based learning"
+  ]
 };
 const websiteJsonLd = {
   "@context": "https://schema.org",
