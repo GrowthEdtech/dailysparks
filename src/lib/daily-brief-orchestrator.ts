@@ -64,6 +64,7 @@ export type GeneratedDailyBriefDraft = Omit<
   candidateCount: number;
   recommendedStatus: DailyBriefHistoryRecord["status"];
   recommendedPipelineStage: DailyBriefHistoryRecord["pipelineStage"];
+  interactionUrl?: string | null;
 };
 
 export type DailyBriefGenerationResult = {
