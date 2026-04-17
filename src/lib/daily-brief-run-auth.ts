@@ -1,3 +1,6 @@
+import { cookies } from "next/headers";
+import { getEditorialAdminSessionFromCookieStore } from "./editorial-admin-auth";
+
 const DAILY_BRIEF_SCHEDULER_HEADER = "x-daily-sparks-scheduler-secret";
 
 export function getDailyBriefSchedulerSecret() {
@@ -20,4 +23,15 @@ export function hasValidDailyBriefSchedulerSecret(request: Request) {
 
 export function getDailyBriefSchedulerHeaderName() {
   return DAILY_BRIEF_SCHEDULER_HEADER;
+}
+
+export async function requireAdminServerSession() {
+  const cookieStore = await cookies();
+  const session = getEditorialAdminSessionFromCookieStore(cookieStore);
+
+  if (!session) {
+    throw new Error("Unauthorized: Editorial admin session required.");
+  }
+
+  return session;
 }
