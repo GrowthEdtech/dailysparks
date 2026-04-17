@@ -167,9 +167,15 @@ export default function NotionSyncCard({
     }
   }
 
-  async function createArchive() {
+    } catch {
+      setErrorMessage("We could not create the Notion archive.");
+      setIsWorking(false);
+    }
+  }
+
+  async function initializeIbTemplate() {
     if (!selectedPageId) {
-      setErrorMessage("Please choose a Notion page first.");
+      setErrorMessage("Please choose a Notion parent page first.");
       return;
     }
 
@@ -178,7 +184,7 @@ export default function NotionSyncCard({
     setIsWorking(true);
 
     try {
-      const response = await fetch("/api/notion/database", {
+      const response = await fetch("/api/notion/deploy-template", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -190,20 +196,20 @@ export default function NotionSyncCard({
       const body = (await response.json().catch(() => null)) as ProfileResponse | null;
 
       if (!response.ok) {
-        setErrorMessage(body?.message ?? "We could not create the Notion archive.");
+        setErrorMessage(body?.message ?? "We could not initialize the IB workspace.");
         setIsWorking(false);
         return;
       }
 
       applyProfileResponse(body);
-      setSuccessMessage("Notion archive created.");
+      setSuccessMessage("IB DP Workspace initialized successfully!");
       setIsWorking(false);
 
       startTransition(() => {
         router.refresh();
       });
     } catch {
-      setErrorMessage("We could not create the Notion archive.");
+      setErrorMessage("We could not initialize the IB workspace.");
       setIsWorking(false);
     }
   }
@@ -410,15 +416,26 @@ export default function NotionSyncCard({
                     </>
                   ) : null}
 
-                  <button
-                    type="button"
-                    onClick={() => void createArchive()}
-                    disabled={isWorking || isPending || !selectedPageId}
-                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-                    Create Daily Sparks archive
-                  </button>
+                  <div className="mt-3 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void initializeIbTemplate()}
+                      disabled={isWorking || isPending || !selectedPageId}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f172a] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1e293b] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+                      Initialize IB DP Workspace (Recommended)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void createArchive()}
+                      disabled={isWorking || isPending || !selectedPageId}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                      Basic Archive Only
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="mt-4 flex flex-wrap gap-2">
