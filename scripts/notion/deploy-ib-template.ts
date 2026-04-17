@@ -224,7 +224,6 @@ export async function deployIbTemplateToParent(parentPageId: string, accessToken
     subjectsDbId,
     eeHubId: eeHub.id,
     casPortfolioId: casPortfolio.id,
-    tokPageId: tokPage.id,
     dashboardPageId: dashboardPage.id,
   };
 }
