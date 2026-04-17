@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 import { publicCanonicalRoutes, siteUrl } from "./site-config";
 
 import { SUBJECT_DATA } from "./guides/subjects/subject-data";
-import { competitors } from "./competitor-data";
+import { competitors } from "./alternatives/competitor-data";
 import { getAllTemplateSlugs } from "./templates/template-data";
 
 export default function sitemap(): MetadataRoute.Sitemap {

@@ -332,6 +332,7 @@ export async function generateDailyBriefDrafts(
     };
   }
 
+  const existingProgrammeSet = getExistingProgrammeSet(
     historyEntries,
     options.scheduledFor,
     editorialCohort,
@@ -469,7 +470,6 @@ export async function generateDailyBriefDrafts(
       });
     }
   }
-}
 
   return {
     selectedTopic,

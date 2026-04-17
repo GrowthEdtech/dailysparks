@@ -167,11 +167,6 @@ export default function NotionSyncCard({
     }
   }
 
-    } catch {
-      setErrorMessage("We could not create the Notion archive.");
-      setIsWorking(false);
-    }
-  }
 
   async function initializeIbTemplate() {
     if (!selectedPageId) {

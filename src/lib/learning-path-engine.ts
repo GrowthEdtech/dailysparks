@@ -1,4 +1,4 @@
-import { getProfileStore } from "./profile-store-factory";
+import { getProfileByEmail as getProfileStore } from "./mvp-store";
 import { listDailyBriefHistory } from "./daily-brief-history-store";
 import { fetchNotionPageInteractions } from "./notion";
 import type { ParentProfile, StudentRecord } from "./mvp-types";

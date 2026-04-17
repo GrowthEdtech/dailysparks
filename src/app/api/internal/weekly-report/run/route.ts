@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getProfileStore } from "../../../../../lib/profile-store-factory";
+import { getProfileByEmail as getProfileStore } from "../../../../../lib/mvp-store";
 import { generateWeeklyProgressReport } from "../../../../../lib/weekly-report-orchestrator";
 import { sendWeeklyProgressReportEmail } from "../../../../../lib/weekly-report-delivery";
 import { localWeeklyReportStore } from "../../../../../lib/local-weekly-report-store";

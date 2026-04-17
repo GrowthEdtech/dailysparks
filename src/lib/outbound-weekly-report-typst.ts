@@ -1,17 +1,22 @@
-import { renderTypst } from "./typst-runtime";
+import { NodeCompiler } from "@myriaddreamin/typst-ts-node-compiler";
 import type { WeeklyProgressReportRecord } from "./weekly-report-schema";
 
 export async function renderWeeklyProgressReportTypst(report: WeeklyProgressReportRecord) {
   const source = buildWeeklyReportTypstSource(report);
-  const result = await renderTypst({
-    source,
-    format: "pdf",
-  });
+  const compiler = NodeCompiler.create();
+  const compileResult = compiler.compile({ mainFileContent: source });
+  const document = compileResult.result;
+
+  if (!document || compileResult.hasError()) {
+    throw new Error("Typst compile failed for weekly report.");
+  }
+
+  const pdf = compiler.pdf(document);
 
   return {
-    pdf: result.pdf,
+    pdf: pdf instanceof Uint8Array ? pdf : new Uint8Array(pdf),
     fileName: `Weekly_Report_${report.studentName.replace(/\s+/g, '_')}_${report.weekKey}.pdf`,
-    pageCount: result.pageCount,
+    pageCount: document.numOfPages,
   };
 }
 

@@ -1,5 +1,5 @@
 import { getSessionEmailFromRequest } from "../../../../lib/session";
-import { getProfileStore } from "../../../../lib/profile-store-config";
+import { getProfileByEmail, updateParentNotionConnection } from "../../../../lib/mvp-store";
 import { getNotionConnectionSecret } from "../../../../lib/notion-connection-store";
 import { decryptNotionToken } from "../../../../lib/notion-crypto";
 import { deployStandardIbTemplate } from "../../../../lib/notion-template-factory";
@@ -18,8 +18,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const store = getProfileStore();
-    const profile = await store.getProfileByEmail(sessionEmail);
+    const profile = await getProfileByEmail(sessionEmail);
 
     if (!profile) {
       return Response.json({ message: "Profile not found." }, { status: 404 });
@@ -41,18 +40,16 @@ export async function POST(request: Request) {
     const result = await deployStandardIbTemplate(pageId, accessToken);
 
     // Update the profile with the new dashboard as the "Archive"
-    const updatedProfile = {
-      ...profile,
-      parent: {
-        ...profile.parent,
-        notionDatabaseId: result.dashboardPageId,
-        notionDatabaseName: "IB DP Ultimate Dashboard",
-        notionLastSyncPageId: result.dashboardPageId,
-        notionLastSyncPageUrl: result.dashboardUrl,
-      },
-    };
+    const updatedProfile = await updateParentNotionConnection(sessionEmail, {
+      notionDatabaseId: result.dashboardPageId,
+      notionDatabaseName: "IB DP Ultimate Dashboard",
+      notionLastSyncPageId: result.dashboardPageId,
+      notionLastSyncPageUrl: result.dashboardUrl,
+    });
 
-    await store.updateProfile(updatedProfile);
+    if (!updatedProfile) {
+       return Response.json({ message: "Failed to update profile." }, { status: 500 });
+    }
 
     return Response.json({
       message: "IB DP Workspace initialized successfully!",
