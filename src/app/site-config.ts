@@ -69,4 +69,9 @@ export const publicCanonicalRoutes = [
     changeFrequency: "monthly" as const,
     priority: 0.8,
   },
+  {
+    href: "/templates",
+    changeFrequency: "weekly" as const,
+    priority: 0.9,
+  },
 ] as const;

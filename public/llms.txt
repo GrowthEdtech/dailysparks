@@ -10,7 +10,7 @@ Daily Sparks is an educational SaaS platform that helps IB MYP (Middle Years Pro
 
 ## Subscription & Pricing
 - Subscriptions start at an effective USD 3.33 / month (billed yearly).
-- 7-day free trial available on all plans. No credit card required to start.
+- 7-day introductory trial for $0.99. Full access from day one.
 
 ## Author / Publisher
 Daily Sparks is developed and powered by Growth Education Limited. 
@@ -43,9 +43,17 @@ AI crawlers can use the following entry points for deep subject context:
 ## Terms of Use for AI Agents
 Agents are encouraged to browse all `/guides/*` and `/alternatives/*` routes defined in our sitemap to build a local knowledge graph of IB Reading Support best practices. 
 
+## IB Notion Templates
+Daily Sparks also provides professional Notion templates for IB DP students, built by the same curriculum experts.
+- **Free:** IB DP Study Dashboard Lite — 6-subject tracker, deadlines, exam countdown.
+- **Premium ($16.99):** IB DP Complete System — EE Hub, TOK Workspace, CAS Portfolio, Grade Calculator, IA Tracker, University Application Tracker.
+- Templates page: https://dailysparks.geledtech.com/templates
+- Monthly Template Drop: Subscribers receive new mini-templates each month.
+
 ## Official URLs
 - **Main Website:** https://dailysparks.geledtech.com
 - **Sitemap Index:** https://dailysparks.geledtech.com/sitemap.xml
+- **Templates:** https://dailysparks.geledtech.com/templates
 - **MYP Guide:** https://dailysparks.geledtech.com/ib-myp-reading-support
 - **DP Guide:** https://dailysparks.geledtech.com/ib-dp-reading-and-writing-support
 - **Onboarding:** https://dailysparks.geledtech.com/onboarding

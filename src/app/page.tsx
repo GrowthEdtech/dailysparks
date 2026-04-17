@@ -507,6 +507,66 @@ export default async function Home() {
         <LandingIntegrationsSection />
       </div>
 
+      {/* --- Section: IB Notion Templates --- */}
+      <section
+        data-home-section="templates"
+        className="bg-[#111827] px-6 py-20 border-t border-white/5"
+      >
+        <div className="mx-auto max-w-4xl text-center space-y-6 mb-14">
+          <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#fbbf24]">
+            IB Notion Templates
+          </p>
+          <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">
+            Organize your entire IB journey in Notion.
+          </h2>
+          <p className="text-base leading-8 text-slate-300 md:text-lg max-w-2xl mx-auto">
+            Professional templates built by IB curriculum experts — track subjects,
+            EE, TOK, CAS, grades, and university applications in one workspace.
+          </p>
+        </div>
+
+        <div className="mx-auto max-w-4xl grid gap-6 md:grid-cols-2">
+          <div className="rounded-[28px] border border-white/10 bg-white/5 p-8 flex flex-col">
+            <span className="inline-flex items-center self-start gap-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] mb-4">
+              Free
+            </span>
+            <h3 className="text-xl font-bold text-white mb-2">IB DP Study Dashboard Lite</h3>
+            <p className="text-sm text-slate-400 leading-7 mb-6 flex-1">
+              Track 6 subjects, deadlines, and exam countdowns. Import in 5 minutes.
+            </p>
+            <TrackedLink
+              href="/templates/ib-dp-study-dashboard-lite"
+              marketingEvent="template_cta_clicked"
+              marketingProperties={{ template: "lite", tier: "free" }}
+              className="group inline-flex items-center gap-2 text-sm font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              Get Free Template <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </TrackedLink>
+          </div>
+
+          <div className="rounded-[28px] border-2 border-[#fbbf24]/40 bg-gradient-to-br from-white/[0.06] to-white/[0.02] p-8 flex flex-col relative">
+            <div className="absolute -top-3 right-6 bg-[#fbbf24] text-[#0f172a] px-3.5 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.15em]">
+              Premium
+            </div>
+            <span className="inline-flex items-center self-start gap-1.5 rounded-full bg-[#fbbf24]/10 text-[#fbbf24] border border-[#fbbf24]/20 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] mb-4">
+              $16.99
+            </span>
+            <h3 className="text-xl font-bold text-white mb-2">IB DP Complete System</h3>
+            <p className="text-sm text-slate-400 leading-7 mb-6 flex-1">
+              EE, TOK, CAS, Grade Calculator, IA Tracker, and University Applications — all in one.
+            </p>
+            <TrackedLink
+              href="/templates/ib-dp-complete-system"
+              marketingEvent="template_cta_clicked"
+              marketingProperties={{ template: "complete", tier: "paid" }}
+              className="group inline-flex items-center gap-2 text-sm font-bold text-[#fbbf24] hover:text-[#f59e0b] transition-colors"
+            >
+              View Complete System <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </TrackedLink>
+          </div>
+        </div>
+      </section>
+
       <div data-home-section="pricing">
         <HomePricingSection initialPricingMarket={DEFAULT_PRICING_MARKET} />
       </div>

@@ -4,6 +4,7 @@ import { publicCanonicalRoutes, siteUrl } from "./site-config";
 
 import { SUBJECT_DATA } from "./guides/subjects/subject-data";
 import { competitors } from "./competitor-data";
+import { getAllTemplateSlugs } from "./templates/template-data";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticRoutes = publicCanonicalRoutes.map((route) => ({
@@ -24,5 +25,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
-  return [...staticRoutes, ...subjectRoutes, ...alternativeRoutes];
+  const templateRoutes = getAllTemplateSlugs().map((slug) => ({
+    url: `${siteUrl}/templates/${slug}`,
+    changeFrequency: "monthly" as const,
+    priority: 0.85,
+  }));
+
+  return [...staticRoutes, ...subjectRoutes, ...alternativeRoutes, ...templateRoutes];
 }
