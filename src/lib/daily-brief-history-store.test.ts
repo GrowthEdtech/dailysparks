@@ -248,6 +248,28 @@ describe("daily brief history store", () => {
     expect(fetchedEntry?.retryEligibleUntil).toBe("2026-04-02T09:30:00.000Z");
   });
 
+  test("persists academic routing variants on create and update", async () => {
+    const createdEntry = await createDailyBriefHistoryEntry(
+      buildBriefInput({
+        academicTier: "foundation",
+        learnerPersona: "analytical",
+      }),
+    );
+
+    const updatedEntry = await updateDailyBriefHistoryEntry(createdEntry.id, {
+      academicTier: "enriched",
+      learnerPersona: "reflective",
+    });
+    const fetchedEntry = await getDailyBriefHistoryEntry(createdEntry.id);
+
+    expect(createdEntry.academicTier).toBe("foundation");
+    expect(createdEntry.learnerPersona).toBe("analytical");
+    expect(updatedEntry?.academicTier).toBe("enriched");
+    expect(updatedEntry?.learnerPersona).toBe("reflective");
+    expect(fetchedEntry?.academicTier).toBe("enriched");
+    expect(fetchedEntry?.learnerPersona).toBe("reflective");
+  });
+
   test("updates an existing history entry with preflight status and stage changes", async () => {
     const createdEntry = await createDailyBriefHistoryEntry(buildBriefInput());
 

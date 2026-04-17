@@ -414,12 +414,12 @@ export async function generateDailyBriefDrafts(
         break;
       }
 
-      const isApprovedZeroShot = generatedPayload !== null;
+      const passedQualityFilter = generatedPayload !== null;
 
       if (!generatedPayload) {
         generatedPayload = lastPayload!;
       }
-      const finalAdminNotes = isApprovedZeroShot 
+      const finalAdminNotes = passedQualityFilter 
         ? "" 
         : `Auto-Rewrite failed after ${MAX_AUTOREWRITE_RETRIES} attempts. Plastic words detected: ${usedPlasticWords.join(", ")}. Curation required.`;
       
@@ -464,11 +464,12 @@ export async function generateDailyBriefDrafts(
         retrievalPrompts: generatedPayload.retrievalPrompts,
         resolvedPrompt,
         candidateCount: selectedTopic.topicCandidates.length,
-        recommendedStatus: isApprovedZeroShot ? "approved" : "draft",
-        recommendedPipelineStage: isApprovedZeroShot ? "preflight_passed" : "generated",
+        recommendedStatus: "draft",
+        recommendedPipelineStage: "generated",
         interactionUrl: null,
       });
     }
+  }
   }
 
   return {
@@ -477,5 +478,4 @@ export async function generateDailyBriefDrafts(
     generatedBriefs,
     skippedProgrammes,
   };
-}
 }

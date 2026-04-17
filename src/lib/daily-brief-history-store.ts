@@ -254,6 +254,8 @@ export async function createDailyBriefHistoryEntry(
     summary: input.summary.trim(),
     programme: input.programme,
     editorialCohort: defaultEditorialCohort(input.editorialCohort),
+    academicTier: input.academicTier,
+    learnerPersona: input.learnerPersona,
     status: input.status,
     topicClusterKey: input.topicClusterKey?.trim() || normalizedHeadline,
     topicLatestPublishedAt: input.topicLatestPublishedAt?.trim() || null,
@@ -365,6 +367,14 @@ export async function updateDailyBriefHistoryEntry(
 
   if ("editorialCohort" in input) {
     nextInput.editorialCohort = defaultEditorialCohort(input.editorialCohort);
+  }
+
+  if ("academicTier" in input) {
+    nextInput.academicTier = input.academicTier;
+  }
+
+  if ("learnerPersona" in input) {
+    nextInput.learnerPersona = input.learnerPersona;
   }
 
   if ("status" in input) {

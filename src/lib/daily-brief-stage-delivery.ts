@@ -179,7 +179,9 @@ export async function deliverHistoryBriefToProfiles(
   const failedDeliveryTargets: DailyBriefFailedDeliveryTarget[] = [];
 
   for (const profile of profiles) {
-    let interactionUrl: string | null = null;
+    // Reuse the last successful Notion page when the current sync fails.
+    // Goodnotes output can still be delivered without a fresh Notion page.
+    let interactionUrl: string | null = profile.parent.notionLastSyncPageUrl ?? null;
 
     if (shouldAttemptChannel(profile, "notion", options)) {
       deliveryAttemptCount += 1;
@@ -236,19 +238,6 @@ export async function deliverHistoryBriefToProfiles(
 
     if (shouldAttemptChannel(profile, "goodnotes", options)) {
       deliveryAttemptCount += 1;
-
-      // PRE-FLIGHT CHECK: Ensure interactive link exists if Notion was attempted
-      if (!interactionUrl && profile.parent.notionConnected) {
-        const errorMessage = "Goodnotes delivery held: Missing interactionUrl (Notion page creation likely failed).";
-        deliveryFailureCount += 1;
-        failedDeliveryTargets.push({
-          parentId: profile.parent.id,
-          parentEmail: profile.parent.email,
-          channel: "goodnotes",
-          errorMessage,
-        });
-        continue;
-      }
 
       try {
         const result = await withRetry(() => sendBriefToGoodnotes(profile, {

@@ -11,6 +11,7 @@ import { getProfileByEmail, updateParentSubscription } from "./mvp-store";
 import { maybeSendBillingStatusNotification } from "./billing-status-notification";
 import type { PricingMarket } from "./pricing-market";
 import {
+  getPricingForPlan,
   getPricingIntervalForPlan,
   getPricingLookupKeyForPlan,
   TRIAL_FEE_CONFIG,

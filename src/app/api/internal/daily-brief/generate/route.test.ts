@@ -29,7 +29,6 @@ const fetchMock = vi.fn<typeof fetch>();
 let tempDirectory = "";
 const TEST_AI_CONNECTION_TOKEN = ["fixture", "generate", "credential"].join("-");
 const SCHEDULER_HEADER_FIXTURE = ["scheduler", "header", "fixture"].join("-");
-
 function buildRequest(
   schedulerHeaderValue = SCHEDULER_HEADER_FIXTURE,
   body?: Record<string, unknown>,
@@ -256,9 +255,9 @@ describe("daily brief generate route", () => {
 
     expect(response.status).toBe(200);
     expect(body.mode).toBe("generate");
-    expect(body.summary.generatedCount).toBe(2);
+    expect(body.summary.generatedCount).toBe(12);
     expect(body.selectedTopic.clusterKey).toBe("students map sea turtles");
-    expect(history).toHaveLength(2);
+    expect(history).toHaveLength(12);
     expect(frozenSnapshot?.updatedAt).toBeTruthy();
     expect(history[0]).toMatchObject({
       status: "draft",
@@ -270,7 +269,7 @@ describe("daily brief generate route", () => {
     expect(history[0]?.deliveryWindowAt).toBeTruthy();
     expect(frozenSnapshot?.selectionStatus).toBe("frozen");
     expect(Date.parse(String(frozenSnapshot?.selectionFrozenAt))).not.toBeNaN();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(12);
   });
 
   test("generates editorial-scope briefs even when only one programme has active audience coverage", async () => {
@@ -297,9 +296,9 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(2);
-    expect(history).toHaveLength(2);
-    expect(history.map((entry) => entry.programme).sort()).toEqual([
+    expect(body.summary.generatedCount).toBe(12);
+    expect(history).toHaveLength(12);
+    expect([...new Set(history.map((entry) => entry.programme))].sort()).toEqual([
       "DP",
       "MYP",
     ]);
@@ -373,14 +372,15 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(2);
+    expect(body.summary.generatedCount).toBe(12);
     expect(body.summary.skippedProgrammes).toEqual([]);
-    expect(history.map((entry) => entry.programme).sort()).toEqual([
+    expect(history).toHaveLength(13);
+    expect([...new Set(history.map((entry) => entry.programme))].sort()).toEqual([
       "DP",
       "MYP",
       "PYP",
     ]);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(12);
   });
 
   test("does not create duplicate drafts when the same run date is generated twice", async () => {
@@ -418,8 +418,8 @@ describe("daily brief generate route", () => {
     expect(secondResponse.status).toBe(200);
     expect(body.summary.generatedCount).toBe(0);
     expect(body.summary.historyCreatedCount).toBe(0);
-    expect(body.summary.skippedProgrammes).toEqual(["MYP", "DP"]);
-    expect(history).toHaveLength(2);
+    expect(body.summary.skippedProgrammes).toEqual([]);
+    expect(history).toHaveLength(12);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -487,9 +487,9 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(2);
+    expect(body.summary.generatedCount).toBe(12);
     expect(body.summary.skippedProgrammes).toEqual([]);
-    expect(productionHistory).toHaveLength(2);
+    expect(productionHistory).toHaveLength(12);
     expect(productionHistory.every((entry) => entry.recordKind === "production")).toBe(
       true,
     );
@@ -585,7 +585,7 @@ describe("daily brief generate route", () => {
     const frozenSnapshot = await getDailyBriefCandidateSnapshot("2026-04-03");
 
     expect(apacResponse.status).toBe(200);
-    expect(apacBody.summary.generatedCount).toBe(2);
+    expect(apacBody.summary.generatedCount).toBe(12);
     expect(frozenSnapshot?.selectedTopic).toMatchObject({
       clusterKey: "students map sea turtles",
       selectedByCohort: "APAC",
@@ -604,9 +604,9 @@ describe("daily brief generate route", () => {
 
     expect(emeaResponse.status).toBe(200);
     expect(emeaBody.selectedTopic.clusterKey).toBe("students map sea turtles");
-    expect(emeaBody.summary.generatedCount).toBe(2);
-    expect(history.filter((entry) => entry.editorialCohort === "APAC")).toHaveLength(2);
-    expect(history.filter((entry) => entry.editorialCohort === "EMEA")).toHaveLength(2);
+    expect(emeaBody.summary.generatedCount).toBe(12);
+    expect(history.filter((entry) => entry.editorialCohort === "APAC")).toHaveLength(12);
+    expect(history.filter((entry) => entry.editorialCohort === "EMEA")).toHaveLength(12);
   });
 
   test("writes selection audit metadata into generated history records", async () => {
@@ -691,7 +691,7 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(history).toHaveLength(2);
+    expect(history).toHaveLength(12);
     expect(
       history.every(
         (entry) =>
@@ -700,5 +700,45 @@ describe("daily brief generate route", () => {
           entry.topicClusterKey === "pam bondi justice department trump",
       ),
     ).toBe(true);
+  });
+
+  test("persists academic routing keys and leaves generated entries awaiting preflight", async () => {
+    await createEligibleProgrammeProfile(
+      "myp-family@example.com",
+      "MYP",
+      "none",
+    );
+    await configureRuntime();
+
+    await upsertDailyBriefCandidateSnapshot({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate()],
+    });
+
+    const response = await generateDailyBriefRoute(
+      buildRequest(SCHEDULER_HEADER_FIXTURE, {
+        runDate: "2026-04-03",
+      }),
+    );
+    const history = await listDailyBriefHistory({
+      scheduledFor: "2026-04-03",
+    });
+
+    expect(response.status).toBe(200);
+    expect(history).toHaveLength(12);
+    expect(history.every((entry) => entry.status === "draft")).toBe(true);
+    expect(history.every((entry) => entry.pipelineStage === "generated")).toBe(
+      true,
+    );
+    expect(history.every((entry) => entry.academicTier !== undefined)).toBe(true);
+    expect(history.every((entry) => entry.learnerPersona !== undefined)).toBe(
+      true,
+    );
+    expect(
+      [...new Set(history.map((entry) => entry.academicTier))].sort(),
+    ).toEqual(["core", "enriched", "foundation"]);
+    expect(
+      [...new Set(history.map((entry) => entry.learnerPersona))].sort(),
+    ).toEqual(["analytical", "reflective"]);
   });
 });
