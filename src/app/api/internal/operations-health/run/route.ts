@@ -1,3 +1,5 @@
+import { after } from "next/server";
+
 import {
   getDailyBriefSchedulerHeaderName,
   hasValidDailyBriefSchedulerSecret,
@@ -26,17 +28,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await runOperationsHealthWorkflow({
-    source: "scheduled",
+  after(async () => {
+    try {
+      await runOperationsHealthWorkflow({
+        source: "scheduled",
+      });
+    } catch (error) {
+      console.error("Background scheduled operations health run failed.", error);
+    }
   });
 
   return Response.json({
-    mode: "operations-health",
-    run: result.run,
-    snapshot: result.snapshot,
-    summary: {
-      status: result.snapshot.status,
-      alertCount: result.snapshot.alerts.length,
-    },
-  });
+    mode: "operations-health-async",
+    message:
+      "Scheduled operations health run queued. Check the dashboard shortly for the next immutable run.",
+    queuedAt: new Date().toISOString(),
+  }, { status: 202 });
 }
