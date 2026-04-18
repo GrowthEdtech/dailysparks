@@ -179,9 +179,9 @@ export async function deliverHistoryBriefToProfiles(
   const failedDeliveryTargets: DailyBriefFailedDeliveryTarget[] = [];
 
   for (const profile of profiles) {
-    // Reuse the last successful Notion page when the current sync fails.
-    // Goodnotes output can still be delivered without a fresh Notion page.
-    let interactionUrl: string | null = profile.parent.notionLastSyncPageUrl ?? null;
+    // Only attach an interaction URL when this specific brief successfully syncs to Notion.
+    // Reusing an older page URL would misroute families into a stale brief.
+    let interactionUrl: string | null = null;
 
     if (shouldAttemptChannel(profile, "notion", options)) {
       deliveryAttemptCount += 1;

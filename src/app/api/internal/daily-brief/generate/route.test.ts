@@ -29,6 +29,12 @@ const fetchMock = vi.fn<typeof fetch>();
 let tempDirectory = "";
 const TEST_AI_CONNECTION_TOKEN = ["fixture", "generate", "credential"].join("-");
 const SCHEDULER_HEADER_FIXTURE = ["scheduler", "header", "fixture"].join("-");
+const PERSONA_VARIANTS = ["analytical", "general", "reflective"] as const;
+const TIER_VARIANT_COUNT = 3;
+const VARIANT_COUNT_PER_PROGRAMME = PERSONA_VARIANTS.length * TIER_VARIANT_COUNT;
+const GENERATED_PROGRAMME_COUNT = 2;
+const GENERATED_COUNT_PER_COHORT =
+  VARIANT_COUNT_PER_PROGRAMME * GENERATED_PROGRAMME_COUNT;
 function buildRequest(
   schedulerHeaderValue = SCHEDULER_HEADER_FIXTURE,
   body?: Record<string, unknown>,
@@ -255,9 +261,9 @@ describe("daily brief generate route", () => {
 
     expect(response.status).toBe(200);
     expect(body.mode).toBe("generate");
-    expect(body.summary.generatedCount).toBe(12);
+    expect(body.summary.generatedCount).toBe(GENERATED_COUNT_PER_COHORT);
     expect(body.selectedTopic.clusterKey).toBe("students map sea turtles");
-    expect(history).toHaveLength(12);
+    expect(history).toHaveLength(GENERATED_COUNT_PER_COHORT);
     expect(frozenSnapshot?.updatedAt).toBeTruthy();
     expect(history[0]).toMatchObject({
       status: "draft",
@@ -269,7 +275,7 @@ describe("daily brief generate route", () => {
     expect(history[0]?.deliveryWindowAt).toBeTruthy();
     expect(frozenSnapshot?.selectionStatus).toBe("frozen");
     expect(Date.parse(String(frozenSnapshot?.selectionFrozenAt))).not.toBeNaN();
-    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(fetchMock).toHaveBeenCalledTimes(GENERATED_COUNT_PER_COHORT);
   });
 
   test("generates editorial-scope briefs even when only one programme has active audience coverage", async () => {
@@ -296,8 +302,8 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(12);
-    expect(history).toHaveLength(12);
+    expect(body.summary.generatedCount).toBe(GENERATED_COUNT_PER_COHORT);
+    expect(history).toHaveLength(GENERATED_COUNT_PER_COHORT);
     expect([...new Set(history.map((entry) => entry.programme))].sort()).toEqual([
       "DP",
       "MYP",
@@ -372,15 +378,15 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(12);
+    expect(body.summary.generatedCount).toBe(GENERATED_COUNT_PER_COHORT);
     expect(body.summary.skippedProgrammes).toEqual([]);
-    expect(history).toHaveLength(13);
+    expect(history).toHaveLength(GENERATED_COUNT_PER_COHORT + 1);
     expect([...new Set(history.map((entry) => entry.programme))].sort()).toEqual([
       "DP",
       "MYP",
       "PYP",
     ]);
-    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(fetchMock).toHaveBeenCalledTimes(GENERATED_COUNT_PER_COHORT);
   });
 
   test("does not create duplicate drafts when the same run date is generated twice", async () => {
@@ -418,8 +424,8 @@ describe("daily brief generate route", () => {
     expect(secondResponse.status).toBe(200);
     expect(body.summary.generatedCount).toBe(0);
     expect(body.summary.historyCreatedCount).toBe(0);
-    expect(body.summary.skippedProgrammes).toEqual([]);
-    expect(history).toHaveLength(12);
+    expect(body.summary.skippedProgrammes).toEqual(["MYP", "DP"]);
+    expect(history).toHaveLength(GENERATED_COUNT_PER_COHORT);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -487,9 +493,9 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(12);
+    expect(body.summary.generatedCount).toBe(GENERATED_COUNT_PER_COHORT);
     expect(body.summary.skippedProgrammes).toEqual([]);
-    expect(productionHistory).toHaveLength(12);
+    expect(productionHistory).toHaveLength(GENERATED_COUNT_PER_COHORT);
     expect(productionHistory.every((entry) => entry.recordKind === "production")).toBe(
       true,
     );
@@ -585,7 +591,7 @@ describe("daily brief generate route", () => {
     const frozenSnapshot = await getDailyBriefCandidateSnapshot("2026-04-03");
 
     expect(apacResponse.status).toBe(200);
-    expect(apacBody.summary.generatedCount).toBe(12);
+    expect(apacBody.summary.generatedCount).toBe(GENERATED_COUNT_PER_COHORT);
     expect(frozenSnapshot?.selectedTopic).toMatchObject({
       clusterKey: "students map sea turtles",
       selectedByCohort: "APAC",
@@ -604,9 +610,13 @@ describe("daily brief generate route", () => {
 
     expect(emeaResponse.status).toBe(200);
     expect(emeaBody.selectedTopic.clusterKey).toBe("students map sea turtles");
-    expect(emeaBody.summary.generatedCount).toBe(12);
-    expect(history.filter((entry) => entry.editorialCohort === "APAC")).toHaveLength(12);
-    expect(history.filter((entry) => entry.editorialCohort === "EMEA")).toHaveLength(12);
+    expect(emeaBody.summary.generatedCount).toBe(GENERATED_COUNT_PER_COHORT);
+    expect(
+      history.filter((entry) => entry.editorialCohort === "APAC"),
+    ).toHaveLength(GENERATED_COUNT_PER_COHORT);
+    expect(
+      history.filter((entry) => entry.editorialCohort === "EMEA"),
+    ).toHaveLength(GENERATED_COUNT_PER_COHORT);
   });
 
   test("writes selection audit metadata into generated history records", async () => {
@@ -691,7 +701,7 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(history).toHaveLength(12);
+    expect(history).toHaveLength(GENERATED_COUNT_PER_COHORT);
     expect(
       history.every(
         (entry) =>
@@ -725,7 +735,7 @@ describe("daily brief generate route", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(history).toHaveLength(12);
+    expect(history).toHaveLength(GENERATED_COUNT_PER_COHORT);
     expect(history.every((entry) => entry.status === "draft")).toBe(true);
     expect(history.every((entry) => entry.pipelineStage === "generated")).toBe(
       true,
@@ -739,6 +749,6 @@ describe("daily brief generate route", () => {
     ).toEqual(["core", "enriched", "foundation"]);
     expect(
       [...new Set(history.map((entry) => entry.learnerPersona))].sort(),
-    ).toEqual(["analytical", "reflective"]);
+    ).toEqual([...PERSONA_VARIANTS].sort());
   });
 });

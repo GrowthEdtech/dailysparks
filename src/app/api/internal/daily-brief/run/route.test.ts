@@ -35,6 +35,13 @@ const fetchMock = vi.fn<typeof fetch>();
 let tempDirectory = "";
 const TEST_AI_CONNECTION_TOKEN = ["fixture", "relay", "credential"].join("-");
 const SCHEDULER_HEADER_FIXTURE = ["scheduler", "header", "fixture"].join("-");
+const PERSONA_VARIANT_COUNT = 3;
+const TIER_VARIANT_COUNT = 3;
+const VARIANT_COUNT_PER_PROGRAMME = PERSONA_VARIANT_COUNT * TIER_VARIANT_COUNT;
+const GENERATED_PROGRAMME_COUNT = 2;
+const GENERATED_COUNT_PER_COHORT =
+  VARIANT_COUNT_PER_PROGRAMME * GENERATED_PROGRAMME_COUNT;
+const GENERATED_COUNT_PER_RUN = GENERATED_COUNT_PER_COHORT * 3;
 
 function buildRequest(
   schedulerHeaderValue = SCHEDULER_HEADER_FIXTURE,
@@ -340,18 +347,22 @@ describe("daily brief orchestration route", () => {
     expect(body.stages.ingest.summary.candidateCount).toBe(1);
     expect(body.stages.cohorts).toHaveLength(3);
     expect(body.stages.cohorts[0].editorialCohort).toBe("APAC");
-    expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(2);
+    expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(
+      GENERATED_COUNT_PER_COHORT,
+    );
     expect(body.stages.cohorts[0].preflight.ready).toBe(true);
-    expect(body.summary.generatedCount).toBe(6);
-    expect(body.summary.historyCreatedCount).toBe(6);
+    expect(body.summary.generatedCount).toBe(GENERATED_COUNT_PER_RUN);
+    expect(body.summary.historyCreatedCount).toBe(GENERATED_COUNT_PER_RUN);
     expect(body.summary.publishedCount).toBe(1);
     expect(body.summary.failedCount).toBe(0);
     expect(body.summary.deliveryAttemptCount).toBe(1);
     expect(body.summary.deliverySuccessCount).toBe(1);
     expect(body.summary.deliveryFailureCount).toBe(0);
     expect(candidateSnapshot?.candidateCount).toBe(1);
-    expect(history).toHaveLength(6);
-    expect(history.filter((entry) => entry.status === "published")).toHaveLength(6);
+    expect(history).toHaveLength(GENERATED_COUNT_PER_RUN);
+    expect(history.filter((entry) => entry.status === "published")).toHaveLength(
+      GENERATED_COUNT_PER_RUN,
+    );
     expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
     expect(createNotionBriefPageMock).toHaveBeenCalledTimes(1);
   });
@@ -392,7 +403,7 @@ describe("daily brief orchestration route", () => {
     expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(0);
     expect(body.stages.cohorts[0].preflight).toBeNull();
     expect(body.stages.deliver).toBeNull();
-    expect(history).toHaveLength(6);
+    expect(history).toHaveLength(GENERATED_COUNT_PER_RUN);
     expect(sendBriefToGoodnotesMock).not.toHaveBeenCalled();
   });
 
@@ -408,7 +419,7 @@ describe("daily brief orchestration route", () => {
       "notion",
     );
     await configureRuntime();
-    createNotionBriefPageMock.mockRejectedValueOnce(new Error("Notion delivery failed."));
+    createNotionBriefPageMock.mockRejectedValue(new Error("Notion delivery failed."));
 
     const response = await runDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
@@ -433,8 +444,10 @@ describe("daily brief orchestration route", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(body.summary.generatedCount).toBe(6);
-    expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(2);
+    expect(body.summary.generatedCount).toBe(GENERATED_COUNT_PER_RUN);
+    expect(body.stages.cohorts[0].generate.summary.generatedCount).toBe(
+      GENERATED_COUNT_PER_COHORT,
+    );
     expect(body.summary.publishedCount).toBe(0);
     expect(body.summary.failedCount).toBe(1);
     expect(body.summary.deliverySuccessCount).toBe(0);

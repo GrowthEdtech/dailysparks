@@ -45,10 +45,13 @@ let tempDirectory = "";
 const TEST_AI_CONNECTION_TOKEN = ["fixture", "runtime", "credential"].join("-");
 const ROUTING_VARIANTS = [
   { academicTier: "foundation", learnerPersona: "analytical" },
+  { academicTier: "foundation", learnerPersona: "general" },
   { academicTier: "foundation", learnerPersona: "reflective" },
   { academicTier: "core", learnerPersona: "analytical" },
+  { academicTier: "core", learnerPersona: "general" },
   { academicTier: "core", learnerPersona: "reflective" },
   { academicTier: "enriched", learnerPersona: "analytical" },
+  { academicTier: "enriched", learnerPersona: "general" },
   { academicTier: "enriched", learnerPersona: "reflective" },
 ] as const;
 
@@ -264,10 +267,13 @@ describe("daily brief orchestrator", () => {
       "MYP",
       "DP",
     ]);
-    expect(result.generatedBriefs).toHaveLength(12);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length * 2);
     expect(result.generatedBriefs.every((brief) => brief.status === "draft")).toBe(
       true,
     );
+    expect(
+      [...new Set(result.generatedBriefs.map((brief) => brief.learnerPersona))].sort(),
+    ).toEqual(["analytical", "general", "reflective"]);
     const firstMypBrief = result.generatedBriefs.find((brief) => brief.programme === "MYP");
     const firstDpBrief = result.generatedBriefs.find((brief) => brief.programme === "DP");
 
@@ -298,7 +304,7 @@ describe("daily brief orchestrator", () => {
     expect(firstDpBrief?.resolvedPrompt).toContain(
       "Use this exact section order: 3-sentence abstract -> Core issue -> Claim -> Counterpoint or evidence limit -> Why this matters for IB thinking -> Key academic term -> TOK / essay prompt -> Notebook capture.",
     );
-    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length * 2);
   });
 
   test("generates editorial-only briefs even when only one active programme has audience coverage", async () => {
@@ -362,8 +368,8 @@ describe("daily brief orchestrator", () => {
       "DP",
       "MYP",
     ]);
-    expect(result.generatedBriefs).toHaveLength(12);
-    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length * 2);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length * 2);
   });
 
   test("adds programme-specific weekend framing to MYP and DP generation prompts", async () => {
@@ -626,10 +632,10 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-03T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs).toHaveLength(6);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length);
     expect(result.generatedBriefs.every((brief) => brief.programme === "DP")).toBe(true);
-    expect(result.skippedProgrammes).toEqual([]);
-    expect(fetchMock).toHaveBeenCalledTimes(6);
+    expect(result.skippedProgrammes).toEqual(["MYP"]);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length);
   });
 
   test("treats existing same-day drafts as already generated for idempotent reruns", async () => {
@@ -730,10 +736,10 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-03T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs).toHaveLength(6);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length);
     expect(result.generatedBriefs.every((brief) => brief.programme === "DP")).toBe(true);
-    expect(result.skippedProgrammes).toEqual([]);
-    expect(fetchMock).toHaveBeenCalledTimes(6);
+    expect(result.skippedProgrammes).toEqual(["MYP"]);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length);
   });
 
   test("does not let same-day test history block production generation for the same programme", async () => {
@@ -827,9 +833,9 @@ describe("daily brief orchestrator", () => {
       "DP",
       "MYP",
     ]);
-    expect(result.generatedBriefs).toHaveLength(12);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length * 2);
     expect(result.skippedProgrammes).toEqual([]);
-    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length * 2);
   });
 
   test("ignores routing-incomplete legacy history when deciding same-day idempotent skips", async () => {
@@ -949,9 +955,9 @@ describe("daily brief orchestrator", () => {
       "DP",
       "MYP",
     ]);
-    expect(result.generatedBriefs).toHaveLength(12);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length * 2);
     expect(result.skippedProgrammes).toEqual([]);
-    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length * 2);
   });
 
   test("blocks an exact published headline from being reused and reports the block reason", async () => {
@@ -1141,7 +1147,7 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-07T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs).toHaveLength(12);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length * 2);
     expect(
       result.generatedBriefs.every(
         (brief) =>
@@ -1152,7 +1158,7 @@ describe("daily brief orchestrator", () => {
     ).toBe(true);
     expect(result.selectionAudit.decision).toBe("follow_up");
     expect(result.selectionAudit.overrideNote).toMatch(/follow-up/i);
-    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length * 2);
   });
 
   test("rejects AI payloads that omit required non-empty output fields", async () => {

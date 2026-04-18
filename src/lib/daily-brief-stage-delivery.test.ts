@@ -215,7 +215,7 @@ describe("daily brief stage delivery", () => {
     );
   });
 
-  test("uses the last known Notion page as fallback when current Notion sync fails", async () => {
+  test("does not reuse the last known Notion page when current Notion sync fails", async () => {
     const notionProfile = await createNotionProfile();
     await updateStudentPreferences("notion@example.com", {
       studentName: "Learner",
@@ -253,7 +253,7 @@ describe("daily brief stage delivery", () => {
     expect(sendBriefToGoodnotesMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        interactionUrl: "https://www.notion.so/family/previous-brief",
+        interactionUrl: null,
       }),
       expect.anything(),
     );
