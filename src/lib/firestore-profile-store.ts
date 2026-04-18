@@ -16,7 +16,9 @@ import type {
 import {
   DEFAULT_PROGRAMME,
   getDefaultProgrammeYear,
+  isProgramme,
   isSubscriptionPlan,
+  isValidProgrammeYear,
 } from "./mvp-types";
 import { normalizeMarketingAttributionSource } from "./marketing-attribution";
 import {
@@ -371,7 +373,16 @@ function normalizeStudentRecord(
   raw: Partial<StudentRecord> | undefined,
 ): StudentRecord {
   const timestamp = new Date().toISOString();
-  const programme = raw?.programme || DEFAULT_PROGRAMME;
+  const programme =
+    typeof raw?.programme === "string" && isProgramme(raw.programme)
+      ? raw.programme
+      : DEFAULT_PROGRAMME;
+  const parsedProgrammeYear =
+    typeof raw?.programmeYear === "number"
+      ? raw.programmeYear
+      : typeof raw?.programmeYear === "string"
+        ? Number.parseInt(raw.programmeYear, 10)
+        : Number.NaN;
   const rawInterestTags = Array.isArray(raw?.interestTags)
     ? raw.interestTags.filter((value): value is string => typeof value === "string")
     : [];
@@ -380,11 +391,15 @@ function normalizeStudentRecord(
     id,
     parentId: raw?.parentId || "",
     studentName: raw?.studentName?.trim() || "Student",
-    programme: normalizeProgramme(raw?.programme),
-    programmeYear: normalizeProgrammeYear(raw?.programmeYear),
+    programme,
+    programmeYear:
+      Number.isInteger(parsedProgrammeYear) &&
+      isValidProgrammeYear(programme, parsedProgrammeYear)
+        ? parsedProgrammeYear
+        : getDefaultProgrammeYear(programme),
     academicTier: raw?.academicTier || "core",
     learnerPersona: raw?.learnerPersona || "general",
-    engagementStats: raw?.engagementStats || null,
+    engagementStats: raw?.engagementStats || undefined,
     adaptationHistory: raw?.adaptationHistory || [],
     interestTags: sanitizeInterestTagsForProgramme(programme, rawInterestTags),
     goodnotesEmail: raw?.goodnotesEmail?.trim() || "",

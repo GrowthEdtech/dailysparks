@@ -110,6 +110,8 @@ function toGeneratedBriefDraft(
     resolvedPrompt: "",
     candidateCount: brief.sourceReferences.length,
     retrievalPrompts: brief.retrievalPrompts,
+    recommendedStatus: brief.status,
+    recommendedPipelineStage: brief.pipelineStage,
   };
 }
 

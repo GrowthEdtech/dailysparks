@@ -2,6 +2,7 @@ import { getSessionEmailFromRequest } from "../../../../lib/session";
 import { getProfileByEmail, updateParentNotionConnection } from "../../../../lib/mvp-store";
 import { getNotionConnectionSecret } from "../../../../lib/notion-connection-store";
 import { decryptNotionToken } from "../../../../lib/notion-crypto";
+import { getNotionConfig } from "../../../../lib/notion-config";
 import { deployStandardIbTemplate } from "../../../../lib/notion-template-factory";
 
 export async function POST(request: Request) {
@@ -30,7 +31,16 @@ export async function POST(request: Request) {
       return Response.json({ message: "Notion is not connected." }, { status: 400 });
     }
 
-    const accessToken = await decryptNotionToken(connection.accessTokenCiphertext);
+    const notionConfig = getNotionConfig();
+
+    if (!notionConfig) {
+      return Response.json({ message: "Notion is not configured." }, { status: 503 });
+    }
+
+    const accessToken = decryptNotionToken(
+      notionConfig.encryptionSecret,
+      connection.accessTokenCiphertext,
+    );
 
     if (!accessToken) {
       return Response.json({ message: "Invalid Notion connection." }, { status: 400 });

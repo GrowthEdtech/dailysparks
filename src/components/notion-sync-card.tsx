@@ -421,15 +421,6 @@ export default function NotionSyncCard({
                       {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
                       Initialize IB DP Workspace (Recommended)
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => void createArchive()}
-                      disabled={isWorking || isPending || !selectedPageId}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-                      Basic Archive Only
-                    </button>
                   </div>
                 </div>
               ) : (
