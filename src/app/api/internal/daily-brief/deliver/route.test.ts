@@ -313,7 +313,7 @@ describe("daily brief deliver route", () => {
       ["goodnotes", "notion"],
     );
     await createDailyBriefHistoryEntry(buildHistoryInput());
-    createNotionBriefPageMock.mockRejectedValueOnce(new Error("Notion timed out."));
+    createNotionBriefPageMock.mockRejectedValue(new Error("Notion timed out."));
 
     const response = await deliverDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
@@ -330,6 +330,7 @@ describe("daily brief deliver route", () => {
     expect(body.summary.deliveryAttemptCount).toBe(2);
     expect(body.summary.deliverySuccessCount).toBe(1);
     expect(body.summary.deliveryFailureCount).toBe(1);
+    expect(createNotionBriefPageMock).toHaveBeenCalledTimes(3);
     expect(history[0]?.status).toBe("published");
     expect(history[0]?.deliveryAttemptCount).toBe(2);
     expect(history[0]?.deliverySuccessCount).toBe(1);
@@ -480,7 +481,7 @@ describe("daily brief deliver route", () => {
       ["goodnotes"],
     );
     await createDailyBriefHistoryEntry(buildHistoryInput());
-    sendBriefToGoodnotesMock.mockRejectedValueOnce(new Error("SMTP offline."));
+    sendBriefToGoodnotesMock.mockRejectedValue(new Error("SMTP offline."));
 
     const response = await deliverDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
@@ -495,6 +496,7 @@ describe("daily brief deliver route", () => {
 
     expect(response.status).toBe(200);
     expect(body.summary.failedCount).toBe(1);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(3);
     expect(history[0]?.status).toBe("failed");
     expect(history[0]?.pipelineStage).toBe("failed");
     expect(history[0]?.deliveryFailureCount).toBe(1);
@@ -737,9 +739,7 @@ describe("daily brief deliver route", () => {
       ["goodnotes"],
     );
     await createDailyBriefHistoryEntry(buildHistoryInput());
-    sendBriefToGoodnotesMock
-      .mockRejectedValueOnce(new Error("Relay timeout."))
-      .mockRejectedValueOnce(new Error("Relay timeout."));
+    sendBriefToGoodnotesMock.mockRejectedValue(new Error("Relay timeout."));
 
     const response = await deliverDailyBriefRoute(
       buildRequest(SCHEDULER_HEADER_FIXTURE, {
@@ -755,7 +755,7 @@ describe("daily brief deliver route", () => {
     expect(response.status).toBe(200);
     expect(body.summary.deliveredCount).toBe(0);
     expect(body.summary.syntheticCanaryBlockedCount).toBe(1);
-    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(2);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(6);
     expect(sendBriefToGoodnotesMock.mock.calls[0]?.[0]).toMatchObject({
       parent: {
         email: "synthetic-canary@example.com",
@@ -789,7 +789,7 @@ describe("daily brief deliver route", () => {
         failureCount: 2,
       }),
     );
-  });
+  }, 15000);
 
   test("falls back to the first healthy synthetic canary recipient in configured order", async () => {
     process.env.DAILY_BRIEF_SYNTHETIC_CANARY_ENABLED = "true";

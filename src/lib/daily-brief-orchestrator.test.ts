@@ -43,6 +43,17 @@ function buildCandidate(
 const fetchMock = vi.fn<typeof fetch>();
 let tempDirectory = "";
 const TEST_AI_CONNECTION_TOKEN = ["fixture", "runtime", "credential"].join("-");
+const ROUTING_VARIANTS = [
+  { academicTier: "foundation", learnerPersona: "analytical" },
+  { academicTier: "foundation", learnerPersona: "general" },
+  { academicTier: "foundation", learnerPersona: "reflective" },
+  { academicTier: "core", learnerPersona: "analytical" },
+  { academicTier: "core", learnerPersona: "general" },
+  { academicTier: "core", learnerPersona: "reflective" },
+  { academicTier: "enriched", learnerPersona: "analytical" },
+  { academicTier: "enriched", learnerPersona: "general" },
+  { academicTier: "enriched", learnerPersona: "reflective" },
+] as const;
 
 async function createEligibleProgrammeProfile(
   email: string,
@@ -102,6 +113,27 @@ function createChatCompletionResponse(payload: Record<string, unknown>) {
     }),
     { status: 200 },
   );
+}
+
+async function seedProgrammeHistoryVariants(
+  base: Omit<
+    Parameters<typeof createDailyBriefHistoryEntry>[0],
+    "academicTier" | "learnerPersona" | "headline" | "summary" | "briefMarkdown"
+  > & {
+    headlineBase: string;
+    summaryBase: string;
+    briefMarkdownBase: string;
+  },
+) {
+  for (const variant of ROUTING_VARIANTS) {
+    await createDailyBriefHistoryEntry({
+      ...base,
+      ...variant,
+      headline: `${base.headlineBase} (${variant.academicTier}/${variant.learnerPersona})`,
+      summary: base.summaryBase,
+      briefMarkdown: `${base.briefMarkdownBase}\n${variant.academicTier}/${variant.learnerPersona}`,
+    });
+  }
 }
 
 beforeEach(async () => {
@@ -182,31 +214,24 @@ describe("daily brief orchestrator", () => {
       notes: "Primary policy",
     });
 
-    fetchMock
-      .mockResolvedValueOnce(
-        createChatCompletionResponse({
-          headline: "PYP ocean mapping brief",
-          summary: "A younger learner summary.",
-          briefMarkdown: "## PYP\nStudents are helping map turtle routes.",
-          topicTags: ["oceans", "science"],
-        }),
-      )
-      .mockResolvedValueOnce(
-        createChatCompletionResponse({
-          headline: "MYP ocean mapping brief",
-          summary: "A middle-years analytical summary.",
-          briefMarkdown: "## MYP\nStudents compare why ocean data matters.",
-          topicTags: ["oceans", "migration"],
-        }),
-      )
-      .mockResolvedValueOnce(
-        createChatCompletionResponse({
-          headline: "DP ocean mapping brief",
-          summary: "A diploma-level analytical summary.",
-          briefMarkdown: "## DP\nStudents evaluate why ocean evidence matters.",
-          topicTags: ["oceans", "evidence"],
-        }),
-      );
+    fetchMock.mockImplementation(async (_input, init) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const programmeLine =
+        payload.messages
+          .find((message) => message.role === "user")
+          ?.content.split("\n")
+          .find((line) => line.startsWith("Programme: ")) ?? "Programme: MYP";
+      const programme = programmeLine.replace("Programme: ", "").trim();
+
+      return createChatCompletionResponse({
+        headline: `${programme} ocean mapping brief`,
+        summary: `${programme} analytical summary.`,
+        briefMarkdown: `## ${programme}\nStudents compare why ocean data matters.`,
+        topicTags: programme === "DP" ? ["oceans", "evidence"] : ["oceans", "migration"],
+      });
+    });
 
     const candidates = [
       buildCandidate(),
@@ -238,14 +263,21 @@ describe("daily brief orchestrator", () => {
     });
 
     expect(result.selectedTopic?.clusterKey).toBe("students map sea turtles");
-    expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
+    expect([...new Set(result.generatedBriefs.map((brief) => brief.programme))]).toEqual([
       "MYP",
       "DP",
     ]);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length * 2);
     expect(result.generatedBriefs.every((brief) => brief.status === "draft")).toBe(
       true,
     );
-    expect(result.generatedBriefs[0]).toMatchObject({
+    expect(
+      [...new Set(result.generatedBriefs.map((brief) => brief.learnerPersona))].sort(),
+    ).toEqual(["analytical", "general", "reflective"]);
+    const firstMypBrief = result.generatedBriefs.find((brief) => brief.programme === "MYP");
+    const firstDpBrief = result.generatedBriefs.find((brief) => brief.programme === "DP");
+
+    expect(firstMypBrief).toMatchObject({
       aiConnectionName: "NF Relay",
       aiModel: "gpt-5.4",
       promptVersionLabel: "v1.0.0",
@@ -254,25 +286,25 @@ describe("daily brief orchestrator", () => {
         expect.objectContaining({ sourceId: "npr" }),
       ],
     });
-    expect(result.generatedBriefs[0]?.resolvedPrompt).toContain(
+    expect(firstMypBrief?.resolvedPrompt).toContain(
       "Use clear, family-facing language.",
     );
-    expect(result.generatedBriefs[0]?.resolvedPrompt).toContain(
+    expect(firstMypBrief?.resolvedPrompt).toContain(
       "Add comparisons and causes.",
     );
-    expect(result.generatedBriefs[0]?.resolvedPrompt).toContain(
+    expect(firstMypBrief?.resolvedPrompt).toContain(
       "Runtime contract overlay",
     );
-    expect(result.generatedBriefs[0]?.resolvedPrompt).toContain(
+    expect(firstMypBrief?.resolvedPrompt).toContain(
       "Use this exact section order: What's happening? -> Why does this matter? -> Global context -> Compare or connect -> Words to know -> Inquiry question -> Notebook prompt.",
     );
-    expect(result.generatedBriefs[1]?.resolvedPrompt).toContain(
+    expect(firstDpBrief?.resolvedPrompt).toContain(
       "Add evidence limits and nuance.",
     );
-    expect(result.generatedBriefs[1]?.resolvedPrompt).toContain(
+    expect(firstDpBrief?.resolvedPrompt).toContain(
       "Use this exact section order: 3-sentence abstract -> Core issue -> Claim -> Counterpoint or evidence limit -> Why this matters for IB thinking -> Key academic term -> TOK / essay prompt -> Notebook capture.",
     );
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length * 2);
   });
 
   test("generates editorial-only briefs even when only one active programme has audience coverage", async () => {
@@ -332,11 +364,12 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-03T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
-      "MYP",
+    expect([...new Set(result.generatedBriefs.map((brief) => brief.programme))].sort()).toEqual([
       "DP",
+      "MYP",
     ]);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length * 2);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length * 2);
   });
 
   test("adds programme-specific weekend framing to MYP and DP generation prompts", async () => {
@@ -405,8 +438,12 @@ describe("daily brief orchestrator", () => {
     expect(mypPrompt).toContain("global culture");
     expect(dpPrompt).toContain("Weekend delivery mode: TOK day");
     expect(dpPrompt).toContain("knowledge questions");
-    expect(result.generatedBriefs[0]?.resolvedPrompt).toContain("Vision day");
-    expect(result.generatedBriefs[1]?.resolvedPrompt).toContain("TOK day");
+    expect(
+      result.generatedBriefs.find((brief) => brief.programme === "MYP")?.resolvedPrompt,
+    ).toContain("Vision day");
+    expect(
+      result.generatedBriefs.find((brief) => brief.programme === "DP")?.resolvedPrompt,
+    ).toContain("TOK day");
   });
 
   test("biases shared weekend topic selection toward a Vision plus TOK-friendly topic", async () => {
@@ -445,23 +482,27 @@ describe("daily brief orchestrator", () => {
       notes: "Weekend selection test.",
     });
 
-    fetchMock
-      .mockResolvedValueOnce(
-        createChatCompletionResponse({
-          headline: "MYP weekend brief",
-          summary: "MYP weekend summary.",
-          briefMarkdown: "## MYP\nWeekend bridge brief.",
-          topicTags: ["weekend", "vision"],
-        }),
-      )
-      .mockResolvedValueOnce(
-        createChatCompletionResponse({
-          headline: "DP weekend brief",
-          summary: "DP weekend summary.",
-          briefMarkdown: "## DP\nWeekend TOK brief.",
-          topicTags: ["weekend", "tok"],
-        }),
-      );
+    fetchMock.mockImplementation(async (_input, init) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const programmeLine =
+        payload.messages
+          .find((message) => message.role === "user")
+          ?.content.split("\n")
+          .find((line) => line.startsWith("Programme: ")) ?? "Programme: MYP";
+      const programme = programmeLine.replace("Programme: ", "").trim();
+
+      return createChatCompletionResponse({
+        headline: `${programme} weekend brief`,
+        summary: `${programme} weekend summary.`,
+        briefMarkdown:
+          programme === "DP"
+            ? "## DP\nWeekend TOK brief."
+            : "## MYP\nWeekend bridge brief.",
+        topicTags: programme === "DP" ? ["weekend", "tok"] : ["weekend", "vision"],
+      });
+    });
 
     const result = await generateDailyBriefDrafts({
       scheduledFor: "2026-04-12",
@@ -535,10 +576,11 @@ describe("daily brief orchestrator", () => {
       notes: "Primary policy",
     });
 
-    await createDailyBriefHistoryEntry({
+    await seedProgrammeHistoryVariants({
       scheduledFor: "2026-04-03",
-      headline: "Existing MYP brief",
-      summary: "Already generated for MYP.",
+      headlineBase: "Existing MYP brief",
+      summaryBase: "Already generated for MYP.",
+      briefMarkdownBase: "## MYP\nExisting brief",
       programme: "MYP",
       status: "published",
       topicTags: ["oceans"],
@@ -560,7 +602,8 @@ describe("daily brief orchestrator", () => {
       repetitionRisk: "low",
       repetitionNotes: "Already shipped.",
       adminNotes: "",
-      briefMarkdown: "## MYP\nExisting brief",
+      recordKind: "production",
+      editorialCohort: "APAC",
     });
 
     fetchMock.mockImplementation(async (_input, init) => {
@@ -589,11 +632,10 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-03T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
-      "DP",
-    ]);
-    expect(result.skippedProgrammes).toContain("MYP");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length);
+    expect(result.generatedBriefs.every((brief) => brief.programme === "DP")).toBe(true);
+    expect(result.skippedProgrammes).toEqual(["MYP"]);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length);
   });
 
   test("treats existing same-day drafts as already generated for idempotent reruns", async () => {
@@ -627,10 +669,11 @@ describe("daily brief orchestrator", () => {
       notes: "Primary policy",
     });
 
-    await createDailyBriefHistoryEntry({
+    await seedProgrammeHistoryVariants({
       scheduledFor: "2026-04-03",
-      headline: "Existing MYP draft",
-      summary: "Already generated for MYP.",
+      headlineBase: "Existing MYP draft",
+      summaryBase: "Already generated for MYP.",
+      briefMarkdownBase: "## MYP\nExisting draft",
       programme: "MYP",
       status: "draft",
       topicTags: ["oceans"],
@@ -652,7 +695,8 @@ describe("daily brief orchestrator", () => {
       repetitionRisk: "low",
       repetitionNotes: "Already generated.",
       adminNotes: "",
-      briefMarkdown: "## MYP\nExisting draft",
+      recordKind: "production",
+      editorialCohort: "APAC",
       pipelineStage: "generated",
       candidateSnapshotAt: "2026-04-03T05:00:00.000Z",
       generationCompletedAt: "2026-04-03T06:00:00.000Z",
@@ -692,11 +736,10 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-03T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
-      "DP",
-    ]);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length);
+    expect(result.generatedBriefs.every((brief) => brief.programme === "DP")).toBe(true);
     expect(result.skippedProgrammes).toEqual(["MYP"]);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length);
   });
 
   test("does not let same-day test history block production generation for the same programme", async () => {
@@ -786,9 +829,13 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-03T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs.map((brief) => brief.programme)).toContain("MYP");
-    expect(result.skippedProgrammes).not.toContain("MYP");
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect([...new Set(result.generatedBriefs.map((brief) => brief.programme))].sort()).toEqual([
+      "DP",
+      "MYP",
+    ]);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length * 2);
+    expect(result.skippedProgrammes).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length * 2);
   });
 
   test("ignores routing-incomplete legacy history when deciding same-day idempotent skips", async () => {
@@ -904,12 +951,13 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-03T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs.map((brief) => brief.programme)).toEqual([
-      "MYP",
+    expect([...new Set(result.generatedBriefs.map((brief) => brief.programme))].sort()).toEqual([
       "DP",
+      "MYP",
     ]);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length * 2);
     expect(result.skippedProgrammes).toEqual([]);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length * 2);
   });
 
   test("blocks an exact published headline from being reused and reports the block reason", async () => {
@@ -1099,7 +1147,7 @@ describe("daily brief orchestrator", () => {
       now: new Date("2026-04-07T08:00:00.000Z"),
     });
 
-    expect(result.generatedBriefs).toHaveLength(2);
+    expect(result.generatedBriefs).toHaveLength(ROUTING_VARIANTS.length * 2);
     expect(
       result.generatedBriefs.every(
         (brief) =>
@@ -1110,7 +1158,7 @@ describe("daily brief orchestrator", () => {
     ).toBe(true);
     expect(result.selectionAudit.decision).toBe("follow_up");
     expect(result.selectionAudit.overrideNote).toMatch(/follow-up/i);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(ROUTING_VARIANTS.length * 2);
   });
 
   test("rejects AI payloads that omit required non-empty output fields", async () => {
@@ -1159,5 +1207,73 @@ describe("daily brief orchestrator", () => {
         now: new Date("2026-04-03T08:00:00.000Z"),
       }),
     ).rejects.toThrow(/headline/i);
+  });
+
+  test("keeps generated variants in draft/generated until preflight approves them", async () => {
+    await createEligibleProgrammeProfile(
+      "myp-family@example.com",
+      "MYP",
+      "none",
+    );
+    await createAiConnection({
+      name: "NF Relay",
+      providerType: "openai-compatible",
+      baseUrl: "https://relay.nf.video/v1",
+      defaultModel: "gpt-5.4",
+      apiKey: TEST_AI_CONNECTION_TOKEN,
+      active: true,
+      isDefault: true,
+      notes: "Primary runtime connection.",
+    });
+    await createPromptPolicy({
+      name: "Family Daily Sparks Core",
+      versionLabel: "v1.0.0",
+      sharedInstructions: "Use clear, family-facing language.",
+      antiRepetitionInstructions: "Avoid repeating recent editorial angles.",
+      outputContractInstructions:
+        "Return JSON with headline, summary, briefMarkdown, and topicTags.",
+      pypInstructions: "Use short sentences and concrete examples.",
+      mypInstructions: "Add comparisons and causes.",
+      dpInstructions: "Add evidence limits and nuance.",
+      notes: "Primary policy",
+    });
+
+    fetchMock.mockImplementation(async (_input, init) => {
+      const payload = JSON.parse(String(init?.body)) as {
+        messages: Array<{ role: string; content: string }>;
+      };
+      const programmeLine =
+        payload.messages
+          .find((message) => message.role === "user")
+          ?.content.split("\n")
+          .find((line) => line.startsWith("Programme: ")) ?? "Programme: MYP";
+      const programme = programmeLine.replace("Programme: ", "").trim();
+
+      return createChatCompletionResponse({
+        headline: `${programme} ocean mapping brief`,
+        summary: `${programme} analytical summary.`,
+        briefMarkdown: `## ${programme}\nStudents compare why ocean data matters.`,
+        topicTags: ["oceans", "migration"],
+      });
+    });
+
+    const result = await generateDailyBriefDrafts({
+      scheduledFor: "2026-04-03",
+      candidates: [buildCandidate({})],
+      fetchImpl: fetchMock,
+      now: new Date("2026-04-03T08:00:00.000Z"),
+    });
+
+    expect(result.generatedBriefs.length).toBeGreaterThan(0);
+    expect(
+      result.generatedBriefs.every(
+        (brief) =>
+          brief.status === "draft" &&
+          brief.recommendedStatus === "draft" &&
+          brief.recommendedPipelineStage === "generated" &&
+          brief.academicTier !== undefined &&
+          brief.learnerPersona !== undefined,
+      ),
+    ).toBe(true);
   });
 });

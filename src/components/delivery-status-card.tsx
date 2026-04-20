@@ -14,7 +14,7 @@ export default function DeliveryStatusCard({ profile }: DeliveryStatusCardProps)
   const notionStatus = parent.notionLastSyncStatus;
   
   const hasGoodnotes = student.goodnotesConnected && student.goodnotesEmail;
-  const hasNotion = parent.notionConnected && parent.notionDatabaseId;
+  const hasNotion = student.notionConnected && parent.notionDatabaseId;
 
   if (!hasGoodnotes && !hasNotion) return null;
 

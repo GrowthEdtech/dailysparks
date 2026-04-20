@@ -1,6 +1,5 @@
 import { listDailyBriefHistory } from "./daily-brief-history-store";
 import { fetchNotionPageInteractions } from "./notion";
-import { getProfileStore } from "./profile-store-factory";
 import { generateOpenAiCompatibleText } from "./ai-runtime";
 import { getDefaultAiConnectionWithSecret } from "./ai-connection-store";
 import { evaluateStudentTrajectory } from "./learning-path-engine";

@@ -17,11 +17,11 @@ import {
 } from "./daily-brief-cohorts";
 import { listDailyBriefHistory } from "./daily-brief-history-store";
 import type { DailyBriefSelectedTopicRecord } from "./daily-brief-candidate-schema";
-import type {
-  DailyBriefHistoryRecord,
-  DailyBriefRepetitionRisk,
+import {
+  hasCompleteDailyBriefRoutingKey,
+  type DailyBriefHistoryRecord,
+  type DailyBriefRepetitionRisk,
 } from "./daily-brief-history-schema";
-import { hasCompleteDailyBriefRoutingKey } from "./daily-brief-history-schema";
 import { selectTopicWithPolicy } from "./daily-brief-selection-policy";
 import type { Programme } from "./mvp-types";
 import {
@@ -113,26 +113,6 @@ function getDaysBetween(left: string, right: string) {
   }
 
   return Math.abs(leftDate - rightDate) / (1000 * 60 * 60 * 24);
-}
-
-function getExistingProgrammeSet(
-  historyEntries: DailyBriefHistoryRecord[],
-  scheduledFor: string,
-  editorialCohort: DailyBriefEditorialCohort,
-  recordKind: DailyBriefHistoryRecord["recordKind"],
-) {
-  return new Set(
-    historyEntries
-      .filter(
-        (entry) =>
-          hasCompleteDailyBriefRoutingKey(entry) &&
-          entry.scheduledFor === scheduledFor &&
-          entry.recordKind === recordKind &&
-          entry.editorialCohort === editorialCohort &&
-          entry.status !== "failed",
-      )
-      .map((entry) => entry.programme),
-  );
 }
 
 function buildGenerationUserPrompt(
@@ -332,34 +312,42 @@ export async function generateDailyBriefDrafts(
     };
   }
 
-  const existingProgrammeSet = getExistingProgrammeSet(
-    historyEntries,
-    options.scheduledFor,
-    editorialCohort,
-    options.recordKind ?? "production",
-  );
   const generatedBriefs: GeneratedDailyBriefDraft[] = [];
   const skippedProgrammes: Programme[] = [];
+  const tiers: Array<"foundation" | "core" | "enriched"> = [
+    "foundation",
+    "core",
+    "enriched",
+  ];
+  const personas: Array<"analytical" | "general" | "reflective"> = [
+    "analytical",
+    "general",
+    "reflective",
+  ];
+  const routingVariantCount = tiers.length * personas.length;
 
   for (const programme of editorialProgrammes) {
-    const tiers: Array<"foundation" | "core" | "enriched"> = ["foundation", "core", "enriched"];
-    const personas: Array<"analytical" | "reflective"> = ["analytical", "reflective"];
-    
+    let existingVariantCount = 0;
+
     for (const tier of tiers) {
       for (const persona of personas) {
         // Check if this specific programme + tier + persona combination already exists
-        const alreadyExists = historyEntries.some(entry => 
-          entry.scheduledFor === options.scheduledFor &&
-          entry.programme === programme &&
-          entry.editorialCohort === editorialCohort &&
-          entry.academicTier === tier &&
-          entry.learnerPersona === persona &&
-          entry.status !== "failed"
+        const alreadyExists = historyEntries.some(
+          (entry) =>
+            hasCompleteDailyBriefRoutingKey(entry) &&
+            entry.scheduledFor === options.scheduledFor &&
+            entry.recordKind === (options.recordKind ?? "production") &&
+            entry.programme === programme &&
+            entry.editorialCohort === editorialCohort &&
+            entry.academicTier === tier &&
+            entry.learnerPersona === persona &&
+            entry.status !== "failed",
         );
 
-      if (alreadyExists) {
-        continue;
-      }
+        if (alreadyExists) {
+          existingVariantCount += 1;
+          continue;
+        }
 
         const resolvedPrompt = [
           buildResolvedPromptPreview(promptPolicy, programme),
@@ -370,104 +358,116 @@ export async function generateDailyBriefDrafts(
           "",
           ...getPersonaRuntimeIntentNotes(persona),
         ].join("\n");
-      const programmeProfile = getEditorialProgrammeProfile(programme);
-      
-      const MAX_AUTOREWRITE_RETRIES = 3;
-      let attempts = 0;
-      let generatedPayload: GeneratedBriefPayload | null = null;
-      let lastPayload: GeneratedBriefPayload | null = null;
-      let aiResult: any;
-      let usedPlasticWords: string[] = [];
+        const programmeProfile = getEditorialProgrammeProfile(programme);
 
-      while (attempts < MAX_AUTOREWRITE_RETRIES) {
-        attempts++;
-        const warningPrompt = usedPlasticWords.length > 0 
-          ? `\nCRITICAL DO NOT USE THESE WORDS: ${usedPlasticWords.join(", ")}\nREWRITE REQUIRED.`
-          : "";
+        const MAX_AUTOREWRITE_RETRIES = 3;
+        let attempts = 0;
+        let generatedPayload: GeneratedBriefPayload | null = null;
+        let lastPayload: GeneratedBriefPayload | null = null;
+        let aiResult: any;
+        let usedPlasticWords: string[] = [];
 
-        aiResult = await generateTextWithDefaultAiConnectionPolicy({
-          developerPrompt: resolvedPrompt,
-          userPrompt: [
-            buildGenerationUserPrompt(selectedTopic, programme, options.scheduledFor),
-            "",
-            `Programme framing note: ${programmeProfile.contentGoal}`,
-            `Prompt focus: ${programmeProfile.promptFocus}`,
-            warningPrompt
-          ].join("\n"),
-          fetchImpl: options.fetchImpl,
-        });
+        while (attempts < MAX_AUTOREWRITE_RETRIES) {
+          attempts++;
+          const warningPrompt =
+            usedPlasticWords.length > 0
+              ? `\nCRITICAL DO NOT USE THESE WORDS: ${usedPlasticWords.join(", ")}\nREWRITE REQUIRED.`
+              : "";
 
-        const tempPayload = parseGeneratedBriefPayload(aiResult.text);
-        lastPayload = tempPayload;
-        
-        const foundWords = DAILY_SPARKS_ANTI_PLASTIC_WORDS.filter((w) => 
-          tempPayload.briefMarkdown.toLowerCase().includes(w.toLowerCase())
+          aiResult = await generateTextWithDefaultAiConnectionPolicy({
+            developerPrompt: resolvedPrompt,
+            userPrompt: [
+              buildGenerationUserPrompt(
+                selectedTopic,
+                programme,
+                options.scheduledFor,
+              ),
+              "",
+              `Programme framing note: ${programmeProfile.contentGoal}`,
+              `Prompt focus: ${programmeProfile.promptFocus}`,
+              warningPrompt,
+            ].join("\n"),
+            fetchImpl: options.fetchImpl,
+          });
+
+          const tempPayload = parseGeneratedBriefPayload(aiResult.text);
+          lastPayload = tempPayload;
+
+          const foundWords = DAILY_SPARKS_ANTI_PLASTIC_WORDS.filter((w) =>
+            tempPayload.briefMarkdown.toLowerCase().includes(w.toLowerCase()),
+          );
+
+          if (foundWords.length > 0) {
+            usedPlasticWords = foundWords;
+            console.warn(
+              `[Quality Filter] Rejecting brief for ${programme}/${tier} because it used plastic words: ${foundWords.join(", ")}. Retrying...`,
+            );
+            continue;
+          }
+
+          generatedPayload = tempPayload;
+          break;
+        }
+
+        const passedQualityFilter = generatedPayload !== null;
+
+        if (!generatedPayload) {
+          generatedPayload = lastPayload!;
+        }
+        const finalAdminNotes = passedQualityFilter
+          ? ""
+          : `Auto-Rewrite failed after ${MAX_AUTOREWRITE_RETRIES} attempts. Plastic words detected: ${usedPlasticWords.join(", ")}. Curation required.`;
+
+        const repetitionAssessment = buildRepetitionAssessment(
+          historyEntries,
+          options.scheduledFor,
+          selectedTopic,
+          generatedPayload.topicTags,
         );
 
-        if (foundWords.length > 0) {
-          usedPlasticWords = foundWords;
-          console.warn(`[Quality Filter] Rejecting brief for ${programme}/${tier} because it used plastic words: ${foundWords.join(", ")}. Retrying...`);
-          continue;
-        }
-        
-        generatedPayload = tempPayload;
-        break;
+        generatedBriefs.push({
+          scheduledFor: options.scheduledFor,
+          recordKind: options.recordKind ?? "production",
+          headline: generatedPayload.headline,
+          normalizedHeadline:
+            selectionDecision.normalizedHeadline ??
+            normalizeHeadlineForComparison(generatedPayload.headline),
+          summary: generatedPayload.summary,
+          programme,
+          editorialCohort,
+          academicTier: tier,
+          learnerPersona: persona,
+          status: "draft",
+          topicClusterKey:
+            selectionDecision.topicClusterKey ?? selectedTopic.clusterKey,
+          topicLatestPublishedAt: selectionDecision.latestPublishedAt,
+          selectionDecision: selectionDecision.selectionAudit.decision ?? "new",
+          selectionOverrideNote: selectionDecision.selectionAudit.overrideNote,
+          blockedTopics: selectionDecision.selectionAudit.blockedTopics,
+          topicTags: generatedPayload.topicTags,
+          sourceReferences: selectedTopic.sourceReferences,
+          aiConnectionId: aiResult.connectionUsed.id,
+          aiConnectionName: aiResult.connectionUsed.name,
+          aiModel: aiResult.model,
+          promptPolicyId: promptPolicy.id,
+          promptVersionLabel: promptPolicy.versionLabel,
+          promptVersion: promptPolicy.versionLabel,
+          repetitionNotes: repetitionAssessment.repetitionNotes,
+          repetitionRisk: repetitionAssessment.repetitionRisk,
+          adminNotes: finalAdminNotes,
+          briefMarkdown: generatedPayload.briefMarkdown,
+          retrievalPrompts: generatedPayload.retrievalPrompts,
+          resolvedPrompt,
+          candidateCount: selectedTopic.topicCandidates.length,
+          recommendedStatus: "draft",
+          recommendedPipelineStage: "generated",
+          interactionUrl: null,
+        });
       }
+    }
 
-      const isApprovedZeroShot = generatedPayload !== null;
-
-      if (!generatedPayload) {
-        generatedPayload = lastPayload!;
-      }
-      const finalAdminNotes = isApprovedZeroShot 
-        ? "" 
-        : `Auto-Rewrite failed after ${MAX_AUTOREWRITE_RETRIES} attempts. Plastic words detected: ${usedPlasticWords.join(", ")}. Curation required.`;
-      
-      const repetitionAssessment = buildRepetitionAssessment(
-        historyEntries,
-        options.scheduledFor,
-        selectedTopic,
-        generatedPayload.topicTags,
-      );
-
-      generatedBriefs.push({
-        scheduledFor: options.scheduledFor,
-        recordKind: options.recordKind ?? "production",
-        headline: generatedPayload.headline,
-        normalizedHeadline:
-          selectionDecision.normalizedHeadline ??
-          normalizeHeadlineForComparison(generatedPayload.headline),
-        summary: generatedPayload.summary,
-        programme,
-        editorialCohort,
-        academicTier: tier,
-        learnerPersona: persona,
-        status: "draft",
-        topicClusterKey: selectionDecision.topicClusterKey ?? selectedTopic.clusterKey,
-        topicLatestPublishedAt: selectionDecision.latestPublishedAt,
-        selectionDecision:
-          selectionDecision.selectionAudit.decision ?? "new",
-        selectionOverrideNote: selectionDecision.selectionAudit.overrideNote,
-        blockedTopics: selectionDecision.selectionAudit.blockedTopics,
-        topicTags: generatedPayload.topicTags,
-        sourceReferences: selectedTopic.sourceReferences,
-        aiConnectionId: aiResult.connectionUsed.id,
-        aiConnectionName: aiResult.connectionUsed.name,
-        aiModel: aiResult.model,
-        promptPolicyId: promptPolicy.id,
-        promptVersionLabel: promptPolicy.versionLabel,
-        promptVersion: promptPolicy.versionLabel,
-        repetitionNotes: repetitionAssessment.repetitionNotes,
-        repetitionRisk: repetitionAssessment.repetitionRisk,
-        adminNotes: finalAdminNotes,
-        briefMarkdown: generatedPayload.briefMarkdown,
-        retrievalPrompts: generatedPayload.retrievalPrompts,
-        resolvedPrompt,
-        candidateCount: selectedTopic.topicCandidates.length,
-        recommendedStatus: isApprovedZeroShot ? "approved" : "draft",
-        recommendedPipelineStage: isApprovedZeroShot ? "preflight_passed" : "generated",
-        interactionUrl: null,
-      });
+    if (existingVariantCount === routingVariantCount) {
+      skippedProgrammes.push(programme);
     }
   }
 
@@ -477,5 +477,4 @@ export async function generateDailyBriefDrafts(
     generatedBriefs,
     skippedProgrammes,
   };
-}
 }

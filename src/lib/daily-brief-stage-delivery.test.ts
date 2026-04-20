@@ -215,6 +215,100 @@ describe("daily brief stage delivery", () => {
     );
   });
 
+  test("does not reuse the last known Notion page when current Notion sync fails", async () => {
+    const notionProfile = await createNotionProfile();
+    await updateStudentPreferences("notion@example.com", {
+      studentName: "Learner",
+      programme: "PYP",
+      programmeYear: 5,
+      goodnotesEmail: "learner@goodnotes.email",
+    });
+    const profileWithFallback = await updateParentNotionConnection(
+      "notion@example.com",
+      {
+        notionLastSyncPageUrl: "https://www.notion.so/family/previous-brief",
+      },
+    );
+
+    await updateStudentGoodnotesDelivery("notion@example.com", {
+      goodnotesConnected: true,
+      goodnotesVerifiedAt: "2026-04-03T00:00:00.000Z",
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Goodnotes delivery is ready.",
+    });
+    const readyProfile = await getProfileByEmail("notion@example.com");
+
+    createNotionBriefPageMock.mockRejectedValue(new Error("Notion API timeout."));
+    sendBriefToGoodnotesMock.mockResolvedValue({
+      attachmentFileName: "daily-brief.pdf",
+      messageId: "message-fallback-1",
+    });
+
+    const summary = await deliverHistoryBriefToProfiles(
+      [readyProfile ?? profileWithFallback ?? notionProfile!],
+      buildBrief(),
+    );
+
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        interactionUrl: null,
+      }),
+      expect.anything(),
+    );
+    expect(summary.deliveryAttemptCount).toBe(2);
+    expect(summary.deliverySuccessCount).toBe(1);
+    expect(summary.deliveryFailureCount).toBe(1);
+    expect(
+      summary.failedDeliveryTargets.some(
+        (target) => target.channel === "goodnotes",
+      ),
+    ).toBe(false);
+  });
+
+  test("still attempts Goodnotes delivery when Notion sync fails without a fallback URL", async () => {
+    const profile = await createNotionProfile();
+    await updateStudentPreferences("notion@example.com", {
+      studentName: "Learner",
+      programme: "PYP",
+      programmeYear: 5,
+      goodnotesEmail: "learner@goodnotes.email",
+    });
+    await updateStudentGoodnotesDelivery("notion@example.com", {
+      goodnotesConnected: true,
+      goodnotesVerifiedAt: "2026-04-03T00:00:00.000Z",
+      goodnotesLastDeliveryStatus: "success",
+      goodnotesLastDeliveryMessage: "Goodnotes delivery is ready.",
+    });
+    const readyProfile = await getProfileByEmail("notion@example.com");
+
+    createNotionBriefPageMock.mockRejectedValue(new Error("Notion API timeout."));
+    sendBriefToGoodnotesMock.mockResolvedValue({
+      attachmentFileName: "daily-brief.pdf",
+      messageId: "message-fallback-2",
+    });
+
+    const summary = await deliverHistoryBriefToProfiles(
+      [readyProfile ?? profile!],
+      buildBrief(),
+    );
+
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledTimes(1);
+    expect(sendBriefToGoodnotesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        interactionUrl: null,
+      }),
+      expect.anything(),
+    );
+    expect(
+      summary.failedDeliveryTargets.some(
+        (target) => target.channel === "goodnotes",
+      ),
+    ).toBe(false);
+  });
+
   test("skips normal delivery for channels that are not dispatchable yet", async () => {
     const profile = await createPendingGoodnotesProfile();
     sendBriefToGoodnotesMock.mockResolvedValue({

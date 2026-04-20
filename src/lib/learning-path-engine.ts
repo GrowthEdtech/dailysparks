@@ -1,7 +1,6 @@
-import { getProfileByEmail as getProfileStore } from "./mvp-store";
 import { listDailyBriefHistory } from "./daily-brief-history-store";
 import { fetchNotionPageInteractions } from "./notion";
-import type { ParentProfile, StudentRecord } from "./mvp-types";
+import type { ParentProfile } from "./mvp-types";
 
 const PROMOTION_THRESHOLD = 0.85; // 85% completion
 const DEMOTION_THRESHOLD = 0.30; // 30% completion
@@ -44,18 +43,19 @@ const PERSONA_TAG_MAP: Record<string, "analytical" | "reflective"> = {
 
 export async function evaluateStudentTrajectory(
   profile: ParentProfile,
-  daysLookback = 7
+  daysLookback = 7,
 ): Promise<LearningPathAdjustmentResult> {
-  const store = getProfileStore();
   const currentTier = profile.student.academicTier || "core";
   
   // 1. Fetch relevant history and aggregate interaction scores
   const anchorDate = new Date();
-  const lookbackDate = new Date(anchorDate.getTime() - daysLookback * 24 * 60 * 60 * 1000);
+  const lookbackDate = new Date(
+    anchorDate.getTime() - daysLookback * 24 * 60 * 60 * 1000,
+  );
   
   const allHistory = await listDailyBriefHistory({ status: "published" });
-  const studentHistory = allHistory.filter(entry => 
-    entry.deliveryReceipts.some(r => r.parentId === profile.parent.id) &&
+  const studentHistory = allHistory.filter((entry) =>
+    entry.deliveryReceipts.some((receipt) => receipt.parentId === profile.parent.id) &&
     new Date(entry.scheduledFor) >= lookbackDate
   );
 
@@ -63,8 +63,10 @@ export async function evaluateStudentTrajectory(
     return {
       previousTier: currentTier,
       newTier: currentTier,
+      previousPersona: profile.student.learnerPersona || "general",
+      newPersona: profile.student.learnerPersona || "general",
       adjusted: false,
-      reason: "Insufficient interaction data for this period."
+      reason: "Insufficient interaction data for this period.",
     };
   }
 
@@ -145,35 +147,15 @@ export async function evaluateStudentTrajectory(
     }
   }
 
-  // 4. Update the profile if changed
   const adjusted = newTier !== currentTier || newPersona !== currentPersona;
-  if (adjusted) {
-    const adaptationHistory = profile.student.adaptationHistory || [];
-    let adjustmentReason = reason;
-    if (newPersona !== currentPersona) {
-      const personaReason = `Interest pivot detected: learner shows strong affinity for ${newPersona === "analytical" ? "Systems/STEM" : "Impact/Humanities"} content.`;
-      adjustmentReason = reason === "Engagement remains within standard parameters." ? personaReason : `${reason} ${personaReason}`;
-    }
-
-    adaptationHistory.push({
-      date: new Date().toISOString(),
-      from: `${currentTier}/${currentPersona}`,
-      to: `${newTier}/${newPersona}`,
-      reason: adjustmentReason
-    });
-
-    await store.updateStudentRecord(profile.parent.email, {
-      ...profile.student,
-      academicTier: newTier,
-      learnerPersona: newPersona,
-      engagementStats: {
-        last7DaysScore: engagementScore,
-        totalTasks,
-        completedTasks,
-        snapshotDate: new Date().toISOString()
-      },
-      adaptationHistory
-    });
+  if (adjusted && newPersona !== currentPersona) {
+    const personaReason = `Interest pivot detected: learner shows strong affinity for ${
+      newPersona === "analytical" ? "Systems/STEM" : "Impact/Humanities"
+    } content.`;
+    reason =
+      reason === "Engagement remains within standard parameters."
+        ? personaReason
+        : `${reason} ${personaReason}`;
   }
 
   return {
@@ -182,6 +164,6 @@ export async function evaluateStudentTrajectory(
     previousPersona: currentPersona,
     newPersona,
     adjusted,
-    reason
+    reason,
   };
 }

@@ -197,6 +197,8 @@ export async function POST(request: Request) {
         summary: brief.summary,
         programme: brief.programme,
         editorialCohort: brief.editorialCohort,
+        academicTier: brief.academicTier,
+        learnerPersona: brief.learnerPersona,
         status: brief.recommendedStatus,
         topicClusterKey: brief.topicClusterKey,
         topicLatestPublishedAt: brief.topicLatestPublishedAt,

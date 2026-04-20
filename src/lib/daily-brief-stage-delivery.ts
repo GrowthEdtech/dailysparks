@@ -110,6 +110,8 @@ function toGeneratedBriefDraft(
     resolvedPrompt: "",
     candidateCount: brief.sourceReferences.length,
     retrievalPrompts: brief.retrievalPrompts,
+    recommendedStatus: brief.status,
+    recommendedPipelineStage: brief.pipelineStage,
   };
 }
 
@@ -179,6 +181,8 @@ export async function deliverHistoryBriefToProfiles(
   const failedDeliveryTargets: DailyBriefFailedDeliveryTarget[] = [];
 
   for (const profile of profiles) {
+    // Only attach an interaction URL when this specific brief successfully syncs to Notion.
+    // Reusing an older page URL would misroute families into a stale brief.
     let interactionUrl: string | null = null;
 
     if (shouldAttemptChannel(profile, "notion", options)) {
@@ -236,19 +240,6 @@ export async function deliverHistoryBriefToProfiles(
 
     if (shouldAttemptChannel(profile, "goodnotes", options)) {
       deliveryAttemptCount += 1;
-
-      // PRE-FLIGHT CHECK: Ensure interactive link exists if Notion was attempted
-      if (!interactionUrl && profile.parent.notionConnected) {
-        const errorMessage = "Goodnotes delivery held: Missing interactionUrl (Notion page creation likely failed).";
-        deliveryFailureCount += 1;
-        failedDeliveryTargets.push({
-          parentId: profile.parent.id,
-          parentEmail: profile.parent.email,
-          channel: "goodnotes",
-          errorMessage,
-        });
-        continue;
-      }
 
       try {
         const result = await withRetry(() => sendBriefToGoodnotes(profile, {
